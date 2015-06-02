@@ -75,7 +75,7 @@
 #define IDS_USEWIN32                    182
 #define IDS_IPMSG                       183
 #define IDS_PASSWDNOTSET                184
-#define IDS_WIN32EDITION                185
+#define IDS_WINEDITION                  185
 #define IDS_WIN16EDITION                186
 #define IDS_NOTABSENCE                  188
 #define IDS_FILEEXTERR                  189

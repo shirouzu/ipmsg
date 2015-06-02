@@ -80,10 +80,10 @@ BEGIN
 END
 
 RECEIVE_DIALOG DIALOGEX 0, 0, 173, 119
-STYLE WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
-    WS_THICKFRAME
+STYLE WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_DISABLED | WS_CAPTION | 
+    WS_SYSMENU | WS_THICKFRAME
 CAPTION "Receive Message"
-FONT 11, "ＭＳ ゴシック", 0, 0, 0x1
+FONT 11, "ＭＳ ゴシック"
 BEGIN
     PUSHBUTTON      "開封",OPEN_BUTTON,6,36,159,62,BS_CENTER | BS_VCENTER
     DEFPUSHBUTTON   "返信",IDOK,93,103,43,14
@@ -643,7 +643,6 @@ SENDSIZE_MENU MENU DISCARDABLE
 BEGIN
     MENUITEM "サイズ保存",                  MENU_SAVESIZE
     MENUITEM "標準に戻す(一時）",           MENU_NORMALSIZE
-//  MENUITEM "リストヘッダ保存",            MENU_SAVECOLUMN
 END
 
 SIZE_MENU MENU DISCARDABLE 
@@ -681,8 +680,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,2,0,0
- PRODUCTVERSION 3,2,0,0
+ FILEVERSION 3,2,1,0
+ PRODUCTVERSION 3,2,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -700,12 +699,12 @@ BEGIN
             VALUE "Comments", "IP Messenger for Win\0"
             VALUE "CompanyName", "H.Shirouzu\0"
             VALUE "FileDescription", "IPMsg\0"
-            VALUE "FileVersion", "3.20\0"
+            VALUE "FileVersion", "3.21\0"
             VALUE "InternalName", "チョット、いとうさん\0"
             VALUE "LegalCopyright", "Copyright (c) 1996-2011 H.Shirouzu \0"
             VALUE "OriginalFilename", "IPMsg.exe\0"
             VALUE "ProductName", "IPMsg\0"
-            VALUE "ProductVersion", "3.20\0"
+            VALUE "ProductVersion", "3.21\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -904,7 +903,7 @@ BEGIN
     IDS_USEWIN32            "This Program is Win16 version.\r\nPlease Use <IPMsg for Win>"
     IDS_IPMSG               "IPMsg"
     IDS_PASSWDNOTSET        "パスワードが設定されていないようです。\r\n再設定してください"
-    IDS_WIN32EDITION        "Win32版"
+    IDS_WINEDITION          "Win版"
     IDS_NOTABSENCE          "Not Absence mode"
     IDS_FILEEXTERR          "拡張子への関連付けがないか、無効です"
     IDS_CANTOPENLOG         "ログを開けません"
@@ -1180,10 +1179,10 @@ BEGIN
 END
 
 RECEIVE_DIALOG DIALOGEX 0, 0, 173, 119
-STYLE WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
-    WS_THICKFRAME
+STYLE WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_DISABLED | WS_CAPTION | 
+    WS_SYSMENU | WS_THICKFRAME
 CAPTION "Receive Message"
-FONT 9, "Verdana", 0, 0, 0x1
+FONT 9, "Verdana"
 BEGIN
     PUSHBUTTON      "Open",OPEN_BUTTON,6,36,159,62,BS_CENTER | BS_VCENTER
     DEFPUSHBUTTON   "Reply",IDOK,91,103,43,14
@@ -1732,7 +1731,7 @@ BEGIN
     IDS_USEWIN32            "This Program is Win16 version.\r\nPlease Use <IPMsg for Win>"
     IDS_IPMSG               "IPMsgEng"
     IDS_PASSWDNOTSET        "Password is not set.\r\nPlease set."
-    IDS_WIN32EDITION        "Win32(en)"
+    IDS_WINEDITION          "Win(en)"
     IDS_NOTABSENCE          "Not Absence mode"
     IDS_FILEEXTERR          "Invalid file extention link"
     IDS_CANTOPENLOG         "Can't open log file"

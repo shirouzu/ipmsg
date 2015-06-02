@@ -1,5 +1,5 @@
 static char *install_id = 
-	"@(#)Copyright (C) H.Shirouzu 1998-2011   install.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 1998-2011   install.cpp	Ver3.21";
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Installer Application Class
@@ -92,23 +92,37 @@ BOOL TInstDlg::EvCreate(LPARAM lParam)
 
 // 現在ディレクトリ設定
 	char	buf[MAX_PATH_U8], setupDir[MAX_PATH_U8];
+#ifdef _WIN64
+	char	x86dir[MAX_PATH_U8] = "";
+#endif
 
 // Program Filesのパス取り出し
 	TRegistry	reg(HKEY_LOCAL_MACHINE);
 	if (reg.OpenKey(REGSTR_PATH_SETUP)) {
-		if (reg.GetStr(REGSTR_PROGRAMFILES, buf, sizeof(buf)))
+		if (reg.GetStr(REGSTR_PROGRAMFILES, buf, sizeof(buf))) {
 			MakePath(setupDir, buf, IPMSG_STR);
+		}
+#ifdef _WIN64
+		if (reg.GetStr(REGSTR_PROGRAMFILESX86, buf, sizeof(buf)))
+			MakePath(x86dir, buf, IPMSG_STR);
+#endif
 		reg.CloseKey();
 	}
 
 // 既にセットアップされている場合は、セットアップディレクトリを読み出す
 	if (reg.OpenKey(REGSTR_PATH_APPPATHS)) {
 		if (reg.OpenKey(IPMSG_EXENAME)) {
-			reg.GetStr(REGSTR_PATH, setupDir, sizeof(setupDir));
+			if (reg.GetStr(REGSTR_PATH, buf, sizeof(buf))) {
+#ifdef _WIN64
+				if (strcmp(buf, x86dir))
+#endif
+				strcpy(setupDir, buf);
+			}
 			reg.CloseKey();
 		}
 		reg.CloseKey();
 	}
+
 	SetDlgItemTextU8(FILE_EDIT, setupDir);
 	CheckDlgButton(STARTUP_CHECK, 1);
 	CheckDlgButton(PROGRAM_CHECK, 1);
@@ -227,19 +241,14 @@ BOOL TInstDlg::Install(void)
 {
 	char	buf[MAX_PATH_U8], setupDir[MAX_PATH_U8], setupPath[MAX_PATH_U8];
 	char	installPath[MAX_PATH_U8];
+	BOOL	extract_only = IsDlgButtonChecked(EXTRACT_CHECK);
 
 // 現在、起動中の ipmsg を終了
-	int		st = TerminateIPMsg();
+	int		st = extract_only ? 0 : TerminateIPMsg();
 	if (st == 1) return	FALSE;
 
 // インストールパス設定
 	GetDlgItemTextU8(FILE_EDIT, setupDir, sizeof(setupDir));
-
-	CreateDirectoryU8(setupDir, NULL);
-	DWORD	attr = GetFileAttributesU8(setupDir);
-	if (attr == 0xffffffff || (attr & FILE_ATTRIBUTE_DIRECTORY) == 0)
-		return	MessageBox(GetLoadStr(IDS_NOTCREATEDIR), INSTALL_STR), FALSE;
-	MakePath(setupPath, setupDir, IPMSG_EXENAME);
 
 	if (IsWinVista() && !TIsUserAnAdmin() && TIsEnableUAC()
 			&& TIsVirtualizedDirV(U8toW(setupDir))) {
@@ -247,6 +256,12 @@ BOOL TInstDlg::Install(void)
 				MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) return	FALSE;
 		return	RunAsAdmin(hWnd, TRUE);
 	}
+
+	CreateDirectoryU8(setupDir, NULL);
+	DWORD	attr = GetFileAttributesU8(setupDir);
+	if (attr == 0xffffffff || (attr & FILE_ATTRIBUTE_DIRECTORY) == 0)
+		return	MessageBox(GetLoadStr(IDS_NOTCREATEDIR), INSTALL_STR), FALSE;
+	MakePath(setupPath, setupDir, IPMSG_EXENAME);
 
 	if (st == 2) {
 		MessageBox(GetLoadStr(IDS_CANTTERMINATE), INSTALL_STR);
@@ -274,7 +289,7 @@ BOOL TInstDlg::Install(void)
 	}
 
 // 展開のみ
-	if (IsDlgButtonChecked(EXTRACT_CHECK)) {
+	if (extract_only) {
 		ShellExecuteU8(NULL, NULL, setupDir, 0, 0, SW_SHOW);
 		return TRUE;
 	}

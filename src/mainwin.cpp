@@ -1,10 +1,10 @@
 static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   mainwin.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   mainwin.cpp	Ver3.21";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-06-27(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -338,6 +338,7 @@ BOOL TMainWin::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		return	TRUE;
 
 	case MENU_OPENHISTDLG:
+		histDlg->SetMode(FALSE);
 		MiscDlgOpen(histDlg);
 		return	TRUE;
 
@@ -1465,7 +1466,7 @@ void TMainWin::MsgGetInfo(MsgBuf *msg)
 {
 	char	buf[MAX_LISTBUF];
 
-	wsprintf(buf, "%sVer%s", GetLoadStrU8(IDS_WIN32EDITION), GetVersionStr());
+	wsprintf(buf, "%sVer%s", GetLoadStrU8(IDS_WINEDITION), GetVersionStr());
 	msgMng->Send(&msg->hostSub, IPMSG_SENDINFO, buf);
 }
 
@@ -1714,14 +1715,12 @@ void TMainWin::SendDlgHide(TSendDlg *sendDlg)
 {
 	ControlIME(sendDlg, FALSE);
 
-	if (sendDlg->GetRecvWnd() && !cfg->NoErase)
-	{
+	if (sendDlg->GetRecvWnd() && !cfg->NoErase) {
 		TRecvDlg *recvDlg;
 
-		for (recvDlg = (TRecvDlg *)recvList.TopObj(); recvDlg; recvDlg = (TRecvDlg *)recvList.NextObj(recvDlg))
-		{
-			if (recvDlg->hWnd == sendDlg->GetRecvWnd() && recvDlg->IsClosable())
-			{
+		for (recvDlg = (TRecvDlg *)recvList.TopObj();
+				recvDlg; recvDlg = (TRecvDlg *)recvList.NextObj(recvDlg)) {
+			if (recvDlg->hWnd == sendDlg->GetRecvWnd() && recvDlg->IsClosable()) {
 				recvDlg->EvCommand(0, IDCANCEL, 0);
 				break;
 			}

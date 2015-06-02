@@ -1,10 +1,10 @@
 static char *miscdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   miscdlg.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   miscdlg.cpp	Ver3.21";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc Dialog
 	Create					: 1996-12-15(Sun)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-06-27(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -1063,13 +1063,16 @@ void THistDlg::OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify)
 
 	if (*obj->odate) return;
 
-	if (notify) strncpyz(obj->sdate, notify, sizeof(obj->sdate));
-
 	SYSTEMTIME	st;
 	::GetLocalTime(&st);
 	sprintf(obj->odate, "%02d/%02d %02d:%02d", st.wMonth, st.wDay, st.wHour, st.wMinute);
 	if (--unOpenedNum < 0) unOpenedNum = 0;
 	histHash.RegisterLru(obj);
+
+	if (notify) {
+		strncpyz(obj->sdate, obj->odate, sizeof(obj->sdate));
+		strncpyz(obj->odate, notify, sizeof(obj->odate));
+	}
 
 	if (hWnd) {
 		if (openedMode) {

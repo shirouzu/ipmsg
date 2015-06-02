@@ -1229,7 +1229,8 @@ public:
 	virtual ~TRecvDlg();
 
 	virtual BOOL	IsClosable(void) {
-						return openFlg && (fileObj == NULL || fileObj->conInfo == NULL);
+						return openFlg && (fileObj == NULL || fileObj->conInfo == NULL) &&
+								!clipList.TopObj();
 					}
 	virtual BOOL	IsSamePacket(MsgBuf *test_msg);
 	virtual BOOL	SendFinishNotify(HostSub *hostSub, ULONG packet_no);

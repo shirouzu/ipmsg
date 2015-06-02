@@ -85,6 +85,7 @@ public:
 #define REGSTR_PROGRAMS			"Programs"
 #define REGSTR_PATH				"Path"
 #define REGSTR_PROGRAMFILES		"ProgramFilesDir"
+#define REGSTR_PROGRAMFILESX86	"ProgramFilesDir (x86)"
 
 #define INSTALL_STR				"Install"
 

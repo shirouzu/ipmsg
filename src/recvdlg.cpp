@@ -990,6 +990,9 @@ BOOL TRecvDlg::SendFinishNotify(HostSub *hostSub, ULONG packet_no)
 void TRecvDlg::Show(int mode)
 {
 	if (status != SHOW) return;
+
+	EnableWindow(TRUE);
+
 	if (timerID == 0 && hWnd) {
 		if (mode != SW_HIDE && (cfg->ClipMode & CLIP_CONFIRM) == 0 && openFlg) {
 			InsertImages(); // display and remove

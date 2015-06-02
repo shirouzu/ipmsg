@@ -1,10 +1,10 @@
 static char *richedit_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   richedit.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 2011   richedit.cpp	Ver3.21";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Rich Edit Control and PNG-BMP convert
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-06-27(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -975,7 +975,7 @@ struct RichStreamObj {
 	int			offset;
 };
 
-DWORD CALLBACK RichStreamCallback(DWORD dwCookie, BYTE *buf, LONG cb, LONG *pcb)
+DWORD CALLBACK RichStreamCallback(DWORD_PTR dwCookie, BYTE *buf, LONG cb, LONG *pcb)
 {
 	RichStreamObj *obj = (RichStreamObj *)dwCookie;
 	int remain = obj->max_len - obj->offset;
