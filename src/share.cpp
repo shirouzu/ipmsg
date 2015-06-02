@@ -1,10 +1,10 @@
 static char *share_id = 
-	"@(#)Copyright (C) H.Shirouzu 2002-2011   share.cpp	Ver3.10";
+	"@(#)Copyright (C) H.Shirouzu 2002-2011   share.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: File Share
 	Create					: 2002-04-14(Sun)
-	Update					: 2011-04-20(Wed)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -13,7 +13,7 @@ static char *share_id =
 #include "ipmsg.h"
 #include <stddef.h>
 
-#define BIG_ALLOC 5
+#define BIG_ALLOC 100
 
 /*
 	公開ファイル管理

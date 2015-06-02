@@ -92,8 +92,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="../../x64/lib/"
+			IntermediateDirectory="../../x64/obj/debug"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -123,10 +123,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\x64\Debug/TLib.pch"
-				AssemblerListingLocation=".\x64\Debug/"
-				ObjectFile=".\x64\Debug/"
-				ProgramDataBaseFileName=".\x64\Debug/"
+				PrecompiledHeaderFile="../../x64/obj/debug/TLib.pch"
+				AssemblerListingLocation="../../x64/obj/debug"
+				ObjectFile="../../x64/obj/debug"
+				ProgramDataBaseFileName="../../x64/obj/debug"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -144,7 +144,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="../../lib/x64/TLib_d.lib"
+				OutputFile="../../x64/lib/tlib_d.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -167,8 +167,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			OutputDirectory="../../Release/"
+			IntermediateDirectory="../../obj/ReleaseTlib"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -198,11 +198,11 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Release/TLib.pch"
+				PrecompiledHeaderFile="../../obj/ReleaseTlib/TLib.pch"
 				AssemblerOutput="2"
-				AssemblerListingLocation="../../obj/Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				AssemblerListingLocation="../../obj/ReleaseTlib/"
+				ObjectFile="../../obj/ReleaseTlib/"
+				ProgramDataBaseFileName="../../obj/ReleaseTlib/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -242,8 +242,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="../../x64/lib"
+			IntermediateDirectory="../../x64/obj/ReleaseTlib/"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -274,11 +274,11 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Release/TLib.pch"
+				PrecompiledHeaderFile=""
 				AssemblerOutput="2"
-				AssemblerListingLocation="../../obj/x64/Release/"
-				ObjectFile=".\x64\Release/"
-				ProgramDataBaseFileName=".\x64\Release/"
+				AssemblerListingLocation="../../x64/obj/ReleaseTlib/"
+				ObjectFile="../../x64/obj/ReleaseTlib/"
+				ProgramDataBaseFileName="../../x64/obj/ReleaseTlib/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -295,7 +295,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="../../lib/x64/TLib.lib"
+				OutputFile="../../x64/lib/tlib.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -683,6 +683,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\twinsock.cpp"
+				>
 			</File>
 		</Filter>
 		<Filter

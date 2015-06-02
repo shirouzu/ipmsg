@@ -1,10 +1,10 @@
 static char *senddlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   senddlg.cpp	Ver3.30";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   senddlg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-07-31(Sun)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -455,8 +455,8 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 	case MENU_IMAGERECT:
 		{
-			BOOL	is_ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) ? TRUE : FALSE;
-			if (is_ctrl ^ cfg->CaptureMinimize) {
+			BOOL	is_shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) ? TRUE : FALSE;
+			if (is_shift ^ cfg->CaptureMinimize) {
 				Show(SW_MINIMIZE);
 				::SetTimer(hWnd, IPMSG_IMAGERECT_TIMER, cfg->CaptureDelayEx, 0);
 			}
@@ -560,22 +560,9 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 */
 BOOL TSendDlg::EvSysCommand(WPARAM uCmdType, POINTS pos)
 {
-	switch (uCmdType)
-	{
-	case MENU_SAVEPOS:
-	case MENU_SAVESIZE:
-	case MENU_SAVECOLUMN:
-	case MENU_FINDDLG:
-	case MENU_EDITFONT: case MENU_LISTFONT:
-	case MENU_DEFAULTFONT:
-	case MENU_NORMALSIZE:
-	case MENU_MEMBERDISP:
-	case MENU_FILEADD:
-	case MENU_FOLDERADD:
-	case MENU_IMAGEPASTE:
+	if (uCmdType >= MENU_SETUP && uCmdType < ALLSELECT_ACCEL) { // ƒƒjƒ…[”ÍˆÍ(10000-15000)
 		return	EvCommand(0, uCmdType, 0);
 	}
-
 	return	FALSE;
 }
 
@@ -704,7 +691,7 @@ void TSendDlg::GetListItemStr(Host *host, int item, char *buf)
 		strcpy(buf, host->hostSub.hostName);
 		break;
 	case SW_IPADDR:
-		strcpy(buf, inet_ntoa(*(LPIN_ADDR)&host->hostSub.addr));
+		strcpy(buf, ::Tinet_ntoa(*(LPIN_ADDR)&host->hostSub.addr));
 		break;
 	default:
 		*buf = 0;
@@ -950,18 +937,6 @@ BOOL TSendDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 		imageWin.Create();
 		return	TRUE;
 	}
-//	else if (_timerID == IPMSG_KEYCHECK_TIMER) {
-//		if (hCurMenu) {
-//			BOOL is_ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
-//			ModifyMenuU8(hCurMenu, MENU_IMAGERECT, MF_BYCOMMAND|MF_STRING, MENU_IMAGERECT,
-//							Fmt("%s%s", GetLoadStrU8(IDS_IMAGERECTMENU),
-//								is_ctrl ? "(ex)" : ""));
-//		}
-//		else {
-//			::KillTimer(hWnd, IPMSG_KEYCHECK_TIMER);
-//		}
-//		return	TRUE;
-//	}
 
 	if (IsSendFinish())
 	{
@@ -1120,7 +1095,7 @@ void TSendDlg::AddHost(Host *host)
 			hostListView.SetSubItem(index, i, buf);
 		}
 
-#define BIG_ALLOC	100
+#define BIG_ALLOC	1000
 		if ((memberCnt % BIG_ALLOC) == 0)
 			hostArray = (Host **)realloc(hostArray, (memberCnt + BIG_ALLOC) * sizeof(Host *));
 		memmove(hostArray + index +1, hostArray + index, (memberCnt++ - index) * sizeof(Host *));
@@ -1231,7 +1206,7 @@ int TSendDlg::CompareHosts(Host *host1, Host *host2)
 		case SW_HOST:
 			ret = strcmp(host1->hostSub.hostName, host2->hostSub.hostName); break;
 		case SW_IPADDR:
-			ret = ntohl(host1->hostSub.addr) > ntohl(host2->hostSub.addr) ? 1 : -1;
+			ret = Tntohl(host1->hostSub.addr) > Tntohl(host2->hostSub.addr) ? 1 : -1;
 			break;
 		case SW_USER:
 			ret = strcmp(host1->hostSub.userName, host2->hostSub.userName); break;
@@ -1328,7 +1303,7 @@ int TSendDlg::SubCompare(Host *host1, Host *host2)
 		// ‚±‚Ì‚Ü‚Ü ‰º‚É—Ž‚¿‚é
 
 	case IPMSG_IPADDRSORT:
-		if (ntohl(host1->hostSub.addr) > ntohl(host2->hostSub.addr))
+		if (Tntohl(host1->hostSub.addr) > Tntohl(host2->hostSub.addr))
 			ret = 1;
 		else
 			ret = -1;

@@ -1,10 +1,10 @@
 static char *msgmng_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   msgmng.cpp	Ver3.00";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   msgmng.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Message Manager
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -20,7 +20,7 @@ MsgMng::MsgMng(ULONG nicAddr, int portNo, Cfg *_cfg)
 	udp_sd = tcp_sd = INVALID_SOCKET;
 	hAsyncWnd = 0;
 	local.addr = nicAddr;
-	local.portNo = htons(portNo);
+	local.portNo = Thtons(portNo);
 	cfg = _cfg;
 
 	if (!WSockInit(cfg ? TRUE : FALSE)) return;
@@ -37,10 +37,10 @@ MsgMng::MsgMng(ULONG nicAddr, int portNo, Cfg *_cfg)
 	if (nicAddr == INADDR_ANY)
 	{
 		char	host[MAX_BUF];
-		if (::gethostname(host, sizeof(host)) == -1)
+		if (::Tgethostname(host, sizeof(host)) == -1)
 			strcpy(host, local.hostName);
 
-		hostent	*ent = ::gethostbyname(host);
+		hostent	*ent = ::Tgethostbyname(host);
 		if (ent)
 			local.addr = *(ULONG *)ent->h_addr_list[0];
 	}
@@ -65,16 +65,19 @@ MsgMng::~MsgMng()
 BOOL MsgMng::WSockInit(BOOL recv_flg)
 {
 	WSADATA		wsaData;
-	if (::WSAStartup(0x0101, &wsaData) != 0)
-		return	GetSockErrorMsg("WSAStart()"), FALSE;
 
-	if ((udp_sd = ::socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
+	if (::TWSAStartup(MAKEWORD(2,2), &wsaData) != 0 &&
+		::TWSAStartup(MAKEWORD(1,1), &wsaData) != 0) {
+		return	GetSockErrorMsg("WSAStart()"), FALSE;
+	}
+
+	if ((udp_sd = ::Tsocket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
 		return	GetSockErrorMsg("Please setup TCP/IP(controlpanel->network)\r\n"), FALSE;
 
 	if (!recv_flg)
 		return	TRUE;
 
-	if ((tcp_sd = ::socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
+	if ((tcp_sd = ::Tsocket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 		return	GetSockErrorMsg("Please setup2 TCP/IP(controlpanel->network)\r\n"), FALSE;
 
 	struct sockaddr_in	addr;
@@ -83,42 +86,42 @@ BOOL MsgMng::WSockInit(BOOL recv_flg)
 	addr.sin_addr.s_addr	= local.addr;
 	addr.sin_port			= local.portNo;
 
-	if (::bind(udp_sd, (LPSOCKADDR)&addr, sizeof(addr)) != 0)
+	if (::Tbind(udp_sd, (LPSOCKADDR)&addr, sizeof(addr)) != 0)
 		return	GetSockErrorMsg("bind()"), FALSE;
 
-	if (::bind(tcp_sd, (LPSOCKADDR)&addr, sizeof(addr)) != 0)
+	if (::Tbind(tcp_sd, (LPSOCKADDR)&addr, sizeof(addr)) != 0)
 	{
-		::closesocket(tcp_sd);
+		::Tclosesocket(tcp_sd);
 		tcp_sd = INVALID_SOCKET;
 		GetSockErrorMsg("bind(tcp) error. Can't support file attach");
 	}
 
 	BOOL	flg = TRUE;	// Non Block
-	if (::ioctlsocket(udp_sd, FIONBIO, (unsigned long *)&flg) != 0)
+	if (::Tioctlsocket(udp_sd, FIONBIO, (unsigned long *)&flg) != 0)
 		return	GetSockErrorMsg("ioctlsocket(nonblock)"), FALSE;
 
-	if (IsAvailableTCP() && ::ioctlsocket(tcp_sd, FIONBIO, (unsigned long *)&flg) != 0)
+	if (IsAvailableTCP() && ::Tioctlsocket(tcp_sd, FIONBIO, (unsigned long *)&flg) != 0)
 		return	GetSockErrorMsg("ioctlsocket tcp(nonblock)"), FALSE;
 
 	flg = TRUE;			// allow broadcast
-	if (::setsockopt(udp_sd, SOL_SOCKET, SO_BROADCAST, (char *)&flg, sizeof(flg)) != 0)
+	if (::Tsetsockopt(udp_sd, SOL_SOCKET, SO_BROADCAST, (char *)&flg, sizeof(flg)) != 0)
 		return	GetSockErrorMsg("setsockopt(broadcast)"), FALSE;
 
 	int	buf_size = MAX_SOCKBUF, buf_minsize = MAX_SOCKBUF / 2;		// UDP バッファ設定
-	if (::setsockopt(udp_sd, SOL_SOCKET, SO_SNDBUF, (char *)&buf_size, sizeof(int)) != 0
-	&&	::setsockopt(udp_sd, SOL_SOCKET, SO_SNDBUF, (char *)&buf_minsize, sizeof(int)) != 0)
+	if (::Tsetsockopt(udp_sd, SOL_SOCKET, SO_SNDBUF, (char *)&buf_size, sizeof(int)) != 0
+	&&	::Tsetsockopt(udp_sd, SOL_SOCKET, SO_SNDBUF, (char *)&buf_minsize, sizeof(int)) != 0)
 		GetSockErrorMsg("setsockopt(sendbuf)");
 
 	buf_size = MAX_SOCKBUF, buf_minsize = MAX_SOCKBUF / 2;
-	if (::setsockopt(udp_sd, SOL_SOCKET, SO_RCVBUF, (char *)&buf_size, sizeof(int)) != 0
-	&&	::setsockopt(udp_sd, SOL_SOCKET, SO_RCVBUF, (char *)&buf_minsize, sizeof(int)) != 0)
+	if (::Tsetsockopt(udp_sd, SOL_SOCKET, SO_RCVBUF, (char *)&buf_size, sizeof(int)) != 0
+	&&	::Tsetsockopt(udp_sd, SOL_SOCKET, SO_RCVBUF, (char *)&buf_minsize, sizeof(int)) != 0)
 		GetSockErrorMsg("setsockopt(recvbuf)");
 
 	flg = TRUE;	// REUSE ADDR
-	if (IsAvailableTCP() && ::setsockopt(tcp_sd, SOL_SOCKET, SO_REUSEADDR, (char *)&flg, sizeof(flg)) != 0)
+	if (IsAvailableTCP() && ::Tsetsockopt(tcp_sd, SOL_SOCKET, SO_REUSEADDR, (char *)&flg, sizeof(flg)) != 0)
 		GetSockErrorMsg("setsockopt tcp(reuseaddr)");
 
-	if (IsAvailableTCP() && ::listen(tcp_sd, 100) != 0)
+	if (IsAvailableTCP() && ::Tlisten(tcp_sd, 100) != 0)
 		return	FALSE;
 
 	return	TRUE;
@@ -127,20 +130,19 @@ BOOL MsgMng::WSockInit(BOOL recv_flg)
 void MsgMng::WSockTerm(void)
 {
 	CloseSocket();
-	if (IsNewShell())	// なぜか NT3.51 では爆死...
-		WSACleanup();
+	TWSACleanup();
 }
 
 void MsgMng::CloseSocket(void)
 {
 	if (udp_sd != INVALID_SOCKET)
 	{
-		::closesocket(udp_sd);
+		::Tclosesocket(udp_sd);
 		udp_sd = INVALID_SOCKET;
 	}
 	if (tcp_sd != INVALID_SOCKET)
 	{
-		::closesocket(tcp_sd);
+		::Tclosesocket(tcp_sd);
 		tcp_sd = INVALID_SOCKET;
 	}
 }
@@ -178,10 +180,10 @@ BOOL MsgMng::AsyncSelectRegister(HWND hWnd)
 	if (hAsyncWnd == 0)
 		hAsyncWnd = hWnd;
 
-	if (::WSAAsyncSelect(udp_sd, hWnd, WM_UDPEVENT, FD_READ) == SOCKET_ERROR)
+	if (::TWSAAsyncSelect(udp_sd, hWnd, WM_UDPEVENT, FD_READ) == SOCKET_ERROR)
 		return	FALSE;
 
-	if (::WSAAsyncSelect(tcp_sd, hWnd, WM_TCPEVENT, FD_ACCEPT|FD_CLOSE) == SOCKET_ERROR)
+	if (::TWSAAsyncSelect(tcp_sd, hWnd, WM_TCPEVENT, FD_ACCEPT|FD_CLOSE) == SOCKET_ERROR)
 		return	FALSE;
 
 	return	TRUE;
@@ -420,16 +422,16 @@ BOOL MsgMng::UdpSend(ULONG host_addr, int port_no, const char *buf, int len)
 	addr.sin_port			= port_no;
 	addr.sin_addr.s_addr	= host_addr;
 
-	if (::sendto(udp_sd, buf, len, 0, (LPSOCKADDR)&addr, sizeof(addr)) == SOCKET_ERROR)
+	if (::Tsendto(udp_sd, buf, len, 0, (LPSOCKADDR)&addr, sizeof(addr)) == SOCKET_ERROR)
 	{
-		switch (WSAGetLastError()) {
+		switch (TWSAGetLastError()) {
 		case WSAENETDOWN:
 			break;
 		case WSAEHOSTUNREACH:
 			static	BOOL	done;
 			if (!done) {
 				done = TRUE;
-//				MessageBox(0, GetLoadStr(IDS_HOSTUNREACH), inet_ntoa(*(LPIN_ADDR)&host_addr), MB_OK);
+//				MessageBox(0, GetLoadStr(IDS_HOSTUNREACH), ::Tinet_ntoa(*(LPIN_ADDR)&host_addr), MB_OK);
 			}
 			return	FALSE;
 		default:
@@ -442,7 +444,7 @@ BOOL MsgMng::UdpSend(ULONG host_addr, int port_no, const char *buf, int len)
 		if (hAsyncWnd && !AsyncSelectRegister(hAsyncWnd))
 			return	FALSE;
 
-		if (::sendto(udp_sd, buf, len, 0, (LPSOCKADDR)&addr, sizeof(addr)) == SOCKET_ERROR)
+		if (::Tsendto(udp_sd, buf, len, 0, (LPSOCKADDR)&addr, sizeof(addr)) == SOCKET_ERROR)
 			return	FALSE;
 	}
 
@@ -454,7 +456,7 @@ BOOL MsgMng::UdpRecv(RecvBuf *buf)
 {
 	buf->addrSize = sizeof(buf->addr);
 
-	if ((buf->size = ::recvfrom(udp_sd, buf->msgBuf, sizeof(buf->msgBuf) -1, 0, (LPSOCKADDR)&buf->addr, &buf->addrSize)) == SOCKET_ERROR)
+	if ((buf->size = ::Trecvfrom(udp_sd, buf->msgBuf, sizeof(buf->msgBuf) -1, 0, (LPSOCKADDR)&buf->addr, &buf->addrSize)) == SOCKET_ERROR)
 		return	FALSE;
 	buf->msgBuf[buf->size] = 0;
 
@@ -465,16 +467,16 @@ BOOL MsgMng::Accept(HWND hWnd, ConnectInfo *info)
 {
 	struct sockaddr_in	addr;
 	int		size = sizeof(addr), flg=TRUE;
-	if ((info->sd = ::accept(tcp_sd, (LPSOCKADDR)&addr, &size)) == INVALID_SOCKET)
+	if ((info->sd = ::Taccept(tcp_sd, (LPSOCKADDR)&addr, &size)) == INVALID_SOCKET)
 		return	FALSE;
-	::setsockopt(info->sd, SOL_SOCKET, TCP_NODELAY, (char *)&flg, sizeof(flg));
+	::Tsetsockopt(info->sd, SOL_SOCKET, TCP_NODELAY, (char *)&flg, sizeof(flg));
 
 	info->addr = addr.sin_addr.s_addr;
 	info->port = addr.sin_port;
 	info->server = info->complete = TRUE;
 
 	for (int buf_size=cfg->TcpbufMax; buf_size > 0; buf_size /= 2)
-		if (::setsockopt(info->sd, SOL_SOCKET, SO_SNDBUF, (char *)&buf_size, sizeof(buf_size)) == 0)
+		if (::Tsetsockopt(info->sd, SOL_SOCKET, SO_SNDBUF, (char *)&buf_size, sizeof(buf_size)) == 0)
 			break;
 
 	if (AsyncSelectConnect(hWnd, info))
@@ -483,23 +485,23 @@ BOOL MsgMng::Accept(HWND hWnd, ConnectInfo *info)
 		return	TRUE;
 	}
 
-	::closesocket(info->sd);
+	::Tclosesocket(info->sd);
 	return	FALSE;
 }
 
 BOOL MsgMng::Connect(HWND hWnd, ConnectInfo *info)
 {
 	info->server = FALSE;
-	if ((info->sd = ::socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
+	if ((info->sd = ::Tsocket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 		return	FALSE;
 
 	BOOL	flg = TRUE;	// Non Block
-	if (::ioctlsocket(info->sd, FIONBIO, (unsigned long *)&flg) != 0)
+	if (::Tioctlsocket(info->sd, FIONBIO, (unsigned long *)&flg) != 0)
 		return	FALSE;
-	::setsockopt(info->sd, SOL_SOCKET, TCP_NODELAY, (char *)&flg, sizeof(flg));
+	::Tsetsockopt(info->sd, SOL_SOCKET, TCP_NODELAY, (char *)&flg, sizeof(flg));
 
 	for (int buf_size=cfg->TcpbufMax; buf_size > 0; buf_size /= 2)
-		if (::setsockopt(info->sd, SOL_SOCKET, SO_RCVBUF, (char *)&buf_size, sizeof(buf_size)) == 0)
+		if (::Tsetsockopt(info->sd, SOL_SOCKET, SO_RCVBUF, (char *)&buf_size, sizeof(buf_size)) == 0)
 			break;
 
 	if (AsyncSelectConnect(hWnd, info))
@@ -509,19 +511,19 @@ BOOL MsgMng::Connect(HWND hWnd, ConnectInfo *info)
 		addr.sin_family			= AF_INET;
 		addr.sin_port			= info->port;
 		addr.sin_addr.s_addr	= info->addr;
-		if ((info->complete = (::connect(info->sd, (LPSOCKADDR)&addr, sizeof(addr)) == 0)) || WSAGetLastError() == WSAEWOULDBLOCK)
+		if ((info->complete = (::Tconnect(info->sd, (LPSOCKADDR)&addr, sizeof(addr)) == 0)) || TWSAGetLastError() == WSAEWOULDBLOCK)
 		{
 			info->startTick = info->lastTick = ::GetTickCount();
 			return	TRUE;
 		}
 	}
-	::closesocket(info->sd);
+	::Tclosesocket(info->sd);
 	return	FALSE;
 }
 
 BOOL MsgMng::AsyncSelectConnect(HWND hWnd, ConnectInfo *info)
 {
-	if (::WSAAsyncSelect(info->sd, hWnd, WM_TCPEVENT, (info->server ? FD_READ : FD_CONNECT)|FD_CLOSE) == SOCKET_ERROR)
+	if (::TWSAAsyncSelect(info->sd, hWnd, WM_TCPEVENT, (info->server ? FD_READ : FD_CONNECT)|FD_CLOSE) == SOCKET_ERROR)
 		return	FALSE;
 	return	TRUE;
 }
@@ -531,9 +533,9 @@ BOOL MsgMng::AsyncSelectConnect(HWND hWnd, ConnectInfo *info)
 */
 BOOL MsgMng::ConnectDone(HWND hWnd, ConnectInfo *info)
 {
-	::WSAAsyncSelect(info->sd, hWnd, 0, 0);	// 非同期メッセージの抑制
+	::TWSAAsyncSelect(info->sd, hWnd, 0, 0);	// 非同期メッセージの抑制
 	BOOL	flg = FALSE;
-	::ioctlsocket(info->sd, FIONBIO, (unsigned long *)&flg);
+	::Tioctlsocket(info->sd, FIONBIO, (unsigned long *)&flg);
 	return	TRUE;
 }
 

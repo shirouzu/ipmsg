@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2011   ipmsgcmn.h	Ver3.30 */
+/*	@(#)Copyright (C) H.Shirouzu 2011   ipmsgcmn.h	Ver3.31 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Common Header
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-07-31(Sun)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -487,6 +487,7 @@ public:
 	BOOL	ReadRegistry(void);
 	BOOL	WriteRegistry(int ctl_flg = CFG_ALL);
 	void	GetRegName(char *buf, ULONG nic_addr, int port_no);
+	void	GetSelfRegName(char *buf);
 };
 
 struct MsgBuf {
@@ -1336,7 +1337,16 @@ public:
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl);
 };
 
-#define MAX_SETUP_SHEET	7
+#define MAIN_SHEET     SETUP_SHEET1
+#define DETAIL_SHEET   SETUP_SHEET2
+#define SENDRECV_SHEET SETUP_SHEET3
+#define IMAGE_SHEET    SETUP_SHEET4
+#define LOG_SHEET      SETUP_SHEET5
+#define PASSWORD_SHEET SETUP_SHEET6
+#define URL_SHEET      SETUP_SHEET7
+#define BACKUP_SHEET   SETUP_SHEET8
+#define MAX_SETUP_SHEET	(SETUP_SHEET8 - SETUP_SHEET1 + 1)
+
 class TSetupDlg : public TDlg {
 	Cfg			*cfg;
 	THosts		*hosts;

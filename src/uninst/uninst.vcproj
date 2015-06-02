@@ -18,8 +18,8 @@
 	<Configurations>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			OutputDirectory="..\..\Release"
+			IntermediateDirectory="..\..\Obj\ReleaseUninst"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -55,10 +55,10 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Release/uninst.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				PrecompiledHeaderFile="..\..\Obj\ReleaseUninst/uninst.pch"
+				AssemblerListingLocation="..\..\Obj\ReleaseUninst/"
+				ObjectFile="..\..\Obj\ReleaseUninst/"
+				ProgramDataBaseFileName="..\..\Obj\ReleaseUninst/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -79,7 +79,7 @@
 				OutputFile="../../Release/setup.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ProgramDatabaseFile=".\Release/setup.pdb"
+				ProgramDatabaseFile="..\..\Obj\ReleaseUninst/setup.pdb"
 				SubSystem="2"
 				TargetMachine="1"
 			/>
@@ -112,8 +112,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="../../x64/Release/"
+			IntermediateDirectory="../../x64/Obj/ReleaseUninst/"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -149,10 +149,10 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\x64\Release/uninst.pch"
-				AssemblerListingLocation=".\x64\Release/"
-				ObjectFile=".\x64\Release/"
-				ProgramDataBaseFileName=".\x64\Release/"
+				PrecompiledHeaderFile="../../x64/Obj/ReleaseUninst/uninst.pch"
+				AssemblerListingLocation="../../x64/Obj/ReleaseUninst/"
+				ObjectFile="../../x64/Obj/ReleaseUninst/"
+				ProgramDataBaseFileName="../../x64/Obj/ReleaseUninst/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -169,7 +169,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib ..\..\lib\x64\tlib.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib ..\..\x64\lib\tlib.lib"
 				OutputFile="../../x64/Release/setup.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -301,8 +301,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="..\..\x64\Debug/"
+			IntermediateDirectory="..\..\x64\UninstDebug/"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -337,10 +337,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\x64\Debug/uninst.pch"
-				AssemblerListingLocation=".\x64\Debug/"
-				ObjectFile=".\x64\Debug/"
-				ProgramDataBaseFileName=".\x64\Debug/"
+				PrecompiledHeaderFile="..\..\x64\UninstDebug/uninst.pch"
+				AssemblerListingLocation="..\..\x64\UninstDebug/"
+				ObjectFile="..\..\x64\UninstDebug/"
+				ProgramDataBaseFileName="..\..\x64\UninstDebug/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -358,12 +358,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib ..\..\lib\x64\tlib_d.lib"
-				OutputFile=".\x64\Debug/setup.exe"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib ..\..\x64\lib\tlib_d.lib"
+				OutputFile="..\..\x64\Debug/setup.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\x64\Debug/uninst.pdb"
+				ProgramDatabaseFile="..\..\x64\UninstDebug/uninst.pdb"
 				SubSystem="2"
 				TargetMachine="17"
 			/>

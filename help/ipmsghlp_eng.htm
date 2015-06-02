@@ -70,11 +70,11 @@
 
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.30</h1>
+<h1 class="help_head1">IP Messenger v3.31</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2011/07/31 H.Shirouzu</div>
+<div align="right">2011/08/22 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -206,7 +206,7 @@
 
 	<strong>To capture display</strong> (v3.3 or later), select in the menu that under "refresh" button.<br>
 	  Area specified desktop image can be pasted to Send Message Window and it can be saved to PNG file.<br>
-	  Send Message Window is minimized at stating capture, but this behavior can be changed by settings.
+	  Send Message Window is minimized at starting to capture, but this behavior can be changed by settings.
 	<br><br>
 
    <strong>To transfer File/Folder</strong> (v2.0 or later), Drag & Drop File/Folder to Send Window.
@@ -256,8 +256,8 @@
    button will be displayed. Folder transfer data can't be overwritten. 
 	<br><br>
 
-<strong>IP Messenger v3.0 or later, Messaging security have improved.</strong>
-<br><br>
+	<strong>IP Messenger v3.0 or later, Messaging security have improved.</strong>
+	<br><br>
 	<table class="help_table" border="4">
 	<tr><th>Strongness</th><th>PublicKey</th><th>CommonKey</th><th>Signature</th><th>Receive Window Title</th><th>Log File</th></tr>
 	<tr><td>Strongest</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-1</td><td>Receive Message +++</td><td>(RSA2/Signed)</td></tr>
@@ -266,6 +266,23 @@
 	<tr><td>Weak</td><td>RSA 512bit</td><td>RC2 40bit</td><td>Nothing</td><td>Receive Message -</td><td>(RSA)</td></tr>
 	<tr><td>Nothing</td><td>Nothing</td><td>Nothing</td><td>Nothing</td><td>Receive Message</td><td></td></tr>
 	</table>
+	<br>
+	It is used most strong way that is supported by sender and reciever.<br>
+	UserID is extended with finger print in v3.0 or later. ("uid" --&gt; "uid-&lt;finger_print_hexstr&gt;")<br>
+
+<h3 class="help_head3">Settings Dialog</h3>
+	<div class="help_sub_section">
+	It can be changed detail settings.
+	</div>
+
+<h3 class="help_head3">Shortcut or etc</h3>
+	<div class="help_sub_section">
+	1. Ctrl+D ... Boss key (toggle of hide/show windows)<br>
+	2. Ctrl+RefreshButton ... remain existing members, and refresh<br>
+	3. ALT+Ctrl+'S'/'R'/ ... Send/Recv Hotkey (need detail settings)<br>
+	4. ALT+Ctrl+'D' ... Close old-style message-open notification window<br>
+	5. Ctrl+F ... open search user box in send window<br>
+	</div>
 
 </div>
 
@@ -299,15 +316,6 @@ Broadcast messaging happens only at [Start/End], [Absencemode],
 [Refresh], [Change 'UserName' or 'GroupName'].
 <br><br>
 
-Tips.
-<div>
-1. Ctrl+D ... boss is coming.(toggle of hide/show windows)<br>
-2. Ctrl+RefreshButton ... remain existing members, and refresh<br>
-3. ALT+Ctrl+'S'/'R'/ ... Send/Recv Hotkey (need detail settings)<br>
-4. ALT+Ctrl+'D' ... Close old-style message-open notification window<br>
-5. Ctrl+F ... open search user box in send window<br>
-</div>
-</div>
 
 <a name="wan"/>
 <h2 class="help_head2">7. WAN settings (Broadcast Settings)</h2>
@@ -398,6 +406,10 @@ zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
+<tr><td>v3.31</td><td>
+Support to export settings to .reg file.
+Fix "Log file" button in settings.
+Misc refine.
 <tr><td>v3.30</td><td>
 Support display (area specified) capture.<br>
 Support detail settings of balloon notifications.<br>

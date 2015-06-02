@@ -278,7 +278,7 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 	while (SUCCEEDED(enum_fe->Next(num=1, &fe, &num)) && num == 1) {
 //		editWnd->MessageBoxU8(Fmt("cf=%d",fe.cfFormat));
 		switch (fe.cfFormat) {
-		case CF_TEXT:
+		case CF_TEXT: case CF_UNICODETEXT:
 			if (idx < 2 && enabled[idx] == 0 && (idx == 0 || enabled[0] != CF_TEXT)) {
 				enabled[idx++] = CF_TEXT;
 			}
@@ -787,7 +787,7 @@ VBuf *TEditSub::GetPngByte(int idx, int *pos)
 			STGMEDIUM	sm;
 			FORMATETC	fe;
 			memset(&fe, 0, sizeof(fe));
-			fe.cfFormat = CF_BITMAP;
+			fe.cfFormat	= CF_BITMAP;
 			fe.dwAspect	= DVASPECT_CONTENT;
 			fe.lindex	= -1;
 			fe.tymed	= TYMED_GDI;

@@ -208,7 +208,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Obj\Release"
+			OutputDirectory=".\Release"
 			IntermediateDirectory=".\Obj\Release"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
@@ -245,7 +245,7 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Obj\Release/IPMsg.pch"
+				PrecompiledHeaderFile=""
 				AssemblerListingLocation=".\Obj\Release/"
 				ObjectFile=".\Obj\Release/"
 				ProgramDataBaseFileName=".\Obj\Release/"
@@ -265,7 +265,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\libpng.lib external\lib\zlib.lib lib\tlib.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib external\lib\libpng.lib external\lib\zlib.lib lib\tlib.lib"
 				OutputFile="Release/IPMsg.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -302,8 +302,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory=".\x64/Release/"
+			IntermediateDirectory=".\x64/Obj/Release/"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -339,11 +339,11 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Obj\x64/Release/IPMsg.pch"
+				PrecompiledHeaderFile=".\x64/Obj/Release/IPMsg.pch"
 				AssemblerOutput="2"
-				AssemblerListingLocation=".\Obj\x64/Release/"
-				ObjectFile=".\Obj\x64/Release/"
-				ProgramDataBaseFileName=".\Obj\x64/Release/"
+				AssemblerListingLocation=".\x64/Obj/Release/"
+				ObjectFile=".\x64/Obj/Release/"
+				ProgramDataBaseFileName=".\x64/Obj/Release/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -360,11 +360,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\x64\libpng.lib external\lib\x64\zlib.lib lib\x64\tlib.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib external\lib\x64\libpng.lib external\lib\x64\zlib.lib x64\lib\tlib.lib"
 				OutputFile="x64/Release/IPMsg.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ProgramDatabaseFile=".\Obj\x64/Release/IPMsg.pdb"
+				ProgramDatabaseFile="x64/Obj/Release/IPMsg.pdb"
+				GenerateMapFile="true"
+				MapFileName="x64/Obj/Release/IPMsg.map"
+				MapExports="true"
 				SubSystem="2"
 				TargetMachine="17"
 			/>

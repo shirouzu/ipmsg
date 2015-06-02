@@ -165,6 +165,7 @@
 #define IDS_OPENINFO                    281
 #define IDS_UNOPENINFO                  282
 #define IDS_IMAGERECTMENU               283
+#define IDS_TOOLONG_BALLOON             284
 #define IDS_SETUP_SHEET1                301
 #define IDS_SETUP_SHEET2                302
 #define IDS_SETUP_SHEET3                303
@@ -181,9 +182,6 @@
 #define RECEIVE_DIALOG                  506
 #define MAIN_MENU                       507
 #define RECV_ICON                       508
-#define MENU_FILEADD                    509
-#define MENU_FOLDERADD                  510
-#define MENU_IMAGEPASTE                 511
 #define ABOUT_DIALOG                    512
 #define LOG_DIALOG                      515
 #define PASSWORD_DIALOG                 517
@@ -213,7 +211,6 @@
 #define HISTORY_DIALOG                  591
 #define MENU_ICON                       592
 #define IPMSGV2_ICON                    593
-#define SETUP_MAIN_SEET                 594
 #define IPMSGV2ABS_ICON                 595
 #define AREACONFIRM_DIALOG              596
 #define SETUP_SHEET1                    601
@@ -326,7 +323,6 @@
 #define DEACTIVATE_BUTTON               1170
 #define SETTING_BUTTON                  1171
 #define PLUGIN_LIST                     1172
-#define MENU_BUTTON                     1175
 #define BALLOONNOTIFY_CHECK             1177
 #define ABOUT_TEXT                      1178
 #define LCID_CHECK                      1179
@@ -336,14 +332,12 @@
 #define CLIPMODE_CHECK                  1185
 #define CLIPCONFIRM_CHECK               1186
 #define IMAGE_BUTTON                    1187
-#define CLIPBORAD_CHECK                 1187
+#define CLIPBORAD_CHECK                 1188
 #define OPENCHECK_COMBO                 1189
-#define MINIMIZE_CHECK                  1189
+#define MINIMIZE_CHECK                  1190
 #define HISTORY_LIST                    1192
 #define CLEAR_BUTTON                    1193
 #define EXTBROADCAST_COMBO              1195
-#define MENU_CHECK                      1197
-#define MENU_IMAGERECT                  1198
 #define DETAIL_BUTTON                   1199
 #define OPENED_CHECK                    1201
 #define SETUP_LIST                      1202
@@ -358,11 +352,14 @@
 #define LRUUSER_EDIT                    1215
 #define CLIP_CHECK                      1216
 #define SAVE_CHECK                      1219
-#define DELAYEX_EDIT                    1222
-#define DELAY_EDIT                      1223
-#define RECVTIME_EDIT                   1223
-#define OPENTIME_EDIT                   1224
-#define BALLOONNOINFO_CHECK             1225
+#define DELAYEX_EDIT                    1220
+#define DELAY_EDIT                      1221
+#define RECVTIME_EDIT                   1222
+#define OPENTIME_EDIT                   1223
+#define BALLOONNOINFO_CHECK             1224
+#define CLIPDISP_SLIDER                 1226
+#define CLIPDISP_STATIC                 1227
+#define SAVE_BUTTON                     1228
 #define MENU_SETUP                      10001
 #define MENU_EXIT                       10003
 #define MENU_ABOUT                      10008
@@ -376,8 +373,6 @@
 #define MENU_LISTFONT                   10017
 #define MENU_EDITFONT                   10018
 #define MENU_DEFAULTFONT                10019
-#define SEND_ACCEL                      10020
-#define HIDE_ACCEL                      10021
 #define MENU_SAVEPOS                    10023
 #define MENU_MEMBERDISP                 10024
 #define MENU_ABSENCEEX                  10030
@@ -385,19 +380,26 @@
 #define MENU_HEADFONT                   10032
 #define MENU_VERSION                    10033
 #define MENU_OPENHISTDLG                10034
-#define MISC_ACCEL                      10035
 #define MENU_SAVECOLUMN                 10036
 #define MENU_FINDDLG                    10037
+#define MENU_FILEADD                    10050
+#define MENU_FOLDERADD                  10051
+#define MENU_IMAGEPASTE                 10052
+#define MENU_CHECK                      10053
+#define MENU_IMAGERECT                  10054
+#define MENU_HELP                       10055
+#define MENU_HELP_HISTORY               10056
 #define MENU_ABSENCE_START              11000
 #define MENU_PRIORITY_RESET             11100
 #define MENU_PRIORITY_HIDDEN            11101
 #define MENU_PRIORITY_DISP              11103
-#define MENU_PRIORITY_START             11110
+#define MENU_PRIORITY_START             11200
 #define MENU_LRUUSER                    12000
-#define MENU_GROUP_START                20000
-#define ALLSELECT_ACCEL                 30036
-#define MENU_HELP                       30037
-#define MENU_HELP_HISTORY               30038
+#define MENU_GROUP_START                13000
+#define ALLSELECT_ACCEL                 15000
+#define SEND_ACCEL                      15001
+#define HIDE_ACCEL                      15002
+#define MISC_ACCEL                      15003
 
 // Next default values for new objects
 // 
@@ -406,8 +408,8 @@
 #define _APS_NO_MFC                     1
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        700
-#define _APS_NEXT_COMMAND_VALUE         30039
-#define _APS_NEXT_CONTROL_VALUE         1226
+#define _APS_NEXT_COMMAND_VALUE         16000
+#define _APS_NEXT_CONTROL_VALUE         1230
 #define _APS_NEXT_SYMED_VALUE           2001
 #endif
 #endif

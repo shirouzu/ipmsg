@@ -334,7 +334,7 @@ int TDlg::SetDlgItem(UINT ctl_id, DWORD flags)
 		}
 	}
 
-#define BIG_ALLOC 16
+#define BIG_ALLOC 50
 	if ((maxItems % BIG_ALLOC) == 0) {
 		DlgItem *p = (DlgItem *)realloc(dlgItems, (maxItems + BIG_ALLOC) * sizeof(DlgItem));
 		if (!p) return -1;

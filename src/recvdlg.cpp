@@ -1,10 +1,10 @@
 static char *recvdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   recvdlg.cpp	Ver3.30";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   recvdlg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Receive Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-07-31(Sun)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -1079,7 +1079,7 @@ BOOL TRecvDlg::StartRecvFile(void)
 
 //fileObj->offset = fileObj->woffset = OFFSET;
 
-	if (::send(fileObj->conInfo->sd, tcpbuf, strlen(tcpbuf), 0) < (int)strlen(tcpbuf))
+	if (::Tsend(fileObj->conInfo->sd, tcpbuf, strlen(tcpbuf), 0) < (int)strlen(tcpbuf))
 		return	EndRecvFile(), FALSE;
 
 	fileObj->conInfo->startTick = fileObj->conInfo->lastTick = ::GetTickCount();
@@ -1150,7 +1150,7 @@ DWORD WINAPI TRecvDlg::RecvFileThread(void *_recvDlg)
 	for (int waitCnt=0; waitCnt < 120 && fileObj->hThread; waitCnt++)
 	{
 		tv.tv_sec = 1, tv.tv_usec = 0;
-		if ((sock_ret = ::select(fileObj->conInfo->sd + 1, &rfd, NULL, NULL, &tv)) > 0)
+		if ((sock_ret = ::Tselect(fileObj->conInfo->sd + 1, &rfd, NULL, NULL, &tv)) > 0)
 		{
 			waitCnt = 0;
 			if (!(recvDlg->*RecvFileFunc)())
@@ -1260,7 +1260,6 @@ BOOL TRecvDlg::DecodeDirEntry(char *buf, FileInfo *info, char *u8fname)
 
 BOOL TRecvDlg::RecvDirFile(void)
 {
-#define BIG_ALLOC	50
 #define PEEK_SIZE	8
 
 	if (fileObj->status == FS_DIRFILESTART || fileObj->status == FS_TRANSINFO)
@@ -1268,7 +1267,7 @@ BOOL TRecvDlg::RecvDirFile(void)
 		int		size;
 		if (fileObj->infoLen == 0)
 		{
-			if ((size = ::recv(fileObj->conInfo->sd, fileObj->info + (int)fileObj->offset, PEEK_SIZE - (int)fileObj->offset, 0)) <= 0)
+			if ((size = ::Trecv(fileObj->conInfo->sd, fileObj->info + (int)fileObj->offset, PEEK_SIZE - (int)fileObj->offset, 0)) <= 0)
 				return	FALSE;
 			if ((fileObj->offset += size) < PEEK_SIZE)
 				return	TRUE;
@@ -1278,7 +1277,7 @@ BOOL TRecvDlg::RecvDirFile(void)
 		}
 		if (fileObj->offset < fileObj->infoLen)
 		{
-			if ((size = ::recv(fileObj->conInfo->sd, fileObj->info + (int)fileObj->offset, fileObj->infoLen - (int)fileObj->offset, 0)) <= 0)
+			if ((size = ::Trecv(fileObj->conInfo->sd, fileObj->info + (int)fileObj->offset, fileObj->infoLen - (int)fileObj->offset, 0)) <= 0)
 				return	FALSE;
 			fileObj->offset += size;
 		}
@@ -1392,7 +1391,7 @@ BOOL TRecvDlg::RecvFile(void)
 			remain = cfg->IoBufMax - wresid;
 	}
 
-	if ((size = ::recv(fileObj->conInfo->sd, fileObj->recvBuf + wresid, (int)remain, 0)) <= 0)
+	if ((size = ::Trecv(fileObj->conInfo->sd, fileObj->recvBuf + wresid, (int)remain, 0)) <= 0)
 		return	FALSE;
 
 	if (!fileObj->isClip && fileObj->hFile == INVALID_HANDLE_VALUE) {
@@ -1523,7 +1522,7 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 	ClipBuf		*clipBuf = NULL;
 	BOOL		isInsertImage = FALSE;
 
-	::closesocket(fileObj->conInfo->sd);
+	::Tclosesocket(fileObj->conInfo->sd);
 
 	if (fileObj->isClip) {
 		for (clipBuf=(ClipBuf*)clipList.TopObj(); clipBuf;

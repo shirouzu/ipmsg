@@ -304,7 +304,7 @@ END
 
 SETUP_SHEET1 DIALOGEX 0, 0, 178, 159
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
-FONT 10, "ＭＳ ゴシック"
+FONT 10, "ＭＳ ゴシック", 0, 0, 0x1
 BEGIN
     EDITTEXT        NICKNAME_EDIT,9,12,62,12,ES_AUTOHSCROLL
     COMBOBOX        GROUP_COMBO,90,12,79,66,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
@@ -339,8 +339,8 @@ BEGIN
     COMBOBOX        OPEN_COMBO,68,13,59,72,CBS_DROPDOWNLIST | WS_TABSTOP
     CONTROL         "開封通知",OPEN_CHECK,"Button",BS_AUTOCHECKBOX | NOT 
                     WS_VISIBLE | WS_TABSTOP,76,14,49,9
-    EDITTEXT        RECVTIME_EDIT,21,29,16,12,ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        OPENTIME_EDIT,69,29,17,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        RECVTIME_EDIT,22,29,21,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        OPENTIME_EDIT,83,29,21,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "ユーザ情報を表示しない",BALLOONNOINFO_CHECK,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,13,46,92,10
     EDITTEXT        QUOTE_EDIT,141,14,28,11,ES_AUTOHSCROLL
@@ -356,9 +356,8 @@ BEGIN
     EDITTEXT        REVICON_EDIT,45,139,124,12,ES_AUTOHSCROLL
     GROUPBOX        "引用文字",IDC_STATIC,136,3,38,27
     GROUPBOX        "バルーン通知 ",IDC_STATIC,6,3,125,58
-    LTEXT           "秒",IDC_STATIC,39,32,8,8
-    LTEXT           "秒",IDC_STATIC,88,32,8,8
-    LTEXT           "(Max:30)",IDC_STATIC,101,32,28,8
+    LTEXT           "秒",IDC_STATIC,45,32,8,8
+    LTEXT           "秒",IDC_STATIC,106,32,8,8
 END
 
 SETUP_SHEET3 DIALOG DISCARDABLE  0, 0, 178, 159
@@ -398,9 +397,9 @@ BEGIN
     GROUPBOX        "受信",IDC_STATIC,4,64,169,91
 END
 
-SETUP_SHEET4 DIALOG DISCARDABLE  0, 0, 178, 159
+SETUP_SHEET4 DIALOGEX 0, 0, 178, 159
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
-FONT 10, "ＭＳ ゴシック"
+FONT 10, "ＭＳ ゴシック", 0, 0, 0x1
 BEGIN
     CONTROL         "有効にする",CLIPMODE_CHECK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,13,28,52,11
@@ -414,11 +413,11 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,11,106,154,11
     EDITTEXT        DELAYEX_EDIT,48,131,30,12,ES_AUTOHSCROLL | ES_NUMBER
     EDITTEXT        DELAY_EDIT,129,131,30,12,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "（Ctrl + キャプチャ開始で反対動作）",IDC_STATIC,16,77,
+    LTEXT           "（Shift + キャプチャ開始で反対動作）",IDC_STATIC,16,77,
                     146,9
     LTEXT           "（送信画面 CTRL-V で Clipboard 貼付）",IDC_STATIC,14,15,
                     149,10
-    GROUPBOX        "メッセージへの埋め込み画像",IDC_STATIC,3,4,170,41
+    GROUPBOX        "メッセージ内の埋め込み画像",IDC_STATIC,3,4,170,41
     GROUPBOX        "画面（範囲指定）キャプチャ",IDC_STATIC,3,51,170,103
     GROUPBOX        "キャプチャ動作までの遅延時間 (msec)",IDC_STATIC,9,121,
                     155,27
@@ -486,7 +485,7 @@ AREACONFIRM_DIALOG DIALOGEX 0, 0, 75, 34
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_TOOLWINDOW
 CAPTION "範囲確認"
-FONT 9, "ＭＳ Ｐゴシック"
+FONT 9, "ＭＳ Ｐゴシック", 0, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,2,3,39,14
     PUSHBUTTON      "やり直し",IDRETRY,44,3,29,14
@@ -494,6 +493,16 @@ BEGIN
                     WS_TABSTOP,3,21,41,11
     CONTROL         "保存",SAVE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
                     47,21,26,12
+END
+
+SETUP_SHEET8 DIALOG DISCARDABLE  0, 0, 194, 156
+STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
+FONT 9, "ＭＳ ゴシック"
+BEGIN
+    GROUPBOX        "設定内容の外部保存",IDC_STATIC,5,4,185,85
+    LTEXT           "レジストリの設定内容を .regファイルにバックアップします。\r\n復元させる場合は、IP Messenger を終了した上で、.reg ファイルをダブルクリックします。\r\n（自分自身の RSA公開鍵/指紋は、別マシンやOSを入れなおした場合は引き継がれません）",
+                    IDC_STATIC,9,16,176,51
+    PUSHBUTTON      "設定内容をファイルに書き出し",SAVE_BUTTON,20,68,151,16
 END
 
 
@@ -709,6 +718,9 @@ BEGIN
     "D",            HIDE_ACCEL,             VIRTKEY, CONTROL, NOINVERT
     "D",            MISC_ACCEL,             VIRTKEY, CONTROL, ALT, NOINVERT
     "F",            MENU_FINDDLG,           VIRTKEY, CONTROL, NOINVERT
+    "K",            MENU_IMAGERECT,         VIRTKEY, CONTROL, NOINVERT
+    "K",            MENU_IMAGERECT,         VIRTKEY, SHIFT, CONTROL, 
+                                                    NOINVERT
 END
 
 
@@ -719,8 +731,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,3,0,0
- PRODUCTVERSION 3,3,0,0
+ FILEVERSION 3,3,1,0
+ PRODUCTVERSION 3,3,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -738,14 +750,14 @@ BEGIN
             VALUE "Comments", "IP Messenger for Win\0"
             VALUE "CompanyName", "H.Shirouzu\0"
             VALUE "FileDescription", "IPMsg\0"
-            VALUE "FileVersion", "3.30\0"
+            VALUE "FileVersion", "3.31\0"
             VALUE "InternalName", "チョット、いとうさん\0"
             VALUE "LegalCopyright", "Copyright (c) 1996-2011 H.Shirouzu \0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "IPMsg.exe\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "IPMsg\0"
-            VALUE "ProductVersion", "3.30\0"
+            VALUE "ProductVersion", "3.31\0"
             VALUE "SpecialBuild", "\0"
         END
     END
@@ -900,7 +912,8 @@ BEGIN
     IDS_TOOMANYLRU          "履歴数は %d までです"
     IDS_OPENINFO            "開封情報 (%d/%d)"
     IDS_UNOPENINFO          "未開封情報 (%d)"
-    IDS_IMAGERECTMENU       "画面キャプチャ"
+    IDS_IMAGERECTMENU       "画面キャプチャ (Ctrl+K)"
+    IDS_TOOLONG_BALLOON     "WinXP/2000環境では、30秒以下にしてください。"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -916,6 +929,7 @@ BEGIN
     IDS_SETUP_SHEET5        "ログ設定"
     IDS_SETUP_SHEET6        "パスワード"
     IDS_SETUP_SHEET7        "URLクリック"
+    IDS_SETUP_SHEET8        "その他"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -1260,7 +1274,7 @@ END
 
 SETUP_SHEET1 DIALOGEX 0, 0, 183, 158
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
-FONT 8, "Verdana"
+FONT 8, "Verdana", 0, 0, 0x1
 BEGIN
     EDITTEXT        NICKNAME_EDIT,7,13,68,12,ES_AUTOHSCROLL
     COMBOBOX        GROUP_COMBO,92,13,77,66,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
@@ -1296,8 +1310,8 @@ BEGIN
     CONTROL         "MsgOpened",OPEN_CHECK,"Button",BS_AUTOCHECKBOX | NOT 
                     WS_VISIBLE | WS_TABSTOP,66,15,49,9
     COMBOBOX        OPEN_COMBO,64,13,63,72,CBS_DROPDOWNLIST | WS_TABSTOP
-    EDITTEXT        RECVTIME_EDIT,15,30,16,12,ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        OPENTIME_EDIT,67,30,16,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        RECVTIME_EDIT,19,30,22,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        OPENTIME_EDIT,74,30,22,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Do not display user information",BALLOONNOINFO_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,48,119,10
     EDITTEXT        QUOTE_EDIT,142,13,33,12,ES_AUTOHSCROLL
@@ -1313,9 +1327,8 @@ BEGIN
     EDITTEXT        REVICON_EDIT,41,134,134,13,ES_AUTOHSCROLL
     GROUPBOX        "QuoteStr",IDC_STATIC,137,3,43,27
     GROUPBOX        "Balloon Notificatoin",IDC_STATIC,5,3,128,60
-    LTEXT           "sec",IDC_STATIC,33,32,12,8
-    LTEXT           "sec",IDC_STATIC,85,32,12,8
-    LTEXT           "(Max:30)",IDC_STATIC,99,32,31,8
+    LTEXT           "sec",IDC_STATIC,43,32,12,8
+    LTEXT           "sec",IDC_STATIC,98,32,12,8
 END
 
 SETUP_SHEET3 DIALOG DISCARDABLE  0, 0, 183, 158
@@ -1374,8 +1387,8 @@ BEGIN
     GROUPBOX        "Embedded image in message",IDC_STATIC,3,3,173,41
     LTEXT           "To insert image, CTRL-V in SendMessage Dialog",
                     IDC_STATIC,7,14,163,10
-    LTEXT           "(Ctrl + start catpure, behavior is inverted)",
-                    IDC_STATIC,17,75,140,8
+    LTEXT           "(Shift + start catpure, behavior is inverted)",
+                    IDC_STATIC,17,75,143,8
     GROUPBOX        "Display (area specified) Capture",IDC_STATIC,3,48,173,
                     104
     GROUPBOX        "Delay for staring capture (msec)",IDC_STATIC,8,119,162,
@@ -1446,7 +1459,7 @@ AREACONFIRM_DIALOG DIALOGEX 0, 0, 79, 33
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_TOOLWINDOW
 CAPTION "Confirm Area"
-FONT 8, "Verdana"
+FONT 8, "Verdana", 0, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,2,3,43,14
     PUSHBUTTON      "Retry",IDRETRY,49,3,28,14
@@ -1454,6 +1467,16 @@ BEGIN
                     WS_TABSTOP,3,20,44,11
     CONTROL         "Save",SAVE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
                     48,20,26,11
+END
+
+SETUP_SHEET8 DIALOG DISCARDABLE  0, 0, 194, 156
+STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
+FONT 9, "ＭＳ ゴシック"
+BEGIN
+    GROUPBOX        "Export settings",IDC_STATIC,5,4,185,76
+    LTEXT           "Export contents of settings to .reg file.\r\nIf you want to restore, please terminate ipmsg and double click this file.\r\n(Self RSA PublicKey/Sign settings can't restore in other machines)",
+                    IDC_STATIC,9,16,176,42
+    PUSHBUTTON      "Export settings to .reg file",SAVE_BUTTON,25,60,150,15
 END
 
 
@@ -1782,7 +1805,8 @@ BEGIN
     IDS_TOOMANYLRU          "Max User History is %d"
     IDS_OPENINFO            "Opened Info (%d/%d)"
     IDS_UNOPENINFO          "Unopened Info (%d)"
-    IDS_IMAGERECTMENU       "Display Capture"
+    IDS_IMAGERECTMENU       "Display Capture (Ctrl+K)"
+    IDS_TOOLONG_BALLOON     "It requires under 30 sec in WinXP/2000."
 END
 
 STRINGTABLE DISCARDABLE 
@@ -1798,6 +1822,7 @@ BEGIN
     IDS_SETUP_SHEET5        "Log Settings"
     IDS_SETUP_SHEET6        "Password"
     IDS_SETUP_SHEET7        "URL Click"
+    IDS_SETUP_SHEET8        "その他"
 END
 
 STRINGTABLE DISCARDABLE 

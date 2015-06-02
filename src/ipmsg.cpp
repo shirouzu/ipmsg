@@ -1,10 +1,10 @@
 static char *ipmsg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   ipmsg.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   ipmsg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Application Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -14,7 +14,7 @@ static char *ipmsg_id =
 #include "ipmsg.h"
 
 #define IPMSG_CLASS	"ipmsg_class"
-#define IPMSG_USAGE "ipmsg.exe [portno] [/MSG [/LOG] [/SEAL] <hostname or IP addr> <message>]\r\nipmsg.exe [portno] [/NIC nic_addr]"
+#define IPMSG_USAGE "ipmsg.exe [portno] [/MSG [/LOG] [/SEAL] <hostname or IP addr> <message>]\r\nipmsg.exe [portno] [/NICLIST] [/NIC nic_addr]"
 
 TMsgApp::TMsgApp(HINSTANCE _hI, LPSTR _cmdLine, int _nCmdShow) : TApp(_hI, _cmdLine, _nCmdShow)
 {
@@ -22,6 +22,7 @@ TMsgApp::TMsgApp(HINSTANCE _hI, LPSTR _cmdLine, int _nCmdShow) : TApp(_hI, _cmdL
 	srand((UINT)Time());
 	TLibInit_AdvAPI32();
 	TLibInit_Crypt32();
+	TLibInit_WinSock();
 }
 
 TMsgApp::~TMsgApp()
@@ -44,7 +45,33 @@ void TMsgApp::InitWindow(void)
 
 		for (tok=separate_token(tok, ' ', &p); tok && *tok == '/';
 				tok=separate_token(NULL, ' ', &p)) {
-			if (stricmp(tok, "/NIC") == 0) {	// NIC Žw’è
+			if (stricmp(tok, "/NICLIST") == 0) {
+				int			num = 0;
+				AddrInfo	*addrs = GetIPAddrs(FALSE, &num);
+				char		buf[8192] = "No NIC", *p = buf;
+
+				for (int i=0; addrs && i < num; i++) {
+					p += sprintf(p, " NIC(%d) = %s\n", i+1, Tinet_ntoa(*(LPIN_ADDR)&addrs[i].addr));
+				}
+				MessageBox(0, buf, IP_MSG, MB_OK);
+				delete [] addrs;
+				status = ST_EXIT;
+			}
+			else if (stricmp(tok, "/NICID") == 0) {	// NICID Žw’è
+				status = ST_ERR;
+				if ((tok = separate_token(NULL, ' ', &p))) {
+					int			target = atoi(tok) - 1;
+					int			num = 0;
+					AddrInfo	*addrs = GetIPAddrs(FALSE, &num);
+					if (addrs && target > 0 && target < num) {
+						nicAddr = addrs[target].addr;
+						status = ST_NORMAL;
+					}
+					delete [] addrs;
+				}
+				if (status == ST_ERR) break;
+			}
+			else if (stricmp(tok, "/NIC") == 0) {	// NIC Žw’è
 				if (!(tok = separate_token(NULL, ' ', &p)) || !(nicAddr = ResolveAddr(tok))) {
 					status = ST_ERR;
 					break;
@@ -62,7 +89,7 @@ void TMsgApp::InitWindow(void)
 						command |= IPMSG_SECRETOPT;
 				}
 				if ((msg = separate_token(NULL, 0, &p)) && (destAddr = ResolveAddr(tok))) {
-					exit_status = msgMng.Send(destAddr, htons(port_no), command, msg) ? 0 : -1;
+					exit_status = msgMng.Send(destAddr, Thtons(port_no), command, msg) ? 0 : -1;
 				}
 				else status = ST_ERR;
 			}
@@ -82,7 +109,7 @@ void TMsgApp::InitWindow(void)
 
 	if (port_no != IPMSG_DEFAULT_PORT || nicAddr) {
 		wsprintf(class_name, nicAddr ? "%s_%d_%s" : "%s_%d",
-			IPMSG_CLASS, port_no, inet_ntoa(*(in_addr *)&nicAddr));
+			IPMSG_CLASS, port_no, Tinet_ntoa(*(in_addr *)&nicAddr));
 	}
 
 	HANDLE	hMutex = ::CreateMutex(NULL, FALSE, class_name);

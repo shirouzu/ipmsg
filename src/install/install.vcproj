@@ -113,8 +113,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="../../x64/Debug/"
+			IntermediateDirectory="../../x64/Obj/InstDebug/"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -149,10 +149,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\x64\Debug/install.pch"
-				AssemblerListingLocation=".\x64\Debug/"
-				ObjectFile=".\x64\Debug/"
-				ProgramDataBaseFileName=".\x64\Debug/"
+				PrecompiledHeaderFile="../../x64/Obj/InstDebug/install.pch"
+				AssemblerListingLocation="../../x64/Obj/InstDebug/"
+				ObjectFile="../../x64/Obj/InstDebug/"
+				ProgramDataBaseFileName="../../x64/Obj/InstDebug/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -170,8 +170,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib imm32.lib winmm.lib Comctl32.lib ..\..\external\lib\x64\zlib_d.lib ..\..\lib\x64\tlib_d.lib"
-				OutputFile=".\x64\Debug/install.exe"
+				AdditionalDependencies="odbc32.lib odbccp32.lib imm32.lib winmm.lib Comctl32.lib ..\..\external\lib\x64\zlib_d.lib ..\..\x64\lib\tlib_d.lib"
+				OutputFile="../../x64/Debug/install.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateDebugInformation="true"
@@ -208,8 +208,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			OutputDirectory="../../Release/"
+			IntermediateDirectory="../../obj/ReleaseInst/"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -245,10 +245,10 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Release/install.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				PrecompiledHeaderFile="../../obj/ReleaseInst/install.pch"
+				AssemblerListingLocation="../../obj/ReleaseInst/"
+				ObjectFile="../../obj/ReleaseInst/"
+				ProgramDataBaseFileName="../../obj/ReleaseInst/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -269,7 +269,7 @@
 				OutputFile="../../Release/install.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ProgramDatabaseFile=".\Release/install.pdb"
+				ProgramDatabaseFile="../../obj/Release/install.pdb"
 				SubSystem="2"
 				TargetMachine="1"
 			/>
@@ -302,8 +302,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="../../x64/Release"
+			IntermediateDirectory="../../x64/Obj/ReleaseInst/"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -339,10 +339,10 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\x64\Release/install.pch"
-				AssemblerListingLocation=".\x64\Release/"
-				ObjectFile=".\x64\Release/"
-				ProgramDataBaseFileName=".\x64\Release/"
+				PrecompiledHeaderFile="../../x64/Obj/ReleaseInst/install.pch"
+				AssemblerListingLocation="../../x64/Obj/ReleaseInst/"
+				ObjectFile="../../x64/Obj/ReleaseInst/"
+				ProgramDataBaseFileName="../../x64/Obj/ReleaseInst/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -359,7 +359,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib ..\..\external\lib\x64\zlib.lib ..\..\lib\x64\tlib.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib ..\..\external\lib\x64\zlib.lib ..\..\x64\lib\tlib.lib"
 				OutputFile="../../x64/Release/install.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"

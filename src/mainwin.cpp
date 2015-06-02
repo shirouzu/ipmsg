@@ -1,10 +1,10 @@
 static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   mainwin.cpp	Ver3.30";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   mainwin.cpp	Ver3.31";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-07-31(Sun)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -265,7 +265,7 @@ BOOL TMainWin::EvTimer(WPARAM timerID, TIMERPROC proc)
 		::KillTimer(hWnd, IPMSG_ENTRY_TIMER);
 
 		for (TBrObj *brobj=brListEx.Top(); brobj; brobj=brListEx.Next(brobj))
-			BroadcastEntrySub(brobj->Addr(), htons(portNo), IPMSG_BR_ENTRY);
+			BroadcastEntrySub(brobj->Addr(), Thtons(portNo), IPMSG_BR_ENTRY);
 
 		for (AddrObj *obj = (AddrObj *)cfg->DialUpList.TopObj(); obj; obj = (AddrObj *)cfg->DialUpList.NextObj(obj))
 			BroadcastEntrySub(obj->addr, obj->portNo, IPMSG_BR_ENTRY);
@@ -836,7 +836,7 @@ BOOL TMainWin::TcpEvent(SOCKET sd, LPARAM lParam)
 					info = new ConnectInfo(tmpInfo);
 					connectList.AddObj(info);
 				}
-				else ::closesocket(tmpInfo.sd);
+				else ::Tclosesocket(tmpInfo.sd);
 			}
 		}
 		break;
@@ -851,7 +851,7 @@ BOOL TMainWin::TcpEvent(SOCKET sd, LPARAM lParam)
 			if ((obj = FindSendFileObj(sd)))
 				EndSendFile(obj);
 			else
-				::closesocket(sd);
+				::Tclosesocket(sd);
 		}
 		break;
 	}
@@ -880,7 +880,7 @@ BOOL TMainWin::StartSendFile(SOCKET sd)
 	for (conInfo=(ConnectInfo *)connectList.TopObj(); conInfo && conInfo->sd != sd; conInfo=(ConnectInfo *)connectList.NextObj(conInfo))
 		;
 	if (conInfo == NULL)
-		return	::closesocket(sd), FALSE;
+		return	::Tclosesocket(sd), FALSE;
 	else {
 		msgMng->ConnectDone(hWnd, conInfo);	// 非同期メッセージの抑制
 
@@ -888,12 +888,12 @@ BOOL TMainWin::StartSendFile(SOCKET sd)
 // 一度の recv で読めない場合、エラーにしてしまう（手抜き）
 		char	buf[MAX_PATH_U8];
 		int		size;
-		if ((size = ::recv(conInfo->sd, buf, sizeof(buf) -1, 0)) > 0)
+		if ((size = ::Trecv(conInfo->sd, buf, sizeof(buf) -1, 0)) > 0)
 			buf[size] = 0;
 		if (size <= 0 || !shareMng->GetAcceptableFileInfo(conInfo, buf, &fileInfo))
 		{
 			connectList.DelObj(conInfo);
-			::closesocket(conInfo->sd);
+			::Tclosesocket(conInfo->sd);
 			delete conInfo;
 			return	FALSE;
 		}
@@ -1011,13 +1011,13 @@ DWORD WINAPI TMainWin::SendFileThread(void *_sendFileObj)
 	{
 		tv.tv_sec = 1, tv.tv_usec = 0;
 
-		if ((sock_ret = ::select(obj->conInfo->sd + 1, rfds, wfds, NULL, &tv)) > 0)
+		if ((sock_ret = ::Tselect(obj->conInfo->sd + 1, rfds, wfds, NULL, &tv)) > 0)
 		{
 			waitCnt = 0;
 
 			if (completeWait)
 			{	// dummy read により、相手側の socket クローズによる EOF を検出
-				if (::recv(obj->conInfo->sd, (char *)&ret, sizeof(ret), 0) >= 0)
+				if (::Trecv(obj->conInfo->sd, (char *)&ret, sizeof(ret), 0) >= 0)
 					ret = TRUE;
 				break;
 			}
@@ -1162,7 +1162,7 @@ BOOL TMainWin::SendDirFile(SendFileObj *obj)
 
 	if (obj->status == FS_TRANSINFO)
 	{
-		int	size = ::send(obj->conInfo->sd, obj->header + obj->headerOffset, obj->headerLen - obj->headerOffset, 0);
+		int	size = ::Tsend(obj->conInfo->sd, obj->header + obj->headerOffset, obj->headerLen - obj->headerOffset, 0);
 		if (size < 0)
 			return	FALSE;
 		else {
@@ -1200,7 +1200,7 @@ BOOL TMainWin::SendFile(SendFileObj *obj)
 	_int64	remain = obj->fileSize - obj->offset;
 	int		transMax = cfg->TransMax - (int)(obj->offset % cfg->TransMax);
 
-	if (remain > 0 && (size = ::send(obj->conInfo->sd, obj->mapAddr + (obj->offset % cfg->ViewMax), (int)(remain > transMax ? transMax : remain), 0)) < 0)
+	if (remain > 0 && (size = ::Tsend(obj->conInfo->sd, obj->mapAddr + (obj->offset % cfg->ViewMax), (int)(remain > transMax ? transMax : remain), 0)) < 0)
 		return	FALSE;
 
 	obj->offset += size;
@@ -1231,7 +1231,7 @@ BOOL TMainWin::SendMemFile(SendFileObj *obj)
 	_int64	remain = obj->fileInfo->Size() - obj->offset;
 	if (remain > cfg->TransMax) remain = cfg->TransMax;
 
-	if (remain > 0 && (size = ::send(obj->conInfo->sd, (const char *)obj->fileInfo->MemData() + obj->offset, (int)remain, 0)) < 0)
+	if (remain > 0 && (size = ::Tsend(obj->conInfo->sd, (const char *)obj->fileInfo->MemData() + obj->offset, (int)remain, 0)) < 0)
 		return	FALSE;
 
 	obj->offset += size;
@@ -1257,7 +1257,7 @@ BOOL TMainWin::EndSendFile(SendFileObj *obj)
 		::WaitForSingleObject(hThread, INFINITE);
 		::CloseHandle(hThread);
 	}
-	if (::closesocket(obj->conInfo->sd) != 0)
+	if (::Tclosesocket(obj->conInfo->sd) != 0)
 		obj->status = FS_ERROR;	// error 扱いにする
 
 	CloseSendFile(obj);
@@ -1706,7 +1706,7 @@ BOOL TMainWin::SendDlgOpen(HWND hRecvWnd, MsgBuf *msg)
 
 // test
 	if (hosts.HostCnt() == 0 && !cfg->ListGet)
-		BroadcastEntrySub(inet_addr("127.0.0.1"), htons(portNo), IPMSG_BR_ENTRY);
+		BroadcastEntrySub(Tinet_addr("127.0.0.1"), Thtons(portNo), IPMSG_BR_ENTRY);
 
 	return	TRUE;
 }
@@ -2265,14 +2265,14 @@ void TMainWin::BroadcastEntry(ULONG mode)
 {
 	TBrObj *brobj;
 	for (brobj=brListEx.Top(); brobj; brobj=brListEx.Next(brobj))
-		BroadcastEntrySub(brobj->Addr(), htons(portNo), IPMSG_NOOPERATION);
+		BroadcastEntrySub(brobj->Addr(), Thtons(portNo), IPMSG_NOOPERATION);
 
 	this->Sleep(cfg->DelayTime);
 
 	UINT host_status = mode | HostStatus();
 
 	for (brobj=brListEx.Top(); brobj; brobj=brListEx.Next(brobj))
-		BroadcastEntrySub(brobj->Addr(), htons(portNo), host_status);
+		BroadcastEntrySub(brobj->Addr(), Thtons(portNo), host_status);
 
 	for (AddrObj *obj = (AddrObj *)cfg->DialUpList.TopObj(); obj; obj = (AddrObj *)cfg->DialUpList.NextObj(obj))
 		BroadcastEntrySub(obj->addr, obj->portNo, host_status);
@@ -2349,7 +2349,7 @@ void TMainWin::SendHostList(MsgBuf *msg)
 			host->hostSub.userName, HOSTLIST_SEPARATOR,
 			host->hostSub.hostName, HOSTLIST_SEPARATOR,
 			host->hostStatus, HOSTLIST_SEPARATOR,
-			inet_ntoa(*(LPIN_ADDR)&host->hostSub.addr), HOSTLIST_SEPARATOR,
+			::Tinet_ntoa(*(LPIN_ADDR)&host->hostSub.addr), HOSTLIST_SEPARATOR,
 			host->hostSub.portNo, HOSTLIST_SEPARATOR,
 			*host->nickName ? host->nickName : HOSTLIST_DUMMY, HOSTLIST_SEPARATOR,
 			*host->groupName ? host->groupName : HOSTLIST_DUMMY, HOSTLIST_SEPARATOR);
@@ -2411,7 +2411,7 @@ void TMainWin::AddHostList(MsgBuf *msg)
 
 		if ((tok = separate_token(NULL, HOSTLIST_SEPARATOR, &p)) == NULL)
 			break;
-		hostSub.addr = inet_addr(tok);
+		hostSub.addr = Tinet_addr(tok);
 
 		if ((tok = separate_token(NULL, HOSTLIST_SEPARATOR, &p)) == NULL)
 			break;
@@ -2604,7 +2604,7 @@ void TMainWin::MakeBrListEx()
 		}
 	}
 //	for (obj=brListEx.Top(); obj; obj=brListEx.Next(obj)) {
-//		Debug("%s\n", inet_ntoa(*(struct in_addr *)&obj->addr));
+//		Debug("%s\n", ::Tinet_ntoa(*(struct in_addr *)&obj->addr));
 //	}
 	delete [] info;
 }

@@ -1,10 +1,10 @@
 static char *miscfunc_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   miscfunc.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 2011   miscfunc.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc functions
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -74,7 +74,7 @@ void MakeListString(Cfg *cfg, Host *host, char *buf, BOOL is_log)
 	buf += wsprintf(buf, "(%s%s%s", host->groupName,
 					*host->groupName ? "/" : "", host->hostSub.hostName);
 
-	if (ipaddr) buf += wsprintf(buf, "/%s", inet_ntoa(*(LPIN_ADDR)&host->hostSub.addr));
+	if (ipaddr) buf += wsprintf(buf, "/%s", ::Tinet_ntoa(*(LPIN_ADDR)&host->hostSub.addr));
 	if (logon)  buf += wsprintf(buf, "/%s", host->hostSub.userName);
 
 	strcpy(buf, ")");
@@ -247,7 +247,7 @@ BOOL THosts::AddHost(Host *host)
 			return	FALSE;
 	}
 
-#define BIG_ALLOC	100
+#define BIG_ALLOC	1000
 	for (kind=0; kind < MAX_ARRAY; kind++) {
 		if (!enable[kind])
 			continue;
@@ -310,7 +310,7 @@ BOOL GetLastErrorMsg(char *msg, TWin *win)
 BOOL GetSockErrorMsg(char *msg, TWin *win)
 {
 	char	buf[MAX_BUF];
-	wsprintf(buf, "%s error = %d", msg ? msg : "", WSAGetLastError());
+	wsprintf(buf, "%s error = %d", msg ? msg : "", TWSAGetLastError());
 	return	MessageBox(win ? win->hWnd : NULL, buf, IP_MSG, MB_OK);
 }
 
@@ -515,11 +515,11 @@ ULONG ResolveAddr(const char *_host)
 	if (_host == NULL)
 		return 0;
 
-	ULONG	addr = ::inet_addr(_host);
+	ULONG	addr = ::Tinet_addr(_host);
 
 	if (addr == 0xffffffff)
 	{
-		hostent	*ent = ::gethostbyname(_host);
+		hostent	*ent = ::Tgethostbyname(_host);
 		addr = ent ? *(ULONG *)ent->h_addr_list[0] : 0;
 	}
 

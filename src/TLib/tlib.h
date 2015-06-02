@@ -57,6 +57,7 @@ char *vstrdup(const char *s);
 #include "tmisc.h"
 #include "tapi32ex.h"
 #include "tapi32v.h"
+#include "twinsock.h"
 //#include "tapi32u8.h"	 /* describe last line */
 
 extern DWORD TWinVersion;	// define in tmisc.cpp

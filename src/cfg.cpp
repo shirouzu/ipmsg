@@ -1,10 +1,10 @@
 static char *cfg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.30";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration
 	Create					: 1996-09-27(Sat)
-	Update					: 2011-07-31(Sun)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -1159,6 +1159,11 @@ void Cfg::GetRegName(char *buf, ULONG nic_addr, int port_no)
 	if (port_no != IPMSG_DEFAULT_PORT)
 		buf += wsprintf(buf, "%d", port_no);
 	if (nic_addr)
-		buf += wsprintf(buf, "_%s", inet_ntoa(*(in_addr *)&nic_addr));
+		buf += wsprintf(buf, "_%s", Tinet_ntoa(*(in_addr *)&nic_addr));
+}
+
+void Cfg::GetSelfRegName(char *buf)
+{
+	GetRegName(buf, nicAddr, portNo);
 }
 

@@ -1,10 +1,10 @@
 static char *setupdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   setupdlg.cpp	Ver3.30";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   setupdlg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Setup Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-07-31(Sun)
+	Update					: 2011-08-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -42,12 +42,16 @@ BOOL TSetupSheet::EvCreate(LPARAM lParam)
 	SetWindowLong(GWL_EXSTYLE, GetWindowLong(GWL_EXSTYLE)|WS_EX_CONTROLPARENT);
 	SetDlgIcon(hWnd);
 
+	if (IsWinVista() && TIsEnableUAC()) {
+		::SendMessage(GetDlgItem(SAVE_BUTTON), BCM_SETSHIELD, 0, 1);
+	}
+
 	return	TRUE;
 }
 
 BOOL TSetupSheet::EvNcDestroy(void)
 {
-	if (resId == SETUP_SHEET6) {
+	if (resId == URL_SHEET) {
 		UrlObj *urlObj;
 
 		while ((urlObj = (UrlObj *)tmpUrlList.TopObj())) {
@@ -66,14 +70,25 @@ BOOL TSetupSheet::CheckData()
 	char	buf[MAX_PATH_U8];
 	int		val;
 
-	if (resId == SETUP_SHEET3) {
+	if (resId == MAIN_SHEET) {
+	}
+	else if (resId == DETAIL_SHEET) {
+		if (!IsWinVista() &&
+			(GetDlgItemInt(OPENTIME_EDIT) > 30 || GetDlgItemInt(RECVTIME_EDIT) > 30)) {
+			MessageBox(GetLoadStr(IDS_TOOLONG_BALLOON));
+			return	FALSE;
+		}
+	}
+	else if (resId == SENDRECV_SHEET) {
 		GetDlgItemTextU8(LRUUSER_EDIT, buf, sizeof(buf));
 		if ((val = atoi(buf)) > MAX_LRUUSER || val < 0) {
 			MessageBox(Fmt(GetLoadStr(IDS_TOOMANYLRU), MAX_LRUUSER));
 			return	FALSE;
 		}
 	}
-	else if (resId == SETUP_SHEET4) {
+	else if (resId == IMAGE_SHEET) {
+	}
+	else if (resId == LOG_SHEET) {
 		GetDlgItemTextU8(LOG_EDIT, buf, sizeof(buf));
 		if (GetDriveType(NULL) == DRIVE_REMOTE
 				&& !IsDlgButtonChecked(LOG_CHECK) && strchr(buf, '\\')) {
@@ -81,7 +96,7 @@ BOOL TSetupSheet::CheckData()
 			return	FALSE;
 		}
 	}
-	else if (resId == SETUP_SHEET5) {
+	else if (resId == PASSWORD_SHEET) {
 		char	buf1[MAX_NAMEBUF], buf2[MAX_NAMEBUF], buf3[MAX_NAMEBUF];
 		GetDlgItemTextU8(OLDPASSWORD_EDIT,  buf1, sizeof(buf1));
 		GetDlgItemTextU8(NEWPASSWORD_EDIT,  buf2, sizeof(buf2));
@@ -100,13 +115,17 @@ BOOL TSetupSheet::CheckData()
 			}
 		}
 	}
+	else if (resId == URL_SHEET) {
+	}
+	else if (resId == BACKUP_SHEET) {
+	}
 
 	return	TRUE;
 }
 
 BOOL TSetupSheet::SetData()
 {
-	if (resId == SETUP_SHEET1) {
+	if (resId == MAIN_SHEET) {
 		SetDlgItemTextU8(GROUP_COMBO, cfg->GroupNameStr);
 		SetDlgItemTextU8(NICKNAME_EDIT, cfg->NickNameStr);
 
@@ -132,7 +151,7 @@ BOOL TSetupSheet::SetData()
 		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_BOTH));
 		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_SETCURSEL, cfg->ExtendBroadcast, 0);
 	}
-	else if (resId == SETUP_SHEET2) {
+	else if (resId == DETAIL_SHEET) {
 		CheckDlgButton(BALLOONNOTIFY_CHECK, cfg->BalloonNotify);
 
 		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_NONE));
@@ -159,7 +178,7 @@ BOOL TSetupSheet::SetData()
 		SetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile);
 		SetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile);
 	}
-	else if (resId == SETUP_SHEET3) {
+	else if (resId == SENDRECV_SHEET) {
 		CheckDlgButton(QUOTE_CHECK, cfg->QuoteCheck);
 		CheckDlgButton(SECRET_CHECK, cfg->SecretCheck);
 		CheckDlgButton(ONECLICK_CHECK, cfg->OneClickPopup);
@@ -177,7 +196,7 @@ BOOL TSetupSheet::SetData()
 
 		SetDlgItemTextU8(SOUND_EDIT, cfg->SoundFile);
 	}
-	else if (resId == SETUP_SHEET4) {
+	else if (resId == IMAGE_SHEET) {
 		CheckDlgButton(CLIPMODE_CHECK, (cfg->ClipMode & CLIP_ENABLE));
 		CheckDlgButton(CLIPCONFIRM_CHECK, (cfg->ClipMode & CLIP_CONFIRM) ? 1 : 0);
 		CheckDlgButton(MINIMIZE_CHECK, cfg->CaptureMinimize);
@@ -186,7 +205,7 @@ BOOL TSetupSheet::SetData()
 		SetDlgItemInt(DELAY_EDIT, cfg->CaptureDelay);
 		SetDlgItemInt(DELAYEX_EDIT, cfg->CaptureDelayEx);
 	}
-	else if (resId == SETUP_SHEET5) {
+	else if (resId == LOG_SHEET) {
 		CheckDlgButton(LOG_CHECK, cfg->LogCheck);
 		CheckDlgButton(LOGONLOG_CHECK, cfg->LogonLog);
 		CheckDlgButton(IPADDR_CHECK, cfg->IPAddrCheck);
@@ -195,11 +214,11 @@ BOOL TSetupSheet::SetData()
 		CheckDlgButton(PASSWDLOG_CHECK, cfg->PasswdLogCheck);
 		SetDlgItemTextU8(LOG_EDIT, cfg->LogFile);
 	}
-	else if (resId == SETUP_SHEET6) {
+	else if (resId == PASSWORD_SHEET) {
 		if (*cfg->PasswordStr == 0)
 			::EnableWindow(GetDlgItem(OLDPASSWORD_EDIT), FALSE);
 	}
-	else if (resId == SETUP_SHEET7) {
+	else if (resId == URL_SHEET) {
 		CheckDlgButton(DEFAULTURL_CHECK, cfg->DefaultUrl);
 
 		for (UrlObj *obj = (UrlObj *)cfg->urlList.TopObj(); obj;
@@ -225,7 +244,7 @@ BOOL TSetupSheet::GetData()
 	char	buf[MAX_PATH_U8];
 	int		i;
 
-	if (resId == SETUP_SHEET1) {
+	if (resId == MAIN_SHEET) {
 		BOOL	need_broadcast = FALSE;
 
 		GetDlgItemTextU8(NICKNAME_EDIT, buf, MAX_NAMEBUF);
@@ -251,7 +270,7 @@ BOOL TSetupSheet::GetData()
 
 		cfg->ExtendBroadcast = (int)SendDlgItemMessage(EXTBROADCAST_COMBO, CB_GETCURSEL, 0, 0);
 	}
-	else if (resId == SETUP_SHEET2) {
+	else if (resId == DETAIL_SHEET) {
 		cfg->BalloonNotify = IsDlgButtonChecked(BALLOONNOTIFY_CHECK);
 		cfg->OpenCheck = (int)SendDlgItemMessage(OPEN_COMBO, CB_GETCURSEL, 0, 0);
 //		cfg->OpenCheck = IsDlgButtonChecked(OPEN_CHECK);
@@ -273,7 +292,7 @@ BOOL TSetupSheet::GetData()
 		SetDlgIcon(hWnd);
 		SetHotKey(cfg);
 	}
-	else if (resId == SETUP_SHEET3) {
+	else if (resId == SENDRECV_SHEET) {
 		cfg->QuoteCheck = IsDlgButtonChecked(QUOTE_CHECK);
 		cfg->SecretCheck = IsDlgButtonChecked(SECRET_CHECK);
 		cfg->OneClickPopup = IsDlgButtonChecked(ONECLICK_CHECK);
@@ -293,7 +312,7 @@ BOOL TSetupSheet::GetData()
 
 		GetDlgItemTextU8(SOUND_EDIT, cfg->SoundFile, sizeof(cfg->SoundFile));
 	}
-	else if (resId == SETUP_SHEET4) {
+	else if (resId == IMAGE_SHEET) {
 		if (IsDlgButtonChecked(CLIPMODE_CHECK)) {
 			cfg->ClipMode |=  CLIP_ENABLE;
 		} else {
@@ -310,7 +329,7 @@ BOOL TSetupSheet::GetData()
 		cfg->CaptureDelay = GetDlgItemInt(DELAY_EDIT);
 		cfg->CaptureDelayEx = GetDlgItemInt(DELAYEX_EDIT);
 	}
-	else if (resId == SETUP_SHEET5) {
+	else if (resId == LOG_SHEET) {
 		cfg->LogCheck = IsDlgButtonChecked(LOG_CHECK);
 		cfg->LogonLog = IsDlgButtonChecked(LOGONLOG_CHECK);
 		cfg->IPAddrCheck = IsDlgButtonChecked(IPADDR_CHECK);
@@ -326,7 +345,7 @@ BOOL TSetupSheet::GetData()
 		GetDlgItemTextU8(LOG_EDIT, cfg->LogFile, sizeof(cfg->LogFile));
 		if (cfg->LogCheck) LogMng::StrictLogFile(cfg->LogFile);
 	}
-	else if (resId == SETUP_SHEET6) {
+	else if (resId == PASSWORD_SHEET) {
 		char	buf[MAX_NAMEBUF];
 		GetDlgItemTextU8(OLDPASSWORD_EDIT, buf, sizeof(buf));
 		if (CheckPassword(cfg->PasswordStr, buf)) {
@@ -334,7 +353,7 @@ BOOL TSetupSheet::GetData()
 			MakePassword(buf, cfg->PasswordStr);
 		}
 	}
-	else if (resId == SETUP_SHEET7) {
+	else if (resId == URL_SHEET) {
 		cfg->DefaultUrl = IsDlgButtonChecked(DEFAULTURL_CHECK);
 		if (curUrl) GetDlgItemTextU8(URL_EDIT, curUrl->program, sizeof(curUrl->program));
 
@@ -361,7 +380,7 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	int		i;
 	UrlObj	*obj;
 
-	if (resId == SETUP_SHEET1) {
+	if (resId == MAIN_SHEET) {
 		switch (wID) {
 		case ADD_BUTTON:
 			if (GetDlgItemText(BROADCAST_EDIT, buf, sizeof(buf)) <= 0) return TRUE;
@@ -387,7 +406,7 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			return	TRUE;
 		}
 	}
-	else if (resId == SETUP_SHEET2) {
+	else if (resId == DETAIL_SHEET) {
 		switch (wID) {
 		case MAINICON_BUTTON: case REVICON_BUTTON:
 			OpenFileDlg(this).Exec(wID == MAINICON_BUTTON ? MAINICON_EDIT : REVICON_EDIT,
@@ -395,7 +414,7 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			return	TRUE;
 		}
 	}
-	else if (resId == SETUP_SHEET3) {
+	else if (resId == SENDRECV_SHEET) {
 		switch (wID) {
 		case SENDDETAIL_BUTTON:
 			{
@@ -419,7 +438,9 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			return	TRUE;
 		}
 	}
-	else if (resId == SETUP_SHEET4) {
+	else if (resId == IMAGE_SHEET) {
+	}
+	else if (resId == LOG_SHEET) {
 		switch (wID) {
 		case LOGFILE_BUTTON:
 			OpenFileDlg(this, OpenFileDlg::SAVE).Exec(LOG_EDIT, GetLoadStrU8(IDS_OPENFILELOG),
@@ -427,7 +448,9 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			return	TRUE;
 		}
 	}
-	else if (resId == SETUP_SHEET6) {
+	else if (resId == PASSWORD_SHEET) {
+	}
+	else if (resId == URL_SHEET) {
 		switch (wID) {
 		case ADD_BUTTON:
 			if ((i = (int)SendDlgItemMessage(URL_LIST, LB_GETCURSEL, 0, 0)) != LB_ERR &&
@@ -450,6 +473,22 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 					SetDlgItemTextU8(URL_EDIT, obj->program);
 				}
 				
+			}
+			return	TRUE;
+		}
+	}
+	else if (resId == BACKUP_SHEET) {
+		switch (wID) {
+		case SAVE_BUTTON:
+			{
+				char	path[MAX_PATH_U8] = "", regName[MAX_PATH_U8] = "";
+
+				OpenFileDlg	dlg(this, OpenFileDlg::SAVE, NULL, OFN_OVERWRITEPROMPT);
+				if (dlg.Exec(path, NULL,"Reg file(*.reg)\0*.reg\0\0", NULL, "reg")) {
+					cfg->GetSelfRegName(regName);
+					sprintf(buf, "/E \"%s\" HKEY_CURRENT_USER\\Software\\HSTools\\%s", path, regName);
+					ShellExecuteU8(hWnd, "runas", "regedit.exe", buf, 0, SW_SHOW);
+				}
 			}
 			return	TRUE;
 		}
