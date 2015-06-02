@@ -1,10 +1,10 @@
 ﻿static char *cfg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.31";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   cfg.cpp	Ver3.40";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration
 	Create					: 1996-09-27(Sat)
-	Update					: 2011-08-21(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -26,11 +26,12 @@
 #define IPMSG_DEFAULT_KEEPHOSTTIME	(3600 * 24 * 180)	// 180日間
 #define IPMSG_DEFAULT_QUOTE			">"
 #define IPMSG_DEFAULT_ENCRYPTNUM	50
-#define IPMSG_DEFAULT_CLIPMODE		(CLIP_ENABLE|CLIP_SAVE|CLIP_CONFIRM_NORMAL)
+#define IPMSG_DEFAULT_CLIPMODE		(CLIP_ENABLE|CLIP_SAVE)
 #define IPMSG_DEFAULT_CLIPMAX		10
 #define IPMSG_DEFAULT_LRUUSERMAX	10
 #define IPMSG_DEFAULT_OPENMSGTIME	3000
 #define IPMSG_DEFAULT_RECVMSGTIME	10000
+#define IPMSG_DEFAULT_MARKER_THICK	4
 
 #define IPMSG_DEFAULT_VIEWMAX		(1 * 1024 * 1024)	// 1MB
 #define IPMSG_DEFAULT_TRANSMAX		(128 * 1024)		// 128KB
@@ -118,6 +119,8 @@
 #define OPENMSGTIME_STR		"OpenMsgTime"
 #define RECVMSGTIME_STR		"RecvMsgTime"
 #define BALLOONNOINFO_STR	"BalloonNoInfo"
+#define TASKBARUI_STR		"TaskbarUI"
+#define MARKERTHICK_STR		"MarkerThick"
 
 #define VIEWMAX_STR			"ViewMax2"
 #define TRANSMAX_STR		"TransMax"
@@ -239,7 +242,7 @@ Cfg::Cfg(ULONG _nicAddr, int _portNo)
 
 	char	buf[MAX_PATH_U8], path[MAX_PATH_U8], *fname = NULL;
 	GetModuleFileNameU8(NULL, buf, MAX_PATH_U8);
-	GetFullPathNameU8(buf, MAX_PATH, path, &fname);
+	GetFullPathNameU8(buf, MAX_PATH_U8, path, &fname);
 	fname[-1] = 0; // remove '\\'
 	execDir = strdup(path);
 
@@ -335,6 +338,8 @@ BOOL Cfg::ReadRegistry(void)
 	OpenMsgTime = IPMSG_DEFAULT_OPENMSGTIME;
 	RecvMsgTime = IPMSG_DEFAULT_RECVMSGTIME;
 	BalloonNoInfo = FALSE;
+	TaskbarUI = /*IsWin7() ? TRUE :*/ FALSE;
+	MarkerThick = IPMSG_DEFAULT_MARKER_THICK;
 
 	ViewMax = IPMSG_DEFAULT_VIEWMAX;
 	TransMax = IPMSG_DEFAULT_TRANSMAX;
@@ -358,6 +363,7 @@ BOOL Cfg::ReadRegistry(void)
 	SendWidth[SW_USER] = IPMSG_DEFAULT_USERWIDTH;
 	SendWidth[SW_PRIORITY] = IPMSG_DEFAULT_PRIORITYWIDTH;
 
+	ColumnItems = 0;
 	SetItem(&ColumnItems, SW_NICKNAME, TRUE);
 	SetItem(&ColumnItems, SW_GROUP, TRUE);
 	SetItem(&ColumnItems, SW_HOST, TRUE);
@@ -427,6 +433,8 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(OPENMSGTIME_STR, &OpenMsgTime);
 	reg.GetInt(RECVMSGTIME_STR, &RecvMsgTime);
 	reg.GetInt(BALLOONNOINFO_STR, &BalloonNoInfo);
+	reg.GetInt(TASKBARUI_STR, &TaskbarUI);
+	reg.GetInt(MARKERTHICK_STR, &MarkerThick);
 
 // for File Transfer
 	reg.GetInt(VIEWMAX_STR, &ViewMax);
@@ -530,7 +538,9 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(DIALUPCHECK_STR, &DialUpCheck);
 	reg.GetInt(ABSENCENONPOPUP_STR, &AbsenceNonPopup);
 	reg.GetStr(NICKNAMESTR_STR, NickNameStr, sizeof(NickNameStr));
+	StrictUTF8(NickNameStr);
 	reg.GetStr(GROUPNAMESTR_STR, GroupNameStr, sizeof(GroupNameStr));
+	StrictUTF8(GroupNameStr);
 	reg.GetLong(SORT_STR, (long *)&Sort);
 //	reg.GetInt(UPDATETIME_STR, &UpdateTime);
 	reg.GetInt(KEEPHOSTTIME_STR, &KeepHostTime);
@@ -855,6 +865,8 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(OPENMSGTIME_STR, OpenMsgTime);
 		reg.SetInt(RECVMSGTIME_STR, RecvMsgTime);
 		reg.SetInt(BALLOONNOINFO_STR, BalloonNoInfo);
+//		reg.SetInt(TASKBARUI_STR, TaskbarUI);
+//		reg.SetInt(MARKERTHICK_STR, MarkerThick);
 
 //		reg.SetInt(VIEWMAX_STR, ViewMax);
 //		reg.SetInt(TRANSMAX_STR, TransMax);

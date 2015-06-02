@@ -1,9 +1,9 @@
-﻿/* @(#)Copyright (C) 1996-2011 H.Shirouzu		tapi32ex.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2012 H.Shirouzu		tapi32ex.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 2005-04-10(Sun)
-	Update					: 2011-05-23(Mon)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -12,16 +12,6 @@
 #define TAPI32EX_H
 
 #include <richedit.h>
-
-#define CP_UTF8                   65001       // UTF-8 translation
-inline int AtoW(const char *src, WCHAR *dst, int bufsize, int max_len=-1) {
-	return	::MultiByteToWideChar(CP_ACP, 0, src, max_len, dst, bufsize);
-}
-inline int WtoA(const WCHAR *src, char *dst, int bufsize, int max_len=-1) {
-	return	::WideCharToMultiByte(CP_ACP, 0, src, max_len, dst, bufsize, 0, 0);
-}
-
-WCHAR *AtoW(const char *src, BOOL noStatic=FALSE);
 
 #if _MSC_VER < 1200
 

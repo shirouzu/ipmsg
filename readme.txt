@@ -1,8 +1,8 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 3.32
-			H.Shirouzu Dec 19, 2011
+	Source code of IP Messenger for Win version 3.40
+			H.Shirouzu Apr 02, 2012
 
-		Copyright (C) 1996-2011 SHIROUZU Hiroaki
+		Copyright (C) 1996-2012 SHIROUZU Hiroaki
 			All Rights Reserved.
 ---------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ Index.
 ----------------------------------------------------------------------
 2. License (BSD License)
 
-  Copyright (c) 1996-2011 SHIROUZU Hiroaki All rights reserved.
+  Copyright (c) 1996-2012 SHIROUZU Hiroaki All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions

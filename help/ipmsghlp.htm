@@ -69,11 +69,11 @@
 
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.32</h1>
+<h1 class="help_head1">IP Messenger v3.40</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2011/12/19 H.Shirouzu (白水啓章)</div>
+<div align="right">2012/04/02 H.Shirouzu (白水啓章)</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -125,7 +125,7 @@
 <h2 class="help_head2">2. ライセンス＆免責</h2>
 <div class="help_section">
 	<div class="help_license">
-	<strong>Copyright 1996-2011 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<strong>Copyright 1996-2012 SHIROUZU Hiroaki All rights reserved.</strong><br>
 	<br>
 	ソースコード形式であれバイナリ形式であれ、変更の有無に関わらず、以下の条件を満たす限りにおいて、再配布および使用を許可します:<br>
 	<div class="help_license_cond">
@@ -181,7 +181,7 @@
 　（受信側から送信側に画像ダウンロードを求めます）。OSやアンチウイルス系の
 　ファイアーウォール機能で 2425/TCP がブロックされていないことを確認してください）<br>
 <br>
-　<strong>画面キャプチャ</strong>(v3.30以降)は、更新ボタン下のメニューから呼び出せます。範囲指定されたデスクトップ画像を貼り付けたり、PNG ファイルとして保存することができます。キャプチャを開始すると、デフォルトでは呼び出し元の送信ウィンドウは最小化されます。（Shiftキーを押しながらキャプチャ開始すると最小化されません。設定によりデフォルトの挙動を変更することもできます）
+　<strong>画面キャプチャ</strong>(v3.30以降)は、送信画面左下のカメラボタンから呼び出せます。範囲指定されたデスクトップ画像を貼り付けたり、キャプチャ画像にマーカーで追記したり、PNG ファイルとして保存することができます。キャプチャを開始すると、デフォルトでは呼び出し元の送信ウィンドウは最小化されます。（Shiftキーを押しながらキャプチャ開始すると最小化されません。設定によりデフォルトの挙動を変更することもできます）
 	<br><br>
 
   <strong>ファイル/フォルダ添付</strong>(v2.0以降)は、送りたいファイル/フォルダをウィンドウにドラッグ＆ドロップ
@@ -405,6 +405,12 @@ zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>説明</th></tr>
+<tr><td>v3.40</td><td>
+画面キャプチャへのマーキング機能をサポート<br>
+送信画面UI を若干変更<br>
+貼付画像は直接表示をデフォルトに<br>
+libpng を更新（1.5.4 -> 1.5.9。VU#523889 対策）
+</td></tr>
 <tr><td>v3.32</td><td>
 優先度設定ユーザからの貼付画像は直接表示をデフォルトに<br>
 保存画像ファイル名にメッセージ内位置情報を追加<br>

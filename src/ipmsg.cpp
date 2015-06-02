@@ -1,10 +1,10 @@
 ﻿static char *ipmsg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   ipmsg.cpp	Ver3.31";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   ipmsg.cpp	Ver3.40";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Application Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-08-21(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -33,10 +33,13 @@ void TMsgApp::InitWindow(void)
 {
 	HWND		hWnd;
 	char		class_name[MAX_PATH_U8] = IPMSG_CLASS, *tok, *msg, *p;
+	char		*class_ptr = NULL;
 	ULONG		nicAddr = 0;
 	int			port_no = atoi(cmdLine);
 	BOOL		show_history = FALSE;
-	enum Stat { ST_NORMAL, ST_EXIT, ST_ERR } status = ST_NORMAL;
+	enum Stat { ST_NORMAL, ST_TASKBARUI_MSG, ST_EXIT, ST_ERR } status = ST_NORMAL;
+	int			taskbar_msg = 0;
+	int			taskbar_cmd = 0;
 
 	if (port_no == 0) port_no = IPMSG_DEFAULT_PORT;
 
@@ -96,6 +99,20 @@ void TMsgApp::InitWindow(void)
 			else if (stricmp(tok, "/SHOW_HISTORY") == 0) {	// インストーラからの起動
 				show_history = TRUE;
 			}
+			else if (stricmp(tok, "/TASKBAR_MSG") == 0) {	// TaskbarUI用
+				if (!(class_ptr = separate_token(NULL, ' ', &p))
+				|| !(tok = separate_token(NULL, ' ', &p))
+				|| !(taskbar_cmd = atoi(tok))
+				|| !(taskbar_msg = ::RegisterWindowMessage(IP_MSG))) {
+					status = ST_ERR;
+					break;
+				}
+				if ((hWnd = FindWindowU8(class_ptr))) {
+					::PostMessage(hWnd, taskbar_msg, taskbar_cmd, 0);
+				}
+				::ExitProcess(0xffffffff);
+				return;
+			}
 			else status = ST_ERR;
 		}
 		if (status != ST_NORMAL) {
@@ -116,15 +133,15 @@ void TMsgApp::InitWindow(void)
 	::WaitForSingleObject(hMutex, INFINITE);
 
 	if ((hWnd = FindWindowU8(class_name)) ||
-		TRegisterClass(class_name, CS_DBLCLKS, ::LoadIcon(hI, (LPCSTR)IPMSG_ICON),
-						::LoadCursor(NULL, IDC_ARROW)) == 0) {
+		!TRegisterClassU8(class_name, CS_DBLCLKS, ::LoadIcon(hI, (LPCSTR)IPMSG_ICON),
+						::LoadCursor(NULL, IDC_ARROW))) {
 		if (hWnd) ::SetForegroundWindow(hWnd);
 		::ExitProcess(0xffffffff);
 		return;
 	}
 
 	mainWnd = new TMainWin(nicAddr, port_no);
-	mainWnd->Create(class_name, IP_MSG, WS_OVERLAPPEDWINDOW | (IsNewShell() ? WS_MINIMIZE : 0));
+	mainWnd->Create(class_name);
 	::ReleaseMutex(hMutex);
 	::CloseHandle(hMutex);
 

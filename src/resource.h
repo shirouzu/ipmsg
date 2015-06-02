@@ -151,6 +151,7 @@
 #define IDS_HISTODATE                   265
 #define IDS_HISTID                      266
 #define IDS_HISTSDATE                   267
+#define IDS_OPENDESTROY                 268
 #define IDS_LIMITED                     270
 #define IDS_DIRECTED                    271
 #define IDS_BOTH                        272
@@ -169,6 +170,11 @@
 #define IDS_CLIPALWAYS                  285
 #define IDS_CLIPNORMAL                  286
 #define IDS_CLIPSTRICT                  287
+#define IDS_MARKER_RED                  288
+#define IDS_MARKER_GREEN                289
+#define IDS_MARKER_BLUE                 290
+#define IDS_MARKER_YELLOW               291
+#define IDS_MARKER_UNDO                 292
 #define IDS_SETUP_SHEET1                301
 #define IDS_SETUP_SHEET2                302
 #define IDS_SETUP_SHEET3                303
@@ -214,6 +220,7 @@
 #define HISTORY_DIALOG                  591
 #define MENU_ICON                       592
 #define IPMSGV2_ICON                    593
+#define CAMERA_ICON                     593
 #define IPMSGV2ABS_ICON                 595
 #define AREACONFIRM_DIALOG              596
 #define SETUP_SHEET1                    601
@@ -226,6 +233,17 @@
 #define SETUP_SHEET8                    608
 #define SETUP_SHEET9                    609
 #define SETUP_SHEET10                   610
+#define SEP_CUR                         700
+#define REFRESH_ICON                    702
+#define SEAL_ICON                       704
+#define KEY_ICON                        705
+#define SEND_ICON                       706
+#define MARKERTB_BITMAP                 707
+#define RED_CUR                         708
+#define GREEN_CUR                       709
+#define BLUE_CUR                        710
+#define YELLOW_CUR                      711
+#define AREA_TOOLBAR                    712
 #define SEND_EDIT                       1001
 #define SECRET_CHECK                    1004
 #define PASSWORD_CHECK                  1005
@@ -287,7 +305,6 @@
 #define HOST_CHECK                      1087
 #define PRIORITY_CHECK                  1088
 #define URL_BUTTON                      1090
-#define SEPARATE_STATIC                 1091
 #define DEFAULTURL_CHECK                1092
 #define URL_LIST                        1093
 #define GROUP_CHECK                     1108
@@ -331,7 +348,6 @@
 #define LCID_CHECK                      1179
 #define IDC_BITMAP                      1180
 #define BMPDEL_BUTTON                   1181
-#define VSEPARATE_STATIC                1182
 #define CLIPMODE_CHECK                  1185
 #define CLIPCONFIRM_CHECK               1186
 #define IMAGE_BUTTON                    1187
@@ -364,7 +380,13 @@
 #define CLIPDISP_STATIC                 1227
 #define SAVE_BUTTON                     1228
 #define CLIPCONFIRM_COMBO               1230
-#define IDC_BUTTON1                     1233
+#define IDC_BUTTON1                     1231
+#define MARKER_BUTTON                   1231
+#define CAPTURE_BUTTON                  1232
+#define CAPTURE_CHECK                   1233
+#define COLOR_CHECK                     1237
+#define UNDO_BUTTON                     1238
+#define THICK_CHECK                     1239
 #define MENU_SETUP                      10001
 #define MENU_EXIT                       10003
 #define MENU_ABOUT                      10008
@@ -412,9 +434,9 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        700
-#define _APS_NEXT_COMMAND_VALUE         16000
-#define _APS_NEXT_CONTROL_VALUE         1234
+#define _APS_NEXT_RESOURCE_VALUE        713
+#define _APS_NEXT_COMMAND_VALUE         16001
+#define _APS_NEXT_CONTROL_VALUE         1238
 #define _APS_NEXT_SYMED_VALUE           2001
 #endif
 #endif

@@ -1,0 +1,4 @@
+// Microsoft Visual C++ generated Help ID include file.
+// Used by ipmsg.rc
+//
+#define HCAPTURE_BUTTON                 0x81f504d0    // SEND_DIALOG

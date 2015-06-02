@@ -1,10 +1,10 @@
 ﻿static char *tmisc_id = 
-	"@(#)Copyright (C) 1996-2011 H.Shirouzu		tmisc.cpp	Ver0.99";
+	"@(#)Copyright (C) 1996-2012 H.Shirouzu		tmisc.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-05-23(Mon)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -1158,7 +1158,7 @@ BOOL SymLinkV(void *src, void *dest, void *arg)
 		shellLink->SetWorkingDirectory((char *)buf);
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
 			if (!IS_WINNT_V) {
-				MultiByteToWideChar(CP_ACP, 0, (char *)dest, -1, wbuf, MAX_PATH);
+				AtoW((char *)dest, wbuf, MAX_PATH);
 				ps_dest = wbuf;
 			}
 			if (SUCCEEDED(persistFile->Save(ps_dest, TRUE))) {
@@ -1184,7 +1184,7 @@ BOOL ReadLinkV(void *src, void *dest, void *arg)
 			(void **)&shellLink))) {
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
 			if (!IS_WINNT_V) {
-				::MultiByteToWideChar(CP_ACP, 0, (char *)src, -1, wbuf, MAX_PATH);
+				AtoW((char *)src, wbuf, MAX_PATH);
 				src = wbuf;
 			}
 			if (SUCCEEDED(persistFile->Load((WCHAR *)src, STGM_READ))) {
@@ -1290,7 +1290,6 @@ HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const 
 
 #ifdef REPLACE_DEBUG_ALLOCATOR
 
-#define PAGE_SIZE  4096
 #define VALLOC_SIG 0x12345678
 #define ALLOC_ALIGN 4
 //#define NON_FREE

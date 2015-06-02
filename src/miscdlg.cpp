@@ -1,10 +1,10 @@
 ﻿static char *miscdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   miscdlg.cpp	Ver3.30";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   miscdlg.cpp	Ver3.40";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc Dialog
 	Create					: 1996-12-15(Sun)
-	Update					: 2011-07-31(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -239,38 +239,6 @@ BOOL TListHeader::ChangeFontNotify()
 
 //	Debug("lfHeight=%d\n", logFont.lfHeight);
 	return	TRUE;
-}
-
-
-/*
-	static control の subclass化
-*/
-TSeparateSub::TSeparateSub(TWin *_parent) : TSubClassCtl(_parent)
-{
-	hCursor = ::LoadCursor(NULL, IDC_SIZENS);
-}
-
-BOOL TSeparateSub::EvSetCursor(HWND cursorWnd, WORD nHitTest, WORD wMouseMsg)
-{
-	::SetCursor(hCursor);
-	return	TRUE;
-}
-
-BOOL TSeparateSub::EvNcHitTest(POINTS pos, LRESULT *result)
-{
-	*result = HTCLIENT;
-	return	TRUE;	// きちんとイベントを飛ばすため(win3.1/nt3.51)
-}
-
-BOOL TSeparateSub::EventButton(UINT uMsg, int nHitTest, POINTS pos)
-{
-	switch (uMsg)
-	{
-	case WM_LBUTTONDOWN:
-		parent->SendMessage(WM_SENDDLG_RESIZE, 0, 0);
-		return	TRUE;
-	}
-	return	FALSE;
 }
 
 
@@ -883,33 +851,41 @@ BOOL OpenFileDlg::Exec(UINT editCtl, char *title, char *filter, char *defaultDir
 
 	parent->GetDlgItemTextU8(editCtl, buf, sizeof(buf));
 
-	if (!Exec(buf, title, filter, defaultDir, defaultExt))
+	if (!Exec(buf, sizeof(buf), title, filter, defaultDir, defaultExt))
 		return	FALSE;
 
 	parent->SetDlgItemTextU8(editCtl, buf);
 	return	TRUE;
 }
 
-BOOL OpenFileDlg::Exec(char *target, char *title, char *filter, char *defaultDir, char *defaultExt)
+BOOL OpenFileDlg::Exec(char *target, int targ_size, char *title, char *filter, char *defaultDir,
+						char *defaultExt)
 {
-	OPENFILENAME	ofn;
-	char			szDirName[MAX_BUF_EX] = "", szFile[MAX_BUF_EX] = "", *fname = NULL;
+	if (targ_size <= 1) return FALSE;
 
-	if (*target && GetFullPathNameU8(target, MAX_BUF, szDirName, &fname) != 0 && fname)
-		*(fname -1) = 0, strncpyz(szFile, fname, MAX_PATH_U8);
-	else if (defaultDir)
-		strncpyz(szDirName, defaultDir, MAX_PATH_U8);
+	OPENFILENAME	ofn;
+	U8str			fileName(targ_size);
+	U8str			dirName(targ_size);
+	char			*fname = NULL;
+
+	if (*target && GetFullPathNameU8(target, targ_size, dirName.Buf(), &fname) != 0 && fname) {
+		*(fname -1) = 0;
+		strncpyz(fileName.Buf(), fname, targ_size);
+	}
+	else if (defaultDir) {
+		strncpyz(dirName.Buf(), defaultDir, targ_size);
+	}
 
 	memset(&ofn, 0, sizeof(ofn));
 	ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.hwndOwner = parent ? parent->hWnd : NULL;
 	ofn.lpstrFilter = filter;
 	ofn.nFilterIndex = filter ? 1 : 0;
-	ofn.lpstrFile = szFile;
+	ofn.lpstrFile = fileName.Buf();
 	ofn.lpstrDefExt	 = defaultExt;
-	ofn.nMaxFile = sizeof(szFile);
+	ofn.nMaxFile = targ_size;
 	ofn.lpstrTitle = title;
-	ofn.lpstrInitialDir = szDirName;
+	ofn.lpstrInitialDir = dirName.Buf();
 	ofn.lpfnHook = hook;
 	ofn.Flags = OFN_HIDEREADONLY|OFN_EXPLORER|(hook ? OFN_ENABLEHOOK : 0);
 	if (mode == OPEN || mode == MULTI_OPEN)
@@ -918,21 +894,21 @@ BOOL OpenFileDlg::Exec(char *target, char *title, char *filter, char *defaultDir
 		ofn.Flags |= (mode == NODEREF_SAVE ? OFN_NODEREFERENCELINKS : 0);
 	ofn.Flags |= flags;
 
-	char	dirNameBak[MAX_PATH_U8];
-	GetCurrentDirectoryU8(sizeof(dirNameBak), dirNameBak);
+	U8str	dirNameBak(targ_size);
+	GetCurrentDirectoryU8(targ_size, dirNameBak.Buf());
 
 	BOOL	ret = (mode == OPEN || mode == MULTI_OPEN) ?
 					GetOpenFileNameU8(&ofn) : GetSaveFileNameU8(&ofn);
 
-	SetCurrentDirectoryU8(dirNameBak);
+	SetCurrentDirectoryU8(dirNameBak.Buf());
 	if (ret) {
-		if (mode == MULTI_OPEN)
-			memcpy(target, szFile, sizeof(szFile));
-		else
-			strncpyz(target, ofn.lpstrFile, MAX_PATH_U8);
+		if (mode == MULTI_OPEN) {
+			memcpy(target, fileName.Buf(), targ_size);
+		} else {
+			strncpyz(target, ofn.lpstrFile, targ_size);
+		}
 
-		if (defaultDir)
-			strncpyz(defaultDir, ofn.lpstrFile, ofn.nFileOffset);
+		if (defaultDir) strncpyz(defaultDir, ofn.lpstrFile, ofn.nFileOffset);
 	}
 
 	return	ret;
@@ -966,8 +942,7 @@ BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, ch
 	BOOL			ret = FALSE;
 	Wstr			buf_w(MAX_PATH), defaultDir_w(MAX_PATH), title_w(title);
 
-	if (!SUCCEEDED(SHGetMalloc(&iMalloc)))
-		return FALSE;
+	if (!SUCCEEDED(SHGetMalloc(&iMalloc))) return FALSE;
 
 	U8toW(defaultDir, defaultDir_w.Buf(), MAX_PATH);
 	brInfo.hwndOwner = parentWin->hWnd;
@@ -983,8 +958,9 @@ BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, ch
 	{
 		ret = SHGetPathFromIDListV(pidlBrowse, buf_w.Buf());
 		iMalloc->Free(pidlBrowse);
-		if (ret)
+		if (ret) {
 			WtoU8(buf_w, buf, MAX_PATH_U8);
+		}
 	}
 
 	iMalloc->Release();

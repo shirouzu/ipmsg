@@ -1,10 +1,10 @@
 ﻿static char *senddlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   senddlg.cpp	Ver3.31";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   senddlg.cpp	Ver3.40";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-08-21(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -17,8 +17,8 @@
 	SendDialog の初期化
 */
 TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_cfg,
-					LogMng *_logmng, HWND _hRecvWnd, MsgBuf *_msg)
-	: TListDlg(SEND_DIALOG), editSub(_cfg, this), separateSub(this), hostListView(this),
+					LogMng *_logmng, HWND _hRecvWnd, MsgBuf *_msg, TWin *_parent)
+	: TListDlg(SEND_DIALOG, _parent), editSub(_cfg, this), hostListView(this),
 		hostListHeader(&hostListView), imageWin(_cfg, this)
 {
 	hRecvWnd		= _hRecvWnd;
@@ -110,7 +110,6 @@ BOOL (WINAPI *pAnimateWindow)(
 */
 BOOL TSendDlg::EvCreate(LPARAM lParam)
 {
-
 //	if (!pAnimateWindow) {
 //		pAnimateWindow = (BOOL (WINAPI *)(HWND, DWORD, DWORD))::GetProcAddress(::GetModuleHandle("user32.dll"), "AnimateWindow");
 //	}
@@ -119,7 +118,6 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 	editSub.SendMessage(EM_AUTOURLDETECT, 1, 0);
 	editSub.SendMessage(EM_SETTARGETDEVICE, 0, 0);		// 折り返し
 
-	separateSub.AttachWnd(GetDlgItem(SEPARATE_STATIC));
 	DWORD	add_style = LVS_EX_HEADERDRAGDROP|LVS_EX_FULLROWSELECT;
 	if (cfg->GridLineCheck) add_style |= LVS_EX_GRIDLINES;
 	hostListView.AttachWnd(GetDlgItem(HOST_LIST), add_style);
@@ -147,17 +145,12 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 
 	DisplayMemberCnt();
 
-	if (!IsNewShell())
-	{
+	if (!IsNewShell()) {
 		ULONG_PTR	style;
 		style = GetWindowLong(GWL_STYLE);
 		style &= 0xffffff0f;
 		style |= 0x00000080;
 		SetWindowLong(GWL_STYLE, style);
-		style = separateSub.GetWindowLong(GWL_STYLE);
-		style &= 0xffffff00;
-		style |= 0x00000007;
-		separateSub.SetWindowLong(GWL_STYLE, style);
 	}
 //	SetForegroundWindow();
 
@@ -181,45 +174,32 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 //		pAnimateWindow(hWnd, 1000, AW_HOR_POSITIVE|AW_BLEND|AW_ACTIVATE|AW_SLIDE);
 //	}
 
-#if 0
-
-TBBUTTON tbb[] = {
-    {0, 11000, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0},
-    {1, 11001, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0},
-    {2, 11002, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0},
-    {3, 11003, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0},
-    {4, 11004, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0}
-};
-TBBUTTON tb = {0, 0, TBSTATE_ENABLED, TBSTYLE_SEP, 0, 0};
-
-
-      HWND      hToolBar = CreateToolbarEx(
-                hWnd, //親ウィンドウ
-                WS_CHILD | WS_VISIBLE, //ウィンドウスタイル
-                IDR_MAINFRAME, // コントロールID
-                4, //イメージの数
-                TApp::GetInstance(),
-                IDR_MAINFRAME,
-                tbb,
-                5, // ボタンの数
-                0, //ボタンの幅
-                0, //ボタンの高さ
-                16, //イメージの幅
-                15, //イメージの高さ
-                sizeof(TBBUTTON));
-           ::SendMessage(hToolBar, TB_INSERTBUTTON,
-                2, (LPARAM)&tb);
-
-
-	SendDlgItemMessage(IDC_BUTTON1, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hMenuIcon);
-#endif
-
 	PostMessage(WM_DELAYSETTEXT, 0, 0);
 
 	static HICON hMenuIcon;
 	if (!hMenuIcon) hMenuIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)MENU_ICON);
 	SendDlgItemMessage(MENU_CHECK, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hMenuIcon);
 
+	static HICON hCameraIcon;
+	if (!hCameraIcon) hCameraIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)CAMERA_ICON);
+	SendDlgItemMessage(CAPTURE_BUTTON, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hCameraIcon);
+
+	static HICON hRefreshIcon;
+	if (!hRefreshIcon) hRefreshIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)REFRESH_ICON);
+	SendDlgItemMessage(REFRESH_BUTTON, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hRefreshIcon);
+/*
+	static HICON hSendIcon;
+	if (!hSendIcon) hSendIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)SEND_ICON);
+	SendDlgItemMessage(IDOK, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hSendIcon);
+
+	static HICON hSealIcon;
+	if (!hSealIcon) hSealIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)SEAL_ICON);
+	SendDlgItemMessage(SECRET_CHECK, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hSealIcon);
+
+	static HICON hKeyIcon;
+	if (!hKeyIcon) hKeyIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)KEY_ICON);
+	SendDlgItemMessage(PASSWORD_CHECK, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hKeyIcon);
+*/
 	return	TRUE;
 }
 
@@ -281,6 +261,40 @@ void TSendDlg::GetOrder(void)
 			FullOrder[cnt] = items[order[orderCnt++]];
 	}
 	memcpy(cfg->SendOrder, FullOrder, sizeof(FullOrder));
+}
+
+void TSendDlg::GetSeparateArea(RECT *sep_rc)
+{
+	RECT	lv_rc, file_rc;
+	POINT	lv_pt, file_pt;
+	int		lv_height;
+	int		file_width;
+
+	hostListView.GetWindowRect(&lv_rc);
+	lv_height = lv_rc.bottom - lv_rc.top;
+	lv_pt.x = lv_rc.left;
+	lv_pt.y = lv_rc.top;
+	::ScreenToClient(hWnd, &lv_pt);
+
+	::GetWindowRect(GetDlgItem(FILE_BUTTON), &file_rc);
+	file_width = file_rc.right - file_rc.left;
+	file_pt.x = file_rc.left;
+	file_pt.y = file_rc.top;
+	::ScreenToClient(hWnd, &file_pt);
+
+	sep_rc->left   = file_pt.x;
+	sep_rc->right  = file_pt.x + file_width;
+	sep_rc->top    = lv_pt.y + lv_height;
+	sep_rc->bottom = file_pt.y;
+}
+
+BOOL TSendDlg::IsSeparateArea(int x, int y)
+{
+	POINT	pt = {x, y};
+	RECT	sep_rc;
+
+	GetSeparateArea(&sep_rc);
+	return	PtInRect(&sep_rc, pt);
 }
 
 /*
@@ -388,9 +402,6 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		}
 		return	TRUE;
 
-	case SEPARATE_STATIC:
-		return	TRUE;
-
 	case MENU_SAVEPOS:
 		if ((cfg->SendSavePos = !cfg->SendSavePos) != 0)
 		{
@@ -493,6 +504,7 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		}
 		return	TRUE;
 
+	case CAPTURE_BUTTON:
 	case MENU_IMAGERECT:
 		{
 			BOOL	is_shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) ? TRUE : FALSE;
@@ -665,11 +677,7 @@ BOOL TSendDlg::EventCtlColor(UINT uMsg, HDC hDcCtl, HWND hWndCtl, HBRUSH *result
 		SetBkColor(hDcCtl, bkref);
 */		break;
 	case WM_CTLCOLORSTATIC:	// static control & check box 地
-		if (separateSub.hWnd == hWndCtl) {
-/*			static HBRUSH hb;
-			if (!hb) hb = ::CreateSolidBrush(bkref);
-			*result = hb;
-*/		} else {
+		{
 			static HBRUSH hb;
 			if (!hb) hb = ::CreateSolidBrush(dlgref);
 			*result = hb;
@@ -811,22 +819,38 @@ BOOL TSendDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 BOOL TSendDlg::EvMouseMove(UINT fwKeys, POINTS pos)
 {
 
-	if ((fwKeys & MK_LBUTTON) && captureMode)
-	{
+	if ((fwKeys & MK_LBUTTON) && captureMode) {
 		if (lastYPos == (int)pos.y)
 			return	TRUE;
 		lastYPos = (int)pos.y;
 
 		RECT	tmpRect;
-		int		min_y = (5 * (item[refresh_item].y + item[refresh_item].cy) - 3 * item[separate_item].y) / 2;
+		int		min_y = (5 * (item[refresh_item].y + item[refresh_item].cy) - 3 * (item[host_item].y + item[host_item].cy)) / 2;
 
-		if (pos.y < min_y)
+		if (pos.y < min_y) {
 			pos.y = min_y;
+		}
 
 		currentMidYdiff += (int)(short)(pos.y - dividYPos);
 		EvSize(SIZE_RESTORED, 0, 0);
 		GetWindowRect(&tmpRect);
 		MoveWindow(tmpRect.left, tmpRect.top, tmpRect.right - tmpRect.left, tmpRect.bottom - tmpRect.top, TRUE);
+
+/*
+		static HBRUSH hBrush;
+		static RECT	old_rc;
+		RECT sep_rc = {};
+		RECT sub_rc = {};
+
+		if (!hBrush) hBrush = (HBRUSH)::GetStockObject(DKGRAY_BRUSH);
+		HDC hDc = ::GetDC(hWnd);
+		GetSeparateArea(&sep_rc);
+		SubtractRect(&sub_rc, &old_rc, &sep_rc);
+		InvalidateRect(&sub_rc, TRUE);
+		::FillRect(hDc, &sep_rc, hBrush);
+		::ReleaseDC(hWnd, hDc);
+		old_rc = sep_rc;
+*/
 		dividYPos = (int)pos.y;
 		return	TRUE;
 	}
@@ -837,9 +861,20 @@ BOOL TSendDlg::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 {
 	switch (uMsg)
 	{
+	case WM_LBUTTONDOWN:
+		if (!captureMode && IsSeparateArea(pos.x, pos.y)) {
+			POINT	pt;
+			captureMode = TRUE;
+			::SetCapture(hWnd);
+			::GetCursorPos(&pt);
+			::ScreenToClient(hWnd, &pt);
+			dividYPos = pt.y;
+			lastYPos = 0;
+		}
+		return	TRUE;
+
 	case WM_LBUTTONUP:
-		if (captureMode)
-		{
+		if (captureMode) {
 			captureMode = FALSE;
 			::ReleaseCapture();
 			return	TRUE;
@@ -893,6 +928,10 @@ BOOL TSendDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	if (!(hdwp = ::DeferWindowPos(hdwp, editSub.hWnd, NULL, wpos->x, (isFileBtn ? wpos->y : item[file_item].y) + currentMidYdiff, wpos->cx + xdiff, wpos->cy + ydiff - currentMidYdiff + (isFileBtn ? 0 : wpos->y - item[file_item].y), dwFlg)))
 		return	FALSE;
 
+	wpos = &item[camera_item];
+	if (!(hdwp = ::DeferWindowPos(hdwp, GetDlgItem(CAPTURE_BUTTON), NULL, wpos->x, wpos->y + ydiff, wpos->cx, wpos->cy, dwFlg)))
+		return	FALSE;
+
 	wpos = &item[ok_item];
 	if (!(hdwp = ::DeferWindowPos(hdwp, GetDlgItem(IDOK), NULL, wpos->x + (xdiff >= 0 ? xdiff / 2 : xdiff * 6 / 7), wpos->y + ydiff, wpos->cx, wpos->cy, dwFlg)))
 		return	FALSE;
@@ -905,19 +944,15 @@ BOOL TSendDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	if (!(hdwp = ::DeferWindowPos(hdwp, GetDlgItem(SECRET_CHECK), NULL, wpos->x + (xdiff >= 0 ? xdiff / 2 : xdiff), wpos->y + ydiff, wpos->cx, wpos->cy, dwFlg)))
 		return	FALSE;
 
-	wpos = &item[separate_item];
-	if (!(hdwp = ::DeferWindowPos(hdwp, separateSub.hWnd, NULL, wpos->x, wpos->y + currentMidYdiff, wpos->cx + xdiff, wpos->cy, dwFlg)))
-		return	FALSE;
-
 	EndDeferWindowPos(hdwp);
 
-	if (!IsNewShell())
-		::InvalidateRgn(hWnd, NULL, TRUE);
-	else if (captureMode)
-	{
+	if (IsNewShell()) {
 		::InvalidateRgn(GetDlgItem(PASSWORD_CHECK), NULL, TRUE);
 		::InvalidateRgn(GetDlgItem(SECRET_CHECK), NULL, TRUE);
 		::InvalidateRgn(GetDlgItem(IDOK), NULL, TRUE);
+		if (parent) ::InvalidateRgn(editSub.hWnd, NULL, TRUE);
+	} else if (captureMode) {
+		::InvalidateRgn(hWnd, NULL, TRUE);
 	}
 
 	return	TRUE;
@@ -929,7 +964,7 @@ BOOL TSendDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 BOOL TSendDlg::EvGetMinMaxInfo(MINMAXINFO *info)
 {
 	info->ptMinTrackSize.x = (orgRect.right - orgRect.left) * 2 / 3;
-	info->ptMinTrackSize.y = (item[separate_item].y + item[separate_item].cy + currentMidYdiff) + (shareInfo && shareInfo->fileCnt ? 130 : 95);
+	info->ptMinTrackSize.y = (item[host_item].y + item[host_item].cy + currentMidYdiff) + (shareInfo && shareInfo->fileCnt ? 130 : 95);
 	info->ptMaxTrackSize.y = 10000;		//y方向の制限を外す
 
 	return	TRUE;
@@ -954,6 +989,32 @@ BOOL TSendDlg::EvDrawItem(UINT ctlID, DRAWITEMSTRUCT *lpDis)
 	return	FALSE;
 }
 
+BOOL TSendDlg::EvSetCursor(HWND cursorWnd, WORD nHitTest, WORD wMouseMsg)
+{
+	static HCURSOR hResizeCursor;
+	BOOL	need_set = captureMode;
+
+	if (!need_set) {
+		POINT	pt;
+		::GetCursorPos(&pt);
+		::ScreenToClient(hWnd, &pt);
+		if (IsSeparateArea(pt.x, pt.y)) need_set = TRUE;
+	}
+
+	if (need_set) {
+		if (!hResizeCursor) hResizeCursor = ::LoadCursor(TApp::GetInstance(), (LPCSTR)SEP_CUR);
+		::SetCursor(hResizeCursor);
+		return	TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOL TSendDlg::EvNcHitTest(POINTS pos, LRESULT *result)
+{
+	return	FALSE;
+}
+
 /*
 	App定義 Event CallBack
 */
@@ -964,19 +1025,6 @@ BOOL TSendDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_DELAYSETTEXT:
 		SetQuoteStr(msg.msgBuf, cfg->QuoteStr);
 		::SetFocus(editSub.hWnd);
-		return	TRUE;
-
-	case WM_SENDDLG_RESIZE:
-		if (!captureMode)
-		{
-			POINT	pt;
-			captureMode = TRUE;
-			::SetCapture(hWnd);
-			::GetCursorPos(&pt);
-			::ScreenToClient(hWnd, &pt);
-			dividYPos = pt.y;
-			lastYPos = 0;
-		}
 		return	TRUE;
 	}
 	return	FALSE;
@@ -1592,19 +1640,21 @@ BOOL TSendDlg::SendMsg(void)
 	TWin::Show(SW_HIDE);
 	::SendMessage(GetMainWnd(), WM_SENDDLG_HIDE, 0, (LPARAM)this);
 
-	if (is_clip_enable) {
+	if (is_clip_enable && msgMng->IsAvailableTCP()) {
 		SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
+		ULONG	file_base = msgMng->MakePacketNo();
 
 		for (i=0; i < cfg->ClipMax; i++) {
 			int		pos = 0;
 			VBuf	*vbuf = editSub.GetPngByte(i, &pos);
+			char	fname[MAX_PATH_U8];
+
 			if (vbuf) {
 				if (!shareInfo) {
 					shareInfo = shareMng->CreateShare(packetNo);
 					is_bmp_only = TRUE;
 				}
-				char	fname[MAX_PATH];
-				MakeClipFileName(msgMng->MakePacketNo(), pos, TRUE, fname);
+				MakeClipFileName(file_base, pos, TRUE, fname);
 				if (shareMng->AddMemShare(shareInfo, fname, vbuf->Buf(), vbuf->Size(), pos)) {
 					if (cfg->LogCheck && (cfg->ClipMode & CLIP_SAVE)) {
 						FileInfo *fileInfo = shareInfo->fileInfo[shareInfo->fileCnt -1];
@@ -2139,6 +2189,9 @@ void TSendDlg::SetSize(void)
 	::GetWindowPlacement(editSub.hWnd, &wp);
 	RectToWinPos(&wp.rcNormalPosition, &item[edit_item]);
 
+	::GetWindowPlacement(GetDlgItem(CAPTURE_BUTTON), &wp);
+	RectToWinPos(&wp.rcNormalPosition, &item[camera_item]);
+
 	::GetWindowPlacement(GetDlgItem(IDOK), &wp);
 	RectToWinPos(&wp.rcNormalPosition, &item[ok_item]);
 
@@ -2150,9 +2203,6 @@ void TSendDlg::SetSize(void)
 
 	::GetWindowPlacement(GetDlgItem(PASSWORD_CHECK), &wp);
 	RectToWinPos(&wp.rcNormalPosition, &item[passwd_item]);
-
-	::GetWindowPlacement(separateSub.hWnd, &wp);
-	RectToWinPos(&wp.rcNormalPosition, &item[separate_item]);
 
 	GetWindowRect(&rect);
 	orgRect = rect;

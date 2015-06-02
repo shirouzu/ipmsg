@@ -1,5 +1,5 @@
 ======================================================================
-        IP Messenger for Win 全ソース 取り扱い説明書    2011/12/19
+        IP Messenger for Win 全ソース 取り扱い説明書    2012/04/02
 
                                                H.Shirouzu（白水啓章）
                                                http://ipmsg.org
@@ -40,7 +40,7 @@
 ・ライセンスは以下の通りです。
 
 /* ==============================================================
-  Copyright (c) 1996-2011 SHIROUZU Hiroaki  All rights reserved.
+  Copyright (c) 1996-2012 SHIROUZU Hiroaki  All rights reserved.
 
   ソースとバイナリ形式の再配布および使用は、「変更の有無、商用/
   非商用にかかわらず」、以下の条件を満たす場合に許可されます:

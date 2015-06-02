@@ -1,9 +1,9 @@
-﻿/* @(#)Copyright (C) 1996-2011 H.Shirouzu		tlib.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2012 H.Shirouzu		tlib.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-05-23(Mon)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -35,7 +35,9 @@ char *vstrdup(const char *s);
 #endif
 
 /* for crypto api */
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0600
+#endif
 
 /* for new version VC */
 #if _MSC_VER >= 1400
@@ -180,6 +182,7 @@ extern DWORD TWinVersion;	// define in tmisc.cpp
 #define GetWindowLongA	GetWindowLongPtrA
 #define GetWindowLongW	GetWindowLongPtrW
 #define GCL_HICON		GCLP_HICON
+#define GCL_HCURSOR		GCLP_HCURSOR
 #define GWL_WNDPROC		GWLP_WNDPROC
 #define DWL_MSGRESULT	DWLP_MSGRESULT
 #else
@@ -256,6 +259,7 @@ protected:
 	HACCEL			hAccel;
 	TWin			*parent;
 	BOOL			sleepBusy;	// for TWin::Sleep() only
+	BOOL			isUnicode;
 
 public:
 	TWin(TWin *_parent = NULL);

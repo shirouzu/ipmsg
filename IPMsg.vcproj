@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="IPMsg"
 	ProjectGUID="{899CEA68-08AB-45E3-BA20-1376122EE78D}"
+	RootNamespace="IPMsg"
 	>
 	<Platforms>
 		<Platform
@@ -53,7 +54,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				PrecompiledHeaderFile=".\Obj\Debug/IPMsg.pch"
 				AssemblerListingLocation=".\Obj\Debug/"
 				ObjectFile=".\Obj\Debug/"
@@ -75,10 +76,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\libpng_d.lib external\lib\zlib_d.lib lib\tlib_d.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\libpng_d.lib external\lib\zlib_d.lib lib\tlib_d.lib Shlwapi.lib"
 				OutputFile="Debug/IPMsg.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories="&quot;C:/Program Files/Microsoft SDKs/Windows/v7.1/lib&quot;"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Obj\Debug/IPMsg.pdb"
 				SubSystem="2"
@@ -145,10 +147,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="C:/Program Files\Microsoft SDKs/Windows/v7.1/include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				PrecompiledHeaderFile=".\Obj\x64\Debug/IPMsg.pch"
 				AssemblerListingLocation=".\Obj\x64\Debug/"
 				ObjectFile=".\Obj\x64\Debug/"
@@ -170,10 +173,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\x64\libpng_d.lib external\lib\x64\zlib_d.lib lib\x64\tlib_d.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\x64\libpng_d.lib external\lib\x64\zlib_d.lib x64\lib\tlib_d.lib Shlwapi.lib"
 				OutputFile="x64\Debug/IPMsg.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories="&quot;C:\Program Files\Microsoft SDKs\Windows\v7.1\Lib\x64&quot;"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Obj\x64\Debug/IPMsg.pdb"
 				SubSystem="2"
@@ -265,11 +269,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib external\lib\libpng.lib external\lib\zlib.lib lib\tlib.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib external\lib\libpng.lib external\lib\zlib.lib lib\tlib.lib Shlwapi.lib"
 				OutputFile="Release/IPMsg.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories="&quot;C:/Program Files/Microsoft SDKs/Windows/v7.1/lib&quot;"
 				ProgramDatabaseFile=".\Obj\Release/IPMsg.pdb"
+				GenerateMapFile="true"
 				SubSystem="2"
 				TargetMachine="1"
 			/>
@@ -335,6 +341,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
+				AdditionalIncludeDirectories="C:/Program Files\Microsoft SDKs/Windows/v7.1/include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -360,10 +367,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib external\lib\x64\libpng.lib external\lib\x64\zlib.lib x64\lib\tlib.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib external\lib\x64\libpng.lib external\lib\x64\zlib.lib x64\lib\tlib.lib Shlwapi.lib"
 				OutputFile="x64/Release/IPMsg.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories="C:\Program Files\Microsoft SDKs\Windows\v7.1\Lib\x64"
 				ProgramDatabaseFile="x64/Obj/Release/IPMsg.pdb"
 				GenerateMapFile="true"
 				MapFileName="x64/Obj/Release/IPMsg.map"
@@ -650,6 +658,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
@@ -658,6 +667,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
@@ -666,6 +676,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
@@ -674,6 +685,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
@@ -835,6 +847,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\resource.hm"
+				>
+			</File>
+			<File
 				RelativePath=".\src\richedit.cpp"
 				>
 			</File>
@@ -947,6 +963,42 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\taskbarui.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:/Program Files/Microsoft SDKs/Windows/v7.1/include&quot;"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:/Program Files/Microsoft SDKs/Windows/v7.1/include&quot;"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:/Program Files/Microsoft SDKs/Windows/v7.1/include&quot;"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:/Program Files/Microsoft SDKs/Windows/v7.1/include&quot;"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="src\version.cpp"
 				>
 				<FileConfiguration
@@ -997,7 +1049,43 @@
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
 			<File
+				RelativePath=".\src\blue.cur"
+				>
+			</File>
+			<File
+				RelativePath=".\src\camera.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\camera.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\col_b.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\col_g.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\col_r.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\col_y.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\draw_cur.cur"
+				>
+			</File>
+			<File
 				RelativePath=".\src\dummypic.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\green.cur"
 				>
 			</File>
 			<File
@@ -1009,11 +1097,47 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\key.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\MARKERTB.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\menu.ico"
 				>
 			</File>
 			<File
+				RelativePath=".\src\red.cur"
+				>
+			</File>
+			<File
+				RelativePath=".\src\refresh.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\refresh.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\seal.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\send.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\sep.cur"
+				>
+			</File>
+			<File
 				RelativePath=".\src\Toolbar.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\yellow.cur"
 				>
 			</File>
 		</Filter>

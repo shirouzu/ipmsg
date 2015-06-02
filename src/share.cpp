@@ -1,10 +1,10 @@
 ﻿static char *share_id = 
-	"@(#)Copyright (C) H.Shirouzu 2002-2011   share.cpp	Ver3.31";
+	"@(#)Copyright (C) H.Shirouzu 2002-2012   share.cpp	Ver3.40";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: File Share
 	Create					: 2002-04-14(Sun)
-	Update					: 2011-08-21(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -495,22 +495,29 @@ BOOL TShareDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 BOOL TShareDlg::FileAddDlg(TDlg *dlg, ShareMng *shareMng, ShareInfo *shareInfo, Cfg *cfg)
 {
-	char	buf[MAX_BUF_EX] = "", path[MAX_BUF_EX];
+	int		bufsize = MAX_MULTI_PATH;
+	U8str	buf(bufsize);
+	U8str	path(bufsize);
 
-	if (!OpenFileDlg(dlg, OpenFileDlg::MULTI_OPEN).Exec(buf, GetLoadStrU8(IDS_ADDFILE), GetLoadStrAsFilterU8(IDS_OPENFILEALLFLTR), cfg->lastOpenDir))
+	OpenFileDlg	ofdlg(dlg, OpenFileDlg::MULTI_OPEN);
+
+	if (!ofdlg.Exec(buf.Buf(), bufsize, GetLoadStrU8(IDS_ADDFILE),
+			GetLoadStrAsFilterU8(IDS_OPENFILEALLFLTR), cfg->lastOpenDir)) {
 		return	FALSE;
+	}
 
 	cfg->WriteRegistry(CFG_GENERAL);
 
 	int		dirlen = (int)strlen(cfg->lastOpenDir);
-	if (buf[dirlen])
-		return	shareMng->AddFileShare(shareInfo, buf);
+	if (buf[dirlen]) {
+		return	shareMng->AddFileShare(shareInfo, buf.Buf());
+	}
 
-	for (char *fname=buf+dirlen+1; *fname; fname += strlen(fname) +1)
+	for (const char *fname=buf+dirlen+1; *fname; fname += strlen(fname) +1)
 	{
-		if (MakePath(path, buf, fname) >= MAX_PATH_U8)
+		if (MakePath(path.Buf(), buf, fname) >= MAX_PATH_U8)
 			continue;
-		shareMng->AddFileShare(shareInfo, path);
+		shareMng->AddFileShare(shareInfo, path.Buf());
 	}
 	return	TRUE;
 }
@@ -718,7 +725,9 @@ int TSaveCommonDlg::Exec(void)
 
 	// ファイルダイアログ
 		TApp::GetApp()->AddWin(this);
-		BOOL	ret = OpenFileDlg(parentWin, OpenFileDlg::NODEREF_SAVE, (LPOFNHOOKPROC)TApp::WinProc).Exec(fname, GetLoadStrU8(IDS_SAVEFILE), GetLoadStrAsFilterU8(IDS_OPENFILEALLFLTR), last_dir);
+		OpenFileDlg	dlg(parentWin, OpenFileDlg::NODEREF_SAVE, (LPOFNHOOKPROC)TApp::WinProc);
+		BOOL ret = dlg.Exec(fname, sizeof(fname), GetLoadStrU8(IDS_SAVEFILE),
+							GetLoadStrAsFilterU8(IDS_OPENFILEALLFLTR), last_dir);
 		TApp::GetApp()->DelWin(this);
 		hWnd = NULL;
 
@@ -947,7 +956,7 @@ ShareInfo *DecodeShareMsg(char *buf, BOOL enable_clip)
 			break;
 		fileInfo = new FileInfo(atoi(tok));
 
-		if ((tok = separate_token(NULL, ':', &p2)) == NULL || strlen(tok) >= MAX_FILENAME)
+		if ((tok = separate_token(NULL, ':', &p2)) == NULL || strlen(tok) > MAX_FILENAME_U8)
 			break;
 		while ((p3 = strchr(tok, '?')))	// UNICODE 対応までの暫定
 			*p3 = '_';

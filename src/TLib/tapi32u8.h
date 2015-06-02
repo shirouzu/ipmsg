@@ -1,9 +1,9 @@
-﻿/* @(#)Copyright (C) 1996-2011 H.Shirouzu		tapi32u8.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2012 H.Shirouzu		tapi32u8.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 2005-04-10(Sun)
-	Update					: 2011-05-23(Mon)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -24,18 +24,9 @@ struct WIN32_FIND_DATA_U8 {
 	char		cAlternateFileName[ 14 * 3 ];
 };
 
-inline int WtoU8(const WCHAR *src, char *dst, int bufsize, int max_len=-1) {
-	return	::WideCharToMultiByte(CP_UTF8, 0, src, max_len, dst, bufsize, 0, 0);
-}
-inline int U8toW(const char *src, WCHAR *dst, int bufsize, int max_len=-1) {
-	return	::MultiByteToWideChar(CP_UTF8, 0, src, max_len, dst, bufsize);
-}
-inline int WtoS(LPCWSTR src, char *dst, int bufsize, StrMode mode, int max_len=-1) {
-	return (mode == BY_UTF8) ? WtoU8(src, dst, bufsize, max_len)
-							 : WtoA(src, dst, bufsize, max_len);
-}
 
-
+int WtoU8(const WCHAR *src, char *dst, int bufsize, int max_len=-1);
+int U8toW(const char *src, WCHAR *dst, int bufsize, int max_len=-1);
 WCHAR *U8toW(const char *src, BOOL noStatic=FALSE);
 char *WtoU8(const WCHAR *src, BOOL noStatic=FALSE);
 char *WtoA(const WCHAR *src, BOOL noStatic=FALSE);
@@ -45,6 +36,17 @@ char *toA(const void *src, BOOL noStatic=FALSE);
 WCHAR *toW(const void *src, BOOL noStatic=FALSE);
 void *toV(const char *src, BOOL noStatic=FALSE);
 void *toV(const WCHAR *src, BOOL noStatic=FALSE);
+
+#define CP_UTF8                   65001       // UTF-8 translation
+int AtoW(const char *src, WCHAR *dst, int bufsize, int max_len=-1);
+int WtoA(const WCHAR *src, char *dst, int bufsize, int max_len=-1);
+
+WCHAR *AtoW(const char *src, BOOL noStatic=FALSE);
+
+inline int WtoS(LPCWSTR src, char *dst, int bufsize, StrMode mode, int max_len=-1) {
+	return (mode == BY_UTF8) ? WtoU8(src, dst, bufsize, max_len)
+							 : WtoA(src, dst, bufsize, max_len);
+}
 
 // Win32(W) API UTF8 wrapper
 BOOL GetMenuStringU8(HMENU hMenu, UINT uItem, char *buf, int bufsize, UINT flags);
@@ -102,7 +104,8 @@ inline int AtoU8(const char *src, char *dst, int bufsize) {
 	return	(int)strlen(dst);
 }
 
-BOOL IsUTF8(const char *s, BOOL *is_ascii=NULL);
+BOOL IsUTF8(const char *s, BOOL *is_ascii=NULL, char **invalid_point=NULL);
+BOOL StrictUTF8(char *s);
 
 HWND CreateWindowU8(const char *class_name, const char *window_name, DWORD style,
 	int x, int y, int width, int height, HWND hParent, HMENU hMenu, HINSTANCE hInst, void *param);

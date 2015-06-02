@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="libpng"
 	ProjectGUID="{CD31F5D8-76C3-4888-9EB3-1530F8C3B535}"
+	RootNamespace="libpng"
 	>
 	<Platforms>
 		<Platform
@@ -192,7 +193,7 @@
 				Optimization="0"
 				AdditionalIncludeDirectories="..\zlib"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				PrecompiledHeaderFile=".\Debug/libpng.pch"
 				AssemblerListingLocation=".\Debug/"
 				ObjectFile=".\Debug/"
@@ -264,7 +265,7 @@
 				Optimization="0"
 				AdditionalIncludeDirectories="..\zlib"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				PrecompiledHeaderFile=".\x64\Debug/libpng.pch"
 				AssemblerListingLocation=".\x64\Debug/"
 				ObjectFile=".\x64\Debug/"

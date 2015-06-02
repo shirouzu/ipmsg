@@ -1,10 +1,10 @@
 ﻿static char *setupdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   setupdlg.cpp	Ver3.31";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   setupdlg.cpp	Ver3.40";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Setup Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-08-21(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -492,7 +492,7 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 				char	path[MAX_PATH_U8] = "", regName[MAX_PATH_U8] = "";
 
 				OpenFileDlg	dlg(this, OpenFileDlg::SAVE, NULL, OFN_OVERWRITEPROMPT);
-				if (dlg.Exec(path, NULL,"Reg file(*.reg)\0*.reg\0\0", NULL, "reg")) {
+				if (dlg.Exec(path, sizeof(path), NULL,"Reg file(*.reg)\0*.reg\0\0", NULL, "reg")) {
 					cfg->GetSelfRegName(regName);
 					sprintf(buf, "/E \"%s\" HKEY_CURRENT_USER\\Software\\HSTools\\%s", path, regName);
 					ShellExecuteU8(hWnd, "runas", "regedit.exe", buf, 0, SW_SHOW);

@@ -1,10 +1,10 @@
 ﻿static char *richedit_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   richedit.cpp	Ver3.30";
+	"@(#)Copyright (C) H.Shirouzu 2011-2012   richedit.cpp	Ver3.40";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Rich Edit Control and PNG-BMP convert
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-07-31(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -400,10 +400,18 @@ TEditSub::~TEditSub()
 #define EM_GETEVENTMASK			(WM_USER + 59)
 #define ENM_LINK				0x04000000
 
+
+
 BOOL TEditSub::AttachWnd(HWND _hWnd)
 {
-	if (!TSubClassCtl::AttachWnd(_hWnd))
-		return	FALSE;
+	// Protection for Visual C++ Resource editor problem...
+	// RICHEDIT20W is correct, but VC++ changes to RICHEDIT20A, sometimes.
+	char	cname[64];
+	if (GetClassName(_hWnd, cname, sizeof(cname)) && stricmp(cname, "RICHEDIT20A") == 0) {
+		MessageBox("Change RichEdit20A to RichEdit20W in ipmsg.rc", "IPMSG Resource file problem");
+	}
+
+	if (!TSubClassCtl::AttachWnd(_hWnd)) return	FALSE;
 
 	if ((cb = new TRichEditOleCallback(cfg, this, this->parent))) {
 		cb->AddRef();

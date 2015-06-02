@@ -1,10 +1,10 @@
 ﻿static char *twin_id = 
-	"@(#)Copyright (C) 1996-2011 H.Shirouzu		twin.cpp	Ver0.99";
+	"@(#)Copyright (C) 1996-2012 H.Shirouzu		twin.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Window Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -22,6 +22,7 @@ TWin::TWin(TWin *_parent)
 	orgRect		= rect;
 	parent		= _parent;
 	sleepBusy	= FALSE;
+	isUnicode	= TRUE;
 }
 
 TWin::~TWin()
@@ -276,7 +277,8 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 LRESULT TWin::DefWindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	return	::DefWindowProc(hWnd, uMsg, wParam, lParam);
+	return	isUnicode ? ::DefWindowProcW(hWnd, uMsg, wParam, lParam) :
+						::DefWindowProcA(hWnd, uMsg, wParam, lParam);
 }
 
 BOOL TWin::PreProcMsg(MSG *msg)

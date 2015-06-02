@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="TLib"
 	ProjectGUID="{E99EE17D-136C-4C37-B78A-18D324E7119C}"
+	RootNamespace="TLib"
 	>
 	<Platforms>
 		<Platform

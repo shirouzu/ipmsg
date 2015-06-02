@@ -1,10 +1,10 @@
 ﻿static char *image_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   image.cpp	Ver3.30";
+	"@(#)Copyright (C) H.Shirouzu 2011-2012   image.cpp	Ver3.40";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Image
-	Create					: 2011-07-24(Sun)
-	Update					: 2011-07-31(Sun)
+	Create					: 2011-07-24(Mon)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -298,14 +298,146 @@ HBITMAP BmpInfoToHandle(BITMAPINFO *bmi, int size)
 	return	hBmp;
 }
 
-TImageWin::TImageWin(Cfg *_cfg, TSendDlg *_parent) : TWin(_parent)
+TAreaConfirmDlg::TAreaConfirmDlg(Cfg *_cfg, TImageWin *_parentWin)
+	: TDlg(AREACONFIRM_DIALOG, _parentWin)
+{
+	parentWin	= _parentWin;
+	cfg			= _cfg;
+	useClip		= NULL;
+	withSave	= NULL;
+	color		= 0;
+	hToolBar	= NULL;
+}
+
+
+/*
+	画面キャプチャ用ツールバーウィンドウ
+*/
+BOOL TAreaConfirmDlg::Create(BOOL *_useClip, BOOL *_withSave)
+{
+	useClip = _useClip;
+	withSave = _withSave;
+	return	TDlg::Create();
+}
+
+#define MARKER_OFFSET    3000
+#define MARKER_RED       (MARKER_OFFSET + 0)
+#define MARKER_GREEN     (MARKER_OFFSET + 1)
+#define MARKER_BLUE      (MARKER_OFFSET + 2)
+#define MARKER_YELLOW    (MARKER_OFFSET + 3)
+#define MARKER_UNDO      (MARKER_OFFSET + 4)
+#define MARKER_TB_MAX    5
+
+BOOL TAreaConfirmDlg::EvCreate(LPARAM lParam)
+{
+	POINT	pt;
+	::GetCursorPos(&pt);
+	FitMoveWindow(pt.x - 20, pt.y - 20);
+
+	CheckDlgButton(CLIP_CHECK, *useClip);
+	CheckDlgButton(SAVE_CHECK, *withSave);
+
+	TBBUTTON tbb[MARKER_TB_MAX] = {{0}};
+
+	for (int i=0; i < MARKER_TB_MAX; i++) {
+		tbb[i].iBitmap   = i;
+		tbb[i].idCommand = MARKER_OFFSET + i;
+		tbb[i].fsState   = TBSTATE_ENABLED;
+		tbb[i].fsStyle   = TBSTYLE_CHECKGROUP;
+	};
+	tbb[4].fsState  = 0;
+	tbb[4].fsStyle  = TBSTYLE_BUTTON;
+
+	hToolBar = CreateToolbarEx(hWnd, WS_CHILD|WS_VISIBLE|TBSTYLE_TOOLTIPS, AREA_TOOLBAR,
+								MARKER_TB_MAX, TApp::GetInstance(), MARKERTB_BITMAP, tbb,
+								MARKER_TB_MAX, 0, 0, 16, 16, sizeof(TBBUTTON));
+
+	TBBUTTON tb = {0, 0, TBSTATE_ENABLED, TBSTYLE_SEP, 0, 0};
+	::SendMessage(hToolBar, TB_INSERTBUTTON, 4, (LPARAM)&tb);
+
+	Show();
+
+	return	TRUE;
+}
+
+BOOL TAreaConfirmDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
+{
+	switch (wID) {
+	case IDOK:
+	case IDRETRY:
+	case IDCANCEL:
+		if (wID == IDOK) {
+			if (useClip)  *useClip  = IsDlgButtonChecked(CLIP_CHECK);
+			if (withSave) *withSave = IsDlgButtonChecked(SAVE_CHECK);
+		}
+		EndDialog(wID);
+		parentWin->Notify(wID);
+		break;
+
+	case MARKER_UNDO:
+		parentWin->PopDrawHist();
+		Notify();
+		break;
+
+	default:
+		if (wID >= MARKER_RED && wID <= MARKER_YELLOW) {
+			switch (wID) {
+			case MARKER_RED:	color = RGB(255,0,0);	break;
+			case MARKER_GREEN:	color = RGB(0,255,0);	break;
+			case MARKER_BLUE:	color = RGB(0,0,255);	break;
+			case MARKER_YELLOW:	color = RGB(255,255,0);	break;
+			}
+			parentWin->SetMode(TRUE);
+		}
+		break;
+	}
+	return	TRUE;
+}
+
+BOOL TAreaConfirmDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
+{
+	if (ctlID == AREA_TOOLBAR) {
+		if (pNmHdr->code == TBN_GETINFOTIPW) {
+			NMTBGETINFOTIPW	*itip = (NMTBGETINFOTIPW *)pNmHdr;
+			itip->pszText = NULL;
+
+			switch (itip->iItem) {
+			case MARKER_RED:	itip->pszText = GetLoadStrW(IDS_MARKER_RED);	break;
+			case MARKER_GREEN:	itip->pszText = GetLoadStrW(IDS_MARKER_GREEN);	break;
+			case MARKER_BLUE:	itip->pszText = GetLoadStrW(IDS_MARKER_BLUE);	break;
+			case MARKER_YELLOW:	itip->pszText = GetLoadStrW(IDS_MARKER_YELLOW);	break;
+			case MARKER_UNDO:	itip->pszText = GetLoadStrW(IDS_MARKER_UNDO);	break;
+			}
+			if (itip->pszText) itip->cchTextMax = (int)wcslen(itip->pszText);
+			return	TRUE;
+		}
+	}
+	return	FALSE;
+}
+
+void TAreaConfirmDlg::Notify()
+{
+	::SendMessage(hToolBar, TB_SETSTATE, MARKER_UNDO, parentWin->DrawHistNum() ? TBSTATE_ENABLED : 0);
+}
+
+
+/*
+	画面キャプチャウィンドウ
+*/
+CursorMap TImageWin::cursorMap;
+#define ARROW_ID	RGB(1,1,1) // dummy color
+#define CROSS_ID	RGB(2,2,2) // dummy color
+
+TImageWin::TImageWin(Cfg *_cfg, TSendDlg *_parent) : TWin(_parent), areaDlg(_cfg, this)
 {
 	parentWnd	= _parent;
 	cfg			= _cfg;
 	hSelfDc		= NULL;
 	hSelfBmp	= NULL;
-	memset(area_pts, 0, sizeof(area_pts));
-	memset(&last_pts, 0, sizeof(last_pts));
+	useClip		= cfg->CaptureClip;
+	withSave	= cfg->CaptureSave;
+	memset(areaPts, 0, sizeof(areaPts));
+	memset(&lastPts, 0, sizeof(lastPts));
 }
 
 TImageWin::~TImageWin()
@@ -336,11 +468,14 @@ BOOL TImageWin::Create()
 
 	::ReleaseDC(hDesktop, hDesktopDc);
 
-	static BOOL once = FALSE;
-	if (!once) {
-		TRegisterClassU8(IPMSG_CAPTURE_CLASS, CS_DBLCLKS, ::LoadIcon(TApp::GetInstance(),
-						(LPCSTR)IPMSG_ICON), ::LoadCursor(NULL, IDC_CROSS));
-		once = TRUE;
+	if (cursorMap.empty()) {
+		cursorMap[CROSS_ID]			= ::LoadCursor(NULL, (LPCSTR)IDC_CROSS);
+		cursorMap[ARROW_ID]			= ::LoadCursor(NULL, (LPCSTR)IDC_ARROW);
+		cursorMap[RGB(255,0,0)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)RED_CUR);
+		cursorMap[RGB(0,255,0)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GREEN_CUR);
+		cursorMap[RGB(0,0,255)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)BLUE_CUR);
+		cursorMap[RGB(255,255,0)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)YELLOW_CUR);
+		TRegisterClassU8(IPMSG_CAPTURE_CLASS, CS_DBLCLKS);
 	}
 
 	return	TWin::Create(IPMSG_CAPTURE_CLASS, NULL, WS_POPUP|WS_DISABLED, 0);
@@ -350,6 +485,8 @@ BOOL TImageWin::EvCreate(LPARAM lParam)
 {
 	status = INIT;
 	::SetTimer(hWnd, 100, 10, NULL);
+	::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[CROSS_ID]);
+
 	return	TRUE;
 }
 
@@ -363,6 +500,7 @@ BOOL TImageWin::EvNcDestroy()
 		::DeleteObject(hSelfBmp);
 		hSelfBmp = NULL;
 	}
+	::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[ARROW_ID]);
 
 	return	FALSE;
 }
@@ -377,7 +515,10 @@ BOOL TImageWin::EvPaint()
 	::SelectObject(hSelfDc, hOldBmp);
 	::EndPaint(hWnd, &ps);
 
-	if (status == START || status == END) DrawLines();
+	if (status >= START && status <= DRAW_END) {
+		DrawLines();
+		DrawMarker();
+	}
 
 	return	TRUE;
 }
@@ -411,33 +552,74 @@ void RegularRect(RECT *rc)
 	}
 }
 
+BOOL TImageWin::DrawMarker(HDC hDc)
+{
+	if (status >= DRAW_INIT && status <= DRAW_END) {
+		HDC		hDcSv = hDc;
+		HRGN	hRgn = NULL;
+
+		if (!hDc && !(hDc = ::GetDC(hWnd))) return FALSE;
+
+		if (!hDcSv) {
+			RECT rc = { areaPts[0].x, areaPts[0].y, lastPts.x, lastPts.y };
+			RegularRect(&rc);
+
+			hRgn = ::CreateRectRgn(rc.left, rc.top, rc.right+1, rc.bottom+1);
+			::SelectClipRgn(hDc, hRgn);
+		}
+		for (VColPtsItr i=drawPts.begin(); i != drawPts.end(); i++) {
+			if (i->pts.size() <= 1) continue;
+
+			HPEN	hPen = ::CreatePen(PS_SOLID, cfg->MarkerThick, i->color);
+			HPEN	hOldPen = (HPEN)::SelectObject(hDc, (HGDIOBJ)hPen);
+
+			VPtsItr	vp = i->pts.begin();
+			::MoveToEx(hDc, vp->x, vp->y, NULL);
+
+			for (; vp != i->pts.end(); vp++) {
+				::LineTo(hDc, vp->x, vp->y);
+			}
+			::SelectObject(hDc, hOldPen);
+			::DeleteObject(hPen);
+		}
+		if (!hDcSv) {
+			::SelectClipRgn(hDc, NULL);
+			::DeleteObject(hRgn);
+			::ReleaseDC(hWnd, hDc);
+		}
+	}
+	return	TRUE;
+}
+
 BOOL TImageWin::DrawLines(POINTS *pts)
 {
 	HDC		hDc;
-	POINTS	cur = pts ? *pts : status == END ? area_pts[1] : last_pts;
+	POINTS	cur = pts ? *pts : status == END ? areaPts[1] : lastPts;
 
-	if ((hDc = ::GetDC(hWnd))) {
-		HPEN	hPen = ::CreatePen(PS_DOT, 0, RGB(255, 0, 0));
-		HPEN	hOldPen = (HPEN)::SelectObject(hDc, (HGDIOBJ)hPen);
+	if (!(hDc = ::GetDC(hWnd))) return FALSE;
 
-		if (pts && !IS_SAME_PTS(cur, area_pts[0])) {
-			RECT rc = { area_pts[0].x, area_pts[0].y, last_pts.x, last_pts.y };
-			RegularRect(&rc);
-			::InflateRect(&rc, 1, 1);
-			::InvalidateRect(hWnd, &rc, FALSE);
-		}
-		::MoveToEx(hDc, area_pts[0].x, area_pts[0].y, NULL);
-		::LineTo(hDc, cur.x, area_pts[0].y);
-		::LineTo(hDc, cur.x, cur.y);
-		::LineTo(hDc, area_pts[0].x, cur.y);
-		::LineTo(hDc, area_pts[0].x, area_pts[0].y);
+	HPEN	hPen = ::CreatePen(PS_DOT, 0, RGB(255, 0, 0));
+	HPEN	hOldPen = (HPEN)::SelectObject(hDc, (HGDIOBJ)hPen);
 
-		if (pts) last_pts = *pts;
-
-		::SelectObject(hDc, hOldPen);
-		::DeleteObject(hPen);
-		if (hDc) ::ReleaseDC(hWnd, hDc);
+	if (pts && !IS_SAME_PTS(cur, areaPts[0])) {
+		RECT rc = { areaPts[0].x, areaPts[0].y, lastPts.x, lastPts.y };
+		RegularRect(&rc);
+		::InflateRect(&rc, 1, 1);
+		::InvalidateRect(hWnd, &rc, FALSE);
 	}
+	::MoveToEx(hDc, areaPts[0].x, areaPts[0].y, NULL);
+	::LineTo(hDc, cur.x, areaPts[0].y);
+	::LineTo(hDc, cur.x, cur.y);
+	::LineTo(hDc, areaPts[0].x, cur.y);
+	::LineTo(hDc, areaPts[0].x, areaPts[0].y);
+
+	if (pts) lastPts = *pts;
+
+	::SelectObject(hDc, hOldPen);
+	::DeleteObject(hPen);
+
+	::ReleaseDC(hWnd, hDc);
+
 	return	TRUE;
 }
 
@@ -445,6 +627,12 @@ BOOL TImageWin::EvMouseMove(UINT fwKeys, POINTS pts)
 {
 	if (status == START) {
 		DrawLines(&pts);
+	}
+	else if (status == DRAW_START) {
+		if (!IS_SAME_PTS(drawPts.back().pts.back(), pts)) {
+			drawPts.back().pts.push_back(pts);
+		}
+		DrawMarker();
 	}
 	return	TRUE;
 }
@@ -454,45 +642,94 @@ BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts)
 	if (status == INIT) {
 		if (uMsg == WM_LBUTTONDOWN) {
 			status = START;
-			area_pts[0] = last_pts = pts;
+			areaPts[0] = lastPts = pts;
 		}
 	}
-	else if (status == START) {
+	else if (status == START && !areaDlg.hWnd) {
 		if (uMsg == WM_LBUTTONUP) {
-			area_pts[1] = pts;
-			if (IS_SAME_PTS(area_pts[0], area_pts[1])) {
+			areaPts[1] = pts;
+			if (IS_SAME_PTS(areaPts[0], areaPts[1])) {
 				status = INIT;
 			}
 			else {
 				status = END;
-				BOOL	use_clip = cfg->CaptureClip;
-				BOOL	with_save = cfg->CaptureSave;
-				TAreaConfirmDlg	dlg(&use_clip, &with_save, this);
-
-				int ret = dlg.Exec();
-
-				if (ret == IDRETRY) {
-					status = INIT;
-					InvalidateRect(NULL, FALSE);
-				}
-				else {
-					Show(SW_HIDE);
-					parentWnd->Show();
-					if (ret == IDOK) {
-						::SetFocus(parentWnd->GetDlgItem(SEND_EDIT));
-						CutImage(use_clip, with_save);
-					}
-					Destroy();
-				}
+				areaDlg.Create(&useClip, &withSave);
 			}
 		}
 	}
+	else if (status == DRAW_INIT) {
+		if (uMsg == WM_LBUTTONDOWN) {
+			status = DRAW_START;
+			drawPts.push_back(ColPts());
+			drawPts.back().color = areaDlg.GetColor();
+			drawPts.back().pts.push_back(pts);
+			areaDlg.Notify();
+		}
+	}
+	else if (status == DRAW_START) {
+		if (uMsg == WM_LBUTTONUP) {
+			status = DRAW_INIT;
+			if (!IS_SAME_PTS(drawPts.back().pts.back(), pts)) {
+				drawPts.back().pts.push_back(pts);
+			}
+			else if (drawPts.back().pts.size() <= 1) {
+				drawPts.pop_back();
+			}
+		}
+	}
+
 	return	TRUE;
+}
+
+void TImageWin::Notify(int result)
+{
+	if (result == IDRETRY) {
+		::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[CROSS_ID]);
+		status = INIT;
+		InvalidateRect(NULL, FALSE);
+		drawPts.clear();
+	}
+	else if (result == IDCANCEL || result == IDOK) {
+		Show(SW_HIDE);
+		parentWnd->Show();
+		if (result == IDOK) {
+			::SetFocus(parentWnd->GetDlgItem(SEND_EDIT));
+			CutImage(useClip, withSave);
+		}
+		Destroy();
+	}
+}
+
+void TImageWin::SetMode(BOOL is_draw)
+{
+	if (is_draw) {
+		if (status < DRAW_INIT) {
+			status = DRAW_INIT;
+			drawPts.clear();
+		}
+		COLORREF		color = areaDlg.GetColor();
+		CursorMapItr	itr = cursorMap.find(color);
+		if (itr != cursorMap.end()) {
+			::SetClassLong(hWnd, GCL_HCURSOR, (LONG)itr->second);
+		}
+	}
+	else {
+		status = END;
+		::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[ARROW_ID]);
+	}
+}
+
+void TImageWin::PopDrawHist()
+{
+	if (!drawPts.empty()) {
+		drawPts.pop_back();
+		InvalidateRect(NULL, TRUE);
+	}
 }
 
 BOOL TImageWin::CutImage(BOOL use_clip, BOOL with_save)
 {
-	RECT rc = { area_pts[0].x, area_pts[0].y, area_pts[1].x, area_pts[1].y };
+	RECT rc = { areaPts[0].x, areaPts[0].y, areaPts[1].x, areaPts[1].y };
 	RegularRect(&rc);
 
 	int	cx = rc.right  - rc.left + 1; // include right line pixel
@@ -507,6 +744,7 @@ BOOL TImageWin::CutImage(BOOL use_clip, BOOL with_save)
 	HBITMAP	hOldBmp = (HBITMAP)::SelectObject(hSelfDc, hSelfBmp);
 	HBITMAP	hAreaOldBmp = (HBITMAP)::SelectObject(hAreaDc, hAreaBmp);
 
+	DrawMarker(hSelfDc);
 	::BitBlt(hAreaDc, 0, 0, cx, cy, hSelfDc, rc.left, rc.top, SRCCOPY);
 
 	::SelectObject(hAreaDc, hAreaOldBmp);
@@ -521,14 +759,16 @@ BOOL TImageWin::CutImage(BOOL use_clip, BOOL with_save)
 	parentWnd->InsertBitmapByHandle(hAreaBmp);
 
 	if (with_save) {
-		char	fname[MAX_PATH] = "";
+		char	fname[MAX_PATH_U8] = "";
 		OpenFileDlg	dlg(this->parent, OpenFileDlg::SAVE, NULL, OFN_OVERWRITEPROMPT);
 
-		if (dlg.Exec(fname, NULL, "PNG file(*.png)\0*.png\0\0", cfg->lastSaveDir, "png")) {
+		if (dlg.Exec(fname, sizeof(fname), NULL, "PNG file(*.png)\0*.png\0\0",
+						cfg->lastSaveDir, "png")) {
 			DWORD	size = 0;
 			VBuf	*buf = BmpHandleToPngByte(hAreaBmp);
 			if (buf) {
-				HANDLE	hFile = CreateFileU8(fname, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
+				HANDLE	hFile = CreateFileU8(fname, GENERIC_WRITE,
+											 FILE_SHARE_READ|FILE_SHARE_WRITE,
 											 NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 				if (hFile != INVALID_HANDLE_VALUE) {
 					WriteFile(hFile, buf->Buf(), buf->Size(), &size, 0);
@@ -543,42 +783,6 @@ BOOL TImageWin::CutImage(BOOL use_clip, BOOL with_save)
 	::DeleteDC(hAreaDc);
 	::ReleaseDC(hDesktop, hDesktopDc);
 
-	return	TRUE;
-}
-
-TAreaConfirmDlg::TAreaConfirmDlg(BOOL *_useClip, BOOL *_withSave, TImageWin *_parentWin)
-	: TDlg(AREACONFIRM_DIALOG, _parentWin)
-{
-	parentWin = _parentWin;
-	useClip = _useClip;
-	withSave = _withSave;
-}
-
-BOOL TAreaConfirmDlg::EvCreate(LPARAM lParam)
-{
-	POINT	pt;
-	::GetCursorPos(&pt);
-	FitMoveWindow(pt.x - 30, pt.y - 20);
-
-	CheckDlgButton(CLIP_CHECK, *useClip);
-	CheckDlgButton(SAVE_CHECK, *withSave);
-
-	return	TRUE;
-}
-
-BOOL TAreaConfirmDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
-{
-	switch (wID) {
-	case IDOK:
-	case IDRETRY:
-	case IDCANCEL:
-		if (wID == IDOK) {
-			*useClip = IsDlgButtonChecked(CLIP_CHECK);
-			*withSave = IsDlgButtonChecked(SAVE_CHECK);
-		}
-		EndDialog(wID);
-		break;
-	}
 	return	TRUE;
 }
 

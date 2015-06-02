@@ -5,11 +5,12 @@ Contents file=ipmsg.hhc
 Default topic=ipmsghlp.htm
 Display compile progress=No
 Language=0x411 “ú–{Œê
-Title=IP Messenger ver3.32 Help
+Title=IP Messenger ver3.40 Help
 
 
 [FILES]
 ipmsghlp.htm
+ipmsghlp_eng.htm
 
 [INFOTYPES]
 

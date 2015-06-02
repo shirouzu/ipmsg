@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2011   ipmsgcmn.h	Ver3.31 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2011-2012   ipmsgcmn.h	Ver3.40 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Common Header
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-08-21(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -18,6 +18,9 @@
 #include <stddef.h>
 #include "../external/libpng/png.h"
 #include <richole.h>
+#include "resource.h"
+#include <vector>
+#include <map>
 
 /*  IP Messenger for Windows  internal define  */
 #define IPMSG_REVERSEICON			0x0100
@@ -25,6 +28,7 @@
 #define IPMSG_ENTRYMINSEC			5
 #define IPMSG_GETLIST_FINISH		0
 #define IPMSG_DELAYMSG_OFFSETTIME	2000
+#define IPMSG_DELAYFOCUS_TIME		10
 
 #define IPMSG_BROADCAST_TIMER		0x0101
 #define IPMSG_SEND_TIMER			0x0102
@@ -40,6 +44,7 @@
 #define IPMSG_BALLOON_DELAY_TIMER	0x010d
 #define IPMSG_IMAGERECT_TIMER		0x010e
 #define IPMSG_KEYCHECK_TIMER		0x010f
+#define IPMSG_DELAYFOCUS_TIMER		0x0110
 
 
 #define IPMSG_NICKNAME			1
@@ -107,10 +112,11 @@ typedef long	Time_t;		// size of time_t is 64bit in VS2005 or later
 #define MAX_UDPBUF		32768
 #define MAX_BUF			1024
 #define MAX_BUF_EX		(MAX_BUF * 3)
+#define MAX_MULTI_PATH	(MAX_BUF * 32)
 #define MAX_NAMEBUF		80
 #define MAX_LISTBUF		(MAX_NAMEBUF * 4)
 #define MAX_ANSLIST		100
-#define MAX_FILENAME	256
+#define MAX_FILENAME_U8	(255 * 3)
 
 #define HS_TOOLS		"HSTools"
 #define IP_MSG			"IPMsg"
@@ -416,6 +422,8 @@ public:
 	int		OpenMsgTime;
 	int		RecvMsgTime;
 	BOOL	BalloonNoInfo;
+	BOOL	TaskbarUI;
+	int		MarkerThick;
 
 	int		ViewMax;
 	int		TransMax;
@@ -739,18 +747,6 @@ public:
 	virtual BOOL	EvContextMenu(HWND childWnd, POINTS pos);
 };
 
-class TSeparateSub : public TSubClassCtl {
-protected:
-	HCURSOR	hCursor;
-
-public:
-	TSeparateSub(TWin *_parent);
-
-	virtual BOOL	EvSetCursor(HWND cursorWnd, WORD nHitTest, WORD wMouseMsg);
-	virtual BOOL	EvNcHitTest(POINTS pos, LRESULT *result);
-	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
-};
-
 class TListHeader : public TSubClassCtl {
 protected:
 	LOGFONT	logFont;
@@ -1022,20 +1018,64 @@ enum {	STI_NONE=0, STI_ENC, STI_SIGN, STI_FILE, STI_CLIP, STI_ENC_FILE, STI_ENC_
 
 #define IS_SAME_PTS(pts1, pts2) (pts1.x == pts2.x && pts1.y == pts2.y)
 
+typedef std::vector<POINTS>		VPts;
+typedef VPts::iterator			VPtsItr;
+
+struct ColPts{
+	COLORREF	color;
+	VPts		pts;
+};
+
+typedef std::vector<ColPts>	VColPts;
+typedef VColPts::iterator	VColPtsItr;
+
+class TImageWin;
+class TAreaConfirmDlg : public TDlg {
+protected:
+	TImageWin	*parentWin;
+	HWND		hToolBar;
+	Cfg			*cfg;
+	BOOL		*useClip;
+	BOOL		*withSave;
+	COLORREF	color;
+
+public:
+	TAreaConfirmDlg(Cfg *_cfg, TImageWin *_parentWin);
+	virtual BOOL		Create(BOOL *_useClip, BOOL *_withSave);
+	virtual BOOL		EvCreate(LPARAM lParam);
+	virtual BOOL		EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
+	virtual BOOL		EvNotify(UINT ctlID, NMHDR *pNmHdr);
+
+	virtual COLORREF	GetColor() { return color; }
+	virtual void		Notify();
+};
+
+typedef std::map<DWORD, HCURSOR>	CursorMap;
+typedef CursorMap::iterator			CursorMapItr;
+
 class TImageWin : public TWin {
 protected:
-	HDC			hSelfDc;
-	HBITMAP		hSelfBmp;
-	POINTS		area_pts[2];
-	POINTS		last_pts;
-	Cfg			*cfg;
-	TSendDlg	*parentWnd;
-	enum { INIT, START, END } status;
+	HDC				hSelfDc;
+	HBITMAP			hSelfBmp;
+	static CursorMap cursorMap;
+	POINTS			areaPts[2];
+	POINTS			lastPts;
+	VColPts			drawPts;
+	Cfg				*cfg;
+	BOOL			useClip;
+	BOOL			withSave;
+	TAreaConfirmDlg	areaDlg;
+	TSendDlg		*parentWnd;
+	enum { INIT, START, END, DRAW_INIT, DRAW_START, DRAW_END } status;
 
 public:
 	TImageWin(Cfg *_cfg, TSendDlg *_parent);
 	virtual ~TImageWin();
 	virtual BOOL	Create();
+	virtual void	Notify(int result);
+	virtual void	SetMode(BOOL is_draw);
+	virtual void	PopDrawHist();
+	virtual size_t	DrawHistNum() { return drawPts.size(); }
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvNcDestroy();
 	virtual BOOL	EvChar(WCHAR code, LPARAM keyData);
@@ -1044,21 +1084,9 @@ public:
 	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
 	virtual BOOL	EvTimer(WPARAM _timerID, TIMERPROC proc);
 	virtual BOOL	DrawLines(POINTS *pts=NULL);
+	virtual BOOL	DrawMarker(HDC hDc=NULL);
 	virtual BOOL	CutImage(BOOL use_clip=TRUE, BOOL with_save=FALSE);
 };
-
-class TAreaConfirmDlg : public TDlg {
-protected:
-	TImageWin	*parentWin;
-	BOOL		*useClip;
-	BOOL		*withSave;
-
-public:
-	TAreaConfirmDlg(BOOL *_useClip, BOOL *_withSave, TImageWin *_parentWin);
-	virtual BOOL	EvCreate(LPARAM lParam);
-	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
-};
-
 
 class TSendDlg : public TListDlg {
 protected:
@@ -1093,8 +1121,9 @@ protected:
 	LOGFONT		orgFont;
 
 	enum		send_item {
-					host_item=0, member_item, refresh_item, ok_item, edit_item, secret_item,
-					menu_item, passwd_item, separate_item, file_item, max_senditem
+					host_item=0, member_item, refresh_item, camera_item,
+					ok_item, edit_item, secret_item,
+					menu_item, passwd_item, file_item, max_senditem
 				};
 	WINPOS		item[max_senditem];
 
@@ -1116,7 +1145,6 @@ protected:
 	TEditSub		editSub;
 	TListHeader		hostListHeader;
 	TListViewEx		hostListView;
-	TSeparateSub	separateSub;
 	TImageWin		imageWin;	// Image Area Selection for capture
 //	HMENU			hCurMenu;
 
@@ -1125,6 +1153,8 @@ protected:
 	void	SetMainMenu(HMENU hMenu);
 	void	PopupContextMenu(POINTS pos);
 	void	GetOrder(void);
+	void	GetSeparateArea(RECT *sep_rc);
+	BOOL	IsSeparateArea(int x, int y);
 
 	void	SetQuoteStr(LPSTR str, LPCSTR quoteStr);
 	void	SelectHost(HostSub *hostSub, BOOL force=FALSE, BOOL byAddr=TRUE);
@@ -1147,7 +1177,7 @@ protected:
 
 public:
 	TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *cfg, LogMng *logmng,
-			HWND _hRecvWnd = NULL, MsgBuf *msg = NULL);
+			HWND _hRecvWnd = NULL, MsgBuf *msg = NULL, TWin *parent=NULL);
 	virtual ~TSendDlg();
 
 	HWND	GetRecvWnd(void) { return	hRecvWnd; }
@@ -1175,6 +1205,8 @@ public:
 	virtual BOOL	EvContextMenu(HWND childWnd, POINTS pos);
 	virtual BOOL	EvMeasureItem(UINT ctlID, MEASUREITEMSTRUCT *lpMis);
 	virtual BOOL	EvDrawItem(UINT ctlID, DRAWITEMSTRUCT *lpDis);
+	virtual BOOL	EvSetCursor(HWND cursorWnd, WORD nHitTest, WORD wMouseMsg);
+	virtual BOOL	EvNcHitTest(POINTS pos, LRESULT *result);
 
 	virtual BOOL	EvMenuSelect(UINT uItem, UINT fuFlag, HMENU hMenu);
 	virtual BOOL	EvNotify(UINT ctlID, NMHDR *pNmHdr);
@@ -1288,7 +1320,7 @@ static DWORD WINAPI RecvFileThread(void *_recvDlg);
 	BOOL	DecodeDirEntry(char *buf, FileInfo *info, char *u8fname);
 
 public:
-	TRecvDlg(MsgMng *_msgmng, MsgBuf *_msg, THosts *hosts, Cfg *cfg, LogMng *logmng);
+	TRecvDlg(MsgMng *_msgmng, MsgBuf *_msg, THosts *hosts, Cfg *cfg, LogMng *logmng, TWin *_parent=NULL);
 	virtual ~TRecvDlg();
 
 	virtual BOOL	IsClosable(void) {
@@ -1552,6 +1584,9 @@ protected:
 	UINT		reverseCount;
 	UINT_PTR	ansTimerID;
 	UINT		TaskBarCreateMsg;
+	UINT		TaskBarButtonMsg;
+	UINT		TaskBarNotifyMsg;
+	char		*className;
 	BOOL		terminateFlg;
 	BOOL		activeToggle;
 	DWORD		writeRegFlags;
@@ -1652,6 +1687,9 @@ public:
 	TMainWin(ULONG _nicAddr=INADDR_ANY, int _portNo=IPMSG_DEFAULT_PORT, TWin *_parent = NULL);
 	virtual ~TMainWin();
 
+	virtual BOOL	Create(LPCSTR className=NULL, LPCSTR title="",
+						DWORD style=(WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN),
+						DWORD exStyle=0, HMENU hMenu=NULL);
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvClose(void);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
@@ -1690,7 +1728,7 @@ public:
 	OpenFileDlg(TWin *_parent, Mode _mode=OPEN, LPOFNHOOKPROC _hook=NULL, DWORD _flags=0) {
 		parent = _parent; hook = _hook; mode = _mode; flags = _flags;
 	}
-	BOOL Exec(char *target, char *title=NULL, char *filter=NULL, char *defaultDir=NULL,
+	BOOL Exec(char *target, int size, char *title=NULL, char *filter=NULL, char *defaultDir=NULL,
 				char *defaultExt=NULL);
 	BOOL Exec(UINT editCtl, char *title=NULL, char *filter=NULL, char *defaultDir=NULL,
 				char *defaultExt=NULL);
@@ -1783,5 +1821,8 @@ inline void UnixTime2FileTime(Time_t ut, FILETIME *ft) {
 }
 char *GetLoadStrAsFilterU8(UINT id);
 BOOL GetCurrentScreenSize(RECT *rect, HWND hRefWnd = NULL);
+
+void CreateJumpList(const char *option);
+void DeleteJumpList();
 
 #endif

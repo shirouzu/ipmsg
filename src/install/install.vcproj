@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="install"
 	ProjectGUID="{C85CE441-E57C-43E6-89C6-02B2B8C5BFC8}"
+	RootNamespace="install"
 	>
 	<Platforms>
 		<Platform
@@ -53,7 +54,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				PrecompiledHeaderFile=".\Debug/install.pch"
 				AssemblerListingLocation=".\Debug/"
 				ObjectFile=".\Debug/"
@@ -148,7 +149,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				PrecompiledHeaderFile="../../x64/Obj/InstDebug/install.pch"
 				AssemblerListingLocation="../../x64/Obj/InstDebug/"
 				ObjectFile="../../x64/Obj/InstDebug/"

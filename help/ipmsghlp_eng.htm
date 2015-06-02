@@ -70,11 +70,11 @@
 
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.32</h1>
+<h1 class="help_head1">IP Messenger v3.40</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2011/12/19 H.Shirouzu</div>
+<div align="right">2012/04/02 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -128,7 +128,7 @@
 <h2 class="help_head2">2. License (BSD License)</h2>
 <div class="help_section">
 	<div class="help_license">
-	<strong>Copyright 1996-2011 SHIROUZU Hiroaki All rights reserved.</strong>
+	<strong>Copyright 1996-2012 SHIROUZU Hiroaki All rights reserved.</strong>
 
 	<div class="help_license_cond">
   Redistribution and use in source and binary forms, with or without
@@ -204,8 +204,8 @@
 	(Because embedded image mechanism use ipmsg file transfer, it requires to open 2425/tcp port)
 	<br><br>
 
-	<strong>To capture display</strong> (v3.3 or later), select in the menu that under "refresh" button.<br>
-	  Area specified desktop image can be pasted to Send Message Window and it can be saved to PNG file.<br>
+	<strong>To capture display</strong> (v3.3 or later), push camera button or select in the menu that under "refresh" button.<br>
+	  Area specified desktop image (that can be modified by marker) can be pasted to Send Message Window and it can be saved to PNG file.<br>
 	  Send Message Window is minimized at starting to capture, but this behavior can be changed by settings.
 	<br><br>
 
@@ -406,6 +406,12 @@ zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
+<tr><td>v3.40</td><td>
+Support Marker function for captured display image.<br>
+Update libpng (1.5.4 -> 1.5.9) for VU#523889<br>
+Show embedded image directly as default.<br>
+Improve Send Dialog UI.
+</td></tr>
 <tr><td>v3.32</td><td>
 Show embedded image directly as default, if priority user.<br>
 Fix illegal characters in setting dialog(v3.31 only)
