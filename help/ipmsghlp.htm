@@ -1,0 +1,423 @@
+<html lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+
+<title>IP Messenger Help</title>
+
+<style type="text/css">
+<!--
+.help_head1 {
+	color:#ff5555;
+	background-color:#0000cc;
+}
+.help_head2 {
+	color:white;
+	background-color:#0000cc;
+	margin-bottom:10px;
+}
+.help_head3 {
+	color:white;
+	background-color:#0000cc;
+	margin-bottom:5px;
+}
+.help_head4 {
+	margin-bottom:0px;
+}
+.help_table {
+	border-style:solid;
+	border-collapse: separate;
+	background-color: #ddffdd;
+	border-color: #aaaaaa;
+	font-size: 95%;
+}
+.tr_default {
+	background-color: #aaffaa;
+}
+.help_all {
+	font-size: 95%;
+}
+.help_section {
+	margin-left:25px;
+	margin-bottom:30px;
+}
+.help_sub_section {
+	margin-left:10px;
+	margin-bottom:10px;
+}
+.help_mini_section {
+	background-color: #cccccc;
+	padding:2%;
+}
+.help_mini_section2 {
+	margin-top:3px;
+	background-color: #eeffff;
+	padding:2%;
+}
+.help_license {
+	border-color:#777777; 
+	border-style:solid; 
+	padding:2%;
+	background-color: #dddddd;
+}
+.help_license_cond {
+	padding:5%;
+}
+-->
+</style>
+</head>
+<body bgcolor="#eeffff">
+
+
+<div align="center">
+<h1 class="help_head1">IP Messenger v3.00</h1>
+</div>
+<div class="help_all">
+
+<div align="right">2011/04/20 H.Shirouzu (白水啓章)</div>
+
+<a name="index"/>
+<h2 class="help_head2">Index</h2>
+<div class="help_section">
+  <a href="#about">1. 概要</a><br>
+  <a href="#license">2. ライセンス＆免責</a><br>
+  <a href="#environment">3. 動作環境</a><br>
+  <a href="#install">4. インストール・アンインストール</a><br>
+  <a href="#usage">5. 使用法＆画面説明</a><br>
+  <a href="#misc">6. その他</a><br>
+  <a href="#wan">7. ルータ越えの設定について（LocalNetwork以外へのBroadcast設定）</a><br>
+  <a href="#firewall">8. メンバ認識、ファイル転送、画像添付で問題があるとき</a><br>
+  <a href="#cmdline">9. コマンドライン</a><br>
+  <a href="#support">10. サポートについて（疑問・質問のある方は、こちらをご覧ください）</a><br>
+  <a href="#thanks">11. 謝辞</a><br>
+  <a href="#history">12. 履歴</a><br>
+</div>
+
+<a name="about">
+<h2 class="help_head2">1. 概要</h2>
+<div class="help_section">
+	<strong>LAN用メッセージ送受信ソフトウェア</strong> です。シンプル＆軽快動作。
+	<br><br>
+	自分のいるネットワーク内（および指定のネットワーク）で、動的なメンバ
+	認識ができます。サーバを必要としません。
+	<br><br>
+
+	シンプル＆軽快動作がモットーですが、
+	メッセージ内画像貼り付け(ver3.0以降）、ファイル添付(ver2.0以降)、封書送信、同報送信、
+	ログ機能、ノンポップアップモード、不在通知モード、といった機能を持っています。
+	<br><br>
+
+	通信メッセージは、RSA(2048bit) + AES(256bit) で暗号化され、RSA/SHA-1による
+	検証を行いますので（ver2.x は RSA(1024bit) + blowfish(128bit)）、万一、
+	経路上のパケットが傍受 or 改竄されても安心です。
+	<br><br>
+
+	タスクトレイに常駐します。
+	<br><br>
+
+	Win16版、WinCE版、Mac版、iPhone版、X11版、GTK版、GNOME版、Java版、および、
+	全ソース(protocol 仕様同梱) も公開しています。以下の URL にあります。
+	<br>
+    <a href="http://ipmsg.org">http://ipmsg.org</a>
+    <a href="http://ipmsg.org/index.html.en">http://ipmsg.org/index.html.en</a>（英語、中文、ポルトガル語、タガログ語等）
+</div>
+
+<a name="license"/>
+<h2 class="help_head2">2. ライセンス＆免責</h2>
+<div class="help_section">
+	<div class="help_license">
+	<strong>Copyright 1996-2011 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<br>
+	ソースコード形式であれバイナリ形式であれ、変更の有無に関わらず、以下の条件を満たす限りにおいて、再配布および使用を許可します:<br>
+	<div class="help_license_cond">
+	 1. ソースコード形式で再配布する場合、上記著作権表示、本条件書、および下記免責表示を必ず含めてください。<br>
+	<br>
+	 2. バイナリ形式で再配布する場合、上記著作権表示、本条件書、および下記免責表示を、配布物とともに提供される文書及び他の資料に必ず含めてください。
+	</div>
+	<div class="help_license">
+	<strong>SHIROUZU Hiroaki および貢献者は、本ソフトウェアの使用/利用によるいかなる損失に対しても、責任を負いません。</strong>
+	</div>
+	</div>
+</div>
+
+<a name="environment"/>
+<h2 class="help_head2">3. 動作環境</h2>
+<div class="help_section">
+	Windows 2000/XP/2003/Vista/2008/Win7<br>
+	（Windows 95/98/Me をお使いの方は、v2.06 をお使いください）<br>
+	（Win3.1 および NT3.50以前には Win16版をご利用ください）<br>
+</div>
+
+<a name="install"/>
+<h2 class="help_head2">4. インストール・アンインストール</h2>
+<div class="help_section">
+	<h3 class="help_head3">インストール</h3>
+	<div class="help_sub_section">
+		setup.exe を実行して、任意のディレクトリにインストールしてください。<br>
+		（インストールディレクトリへのコピーと、ショートカットの作成を行います）<br>
+	</div>
+
+	<h3 class="help_head3">アンインストール</h3>
+	<div class="help_sub_section">
+		コントロールパネルの「プログラムの追加と削除」から、アンインストールできます。
+	</div>
+</div>
+
+
+<a name="usage"/>
+<h2 class="help_head2">5. 使用法＆画面説明</h2>
+<div class="help_section">
+
+<h3 class="help_head3">タスクトレイアイコン</h3>
+アイコンの左ダブルクリックで、送信ウィンドウが出ます。<br>
+右クリックで「設定」「不在通知モード」などのメニューが出ます。
+
+<h3 class="help_head3">送信ウィンドウ</h3>
+	<div class="help_sub_section">
+	「封書」をチェックすると、開封ボタンつき送信になります。<br>
+	「錠」をチェックすると、「受取人自身が設定した鍵」でのみ開封できる
+	    封書送信になります。
+	<br><br>
+  ファイル添付は、送りたいファイルをウィンドウにドラッグ＆ドロップ
+    するか、ウィンドウ右クリックで「ファイル添付」を選んでください。<br>
+    （受信側がダウンロード操作するまで、転送は開始されません。また、
+      送信側が IPMSG を再起動すると、ダウンロード許可情報がクリアされ
+      るため、再起動以前に添付したファイルはダウンロードできなくなり
+      ます）
+	<br><br>
+  送信ウィンドウのリスト項目は、項目のドラッグ＆ドロップによって、
+    順番を変更することができます。項目順＆項目幅の保存は、右クリック
+    →リストヘッダ保存で行ってください。
+	<br><br>
+  ウィンドウ右クリックで、ソート・フィルタ設定、グループ選択、ユーザ検索(CTRL+F)、
+    フォント設定、サイズの保存、位置固定、詳細表示設定ができます。
+	<br><br>
+    ＃ソート・フィルタの表示優先度について<br>
+      優先度の値の小さい順にソートされます。なお、同一優先度の同士は
+      詳細表示設定→おおまかなレベルでのユーザソート設定によりソート
+      されます。
+	<br><br>
+  ユーザリストの頭の、':' マークは不在モードをあらわし、'|' マーク
+    は v2.0未満のユーザ（暗号・ファイル添付非対応）をあらわします。
+	<br><br>
+<strong>IP Messenger v3.0 以降、メッセージ内にクリップボードから画像を貼り付けられるようになりました</strong><br><br>
+　画像貼り付けは、メッセージ編集エリアで CTRL-V もしくは右クリックメニューから貼り付けてください。
+　クリップボード内の画像を貼り付けることができます（10画像まで）。
+　なお、クリップボードへの画像コピーは PrintScreen や Alt+PrintScreen
+　を使うと便利です。<br>
+　ログ記録を有効にしておくと、送受信した画像はログファイル保存フォルダ下の
+　ipmsg_img というサブフォルダに PNGファイルで保存されます。<br>
+　（なお、画像転送には、内部的にファイル添付機能を使いますので、
+　<strong>送信側の 2425/TCPポートが開いている必要</strong>があります。
+　（受信側から送信側に画像ダウンロードを求めます）。OSやアンチウイルス系の
+　ファイアーウォール機能で 2425/TCP がブロックされていないことを確認してください）
+
+	</div>
+
+<h3 class="help_head3">受信ウィンドウ</h3>
+	<div class="help_sub_section">
+  ウィンドウ右クリックで、フォント設定、サイズの保存、位置固定ができます。
+<br><br>
+
+  添付ファイルがあった場合、添付ボタンが現れます。
+<br><br>
+
+<strong>IP Messenger v3.0 以降、メッセージのセキュリティが大幅に向上しました。</strong>
+<br><br>
+
+	<table class="help_table" border="4">
+	<tr><th>強度</th><th>公開鍵</th><th>共通鍵</th><th>署名</th><th>受信タイトル表記</th><th>ログ表記</th></tr>
+	<tr><td>最強</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-1</td><td>Receive Message +++</td><td>（RSA2/認証）</td></tr>
+	<tr><td>強</td><td>RSA 2048bit</td><td>AES 256bit</td><td>なし</td><td>Receive Message ++</td><td>（RSA2）</td></tr>
+	<tr><td>中</td><td>RSA 1024bit</td><td>Blowfish 128bit</td><td>なし</td><td>Receive Message +</td><td>（RSA）</td></tr>
+	<tr><td>弱</td><td>RSA 512bit</td><td>RC2 40bit</td><td>なし</td><td>Receive Message -</td><td>（RSA）</td></tr>
+	<tr><td>なし</td><td>なし</td><td>なし</td><td>なし</td><td>Receive Message</td><td></td></tr>
+	</table>
+<br>
+	原則として、上記の５つのモードのうち、送信者および受信者のサポートする最高強度モードでメッセージ送受信が行われます。
+<br><br>
+	なお、認証（署名検証）機能の追加に伴い、ユーザID がログオン名から、ログオン名-<公開鍵指紋> の形式に変化しました。<br>
+	成り済ましの防止や、ユーザの一意性の向上に使われます。<br>
+	<strong>ログ記録設定で、「ログオン名を記録」にチェックしておくことをお勧めします。</strong><br><br>
+	公開鍵指紋付きユーザIDを偽装した（指紋の公開鍵を所有していない）ユーザが、メッセージを送りつけた場合、受信タイトルに「偽装？」といった表示が出てきます。
+
+<br><br>
+
+	</div>
+
+<h3 class="help_head3">tips</h3>
+	<div class="help_sub_section">
+  ボスがきたキー(Ctl-D)...全ウィンドウを隠す。再度 CTL+D で元に<br>
+  拡張更新(CTL+更新ボタン)...既存ユーザリストを残したまま更新<br>
+  送信/受信ホットキー(Alt+Ctl+'S' or 'R')...詳細設定に設定項目<br>
+  ユーザ検索機能（送信画面で CTL+F）<br>
+  グループ一括選択（送信画面右クリックで選択、+CTLで複数）<br>
+	</div>
+
+<h3 class="help_head3">その他</h3>
+	<div class="help_sub_section">
+  ルータ越えの認識をするには、設定ダイアログで、「LocalNetwork以外への
+    Broadcast設定」を行ってください（「<a href="#wan">■ルータ越えの設定について</a>」参照）。
+
+  それ以外はすぐ解ると思いますので、使ってみてお確かめください。(^^;
+    （<a href="#cmdline">■コマンドライン</a> or <a href="#history">■履歴</a>を見ると便利な情報が載っているかも(^^;）
+	</div>
+
+</div>
+
+
+<a name="misc"/>
+<h2 class="help_head2">6. その他</h2>
+<div class="help_section">
+
+設定は、レジストリの \\HKEY_CURRENT_USER\Software\HSTools\IPMsg に
+保存しています。（ポート番号指定の場合、IPMsg＋ポート番号）
+レジストリを変更した場合は、IPMSG を再起動してください。
+<br><br>
+
+錠前付き封書用のパスワード文字列は、エンコードしてレジストリに保存
+していますが、不可逆変換にはなってませんので、ご注意ください。
+<br><br>
+
+<div class="help_license">
+パスワードを忘れた場合は、レジストリの \\HKEY_CURRENT_USER\Software\HSTools\IPMsg\PasswordStr を削除してください。
+</div>
+
+<br>
+
+通常、TCP/UDPポートの2425番（「<a href="#cmdline">■コマンドライン</a>」参照）を使っています。
+ただし、ファイル添付しない場合は、UDP/2425番のみ使用します。
+（ファイアウォール系ソフトや機能が有効になっている場合は、これら
+  のポートを開いておく必要があります）
+<br><br>
+
+ブロードキャストは「起動/終了」「同報送信」「不在モード変更」
+「更新ボタンの押下時」にのみ発行しています。
+</div>
+
+
+<a name="wan"/>
+<h2 class="help_head2">7. ルータ越えの設定について（LocalNetwork以外へのBroadcast設定）</h2>
+<div class="help_section">
+
+ブロードキャストアドレスは、相手先のIPアドレスのうち、ホスト部分の
+ビットをすべて1にした値になります。たとえば、相手先のネットワークが
+クラスＣ(network 24bit, host 8bit)で、IPアドレスが aaa.bbb.ccc.ddd
+の場合、aaa.bbb.ccc.255 になります（サブネットを使っている場合は、
+この限りではありません）。これ以上、詳しく知りたい場合は、TCP/IPの
+書籍やネットワーク管理者の方などにお聞きになってください。
+<br><br>
+環境によって、認識しないことがあります。（ルータがネットワーク指定
+のブロードキャストを通さない設定になっている場合など）
+どうしても認識しない場合には、ルータ越えホストのIPアドレス群を直接、
+ブロードキャスト先として、登録してください(^^;
+<br><br>
+
+ダイアルアップ接続の場合、設定の「ダイアルアップ接続」をチェック
+しておくと、接続先メンバーによる「更新」動作でも、メンバリストから
+消えることなく、正常に動作するようになります。
+</div>
+
+
+<a name="firewall">
+<h2 class="help_head2">8. メンバ認識、ファイル転送、画像添付で問題があるとき</h2>
+<div class="help_section">
+IP Messenger は、メンバ認識およびメッセージ通信に <strong>2425/UDPポート</strong>、ファイル添付/画像添付に <strong>2425/TCPポート</strong>を利用します。<br>
+OS やアンチウイルス系ソフトによって、これらのポートが塞がれていると、正しく動作しませんので、開けるように設定してください。<br>
+<br>
+最近のルータは、別セグメント宛のブロードキャストをブロックする場合があります。<br>
+その場合は、http://ipmsg.org にリンクがあります、福島さん作の IP Messenger Exchanger Server などを利用すると良いでしょう。<br>
+<br>
+また、CISCOルータは別セグメント宛のブロードキャストを limited broadcast(255.255.255.255) に変換する場合があります。<br>
+これに加えて、別セグメントからの limited broadcast を捨てるアンチウイルス系ソフトがあると、正しく認識できないことがあります。
+
+<br><br>
+</div>
+
+
+<a name="cmdline">
+<h2 class="help_head2">9. コマンドライン</h2>
+<div class="help_section">
+
+デフォルトで UDPとTCP の 2425ポートを使いますが、コマンドラインで
+ポート指定することによって、別セッションを開くことができます。
+たとえば「ipmsg.exe 2426」などと実行すると、同じく 2426指定で
+IPMsgを立ちあげている人だけと、通信できるようになります。
+もちろんポート番号毎に IPMsgを複数立ちあげることも可能です。
+<br><br>
+
+なお、ポート番号は 1024番以降を指定するようにしてください。
+また、他の用途に使われているポート（たとえば NFSの多くは 2049/UDP
+を使用しています）もありますので、詳しくはネットワーク管理者の方に
+ご確認されることをお勧めします。
+<br><br>
+
+コマンドラインからの送信もできます。
+<br><br>
+
+コマンドライン送信での書式は以下の通りです。<br>
+ipmsg.exe [port] /MSG [/LOG][/SEAL] &lt;hostname or IPaddr&gt; &lt;message&gt; <br>
+<br>
+
+例：自分宛てに Hello という封書を送る<br>
+    C:\&gt; ipmsg.exe /MSG /SEAL localhost Hello.<br>
+
+</div>
+
+<a name="support">
+<h2 class="help_head2">10. サポートについて</h2>
+<div class="help_section">
+
+サポートは、ipmsg-ML(メーリングリスト)で行っています。MLへの入り方の
+  説明は、下記のURLに載っています。お気軽にご参加ください。
+  （最新版は常にこの URL にあります）
+    <a href="http://ipmsg.org">http://ipmsg.org</a>
+<br><br>
+
+感想・リクエスト・バグ報告のメールを頂けると嬉しいです。（質問は
+  上記の ipmsg-ML でお願いしますm(__)m）
+<br><br>
+
+バグ・障害報告の場合、バージョン, OS, 発生状況（できれば再現方法）
+  を教えていただきますと、とても助かります。
+<br><br>
+
+典型的な質問等は、上記URLの「ご意見のページ」に載っていますので、
+  一度ご覧ください。
+
+</div>
+
+<a name="Thanks">
+<h2 class="help_head2">11. 謝辞</h2>
+<div class="help_section">
+
+・IP Messenger ver3.00 以降, 画像貼り付け用PNG変換に libpng および zlib を利用しています.<br>
+libpng: <a href="http://www.libpng.org/pub/png/libpng.html">http://www.libpng.org/pub/png/libpng.html</a><br>
+zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
+<br>
+・その他、ご意見などを寄せていただいた方に感謝します。
+</div>
+
+<a name="history"/>
+<h2 class="help_head2">12. 履歴</h2>
+<div class="help_section">
+
+<table class="help_table" border="4">
+<tr><th>Version</th><th>説明</th></tr>
+<tr><td>v3.00</td><td>
+画像貼り付けメッセージを機能の追加。
+多言語化通信のサポート。
+開封ウィンドウをバルーン通知＋未開封モニタに変更。
+RSA2048bit/AES256bit暗号化通信のサポート。
+RSA+SHA-1によるメッセージ署名/検証のサポート＆公開鍵指紋付きユーザ名拡張。
+自セグメントへの Directed/Limited Broadcast の選択を可能に。
+送信画面に右クリックメニュー代替ボタンを追加。</td></tr>
+<tr><td>v2.10</td><td>受信バルーン表示サポート</td></tr>
+<tr><td>v2.00</td><td>ファイル/フォルダ添付機能、RSA+blowfishによる暗号通信の追加</td></tr>
+<tr><td>v1.00</td><td>正式公開版(96/08/19)</td></tr>
+</table>
+
+</div>
+
+</body>
+</html>
+

@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<meta name="GENERATOR" content="Microsoft&reg; HTML Help Workshop 4.1">
+<!-- Sitemap 1.0 -->
+</HEAD><BODY>
+<OBJECT type="text/site properties">
+	<param name="ImageType" value="Folder">
+</OBJECT>
+<UL>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Japanese">
+		<param name="Local" value="ipmsghlp.htm">
+		</OBJECT>
+	<UL>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="index">
+			<param name="Local" value="ipmsghlp.htm#index">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="1. 概要">
+			<param name="Local" value="ipmsghlp.htm#about">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="2. ライセンス＆免責">
+			<param name="Local" value="ipmsghlp.htm#license">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="3. 動作環境">
+			<param name="Local" value="ipmsghlp.htm#environment">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="4. インストール・アンインストール">
+			<param name="Local" value="ipmsghlp.htm#install">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="5. 使用法＆画面説明">
+			<param name="Local" value="ipmsghlp.htm#usage">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="6. その他">
+			<param name="Local" value="ipmsghlp.htm#misc">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="7. ルータ越えの設定について（LocalNetwork以外へのBroadcast設定）">
+			<param name="Local" value="ipmsghlp.htm#wan">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="8. メンバ認識、ファイル転送、画像添付で問題があるとき">
+			<param name="Local" value="ipmsghlp.htm#firewall">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="9. コマンドライン">
+			<param name="Local" value="ipmsghlp.htm#cmdline">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="10. サポートについて（疑問・質問のある方は、こちらをご覧ください）">
+			<param name="Local" value="ipmsghlp.htm#support">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="11. 謝辞">
+			<param name="Local" value="ipmsghlp.htm#thanks">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="12. 履歴">
+			<param name="Local" value="ipmsghlp.htm#history">
+			</OBJECT>
+	</UL>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="English">
+		<param name="Local" value="ipmsghlp_eng.htm">
+		</OBJECT>
+	<UL>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="index">
+			<param name="Local" value="ipmsghlp_eng.htm#index">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Overview">
+			<param name="Local" value="ipmsghlp_eng.htm#about">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="2. License">
+			<param name="Local" value="ipmsghlp_eng.htm#license">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="3. Requirements">
+			<param name="Local" value="ipmsghlp_eng.htm#environment">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="4. Install">
+			<param name="Local" value="ipmsghlp_eng.htm#install">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="5. Usage">
+			<param name="Local" value="ipmsghlp_eng.htm#usage">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="6. Others">
+			<param name="Local" value="ipmsghlp_eng.htm#misc">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="7. WAN Settings (Broadcast Settings)">
+			<param name="Local" value="ipmsghlp_eng.htm#wan">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="8. Member detection or file transfer Problem">
+			<param name="Local" value="ipmsghlp_eng.htm#firewall">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="9. CommandLine">
+			<param name="Local" value="ipmsghlp_eng.htm#cmdline">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="10. Support">
+			<param name="Local" value="ipmsghlp_eng.htm#support">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="11. Thanks">
+			<param name="Local" value="ipmsghlp_eng.htm#thanks">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="12. History">
+			<param name="Local" value="ipmsghlp_eng.htm#history">
+			</OBJECT>
+	</UL>
+</UL>
+</BODY></HTML>

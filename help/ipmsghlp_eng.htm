@@ -1,0 +1,420 @@
+<html lang="en">
+<head>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<title>IP Messenger Help</title>
+
+<style type="text/css">
+<!--
+.help_head1 {
+	color:#ff5555;
+	background-color:#0000cc;
+}
+.help_head2 {
+	color:white;
+	background-color:#0000cc;
+	margin-bottom:10px;
+}
+.help_head3 {
+	color:white;
+	background-color:#0000cc;
+	margin-bottom:5px;
+}
+.help_head4 {
+	margin-bottom:0px;
+}
+.help_table {
+	border-style:solid;
+	border-collapse: separate;
+	background-color: #ddffdd;
+	border-color: #aaaaaa;
+	font-size: 95%;
+}
+.tr_default {
+	background-color: #aaffaa;
+}
+.help_all {
+	font-size: 95%;
+}
+.help_section {
+	margin-left:25px;
+	margin-bottom:30px;
+}
+.help_sub_section {
+	margin-left:10px;
+	margin-bottom:10px;
+}
+.help_mini_section {
+	background-color: #cccccc;
+	padding:2%;
+}
+.help_mini_section2 {
+	margin-top:3px;
+	background-color: #eeffff;
+	padding:2%;
+}
+.help_license {
+	border-color:#777777; 
+	border-style:solid; 
+	padding:2%;
+	background-color: #dddddd;
+}
+.help_license_cond {
+	padding:5%;
+}
+-->
+</style>
+</head>
+<body bgcolor="#eeffff">
+
+
+<div align="center">
+<h1 class="help_head1">IP Messenger v3.00</h1>
+</div>
+<div class="help_all">
+
+<div align="right">2011/04/20 H.Shirouzu</div>
+
+<a name="index"/>
+<h2 class="help_head2">Index</h2>
+<div class="help_section">
+  <a href="#about">1. Overview</a><br>
+  <a href="#license">2. License</a><br>
+  <a href="#environment">3. Requirements</a><br>
+  <a href="#install">4. Install</a><br>
+  <a href="#usage">5. Usage</a><br>
+  <a href="#misc">6. Others</a><br>
+  <a href="#wan">7. WAN Settings (Broadcast Settings)</a><br>
+  <a href="#firewall">8. Member detection or file transfer Problem</a><br>
+  <a href="#cmdline">9. CommandLine</a><br>
+  <a href="#support">10. Support</a><br>
+  <a href="#thanks">11. Thanks</a><br>
+  <a href="#history">12. History</a><br>
+</div>
+
+<a name="about">
+<h2 class="help_head2">1. Overview</h2>
+<div class="help_section">
+	IP Messenger is a pop up style LAN message communication software
+	for multi platforms. It is based on TCP and UDP/IP.
+	<br><br>
+
+	This software does not require server machine.
+	<br><br>
+
+	Embedded image in message (ver3.00 or later)
+	<br><br>
+
+	Folder/file transfer (ver2.00 or later)
+	<br><br>
+
+	RSA2048/AES256/Sha1 Encryption/Sign of message data (ver3.00 or later)
+	<br><br>
+
+	RSA/Blofish Encryption of message data (ver2.00 or later)
+	<br><br>
+
+	Simple, lightweight, and free software :-)
+	<br><br>
+
+	IPMsg software is available for Win16, Mac, iPhone, X11, GTK,
+	GNOME, Java and all sources supplied with protocol.
+	Please check the URL addresses below.
+	    http://ipmsg.org/index.html.en
+	<br><br>
+</div>
+
+<a name="license"/>
+<h2 class="help_head2">2. License (BSD License)</h2>
+<div class="help_section">
+	<div class="help_license">
+	<strong>Copyright 1996-2011 SHIROUZU Hiroaki All rights reserved.</strong>
+
+	<div class="help_license_cond">
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+
+    Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer. 
+
+    Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+
+    Neither the name of the SHIROUZU Hiroaki nor the names of its
+    contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission. 
+
+	</div>
+	<div class="help_license">
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
+	</div>
+</div>
+
+<a name="environment"/>
+<h2 class="help_head2">3. Requirements</h2>
+<div class="help_section">
+	Windows 2000/XP/2003/Vista/2008/Win7<br>
+</div>
+
+<a name="install"/>
+<h2 class="help_head2">4. Install/Uninstall</h2>
+<div class="help_section">
+	<h3 class="help_head3">Install</h3>
+	<div class="help_sub_section">
+   You can install IPMsg into the specified folder and setup or re-setup into startup with setup.exe.
+	</div>
+
+	<h3 class="help_head3">Uninstall</h3>
+	<div class="help_sub_section">
+		You can uninstall from control panel. 
+	</div>
+</div>
+
+
+<a name="usage"/>
+<h2 class="help_head2">5. Usage</h2>
+<div class="help_section">
+
+<h3>Task tray icon</h3>
+   Left double click on the icon opens a Send Message window.<br>
+   Right single click on the icon opens IPMsg menu such as setting,
+   absence mode, etc.
+
+<h3>Send Message Window</h3>
+   If [Seal] is checked, it will be sealed message.<br>
+   If [Lock] is checked, it will be locked message. The receiver must
+   use *receiver's own* password to open a locked message.
+	<br><br>
+   To transfer File/Folder, Drag & Drop File/Folder to Send Window.
+   (or selec right button menu on Send Window)
+	<br><br>
+     File/Folder transfer can't be completed until a receiver starts
+     to download the file. If a sender re-starts IPMSG, the attachment
+     file information becomes clear, and a receiver will not be able
+     to download the file.)
+	<br><br>
+   The order of Send Message window header item list can be changed
+   by Drag & Drop. Right click and select "Save List Header" for
+   saving order.
+	<br><br>
+
+   Prefix mark of the user list
+     ':' indicates absence mode.<br>
+     '|' indicates v1.x user. (not supporting File/Folder transfer
+         and encryption of commnication data)<br>
+     '|'(short line) indicates only for File/Folder transfer.
+	<br><br>
+
+   Right click on the window and select from the menu: Sort/Filter, 
+   Group Select, Search User Ctl+F, File Transfer, (Folder)Transfer, 
+   Save List Header, Font Setting, Size Setting, Fix Position, Disp Setting.
+	<br><br>
+
+   Sort/Filter display order priority
+     Sort priority is from small to large number. <br>
+     If there are identical priority data, then go to the detail
+     setting -> approx. level user sort setting
+	<br><br>
+
+<strong>IP Messenger v3.0 or later, embedded image in message is supported.</strong>
+<br><br>
+  Push CTRL-V in editbox, embed clipboard image into message. (Max.10 image)<br>
+  If logging setting is enabled, send/receive images are saved in ipmsg_img sub-folder of logfile folder.
+<br><br>
+<h3>Receive Message Window</h3>
+   Right click on the window and select from the menu: Font Setting,
+   Size Setting, Fix Position.
+	<br><br>
+
+   If you receive a message with an attachment, then an attachment
+   button will be displayed. Folder transfer data can't be overwritten. 
+	<br><br>
+
+<strong>IP Messenger v3.0 or later, Messaging security have improved.</strong>
+<br><br>
+	<table class="help_table" border="4">
+	<tr><th>Strongness</th><th>PublicKey</th><th>CommonKey</th><th>Signature</th><th>Receive Window Title</th><th>Log File</th></tr>
+	<tr><td>Most Strong</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-1</td><td>Receive Message +++</td><td>(RSA2/Signed)</td></tr>
+	<tr><td>Strong</td><td>RSA 2048bit</td><td>AES 256bit</td><td>Nothing</td><td>Receive Message ++</td><td>(RSA2)</td></tr>
+	<tr><td>Middle</td><td>RSA 1024bit</td><td>Blowfish 128bit</td><td>Nothing</td><td>Receive Message +</td><td>(RSA)</td></tr>
+	<tr><td>Weak</td><td>RSA 512bit</td><td>RC2 40bit</td><td>Nothing</td><td>Receive Message -</td><td>(RSA)</td></tr>
+	<tr><td>Nothing</td><td>Nothing</td><td>Nothing</td><td>Nothing</td><td>Receive Message</td><td></td></tr>
+	</table>
+<br>
+
+<br><br>
+
+<h3>Others</h3>
+   To make connection to WAN through router, Broadcast setting will
+   be required. (See in Broadcast setting for detail).
+	<br><br>
+
+   Other features are easy to understand.
+   Try first, you will see it. (See 8.Appendices and 10.History)
+
+</div>
+
+
+<a name="misc"/>
+<h2 class="help_head2">6. Others</h2>
+<div class="help_section">
+Setting is saved in the following registry key.<br>
+\\HKEY_CURRENT_USER\Software\HSTools\IPMsgEng<br>
+(If port number has been set, IPMsg + port number)<br>
+When changing your registry number, please re-start ipmsg.
+<br><br>
+Password for Lock and Seal is saved in registry with encording.<br>
+<br>
+
+	<div class="help_license">
+If you forget the password, remove it in the following registry key.<br>
+\\HKEY_CURRENT_USER\Software\HSTools\IPMsgEng\PasswordStr
+	</div>
+<br>
+
+Normally use 2425 port for TCP/UDP. (See 8. Appendices)<br>
+Use 2425 port only for UDP with no File(Folder) Transfer.  <br>
+(These ports should be activated when using firewall software.)
+<br><br>
+
+Protocol specification comes with source.(Japanese)
+<br><br>
+
+Broadcast messaging happens only at [Start/End], [Absencemode],
+[Refresh].
+<br><br>
+Compiled by Visual C++4.1(J)
+<br><br>
+
+Tips.
+<div>
+   1. CTL+D ... boss is coming.(toggle of hide/show windows)<br>
+   2. CTL+RefreshButton ... remain existing members, and refresh<br>
+   3. ALT+CTL+'S'/'R' ... Send/Recv Hotkey (need detail settings)<br>
+   4. CTL+F ... open search user box in send window
+</div>
+</div>
+
+<a name="wan"/>
+<h2 class="help_head2">7. WAN settings (Broadcast Settings)</h2>
+<div class="help_section">
+
+All bits of Host part have to be 1 in the receiver's IP address. <br>
+For example, connect to Class C(network 24bit, host 8bit) address
+"aaa.bbb.ccc.ddd", broadcast address will be "aaa.bbb.ccc.255".<br>
+If network uses subnet, it may not work.
+<br><br>
+
+For more detail check TCP/IP books or ask network administrators.
+<br><br>
+
+If you have difficulty to connect, especially over two or more
+router connection. Set IP addresses independent.
+<br><br>
+
+For dialup connection, check [Dialup connection] box on.<br>
+When press [Refresh], member list doesn't go off.
+
+</div>
+
+
+<a name="firewall">
+<h2 class="help_head2">8. Member detection or file transfer Problem</h2>
+<div class="help_section">
+IP Messenger use <strong>2425/UDP port</strong> for member detection and message communication, and use <strong>2425/TCP port</strong> for file and image transfer.<br>
+If those port are blocked by OS or Antivirus software, IP Messenger can't detect other member or can't send/receive file or images.<br>
+Please open those port.<br>
+</div>
+
+
+<a name="cmdline">
+<h2 class="help_head2">9. CommandLine</h2>
+<div class="help_section">
+
+At startup IPMSG software, you can specify UDP/TCP port number.<br>
+IPMSG can run at multiple sessions.<br>
+For example, using [ipmsg.exe 2426] command, you can contact only people who are using 2426 port.<br>
+<br>
+You can run as much as you want using different port number.<br>
+<br>
+Using more UDP/TCP port number, then 1024 is recommended.<br>
+(Between 10000 - 60000 may be more safer)<br>
+For example, Known NFS software uses 2049/UDP.<br>
+Ask network administrator<br>
+<br>
+Specifing NIC (for multi NIC environment)<br>
+ipmsg.exe [port] /NIC nic_ipaddr<br>
+ex) C:\> ipmsg.exe /NIC 192.168.10.100<br>
+<br>
+Command Line support<br>
+ipmsg.exe [port] /MSG [/LOG][/SEAL] &lt;hostname or IPaddr&gt; &lt;message&gt; <br>
+ex) C:\&gt; ipmsg.exe /MSG /SEAL localhost Hello.<br>
+
+
+</div>
+
+<a name="support">
+<h2 class="help_head2">10. Support</h2>
+<div class="help_section">
+
+ipmsg-ML is opened. If you want to subscribe for this ML, mail to ipmsg-ml-join@ipmsg.org <br>
+<br>
+Any bug report, suggestion and recommendations are welcome.<br>
+<br>
+If you have any question, send to Mailing list.<br>
+<br>
+For these report, please send the following information.<br>
+Software Version, Operating System, problem situation, repeatability.
+
+</div>
+
+<a name="Thanks">
+<h2 class="help_head2">11. Thanks</h2>
+<div class="help_section">
+
+IP Messenger ver3.00 or after, uses libpng and zlib libraries for embedded image support.<br>
+libpng: <a href="http://www.libpng.org/pub/png/libpng.html">http://www.libpng.org/pub/png/libpng.html</a><br>
+zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
+
+</div>
+
+<a name="history"/>
+<h2 class="help_head2">12. History</h2>
+<div class="help_section">
+
+<table class="help_table" border="4">
+<tr><th>Version</th><th>Details</th></tr>
+<tr><td>v3.00</td><td>
+Support embedded image in message.
+Support multi language communication.
+Support unopened message monitor.
+Support to choose Directed/Limited broadcast for local segment.
+Support RSA2048/AES256bit encryption.
+Support RSA2048/SHA-1 digital sign/verify.
+Support userid extension(public-key fingerprint).
+</td></tr>
+<tr><td>v2.10</td><td>Balloon notification, UTF-8 logging, unify ipmsg.exe for Japanese/English</td></tr>
+<tr><td>v2.00</td><td>File/Folder Transfer function support, Encrypted communication path support.</td></tr>
+<tr><td>v1.31</td><td>English version support(97/09/01)</td></tr>
+<tr><td>v1.00</td><td>Official public version (1996/08/19)</td></tr>
+
+</div>
+
+</body>
+</html>
+

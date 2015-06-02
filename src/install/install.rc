@@ -1,0 +1,351 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 日本語 resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+#ifdef _WIN32
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+SETUP_ICON              ICON    DISCARDABLE     "setup.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+INSTALL_DIALOG DIALOG DISCARDABLE  0, 0, 205, 218
+STYLE DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "IP Messenger Setup"
+FONT 9, "ＭＳ Ｐゴシック"
+BEGIN
+    DEFPUSHBUTTON   "開始",IDOK,70,195,59,15
+    PUSHBUTTON      "中止",IDCANCEL,146,195,43,14
+    CONTROL         "1. 指定フォルダにインストール",SETUP_RADIO,"Button",
+                    BS_AUTORADIOBUTTON | BS_NOTIFY | WS_GROUP | WS_TABSTOP,
+                    16,15,106,10
+    PUSHBUTTON      "参照",FILE_BUTTON,146,12,40,14
+    EDITTEXT        FILE_EDIT,34,29,153,12,ES_AUTOHSCROLL
+    CONTROL         "2. セットアップと同じ場所の IPMSG をそのまま使う",
+                    RESETUP_RADIO,"Button",BS_AUTORADIOBUTTON | BS_NOTIFY | 
+                    WS_TABSTOP,15,48,174,10
+    LTEXT           "ファイルサーバから直接起動する場合や、\r\n再セットアップのみの場合など",
+                    IDC_STATIC,34,60,139,17,NOT WS_GROUP
+    EDITTEXT        RESETUP_EDIT,34,80,153,12,ES_AUTOHSCROLL | ES_READONLY
+    CONTROL         "3. アンインストール",UNINSTALL_RADIO,"Button",
+                    BS_AUTORADIOBUTTON | BS_NOTIFY | WS_TABSTOP,15,102,76,10
+    GROUPBOX        "セットアップモード",IDC_STATIC,8,3,187,116,BS_CENTER | 
+                    WS_GROUP
+    LTEXT           "",INSTALL_STATIC,0,125,205,68,NOT WS_VISIBLE
+END
+
+INSTALL_SHEET DIALOG DISCARDABLE  0, 0, 203, 65
+STYLE WS_CHILD
+FONT 9, "ＭＳ Ｐゴシック"
+BEGIN
+    GROUPBOX        "詳細",IDC_STATIC,8,0,187,62,BS_CENTER | WS_GROUP
+    CONTROL         "スタートアップに登録",STARTUP_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,22,12,83,11
+    CONTROL         "プログラムグループに登録",PROGRAM_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,22,27,98,10
+    CONTROL         "デスクトップにショートカットを作成",DESKTOP_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,22,42,120,10
+END
+
+INPUT_DIALOG DIALOG DISCARDABLE  0, 0, 85, 39
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "新規ディレクトリ名"
+FONT 9, "ＭＳ Ｐゴシック"
+BEGIN
+    EDITTEXT        INPUT_EDIT,6,4,74,13,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "作成",IDOK,11,20,37,14
+    PUSHBUTTON      "中止",IDCANCEL,53,20,23,14
+END
+
+UNINSTALL_SHEET DIALOG DISCARDABLE  0, 0, 203, 65
+STYLE WS_CHILD
+FONT 9, "ＭＳ Ｐゴシック"
+BEGIN
+    GROUPBOX        "詳細",IDC_STATIC,8,0,187,62,BS_CENTER | WS_GROUP
+    LTEXT           "レジストリおよびショートカットを削除します",IDC_STATIC,
+                    28,18,150,11
+    CONTROL         "公開鍵も削除する",DELPUBKEY_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,34,33,99,12
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    INSTALL_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 198
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 211
+    END
+
+    INSTALL_SHEET, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 196
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 58
+    END
+
+    INPUT_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 78
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 32
+    END
+
+    UNINSTALL_SHEET, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 196
+        BOTTOMMARGIN, 58
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// 24
+//
+
+1                       24      DISCARDABLE     "ipmsg.exe.manifest"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_NOTNEWSHELL         "このセットアップは、NewShell専用です。\r\nNT3.51でのインストールは手動で行ってください。"
+    IDS_SETUPCOMPLETE       "セットアップは完了しました。\r\nアンインストールは「アプリケーションの追加と削除」から行ってください。\r\n\r\nこのまま、IP Messenger を起動しますか？\r\n\r\n（Vista/Win7環境では、別途、手動で起動することをお勧めします。\r\n このまま起動した場合、管理権限モードで動作します）"
+    IDS_UNINSTCOMPLETE      "アンインストールは完了しました。\r\nファイル削除自体は手動で行ってください。"
+    IDS_TERMINATE           "あらかじめ、現在起動している\r\nIP Messenger を終了させる必要があります。\r\nよろしいですか？"
+    IDS_NOTCREATEDIR        "ディレクトリが作れません"
+    IDS_NOTCREATEFILE       "ファイルをコピーできません"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_START               "開始します"
+    IDS_REGIPMSG            "IPMsg"
+    IDS_MKDIR               "作成"
+    IDS_RMDIR               "削除"
+END
+
+#endif    // 日本語 resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英語 (ｱﾒﾘｶ) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+UNINSTALL_SHEET DIALOG DISCARDABLE  0, 0, 203, 65
+STYLE WS_CHILD
+FONT 8, "Bookman Old Style"
+BEGIN
+    GROUPBOX        "Details",IDC_STATIC,8,0,187,62,BS_CENTER | WS_GROUP
+    LTEXT           "Delete regsitry and shortcut",IDC_STATIC,46,18,115,12
+    CONTROL         "Delete Public Key",DELPUBKEY_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,55,35,89,10
+END
+
+INSTALL_SHEET DIALOG DISCARDABLE  0, 0, 203, 65
+STYLE WS_CHILD
+FONT 8, "Bookman Old Style"
+BEGIN
+    GROUPBOX        "Details",IDC_STATIC,8,0,187,62,BS_CENTER | WS_GROUP
+    CONTROL         "Register to startup",STARTUP_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,20,12,83,11
+    CONTROL         "Register to Program Group",PROGRAM_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,20,27,98,10
+    CONTROL         "Create shortcut on Desktop",DESKTOP_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,20,42,120,10
+END
+
+INSTALL_DIALOG DIALOG DISCARDABLE  0, 0, 205, 218
+STYLE DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "IP Messenger Setup"
+FONT 8, "Bookman Old Style"
+BEGIN
+    DEFPUSHBUTTON   "Start",IDOK,70,195,59,15
+    PUSHBUTTON      "Cancel",IDCANCEL,146,195,43,14
+    CONTROL         "1. Install to specify directory",SETUP_RADIO,"Button",
+                    BS_AUTORADIOBUTTON | BS_NOTIFY | WS_GROUP | WS_TABSTOP,
+                    16,15,106,10
+    CONTROL         "2. Use current IPMSG",RESETUP_RADIO,"Button",
+                    BS_AUTORADIOBUTTON | BS_NOTIFY | WS_TABSTOP,15,48,174,10
+    CONTROL         "3. Uninstall",UNINSTALL_RADIO,"Button",
+                    BS_AUTORADIOBUTTON | BS_NOTIFY | WS_TABSTOP,15,102,76,10
+    PUSHBUTTON      "Directory",FILE_BUTTON,146,12,40,14
+    EDITTEXT        FILE_EDIT,34,29,153,12,ES_AUTOHSCROLL
+    LTEXT           "Resetup, or Execute from File server",IDC_STATIC,34,62,
+                    139,12,NOT WS_GROUP
+    EDITTEXT        RESETUP_EDIT,34,80,153,12,ES_AUTOHSCROLL | ES_READONLY
+    GROUPBOX        "Setup mode",IDC_STATIC,8,3,187,116,BS_CENTER | WS_GROUP
+    LTEXT           "",INSTALL_STATIC,0,125,205,68,NOT WS_VISIBLE
+END
+
+INPUT_DIALOG DIALOG DISCARDABLE  0, 0, 85, 39
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "New Dir Name"
+FONT 9, "駘駻 駮禊齋稈祚"
+BEGIN
+    EDITTEXT        INPUT_EDIT,6,4,74,13,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "Create",IDOK,9,20,37,14
+    PUSHBUTTON      "Cancel",IDCANCEL,49,20,29,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    UNINSTALL_SHEET, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 196
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 58
+    END
+
+    INSTALL_SHEET, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 196
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 58
+    END
+
+    INSTALL_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 198
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 211
+    END
+
+    INPUT_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 78
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 32
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_NOTNEWSHELL         "This setup is only run new shell.\r\n"
+    IDS_SETUPCOMPLETE       "Setup is completed.\r\n\r\nDo you want to start IPMSG?\r\n\r\n (If you use on Vista/Win7, it is not recommended to launch by setup.exe.\r\n If you launch by setup, ipmsg will run as administrator privilege)"
+    IDS_UNINSTCOMPLETE      "Uninstallation is completed.\r\n"
+    IDS_TERMINATE           "Do you permit to close IPMSG?"
+    IDS_NOTCREATEDIR        "Can't create directory"
+    IDS_NOTCREATEFILE       "Can't create file"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_START               "Do you permit to start?"
+    IDS_REGIPMSG            "IPMsgEng"
+    IDS_MKDIR               "CREATE"
+    IDS_RMDIR               "DELETE"
+END
+
+#endif    // 英語 (ｱﾒﾘｶ) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

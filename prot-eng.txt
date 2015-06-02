@@ -1,0 +1,343 @@
+Original ipmsg protocol specification is written in Japanese.
+This document was translated by Mr.Kanazawa.
+This document is not verified yet. (too old...)
+
+----------------------------------------------------------------------
+        IP Messenger communication protocol (Draft-9)    1996/02/21
+                                                Modified 2003/01/14
+
+                                                       H.Shirouzu
+----------------------------------------------------------------------
+
+About IP Messenger
+	This is a Send/Receive message service using the TCP/UDP Port.
+
+Characteristics
+	IP Messenger can be installed in any OS if TCP/IP is used on your machine.
+	Dynamic member recognition can be done within your network or specified network.
+	You can exchange messages between all IPMsg members. 
+
+Function description
+	Use TCP/UDP port(default:2425). See the following descriptions
+	(Message Send/Receive: UDP, File Send/Receive: TCP)
+
+  1. Command 
+
+     1) Command functions (Low 8 bits from command number 32 bits)
+
+	IPMSG_NOOPERATION	No Operation
+	IPMSG_BR_ENTRY		Entry to service (Start-up with a Broadcast command)
+	IPMSG_BR_EXIT		Exit from service (End with a Broadcast command)
+	IPMSG_ANSENTRY		Notify a new entry
+	IPMSG_BR_ABSENCE	Change absence mode
+
+	IPMSG_BR_ISGETLIST	Search valid sending host members
+	IPMSG_OKGETLIST		Host list sending notice
+	IPMSG_GETLIST		Host list sending request
+	IPMSG_ANSLIST		Host list sending 
+
+	IPMSG_SENDMSG		Message transmission
+	IPMSG_RECVMSG		Message receiving check
+
+	IPMSG_READMSG		Message open notice
+	IPMSG_DELMSG		Message discarded notice
+	IPMSG_ANSREADMSG	Message open confirmation notice(added from version-8)
+
+	IPMSG_GETFILEDATA	File Transfer request by TCP
+	IPMSG_RELEASEFILES	Discard attachment file
+	IPMSG_GETDIRFILES	Attachment hierarchical file request
+
+	IPMSG_GETINFO		Get IPMSG version info.
+	IPMSG_SENDINFO		Send IPMSG version info.
+
+	IPMSG_GETABSENCEINFO	Get absence sentence
+	IPMSG_SENDABSENCEINFO	Send absence sentence
+
+	IPMSG_GETPUBKEY		RSA Public Key Acquisition
+	IPMSG_ANSPUBKEY		RSA Public Key Response
+
+     2) Option flag (High 24 bits from command number 32 bits)
+
+	IPMSG_ABSENCEOPT	Absence mode(Member recognition command)
+	IPMSG_SERVEROPT		Server(Reserved)
+	IPMSG_DIALUPOPT		Send individual member recognition command
+
+	IPMSG_SENDCHECKOPT	Transmission check
+	IPMSG_SECRETOPT		Sealed message
+	IPMSG_READCHECKOPT	Sealed message check(added from ver8)
+	IPMSG_PASSWORDOPT	Lock
+	IPMSG_BROADCASTOPT	Broadcast message
+	IPMSG_MULTICASTOPT	Multi-cast(Multiple casts selection)
+	IPMSG_NEWMUTIOPT	New version multi-cast(reserved)
+	IPMSG_AUTORETOPT	Automatic response(Ping-pong protection)
+	IPMSG_NOLOGOPT		No log files
+	IPMSG_NOADDLISTOPT	Notice to the members outside of BR_ENTRY
+
+	IPMSG_FILEATTACHOPT	File attachment
+	IPMSG_ENCRYPTOPT	Code
+
+	IPMSG_NOPOPUPOPT	(No longer valid)
+	IPMSG_RETRYOPT		Re-send flag(Use when acquiring HOSTLIST)
+
+     3) Extended code flag (hex format combination)
+
+	IPMSG_RSA_512
+	IPMSG_RSA_1024
+	IPMSG_RSA_2048
+	IPMSG_RC2_40
+	IPMSG_RC2_128
+	IPMSG_RC2_256
+	IPMSG_BLOWFISH_128
+	IPMSG_BLOWFISH_256
+	IPMSG_SIGN_MD5
+
+     4) Extended files for attachment (fileattr low 8 bits)
+
+	IPMSG_FILE_REGULAR
+	IPMSG_FILE_DIR
+	IPMSG_FILE_RETPARENT
+	IPMSG_FILE_SYMLINK
+	IPMSG_FILE_CDEV
+	IPMSG_FILE_BDEV
+	IPMSG_FILE_FIFO
+	IPMSG_FILE_RESFORK
+
+     5) Attachment file extended attribute(fileattr high 24 bits)
+
+	IPMSG_FILE_RONLYOPT
+	IPMSG_FILE_HIDDENOPT
+	IPMSG_FILE_EXHIDDENOPT
+	IPMSG_FILE_ARCHIVEOPT
+	IPMSG_FILE_SYSTEMOPT
+
+     6) Extended file attribute for attachment file
+
+	IPMSG_FILE_UID
+	IPMSG_FILE_USERNAME
+	IPMSG_FILE_GID
+	IPMSG_FILE_GROUPNAME
+	IPMSG_FILE_PERM
+	IPMSG_FILE_MAJORNO
+	IPMSG_FILE_MINORNO
+	IPMSG_FILE_CTIME
+	IPMSG_FILE_MTIME
+	IPMSG_FILE_ATIME
+	IPMSG_FILE_CREATETIME
+
+	IPMSG_FILE_CREATOR
+	IPMSG_FILE_FILETYPE
+	IPMSG_FILE_FINDERINFO
+
+	IPMSG_FILE_ACL
+	IPMSG_FILE_ALIASFNAME
+	IPMSG_FILE_UNICODEFNAME
+
+
+  2.Command format(Use all character strings)
+
+     1) Command(Format version-1)
+
+	Ver(1) : PacketNo : SenderName : SenderHost : CommandNo : AdditionalSection
+
+     2) An example for Message Send/Receive by using the current command format
+
+	"1:100:shirouzu:jupiter:32:Hello"
+
+
+  3.Command process overview
+
+     1) Member recognition
+
+	An IPMSG_BR_ENTRY command notifies a new entry to the current
+	members at start-up.
+
+	All members add the new member to their list after getting a notification message.
+	An IPMSG_ANSENTRY command sends a message back to the new member.
+
+	The new member gets the current member data by a
+	IPMSG_ANSENTRY command. All members can communicate as long as an 
+	IP packet exists.
+
+	An IPMSG_BR_ABSENCE command broadcasts absence mode cancel or 
+	nickname change to all members. However, an IPMSG_ANSENTRY command 
+	does not send a message back, which is different from an IPMSG_BR_ENTRY 
+	command.
+
+	IPMSG_BR_ENTRY, IPMSG_ANSENTRY, and IPMSG_BR_ABSENCE commands 
+	use an IPMSG_ABSENCEOPT flag for absence mode. Input a nickname to 
+	additional command.
+	Add an IPMSG_DIALUPOPT flag for dial-up users who can't be reached by 
+	a broadcast command.  A member recognition command needs to be 
+	sent individually to the members with this optional flag. 
+
+	(Extended group)IPMSG_BR_ENTRY and IPMSG_BR_ABSENCE commands 
+	sends a group name by adding the new group name after the current 
+	command format character strings (Input '\0' between the current 
+	command and extended name).
+
+     2) Send/Receive Message
+	Send Message uses an IPMSG_SENDMSG command that can input a message
+	in the extended area. 
+	Receive Message sends back an IPMSG_RECVMSG command only 
+	if an IPMSG_SENDCHECKOPT flag is ON. Input the original packet number 
+	to the extended area. 
+
+	Broadcast Message Send uses an IPMSG_BOADCASTOPT command 
+	and an IPMSG_SENDMSG flag should be ON. 
+	Auto-Send packet(absence notice) needs to be added to IPMSG_AUTORETOPT
+	for ping-pong protection. If either one or another packet is ON, then
+	confirmation/auto-send packet is not sent back. 
+
+	Send Message Sealing needs to be an IPMSG_SECRETOPT packet ON. 
+	In this case, Receive Message sends an IPMSG_READMSG command.
+	Input the original packet number to the extended area.
+
+	(Additional IPMSG_NOADDLISTOPT)
+	When receiving an IPMSG_SENDMSG packet from a host that is 
+	not on your Send/Receive list, IPMsg will either confirm a host by 
+	sending an IPMSG_BR_ENTRY command or add a host name to 
+	the Send/Receive list. 
+	However, single-shot Message Send/Receive action needs to be avoided. 
+	Add an IPMSG_NOADDLISTOPT flag to an IPMSG_SENDMSG command.
+
+	(Additional IPMSG_READCHECKOPT from version-8)
+	When an IPMSG_READMSG command contains an IPMSG_READCHECKOPT flag, 
+	IPMsg process is the same as IPMSG_SENDMSG with an 
+	IPMSG_SENDCHECKOPT flag. 
+	However, Send Message uses an IPMSG_ANSREADMSG command,  
+	not IPMSG_RECVMSG.
+
+     3) Message Send/Receive Å|encrypted extension (Added in the version-9)
+
+	Use the combination of Public-key(RSA) and common key(RC2/Blowfish).
+	(Encrypted extension area is used in hex format.)
+
+	(Public key acquisition)Send an IPMSG_GETPUBKEY command to Receive
+	Message. Receive Message gets an IPMSG_ANSPUBKEY that 
+	means receiving RSA public key from Send Message.
+
+	IPMSG_GETPUBKEY/IPMSG_ANSPUBKEY both require the value which is
+	encryption capability (Exp. IPMSG_RSA_1024) flag uses "OR" at first
+	part of extension  
+
+	In addition, In IPMSG_ANSPUBKEY, public key written as EE-NNNNNN
+	E=ExponentÅAN=method)devide by ':'. and Input the Fdelimiter '-' 
+	between E and N.
+
+	This sequence can be skipped after the 2nd Send/Receive process by 
+	memorizing public key and encrypted data. 
+	
+	(Encrypted message)After a sender creates a common key that is 
+	supported both sender and receiver, a common key can encrypt a message. 
+	In addition, a receiver's public key encrypts the common key.
+
+
+	(Encrypted message transmission) IPMSG_ENCRYPTOPT is used in
+	IPMSG_SENDMSG. At the first part of extension, input the value which
+	is 'or' resoult from Convination of public key and common key type . 
+	Then use common key which encrypt with public key devide by ':'.
+	Then input message which is eccrypted by public key devide by ':'.
+	If both supports IPMSG_SIGN_XXX, then add ':' and signeture. 
+
+	Also, In the method of encode padding, PKCS#1ECB key is used for RSA, 
+	PKCS#5 CBC common key is used for RC2/blowfish.
+
+	Also, The Packet related to Entry manifestation the capability of 
+	ecryption support using  IPMSG_ENCRYPTOPT
+
+     4) Extension with file attachment(Available from version-9)
+
+	An IPMSG_SENDMSG command with an IPMSG_FILEATTACHOPT flag for 
+	File transfer (download permission)notification sends a message
+	with attachment. 
+	Input '\0' after the message and attachment file data.
+	
+
+	fileID:filename:size:mtime:fileattr[:extend-attr=val1
+	[,val2...][:extend-attr2=...]]:\a:fileID...
+	(size, mtime, and fileattr describe hex format. 
+	 If a filename contains ':', please replace with "::".)
+
+	When Receive Message downloads an attachment file, an IPMSG_GETFILEDATA 
+	command requests a data transmission packet to the TCP port that is the same number  
+	as the UDP sending port number. Input packetID:fileID:offset to the extended area. 
+	(Use all hex format.)
+	File Transfer side receives the request. After recognizing that it's a correct request, 
+	then send the specified data (no format)
+
+	When the data receiving side downloads a hierarchical attachment file, 
+	use an IPMSG_GETDIRFILES command and input a packetID:fileID
+	to the extended area and send a data transmission request packet. 
+	(all hex format)
+
+	Data sending side sends the following hierarchical data format.
+	header-size:filename:file-size:fileattr[:extend-attr=val1
+	[,val2...][:extend-attr2=...]]:contents-data
+	Next headersize: Next filename...
+	(All hex format except for filename and contetns-data)
+
+	header-size is from the beginning of header-size to the delimiter ':' 
+	that is before contents-data. extend-attr can be omitted and used multiple 
+	extended attributes. Use '=' for data input. 
+
+	When fileattr is IPMSG_FILE_DIR, IPMsg recognizes that it is automatically
+	in the directory, the next file data is after the directory.
+
+	When fileattr is IPMSG_FILE_RETPARENT, IMPsg recognizes that it returns 
+	to the parent directory. In this case, File name is always "." and the attribute 
+	value is the current directory data.
+
+	Sending process starts from the attachment directly and returns the
+	IPMSG_FILE_RETPARENT command to the attachment directory. 
+
+	Add an IPMSG_FILEATTACHOPT flag for an Entry packet to support the 
+	attachment file.
+
+     5) Other commands
+
+	When acquiring different versions, send an IPMSG_GETINFO command.
+	Receiving side sends the version information character string to
+	extended area.
+
+	Send an IPMSG_GETABSENCEINFO command for acquiring an absence message.
+	Receiving side sends an IPMSG_SENDABSENCEINFO back if the status is absence mode.
+	If the status is not absence mode, a character string "Not absence mode" will be sent back.
+
+     6) Confirmation/Retry
+
+	If a confirmation packet for IPMSG_SENDMSG or IPMSG_RECVMSG is not delivered
+	within a specified time, then it will be sent again. 
+	A number of retry actions or interval period is depended on the current condition. 
+
+
+  4. Other
+
+     1) Linefeed
+
+	Linefeed characters in Send Message is standardized with UNIX type ('0x0a').
+	Please change if needed. 
+
+     2) Delimiter ':'
+
+	':' is used as a delimiter. You can't use this delimiter for user name 
+	and host name. 
+	If the use/host names contain a ':', please replace with another sign, 
+	for an example ';'. 
+	Although using this delimiter isn't problem as yet, I may create an 
+	escape sequence. 
+	
+
+     3) Kanji codes
+
+	CP932
+
+
+  5. Contact
+	http://ipmsg.org/ (Japanese site)
+	http://ipmsg.org/index.html.en (English site)
+
+
+Note
+	See ipmsg.h for command codes.
+	Please e-mail me your comments and suggestions.
+
