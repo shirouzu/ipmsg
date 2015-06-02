@@ -1,4 +1,4 @@
-/* @(#)Copyright (C) 1996-2010 H.Shirouzu		tapi32v.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2010 H.Shirouzu		tapi32v.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
@@ -240,6 +240,10 @@ typedef struct _REPARSE_DATA_BUFFER {
 
 #ifndef SE_CREATE_SYMBOLIC_LINK_NAME
 #define SE_CREATE_SYMBOLIC_LINK_NAME  "SeCreateSymbolicLinkPrivilege"
+#endif
+
+#ifndef SE_MANAGE_VOLUME_NAME
+#define SE_MANAGE_VOLUME_NAME  "SeManageVolumePrivilege"
 #endif
 
 BOOL TLibInit_Win32V();

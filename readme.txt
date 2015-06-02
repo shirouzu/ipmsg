@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 3.31
-			H.Shirouzu Aug 22, 2011
+	Source code of IP Messenger for Win version 3.32
+			H.Shirouzu Dec 19, 2011
 
 		Copyright (C) 1996-2011 SHIROUZU Hiroaki
 			All Rights Reserved.
@@ -66,7 +66,7 @@ Index.
 ----------------------------------------------------------------------
 3. Requirements
 
- - Visual C++ 6.0 or later
+ - VS2005 or later
  - IP Messenger ver3.0 or later, use zlib/lipng for embedded image.
     http://www.libpng.org/pub/png/libpng.html
     http://zlib.net/
@@ -74,17 +74,16 @@ Index.
 ----------------------------------------------------------------------
 4. Directory
 
-	IPMsg----+-IPMsg.dsw ... Project file for VC6
-		|      IPMsg.sln ... Project file for VS2005 or later
+	IPMsg----+-IPMsg.sln ... Project file for VS2005 or later
 		|
 		+-Src------+-ipmsg.cpp
 		|          |     :
 		|          +-install-+- install.cpp
 		|                    |       :
 		|
-		+-External-+-Zlib---+-zlib.dsw
+		+-External-+-Zlib---+-zlib.vcproj
 		|          |            :
-		|          +-Libpng-+-libpng.dsw
+		|          +-Libpng-+-libpng.vcproj
 		|                       :
 		+-Release--+-
 		|

@@ -1,99 +1,99 @@
 (Japanese)
 ----------------------------------------------------------------------
-        IP Messenger �ʐM�v���g�R���d�l(�h���t�g10�Łj     1996/02/21
+        IP Messenger 通信プロトコル仕様(ドラフト10版）     1996/02/21
                                                     Modify 2011/05/03
 
                                                            H.Shirouzu
                                                      http://ipmsg.org
 ----------------------------------------------------------------------
 
-�T�v
-	TCP/UDP Port ���g�p�����A���b�Z�[�W����M�T�[�r�X�ł�
+概要
+	TCP/UDP Port を使用した、メッセージ送受信サービスです
 
-����
-	TCP/IP ���g����� OS �̎�ނ�₢�܂���B�����̂���l�b�g���[�N
-	���i����юw��̃l�b�g���[�N�j�ŁA���I�ȃ����o�F�����ł��܂��B
-	���b�Z�[�W���M���̂��̂́AIP�ڑ����Ă���S�����o�ɑ΂��s���܂��B
+特徴
+	TCP/IP が使えれば OS の種類を問いません。自分のいるネットワーク
+	内（および指定のネットワーク）で、動的なメンバ認識ができます。
+	メッセージ送信そのものは、IP接続している全メンバに対し行えます。
 
-�ڍ�
-	TCP/UDP �|�[�g(default:2425)���g�p���āA�ȉ��̕��@�ŏ������܂��B
-	�i���b�Z�[�W����M:UDP�A�t�@�C������M:TCP ���g�p�j
+詳細
+	TCP/UDP ポート(default:2425)を使用して、以下の方法で処理します。
+	（メッセージ送受信:UDP、ファイル送受信:TCP を使用）
 
-  1.�R�}���h
+  1.コマンド
 
-     1) �R�}���h��� (command�ԍ�(32bit)�̂����A����8bit)
+     1) コマンド種類 (command番号(32bit)のうち、下位8bit)
 
-	IPMSG_NOOPERATION	������
-	IPMSG_BR_ENTRY		�T�[�r�X�ɃG���g���i�N������Broadcast�j
-	IPMSG_BR_EXIT		�T�[�r�X���甲����i�I������Broadcast�j
-	IPMSG_ANSENTRY		�G���g����F���������Ƃ�ʒm
-	IPMSG_BR_ABSENCE	�s�݃��[�h�ύX
+	IPMSG_NOOPERATION	無操作
+	IPMSG_BR_ENTRY		サービスにエントリ（起動時にBroadcast）
+	IPMSG_BR_EXIT		サービスから抜ける（終了時にBroadcast）
+	IPMSG_ANSENTRY		エントリを認識したことを通知
+	IPMSG_BR_ABSENCE	不在モード変更
 
-	IPMSG_BR_ISGETLIST	�z�X�g���X�g���o�\�����o�̒T��
-	IPMSG_OKGETLIST		�z�X�g���X�g���o�\�ʒm
-	IPMSG_GETLIST		�z�X�g���X�g���o�v��
-	IPMSG_ANSLIST		�z�X�g���X�g���o
+	IPMSG_BR_ISGETLIST	ホストリスト送出可能メンバの探索
+	IPMSG_OKGETLIST		ホストリスト送出可能通知
+	IPMSG_GETLIST		ホストリスト送出要求
+	IPMSG_ANSLIST		ホストリスト送出
 
-	IPMSG_SENDMSG		���b�Z�[�W�̑��M
-	IPMSG_RECVMSG		���b�Z�[�W�̎�M�m�F
+	IPMSG_SENDMSG		メッセージの送信
+	IPMSG_RECVMSG		メッセージの受信確認
 
-	IPMSG_READMSG		�����̊J���ʒm
-	IPMSG_DELMSG		�����j���ʒm
-	IPMSG_ANSREADMSG	�����̊J���m�F�i8 �ł���ǉ��j
+	IPMSG_READMSG		封書の開封通知
+	IPMSG_DELMSG		封書破棄通知
+	IPMSG_ANSREADMSG	封書の開封確認（8 版から追加）
 
-	IPMSG_GETFILEDATA	�Y�t�t�@�C���v���iTCP �Ŏg�p�j
-	IPMSG_RELEASEFILES	�Y�t�t�@�C���j��
-	IPMSG_GETDIRFILES	�Y�t�K�w�t�@�C���v��
+	IPMSG_GETFILEDATA	添付ファイル要求（TCP で使用）
+	IPMSG_RELEASEFILES	添付ファイル破棄
+	IPMSG_GETDIRFILES	添付階層ファイル要求
 
-	IPMSG_GETINFO		IPMSG�o�[�W�������擾
-	IPMSG_SENDINFO		IPMSG�o�[�W������񉞓�
+	IPMSG_GETINFO		IPMSGバージョン情報取得
+	IPMSG_SENDINFO		IPMSGバージョン情報応答
 
-	IPMSG_GETABSENCEINFO  �s�ݒʒm���擾
-	IPMSG_SENDABSENCEINFO �s�ݒʒm������
+	IPMSG_GETABSENCEINFO  不在通知文取得
+	IPMSG_SENDABSENCEINFO 不在通知文応答
 
-	IPMSG_GETPUBKEY		RSA ���J���擾
-	IPMSG_ANSPUBKEY		RSA ���J������
+	IPMSG_GETPUBKEY		RSA 公開鍵取得
+	IPMSG_ANSPUBKEY		RSA 公開鍵応答
 
-     2) �I�v�V�����t���O��� (command�ԍ�(32bit)�̂����A���24bit)
+     2) オプションフラグ種類 (command番号(32bit)のうち、上位24bit)
 
-	IPMSG_ABSENCEOPT	�s�݃��[�h�i�����o�F���n�R�}���h�Ŏg�p�j
-	IPMSG_SERVEROPT		�T�[�o�[�i�\��j
-	IPMSG_DIALUPOPT		�����o�F���n�̃R�}���h���ʂɑ���Ԃ�
+	IPMSG_ABSENCEOPT	不在モード（メンバ認識系コマンドで使用）
+	IPMSG_SERVEROPT		サーバー（予約）
+	IPMSG_DIALUPOPT		メンバ認識系のコマンドを個別に送り返す
 
-	IPMSG_SENDCHECKOPT	���M�`�F�b�N
-	IPMSG_SECRETOPT		����
-	IPMSG_READCHECKOPT	�����m�F�i8 �ł���ǉ��j
-	IPMSG_PASSWORDOPT	���O
-	IPMSG_BROADCASTOPT	�u���[�h�L���X�g�i����j
-	IPMSG_MULTICASTOPT	�}���`�L���X�g�i�����I���j
-	IPMSG_NEWMULTIOPT	�j���[�o�[�W�����}���`�L���X�g�i�\��j
-	IPMSG_NOLOGOPT		���O�Ɏc���Ȃ��i���Ƃ𐄏��j
-	IPMSG_NOADDLISTOPT	BR_ENTRY���Ă��Ȃ��ꎞ�����o�ʒm
-	IPMSG_AUTORETOPT	���������i�s���|���h�~�p�j
+	IPMSG_SENDCHECKOPT	送信チェック
+	IPMSG_SECRETOPT		封書
+	IPMSG_READCHECKOPT	封書確認（8 版から追加）
+	IPMSG_PASSWORDOPT	錠前
+	IPMSG_BROADCASTOPT	ブロードキャスト（同報）
+	IPMSG_MULTICASTOPT	マルチキャスト（複数選択）
+	IPMSG_NEWMULTIOPT	ニューバージョンマルチキャスト（予約）
+	IPMSG_NOLOGOPT		ログに残さない（ことを推奨）
+	IPMSG_NOADDLISTOPT	BR_ENTRYしていない一時メンバ通知
+	IPMSG_AUTORETOPT	自動応答（ピンポン防止用）
 
-	IPMSG_FILEATTACHOPT	�t�@�C���Y�t
-	IPMSG_ENCRYPTOPT	�Í�
-	IPMSG_ENCEXTMSGOPT	�t�@�C���Y�t�����Í����Ɋ܂߂�
+	IPMSG_FILEATTACHOPT	ファイル添付
+	IPMSG_ENCRYPTOPT	暗号
+	IPMSG_ENCEXTMSGOPT	ファイル添付情報を暗号文に含める
 
-	IPMSG_CAPUTF8OPT	UTF-8���g�p����\�͂�����
-	IPMSG_UTF8OPT		���b�Z�[�W�S�̂� UTF-8���g�p���Ă���
-	IPMSG_CLIPBOARDOPT	���b�Z�[�W�摜���ߍ��ݓY�t���T�|�[�g
+	IPMSG_CAPUTF8OPT	UTF-8を使用する能力がある
+	IPMSG_UTF8OPT		メッセージ全体に UTF-8を使用している
+	IPMSG_CLIPBOARDOPT	メッセージ画像埋め込み添付をサポート
 
-	IPMSG_RETRYOPT		�đ��t���O�iHOSTLIST �擾���Ɏg�p�j
+	IPMSG_RETRYOPT		再送フラグ（HOSTLIST 取得時に使用）
 
-     3) �Í��g�����p�t���O (�g�����ɑg�ݍ��킹�� hex �\���Ŏg�p)
+     3) 暗号拡張部用フラグ (拡張部に組み合わせを hex 表現で使用)
 
-	IPMSG_RSA_512		���J��(RSA  512bit)�Í��\��
-	IPMSG_RSA_1024		���J��(RSA 1024bit)�Í��\��
-	IPMSG_RSA_2048		���J��(RSA 2048bit)�Í��\��
-	IPMSG_RC2_40		���ʌ�(RC2 40bit)�Í��\��
-	IPMSG_BLOWFISH_128	���ʌ�(Blowfish 128bit)�Í��\��
-	IPMSG_AES_256		���ʌ�(AES 256bit)�Í��\��
-	IPMSG_PACKETNO_IV	���ʌ��Í��� IV �� Packet�ԍ�������𗘗p
-	IPMSG_ENCODE_BASE64	�Í����̋��ʌ��ȍ~�̋L�q�� base64 �𗘗p
-	IPMSG_SIGN_SHA1		������ SHA1�d�q������t�^
+	IPMSG_RSA_512		公開鍵(RSA  512bit)暗号能力
+	IPMSG_RSA_1024		公開鍵(RSA 1024bit)暗号能力
+	IPMSG_RSA_2048		公開鍵(RSA 2048bit)暗号能力
+	IPMSG_RC2_40		共通鍵(RC2 40bit)暗号能力
+	IPMSG_BLOWFISH_128	共通鍵(Blowfish 128bit)暗号能力
+	IPMSG_AES_256		共通鍵(AES 256bit)暗号能力
+	IPMSG_PACKETNO_IV	共通鍵暗号の IV に Packet番号文字列を利用
+	IPMSG_ENCODE_BASE64	暗号文の共通鍵以降の記述に base64 を利用
+	IPMSG_SIGN_SHA1		平文に SHA1電子署名を付与
 
-     4) �Y�t�t�@�C���g���p�t�@�C����ށifileattr����8bit�j
+     4) 添付ファイル拡張用ファイル種類（fileattr下位8bit）
 
 	IPMSG_FILE_REGULAR
 	IPMSG_FILE_DIR
@@ -104,7 +104,7 @@
 	IPMSG_FILE_FIFO
 	IPMSG_FILE_RESFORK
 
-     5) �Y�t�t�@�C���g���p�t�@�C�������ifileattr���24bit�j
+     5) 添付ファイル拡張用ファイル属性（fileattr上位24bit）
 
 	IPMSG_FILE_RONLYOPT
 	IPMSG_FILE_HIDDENOPT
@@ -112,7 +112,7 @@
 	IPMSG_FILE_ARCHIVEOPT
 	IPMSG_FILE_SYSTEMOPT
 
-     6) �Y�t�t�@�C���g���p�g���t�@�C������
+     6) 添付ファイル拡張用拡張ファイル属性
 
 	IPMSG_FILE_UID
 	IPMSG_FILE_USERNAME
@@ -134,306 +134,306 @@
 	IPMSG_FILE_ALIASFNAME
 
 
-  2.�R�}���h�t�H�[�}�b�g�i���ׂĕ�����Ƃ��ĕ\���j
+  2.コマンドフォーマット（すべて文字列として表現）
 
-     1) �R�}���h�i�t�H�[�}�b�g�o�[�W����1�j
+     1) コマンド（フォーマットバージョン1）
 
-	Ver(1) : Packet�ԍ� : ��User�� : ��Host�� : Command�ԍ� : �ǉ���
+	Ver(1) : Packet番号 : 自User名 : 自Host名 : Command番号 : 追加部
 
-     2) ���݂̃R�}���h�t�H�[�}�b�g�ɂ�郁�b�Z�[�W�̑��M�������
+     2) 現在のコマンドフォーマットによるメッセージの送信文字列例
 
 	"1:100:shirouzu:jupiter:32:Hello"
 
 
-  3.�R�}���h�����T�v
+  3.コマンド処理概要
 
-     1) �����o�F��
+     1) メンバ認識
 
-	�N�����ɁAIPMSG_BR_ENTRY �R�}���h���u���[�h�L���X�g���A���ł�
-	�����オ���Ă��郁���o�ɁA�V�K�Q����m�点�܂��B
+	起動時に、IPMSG_BR_ENTRY コマンドをブロードキャストし、すでに
+	立ち上がっているメンバに、新規参加を知らせます。
 
-	���̃u���[�h�L���X�g�ɂ��A���łɗ����オ���Ă��郁���o�́A
-	�����̑��M�惊�X�g�ɐV�K�Q�������o�̏���ǉ����܂��B����ɁA
-	IPMSG_ANSENTRY �R�}���h�����̐V�K�Q�������o�ɑ΂��A�ԐM���܂��B
-	�i���l: Win�łł́A�����o����IP�A�h���X�������Ɋ�Â��āA0-4�b
-	�@���x�̃����_���ȑ҂������Ă��܂��j
+	このブロードキャストにより、すでに立ち上がっているメンバは、
+	自分の送信先リストに新規参加メンバの情報を追加します。さらに、
+	IPMSG_ANSENTRY コマンドをその新規参加メンバに対し、返信します。
+	（備考: Win版では、メンバ数やIPアドレス距離等に基づいて、0-4秒
+	　程度のランダムな待ちを入れています）
 
-	�V�K�Q�������o�́A���� IPMSG_ANSENTRY ����M���邱�Ƃɂ��A
-	���łɗ����オ���Ă���S�����o�̏��𓾂邱�Ƃ��ł��܂��B
-	���������AIP�p�P�b�g�������Ȃ�����́A�S�Ẵ����o�������
-	���M�惊�X�g��ێ��ł���Ƃ����킯�ł��B
+	新規参加メンバは、この IPMSG_ANSENTRY を受信することにより、
+	すでに立ち上がっている全メンバの情報を得ることができます。
+	したがい、IPパケットが失われない限りは、全てのメンバが同一の
+	送信先リストを保持できるというわけです。
 
-	�s�݃��[�h��j�b�N�l�[���̕ύX�Ȃǂ��A�����o�S���ɒʒm����ɂ́A
-	IPMSG_BR_ABSENCE ���u���[�h�L���X�g���܂��B�iIPMSG_BR_ENTRY ��
-	�Ⴂ�A�󂯎���������o�� IPMSG_ANSENTRY ��Ԃ��܂���j
+	不在モードやニックネームの変更などを、メンバ全員に通知するには、
+	IPMSG_BR_ABSENCE をブロードキャストします。（IPMSG_BR_ENTRY と
+	違い、受け取ったメンバは IPMSG_ANSENTRY を返しません）
 
-	IPMSG_BR_ENTRY, IPMSG_ANSENTRY, IPMSG_BR_ABSENCE �R�}���h�ł́A
-	�s�݃��[�h�ɂ��킹�� IPMSG_ABSENCEOPT �𗧂ĂāA�R�}���h�̒ǉ�
-	���ɂ̓j�b�N�l�[�������܂��B�܂��A�_�C�A���A�b�v���[�U�ȂǁA
-	�l�b�g���[�N�w��̃u���[�h�L���X�g���͂��Ȃ������o�́A����ɁA
-	IPMSG_DIALUPOPT �𗧂Ă܂��B���̃I�v�V�����������Ă��郁���o��
-	�́A�����o�F���n�̃R�}���h���ʂɑ��o���܂��B
+	IPMSG_BR_ENTRY, IPMSG_ANSENTRY, IPMSG_BR_ABSENCE コマンドでは、
+	不在モードにあわせて IPMSG_ABSENCEOPT を立てて、コマンドの追加
+	部にはニックネームを入れます。また、ダイアルアップユーザなど、
+	ネットワーク指定のブロードキャストが届かないメンバは、さらに、
+	IPMSG_DIALUPOPT を立てます。このオプションが立っているメンバに
+	は、メンバ認識系のコマンドを個別に送出します。
 
-	�i�O���[�v���g���jIPMSG_BR_ENTRY, IPMSG_ANSENTRY, IPMSG_BR_ABSENCE
-	�ɂ����āA�]���̃R�}���h�t�H�[�}�b�g������ɑ�����('\0'�������)
-	�O���[�v�������邱�Ƃɂ���āA�����̏���(�ݒ�)����O���[�v��
-	��`���邱�Ƃ��ł��܂��B
+	（グループ化拡張）IPMSG_BR_ENTRY, IPMSG_ANSENTRY, IPMSG_BR_ABSENCE
+	において、従来のコマンドフォーマット文字列に続いて('\0'を挟んで)
+	グループ名を入れることによって、自分の所属(設定)するグループ名
+	を伝えることができます。
 
-     2) ���b�Z�[�W����M
+     2) メッセージ送受信
 
-	���b�Z�[�W���M�ɂ� IPMSG_SENDMSG ���g�p���A�g�����Ƀ��b�Z�[�W
-	�{�̂����܂��B��M���́AIPMSG_SENDCHECKOPT �������Ă���ꍇ
-	�Ɍ���AIPMSG_RECVMSG ��Ԃ��܂��B�g�����ɂ͌��̃p�P�b�g�ԍ���
-	����܂��B
+	メッセージ送信には IPMSG_SENDMSG を使用し、拡張部にメッセージ
+	本体を入れます。受信側は、IPMSG_SENDCHECKOPT が立っている場合
+	に限り、IPMSG_RECVMSG を返します。拡張部には元のパケット番号を
+	入れます。
 
-	�u���[�h�L���X�g�ɂ�郁�b�Z�[�W���M�́AIPMSG_BOADCASTOPT ��
-	���Ă� IPMSG_SENDMSG ���g�p���܂��B�i�s�ݒʒm���Ȃǁj�������o
-	�����p�P�b�g�ɂ́A�s���|���h�~�̂��� IPMSG_AUTORETOPT ����
-	�܂��B�ǂ��炩�̃I�v�V�����������Ă���p�P�b�g�ɂ́A�m�F�����
-	�������o�p�P�b�g��Ԃ��܂���B
+	ブロードキャストによるメッセージ送信は、IPMSG_BOADCASTOPT を
+	立てた IPMSG_SENDMSG を使用します。（不在通知文など）自動送出
+	されるパケットには、ピンポン防止のため IPMSG_AUTORETOPT をつけ
+	ます。どちらかのオプションが立っているパケットには、確認および
+	自動送出パケットを返しません。
 
-	�����ő��o����ɂ́AIPMSG_SECRETOPT �𗧂Ă��p�P�b�g�𑗏o����
-	���B���̏ꍇ�A��M���͊J������ IPMSG_READMSG �𑗏o���܂��B
-	�g�����ɂ͌��̃p�P�b�g�ԍ������܂��B
+	封書で送出するには、IPMSG_SECRETOPT を立てたパケットを送出しま
+	す。この場合、受信側は開封時に IPMSG_READMSG を送出します。
+	拡張部には元のパケット番号を入れます。
 
-	�i�ǉ����ꂽ�AIPMSG_NOADDLISTOPT �ɂ��āj
-	�����̑��M�惊�X�g�ɍڂ��Ă��Ȃ��z�X�g����� IPMSG_SENDMSG
-	�p�P�b�g�������ɂ́A
-	�E ���M��� IPMSG_BR_ENTRY �𑗐M���āA�z�X�g���݊m�F���s��
-	�E ���ڎ����̑��M�惊�X�g�ɉ�����
-	�̂����ꂩ�̏������s�����Ƃɂ��A�G���g���[�n�p�P�b�g��肱��
-	�����t�H���[����������l�����܂��B�������A�G���g���[���s���
-	���P�����b�Z�[�W���M�̏ꍇ�́A����͖]�܂����Ȃ�����ł��̂ŁA
-	���̏ꍇ�͎�M�z�X�g�ɂ��̂悤�ȃt�H���[��������Ȃ����Ƃ𐄏�
-	���邽�߁AIPMSG_SENDMSG �� IPMSG_NOADDLISTOPT �t���O�𗧂Ă܂��B
+	（追加された、IPMSG_NOADDLISTOPT について）
+	自分の送信先リストに載っていないホストからの IPMSG_SENDMSG
+	パケット到着時には、
+	・ 送信先に IPMSG_BR_ENTRY を送信して、ホスト存在確認を行う
+	・ 直接自分の送信先リストに加える
+	のいずれかの処理を行うことにより、エントリー系パケット取りこぼ
+	しをフォローする実装が考えられます。しかし、エントリーを行わな
+	い単発メッセージ送信の場合は、これは望ましくない動作ですので、
+	この場合は受信ホストにそのようなフォロー動作をしないことを推奨
+	するため、IPMSG_SENDMSG に IPMSG_NOADDLISTOPT フラグを立てます。
 
-	�i8�łŒǉ����ꂽ�AIPMSG_READCHECKOPT �ɂ��āj
-	IPMSG_READMSG �ɁAIPMSG_READCHECKOPT �����Ă����ꍇ�A���x�A
-	IPMSG_SENDMSG �ɂ����� IPMSG_SENDCHECKOPT �̂悤�ɏ������܂��B
-	�������A�ԐM�ɂ́AIPMSG_RECVMSG �ł͂Ȃ��AIPMSG_ANSREADMSG
-	���g�p���܂��B
+	（8版で追加された、IPMSG_READCHECKOPT について）
+	IPMSG_READMSG に、IPMSG_READCHECKOPT がついていた場合、丁度、
+	IPMSG_SENDMSG における IPMSG_SENDCHECKOPT のように処理します。
+	ただし、返信には、IPMSG_RECVMSG ではなく、IPMSG_ANSREADMSG
+	を使用します。
 
-	�Ȃ��A���b�Z�[�W�̉摜���ߍ��݂� 4)�t�@�C���Y�t�g���ɂĐ����B
+	なお、メッセージの画像埋め込みは 4)ファイル添付拡張にて説明。
 
-     3) ���b�Z�[�W����M�|�Í����g���i9�łŒǉ��j
+     3) メッセージ送受信－暗号化拡張（9版で追加）
 
-	���J��(RSA)�Ƌ��ʌ�(AES/Blowfish/RC2)��g�ݍ��킹�Ď������܂��B
-	�Í��֘A�̊g�����͌����Ƃ��āAhex �t�H�[�}�b�g�ŕ\���܂��B
-	�������A�Í��Ή��\�́i��q�j�� IPMSG_ENCODE_BASE64 ���܂܂�
-	�Ă���Í����b�Z�[�W���M�ł́A���ʌ������ȍ~�̋L�q�ɂ���
-	hex �̑���ɁAbase64 �ŋL�q���܂��B�i10�łŒǉ��j
+	公開鍵(RSA)と共通鍵(AES/Blowfish/RC2)を組み合わせて実現します。
+	暗号関連の拡張部は原則として、hex フォーマットで表します。
+	ただし、暗号対応能力（後述）に IPMSG_ENCODE_BASE64 が含まれ
+	ている暗号メッセージ送信では、共通鍵部分以降の記述について
+	hex の代わりに、base64 で記述します。（10版で追加）
 
-	�i���J���擾�j�܂���M���� IPMSG_GETPUBKEY �𑗐M���܂��B����
-	���� IPMSG_ANSPUBKEY ���󂯎�邱�Ƃɂ��A���葤 RSA ���J��
-	�𓾂܂��BIPMSG_GETPUBKEY/IPMSG_ANSPUBKEY �Ƃ��ɁA�g�����̍ŏ�
-	�Ɏ��z�X�g�̈Í��Ή��\�́iIPMSG_RSA_2048 ���j���t���O�� OR ��
-	�\�����l�����܂��B
-	�i�t���O�ڍׂ́u1. 3) �Í��g�����p�t���O�v���������������j
+	（公開鍵取得）まず受信側に IPMSG_GETPUBKEY を送信します。相手
+	から IPMSG_ANSPUBKEY を受け取ることにより、相手側 RSA 公開鍵
+	を得ます。IPMSG_GETPUBKEY/IPMSG_ANSPUBKEY ともに、拡張部の最初
+	に自ホストの暗号対応能力（IPMSG_RSA_2048 等）をフラグの OR で
+	表した値を入れます。
+	（フラグ詳細は「1. 3) 暗号拡張部用フラグ」をご覧ください）
 
-	����ɁAIPMSG_ANSPUBKEY �ł�':'������ŁA���J���� EE-NNNNNN
-	�iE=�w���AN=�@�j�Ƃ����`�����܂��BE �� N �̊Ԃɂ� '-' ��
-	����āA��؂�ɂ��܂��B
-	�Ȃ��A�Q�x�ڈȍ~�̑��M���ɂ́A���J������шÍ��Ή��\�͂��L��
-	���邱�Ƃɂ��A���̃V�[�P���X���ȗ����邱�Ƃ��ł��܂��B
+	さらに、IPMSG_ANSPUBKEY では':'を挟んで、公開鍵を EE-NNNNNN
+	（E=指数、N=法）という形を入れます。E と N の間には '-' を
+	入れて、区切りにします。
+	なお、２度目以降の送信時には、公開鍵および暗号対応能力を記憶
+	することにより、このシーケンスを省略することができます。
 
-	�i���b�Z�[�W�Í����j���M���́A���҂ŃT�|�[�g���Ă��鋤�ʌ�
-	��ނ�I��ŃZ�b�V�����p���ʌ������A���̋��ʌ���p���Ė{��
-	���Í������܂��B����ɂ��̋��ʌ��𑊎葤���J���ňÍ������܂��B
-	�Ȃ��A�����ɂ��g�ݍ��킹�ɐ���������܂��i4. ���̑����Q�Ɓj
+	（メッセージ暗号化）送信側は、両者でサポートしている共通鍵
+	種類を選んでセッション用共通鍵を作り、その共通鍵を用いて本文
+	を暗号化します。さらにその共通鍵を相手側公開鍵で暗号化します。
+	なお、実装により組み合わせに制限があります（4. その他を参照）
 
-	�i�Í����b�Z�[�W���M�jIPMSG_SENDMSG �� IPMSG_ENCRYPTOPT ��
-	�𗧂ĂāA�g�����̍ŏ��ɁA�Í����Ɏg�p�������J��/���ʌ����
-	�̑g�ݍ��킹�� OR �ŕ\�������l�����܂��B�����āA':' �����
-	����A�i����ȍ~ IPMSG_ENCODE_BASE64 �𗧂Ă��ꍇ�� hex ��
-	����� base64 �ŋL�q���܂��j�A���J���ňÍ����������ʌ��A
-	':' ������ŁA���ʌ��ňÍ��������{�������܂��B
-	�Ȃ��A�����ɂ͖�����'\0'���܂߂܂��B
+	（暗号メッセージ送信）IPMSG_SENDMSG に IPMSG_ENCRYPTOPT を
+	を立てて、拡張部の最初に、暗号化に使用した公開鍵/共通鍵種類
+	の組み合わせを OR で表現した値を入れます。続いて、':' を入れ
+	た後、（これ以降 IPMSG_ENCODE_BASE64 を立てた場合は hex の
+	代わりに base64 で記述します）、公開鍵で暗号化した共通鍵、
+	':' を挟んで、共通鍵で暗号化した本文を入れます。
+	なお、平文には末尾の'\0'を含めます。
 
-	�i�d�q�����I�v�V�����j���҂� SHA-1�ɂ��d�q�������T�|�[�g
-	���Ă���ꍇ�AIPMSG_SIGN_SHA1 ���Ă���ŁA�����ւ� SHA-1�_�C
-	�W�F�X�g�l���������g�̔閧���ňÍ��������������A��L�̈Í���
-	�{���ɑ����� ':'���͂���Œǉ����܂��B
+	（電子署名オプション）両者が SHA-1による電子署名をサポート
+	している場合、IPMSG_SIGN_SHA1 立てた上で、平文への SHA-1ダイ
+	ジェスト値を自分自身の秘密鍵で暗号化した署名を、上記の暗号化
+	本文に続けて ':'をはさんで追加します。
 
-	�Ȃ��A�G���R�[�h�E�p�f�B���O�����ɂ��ẮARSA ���J���ɂ��
-	�Í�/�����ł� PKCS#1-v1_5�AAES/Blowfish/RC2 ���ʌ��ɂ��Í�
-	���� PKCS#5 CBC ���g�p���܂��B
-	IPMSG_PACKETNO_IV �������Ă���ꍇ�AIV �� Packet�ԍ��������
-	���p���܂��B�iIV �T�C�Y���Z�����߁A�c��� 0 �ŕ⊮���܂��j
-	IPMSG_PACKETNO_IV �������Ă��Ȃ��ꍇ�AIV �� 0 �ƂȂ�܂��B
+	なお、エンコード・パディング方式については、RSA 公開鍵による
+	暗号/署名では PKCS#1-v1_5、AES/Blowfish/RC2 共通鍵による暗号
+	化は PKCS#5 CBC を使用します。
+	IPMSG_PACKETNO_IV が立っている場合、IV は Packet番号文字列を
+	利用します。（IV サイズより短いため、残りは 0 で補完します）
+	IPMSG_PACKETNO_IV が立っていない場合、IV は 0 となります。
 
-	�܂��AEntry �n�p�P�b�g�ɂ� IPMSG_ENCRYPTOPT �𗧂āA�Í��@�\
-	���T�|�[�g�\�ł��邱�Ƃ�\�����܂��B
+	また、Entry 系パケットには IPMSG_ENCRYPTOPT を立て、暗号機能
+	をサポート可能であることを表明します。
 
-	�i���J���w��t���[�U���j�i10�łŒǉ��j
-	2048bitRSA ���� SHA-1 ���������p�\�ȃ��[�U�́A���[�UID��
-	�����ɁA���J���𗘗p�����w��i��q�j��t�^���邱�ƂŁA
-	 1) ���[�U���̈�Ӑ���ۂ��₷������
-	 2) ���J�����̂ɂ��Ȃ肷�܂���h���iIPMSG_ANSPUBKEY��M��
-	 �@ �Ɍ��Ǝw��̈�v���m�F�j
-	���Ƃ��ł��܂��B
+	（公開鍵指紋付ユーザ名）（10版で追加）
+	2048bitRSA かつ SHA-1 署名が利用可能なユーザは、ユーザIDの
+	末尾に、公開鍵を利用した指紋（後述）を付与することで、
+	 1) ユーザ名の一意性を保ちやすくする
+	 2) 公開鍵詐称によるなりすましを防ぐ（IPMSG_ANSPUBKEY受信時
+	 　 に鍵と指紋の一致を確認）
+	ことができます。
 
-	���J���w��t�����[�U���͈ȉ��̂悤�ɂ��č쐬���܂��B
-	 1) ���J���̖@�ɑ΂��� SHA-1 �_�C�W�F�X�g�l(160bit)�𐶐�
-	 2) ������ 32bit �� 0 ��t�^���āA192bit �̒l�Ƃ���
-	 3) 192bit �� 64bit*3�̃t�B�[���h�ɕ������A3�� XOR����
-	 4) 64bit�l��16�����Œ��hex�����񉻂���
-	 5) ���[�U���̖����ɁA���[�U��-<�w�䕶����> �̌`���Ŏw���t��
+	公開鍵指紋付きユーザ名は以下のようにして作成します。
+	 1) 公開鍵の法に対する SHA-1 ダイジェスト値(160bit)を生成
+	 2) 末尾に 32bit の 0 を付与して、192bit の値とする
+	 3) 192bit を 64bit*3つのフィールドに分割し、3つを XORする
+	 4) 64bit値を16文字固定のhex文字列化する
+	 5) ユーザ名の末尾に、ユーザ名-<指紋文字列> の形式で指紋を付加
 
-	�Ȃ��A���̌��J���w��t���[�U�����g���Ă���ɂ�������炸�A
-	Entry�n�� IPMSG_ENCRYPTOPT �t���O�������Ă��Ȃ��A��������
-	IPMSG_GETPUBKEY/IPMSG_ANSPUBKEY �ł̈Í��Ή��\�� �ɁA
-	IPMSG_RSA_2048/IPMSG_SIGN_SHA1 ���܂܂�Ă��Ȃ��ꍇ�́A
-	�s���p�P�b�g�Ƃ��Ĕj�����邱�Ƃ𐄏����܂��B
+	なお、この公開鍵指紋付ユーザ名を使っているにもかかわらず、
+	Entry系に IPMSG_ENCRYPTOPT フラグが立っていない、もしくは
+	IPMSG_GETPUBKEY/IPMSG_ANSPUBKEY での暗号対応能力 に、
+	IPMSG_RSA_2048/IPMSG_SIGN_SHA1 が含まれていない場合は、
+	不正パケットとして破棄することを推奨します。
 
-     4) �t�@�C���Y�t�g���i9�łŒǉ��j
+     4) ファイル添付拡張（9版で追加）
 
-	�t�@�C���Y�t�i�_�E�����[�h���j�ʒm����ɂ́AIPMSG_SENDMSG
-	�� IPMSG_FILEATTACHOPT �𗧂Ă����b�Z�[�W�𑗐M���܂��B
-	���̍ہA�ʏ�ior �Í��j���b�Z�[�W�ɑ����āA'\0'���͂���ŁA
-	�Y�t�i�_�E�����[�h���j�t�@�C������񋓂��܂��B
+	ファイル添付（ダウンロード許可）通知するには、IPMSG_SENDMSG
+	に IPMSG_FILEATTACHOPT を立てたメッセージを送信します。
+	その際、通常（or 暗号）メッセージに続けて、'\0'をはさんで、
+	添付（ダウンロード許可）ファイル情報を列挙します。
 
 	fileID:filename:size:mtime:fileattr[:extend-attr=val1
 	[,val2...][:extend-attr2=...]]:\a[:]fileID...
-	(�Ȃ��Asize, mtime, fileattr �� hex �ŕ\�����܂��B
-	 filename��':'������ꍇ�A"::"�ŃG�X�P�[�v���܂�)
+	(なお、size, mtime, fileattr は hex で表現します。
+	 filenameに':'がある場合、"::"でエスケープします)
 
-	��M�����Y�t�t�@�C�����_�E�����[�h�������ꍇ�A���M��UDP�|�[�g
-	�Ɠ����ԍ���TCP�|�[�g�ɑ΂��āAIPMSG_GETFILEDATA �R�}���h���g
-	���A�g������ packetID:fileID:offset �����āA�f�[�^���M�v��
-	�p�P�b�g���o���܂��B�i���ׂ�hex�j
-	�Y�t�������̃��N�G�X�g����M���āA���M�v���𐳂����ƔF�߂�ƁA
-	���̒ʐM�H�ɊY���t�@�C���̃f�[�^�𗬂��܂��i�t�H�[�}�b�g�Ȃ��j
+	受信側が添付ファイルをダウンロードしたい場合、送信元UDPポート
+	と同じ番号のTCPポートに対して、IPMSG_GETFILEDATA コマンドを使
+	い、拡張部に packetID:fileID:offset を入れて、データ送信要求
+	パケットを出します。（すべてhex）
+	添付側がそのリクエストを受信して、送信要求を正しいと認めると、
+	その通信路に該当ファイルのデータを流します（フォーマットなし）
 
-	��M�����K�w�Y�t�t�@�C�����_�E�����[�h�������ꍇ�́A�R�}���h
-	�� IPMSG_GETDIRFILES ���g���A�g������ packetID:fileID ������
-	�f�[�^���M�v���p�P�b�g���o���܂��B�i���ׂ�hex�j
+	受信側が階層添付ファイルをダウンロードしたい場合は、コマンド
+	に IPMSG_GETDIRFILES を使い、拡張部に packetID:fileID を入れて
+	データ送信要求パケットを出します。（すべてhex）
 
-	�f�[�^���M���́A�ȉ��̃t�H�[�}�b�g�ŊK�w�f�[�^�𗬂��܂��B
+	データ送信側は、以下のフォーマットで階層データを流します。
 	header-size:filename:file-size:fileattr[:extend-attr=val1
 	[,val2...][:extend-attr2=...]]:contents-data
-	����headersize:����filename...
-	�ifilename �� contetns-data �ȊO�͂��ׂ� hex�j
+	次のheadersize:次のfilename...
+	（filename と contetns-data 以外はすべて hex）
 
-	header-size �� header-size �̐擪���� contents-data �̒��O��
-	':'�܂ł̃T�C�Y������킵�܂��Bextend-attr �͏ȗ�������
-	���݉\�Ȋg�������ŁA'='�őΉ�����f�[�^�l�����܂��B
+	header-size は header-size の先頭から contents-data の直前の
+	':'までのサイズをあらわします。extend-attr は省略可かつ複数
+	存在可能な拡張属性で、'='で対応するデータ値を入れます。
 
-	fileattr �� IPMSG_FILE_DIR �̏ꍇ�A�����I�ɂ��̃f�B���N�g����
-	��������ԂƂ݂Ȃ��āA�㑱�̃t�@�C����񂪑����܂��B
+	fileattr が IPMSG_FILE_DIR の場合、自動的にそのディレクトリに
+	潜った状態とみなして、後続のファイル情報が続きます。
 
-	fileattr �� IPMSG_FILE_RETPARENT �̏ꍇ�A�e�f�B���N�g���ɖ�
-	�邱�Ƃ�\���A�t�@�C�����͏��"."�ł��B���̂Ƃ��̑����l�́A
-	�e�f�B���N�g���ɖ߂�O�́A���݃f�B���N�g���̏���\���܂��B
+	fileattr が IPMSG_FILE_RETPARENT の場合、親ディレクトリに戻
+	ることを表し、ファイル名は常に"."です。このときの属性値は、
+	親ディレクトリに戻る前の、現在ディレクトリの情報を表します。
 
-	���M�͓Y�t�f�B���N�g�����̂���J�n���A�Ō�ɓY�t�f�B���N�g��
-	�ɖ߂� IPMSG_FILE_RETPARENT ���𑗐M���ďI����`���܂��B
+	送信は添付ディレクトリ自体から開始し、最後に添付ディレクトリ
+	に戻る IPMSG_FILE_RETPARENT 情報を送信して終了を伝えます。
 
-	�Ȃ��AEntry �n�p�P�b�g�� IPMSG_FILEATTACHOPT �𗧂āA�t�@�C��
-	�Y�t���T�|�[�g�\�ł��邱�Ƃ�\�����܂��B
+	なお、Entry 系パケットに IPMSG_FILEATTACHOPT を立て、ファイル
+	添付をサポート可能であることを表明します。
 
-	�i�Y�t�t�@�C�����Í����j��L�t�H�[�}�b�g���e���A���b�Z�[�W����
-	�������� '\0' �ɑ����ċL�q������A���b�Z�[�W�S�̂̈Í������s��
-	���Ƃ��ł��܂��B���̏ꍇ�AEntry�n�p�P�b�g����� IPMSG_SENDMSG
-	�� IPMSG_ENCEXTMSGOPT �𗧂Ă܂��B
+	（添付ファイル名暗号化）上記フォーマット内容を、メッセージ平文
+	末尾から '\0' に続けて記述した後、メッセージ全体の暗号化を行う
+	ことができます。その場合、Entry系パケットおよび IPMSG_SENDMSG
+	に IPMSG_ENCEXTMSGOPT を立てます。
 
-	�i���b�Z�[�W�摜���ߍ��ݓY�t�j���b�Z�[�W�ɓ\��t����ꂽ�摜
-	�́A�ʏ�̃t�@�C���Y�t�Ƃ��đ����܂��B�������Afileattr ��
-	IPMSG_FILE_CLIPBOARD ���w�肵�܂��B�t�@�C�����t�B�[���h�ɂ́A
-	�Y�t�������摜��ނ̊g���q���܂ރ_�~�[�t�@�C�������w�肵�܂��B
-	�ʏ�� PNG ���g���܂��B
-	���b�Z�[�W�ւ̉摜���ߍ��݈ʒu�́A��L�� extend-attr=val �̌`
-	�� IPMSG_FILE_CLIPBOARDPOS=�}���p�����I�t�Z�b�g�ʒu�i�����P�ʁj
-	���w�肵�܂��i���ׂ�hex�\���j�B�������A�����̉摜��}������ꍇ�A
-	���摜�����O�ɑ��݂���摜��1�����Ƃ��ăJ�E���g���܂��B
+	（メッセージ画像埋め込み添付）メッセージに貼り付けられた画像
+	は、通常のファイル添付として送られます。ただし、fileattr に
+	IPMSG_FILE_CLIPBOARD を指定します。ファイル名フィールドには、
+	添付したい画像種類の拡張子を含むダミーファイル名を指定します。
+	通常は PNG を使います。
+	メッセージへの画像埋め込み位置は、上記の extend-attr=val の形
+	で IPMSG_FILE_CLIPBOARDPOS=挿入用推奨オフセット位置（文字単位）
+	を指定します（すべてhex表現）。ただし、複数の画像を挿入する場合、
+	自画像よりも前に存在する画像も1文字としてカウントします。
 
-	�Ȃ��A���b�Z�[�W�摜���ߍ��݂��T�|�[�g���Ă���z�X�g�́AEntry�n
-	�p�P�b�g�� IPMSG_CLIPBOARDOPT �𗧂Ă܂��B
+	なお、メッセージ画像埋め込みをサポートしているホストは、Entry系
+	パケットに IPMSG_CLIPBOARDOPT を立てます。
 
-     5) ������(UTF-8)�g��
+     5) 多言語(UTF-8)拡張
 
-	�t�@�C������M���܂ރ��b�Z�[�W�̑���M�� UTF-8 �ł̑�����ʐM��
-	�s����z�X�g�́AIPMSG_BR_ENTRY/IPMSG_ANS_ENTRY/IPMSG_BR_ABSENCE
-	�R�}���h�� IPMSG_CAPUTF8OPT �𗧂Ă��p�P�b�g�𗬂����ƂŁAUTF-8
-	�ł̑���M���\�ł��邱�Ƃ�\�����܂��B���݂��� IPMSG_CAPUTF8OPT
-	���T�|�[�g���Ă���ꍇ�AIPMSG_UTF8OPT �𗧂Ă���ŁA���b�Z�[�W
-	�i�t�@�C���Y�t���b�Z�[�W�������܂ށj�� UTF-8 �ŕ\�������p�P�b�g
-	�𑗐M���邱�Ƃ��ł��܂��B
+	ファイル送受信を含むメッセージの送受信で UTF-8 での多言語通信を
+	行えるホストは、IPMSG_BR_ENTRY/IPMSG_ANS_ENTRY/IPMSG_BR_ABSENCE
+	コマンドで IPMSG_CAPUTF8OPT を立てたパケットを流すことで、UTF-8
+	での送受信が可能であることを表明します。お互いが IPMSG_CAPUTF8OPT
+	をサポートしている場合、IPMSG_UTF8OPT を立てた上で、メッセージ
+	（ファイル添付メッセージ部分を含む）を UTF-8 で表現したパケット
+	を送信することができます。
 
-	�Y�t�t�@�C������M����ꍇ�A���̓Y�t���b�Z�[�W�� IPMSG_UTF8OPT
-	�������Ă���΁A������ IPMSG_UTF8OPT �𗧂Ă� IPMSG_GETFILEDATA
-	�R�}���h�œY�t�t�@�C���]���v���𑗂邱�ƂŁA�t�@�C����/�f�B���N
-	�g������UTF-8 �ŕ\�������f�[�^����M���邱�Ƃ��ł��܂��B
+	添付ファイルを受信する場合、元の添付メッセージに IPMSG_UTF8OPT
+	が立っていれば、同じく IPMSG_UTF8OPT を立てた IPMSG_GETFILEDATA
+	コマンドで添付ファイル転送要求を送ることで、ファイル名/ディレク
+	トリ名をUTF-8 で表現したデータを受信することができます。
 
-	BR�n�p�P�b�g(IPMSG_BR_ENTRY/IPMSG_BR_EXIT/IPMSG_BR_ABSENCE) ��
-	���ẮAIPMSG_UTF8OPT �ɂ�� UTF-8�\���͎g���܂���i������
-	��UTF-8�N���C�A���g�ɖ�肪�������邽�߂ł��j�B���̂��߁A
-	BR�n�p�P�b�g�ł́A�O���[�v���g���̖����ɑ����āA\0\n �� 2�o�C�g
-	��t���i�O���[�v���g�������Ȃ��ꍇ�A�_�~�[�̃O���[�v���Ƃ���
-	\0 ��}��������A\0\n �𑱂��܂��B�܂�A\0\0\n �ƂȂ�܂��j
-	������AUTF-8 �ňȉ��̃G���g����ǉ����܂��B
-	 UN:���[�U��\n
-	 HN:�z�X�g��\n
-	 NN:�j�b�N�l�[��\n
-	 GN:�O���[�v��\n
-	�Ȃ��AASCII�݂̂ŕ\���\�ȃG���g���⑶�݂��Ȃ��G���g����
-	�ȗ����č\���܂���B��L�g���Ə]���̃t�B�[���h���قȂ�ꍇ�A
-	�g���G���g���𐳂������̂Ɖ��߂��܂��B
+	BR系パケット(IPMSG_BR_ENTRY/IPMSG_BR_EXIT/IPMSG_BR_ABSENCE) に
+	ついては、IPMSG_UTF8OPT による UTF-8表現は使えません（既存の
+	非UTF-8クライアントに問題が発生するためです）。そのため、
+	BR系パケットでは、グループ名拡張の末尾に続いて、\0\n の 2バイト
+	を付加（グループ名拡張を入れない場合、ダミーのグループ名として
+	\0 を挿入した後、\0\n を続けます。つまり、\0\0\n となります）
+	した後、UTF-8 で以下のエントリを追加します。
+	 UN:ユーザ名\n
+	 HN:ホスト名\n
+	 NN:ニックネーム\n
+	 GN:グループ名\n
+	なお、ASCIIのみで表現可能なエントリや存在しないエントリは
+	省略して構いません。上記拡張と従来のフィールドが異なる場合、
+	拡張エントリを正しいものと解釈します。
 
-     6) ���̑��̃R�}���h
+     6) その他のコマンド
 
-	���̃����o�̃o�[�W�������擾����ɂ́AIPMSG_GETINFO �R�}���h
-	�𑗂�܂��B��M���͊g�����Ƀo�[�W�������̕������ݒ肵��
-	IPMSG_SENDINFO �𑗂�Ԃ��܂��B
+	他のメンバのバージョンを取得するには、IPMSG_GETINFO コマンド
+	を送ります。受信側は拡張部にバージョン情報の文字列を設定した
+	IPMSG_SENDINFO を送り返します。
 
-	�s�݃��[�h�����o�̕s�ݒʒm�����擾����ɂ́AIPMSG_GETABSENCEINFO
-	�R�}���h�𑗂�܂��B��M���́A�s�݃��[�h���Ȃ�s�ݒʒm����ݒ�
-	�����AIPMSG_SENDABSENCEINFO �𑗂�Ԃ��܂��B�s�݃��[�h���łȂ�
-	�ꍇ�A�K���ȕ�����i"Not absence mode"�Ȃǁj�𑗂�Ԃ��܂��B
+	不在モードメンバの不在通知文を取得するには、IPMSG_GETABSENCEINFO
+	コマンドを送ります。受信側は、不在モード中なら不在通知文を設定
+	した、IPMSG_SENDABSENCEINFO を送り返します。不在モード中でない
+	場合、適当な文字列（"Not absence mode"など）を送り返します。
 
-     7) �m�F�E���g���C
+     7) 確認・リトライ
 
-	��莞�Ԉȓ��Ɋm�F�p�P�b�g�iIPMSG_SENDMSG �ɑ΂���A
-	IPMSG_RECVMSG �Ȃǁj���󂯎��Ȃ������ꍇ�A����̃p�P�b�g��
-	�đ��o���܂��B���g���C�̉񐔁E�Ԋu�ɂ��ẮA�����ˑ��ł��B
+	一定時間以内に確認パケット（IPMSG_SENDMSG に対する、
+	IPMSG_RECVMSG など）が受け取れなかった場合、同一のパケットを
+	再送出します。リトライの回数・間隔については、実装依存です。
 
 
-  4. ���̑�
+  4. その他
 
-     1) ���s�ɂ���
+     1) 改行について
 
-	���o���b�Z�[�W���̉��s�����́AUNIX�`���ɓ��ꂵ�܂�('0x0a')�B
-	�K�v�ɉ����āA�ϊ����s���Ă��������B
+	送出メッセージ内の改行文字は、UNIX形式に統一します('0x0a')。
+	必要に応じて、変換を行ってください。
 
-     2) �f���~�^
+     2) デリミタ
 
-	�f���~�^��':'���g���Ă���֌W��A���[�U���A�z�X�g���̈�ɂ́A
-	':'���܂ޖ��O�́A�g���܂���B����A���z�X�g����':'���܂�ł���
-	�ꍇ�A���̕���(���Ƃ���';')�Ȃǂɒu�������Ďg�p���Ă��������B
+	デリミタに':'を使っている関係上、ユーザ名、ホスト名領域には、
+	':'を含む名前は、使えません。万一、自ホスト名が':'を含んでいる
+	場合、他の文字(たとえば';')などに置き換えて使用してください。
 
-     3) �����R�[�h
+     3) 文字コード
 
-	IPMSG_UTF8OPT ��t�^�����ꍇ�A�����R�[�h�� UTF-8�A�����łȂ�
-	�ꍇ�́ACP932 �̎g�p��z�肵�Ă��܂��B
+	IPMSG_UTF8OPT を付与した場合、文字コードは UTF-8、そうでない
+	場合は、CP932 の使用を想定しています。
 
-	 4) �Í����̑g�ݍ��킹
+	 4) 暗号化の組み合わせ
 
-	 �v���g�R���ł͂���܂��񂪁A���t�@�����X�����̐����Ƃ������ƂŁA
-	 Windows�łł́A�ȉ��̂R�̑g�ݍ��킹�̂݃T�|�[�g���Ă��܂��B
+	 プロトコルではありませんが、リファレンス実装の説明ということで、
+	 Windows版では、以下の３つの組み合わせのみサポートしています。
 
 	   1. IPMSG_RSA_2048 / IPMSG_AES_256      ... (*1)
 	   2. IPMSG_RSA_1024 / IPMSG_BLOWFISH_128 ... (*2)
 	   3. IPMSG_RSA_512  / IPMSG_RC2_40
 
-	   (*1) �I�v�V������ IPMSG_PACKETNO_IV/IPMSG_SIGN_SHA1 ���T�|�[�g
-	   (*2) �I�v�V������ IPMSG_PACKETNO_IV ���T�|�[�g
+	   (*1) オプションで IPMSG_PACKETNO_IV/IPMSG_SIGN_SHA1 をサポート
+	   (*2) オプションで IPMSG_PACKETNO_IV をサポート
 
 
-  5. �A����
+  5. 連絡先
 
-	http://ipmsg.org �ɋL�ڂ��Ă��܂��B
+	http://ipmsg.org に記載しています。
 
 
-���L
-	�R�}���h�R�[�h�́Aipmsg.h���Q�Ƃ��Ă��������B
-	�������ӌ��E��Ă�����܂�����A���񂹂��������B
+附記
+	コマンドコードは、ipmsg.hを参照してください。
+	何かご意見・提案がありましたら、お寄せください。
 

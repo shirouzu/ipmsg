@@ -1,4 +1,4 @@
-static char *senddlg_id = 
+ï»¿static char *senddlg_id = 
 	"@(#)Copyright (C) H.Shirouzu 1996-2011   senddlg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -14,7 +14,7 @@ static char *senddlg_id =
 #include "blowfish.h"
 
 /*
-	SendDialog ‚Ì‰Šú‰»
+	SendDialog ã®åˆæœŸåŒ–
 */
 TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_cfg,
 					LogMng *_logmng, HWND _hRecvWnd, MsgBuf *_msg)
@@ -43,6 +43,7 @@ TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_c
 	listOperateCnt	= 0;
 	hiddenDisp		= FALSE;
 	*selectGroup	= 0;
+	*filterStr		= 0;
 	currentMidYdiff	= cfg->SendMidYdiff;
 	memset(&orgFont, 0, sizeof(orgFont));
 	maxItems		= 0;
@@ -58,14 +59,14 @@ TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_c
 }
 
 /*
-	SendDialog ‚ÌI—¹
+	SendDialog ã®çµ‚äº†
 */
 TSendDlg::~TSendDlg()
 {
 	if (findDlg)
 		delete findDlg;
 
-	// ListView ƒƒ‚ƒŠƒŠ[ƒNb’è‘Îô...
+	// ListView ãƒ¡ãƒ¢ãƒªãƒªãƒ¼ã‚¯æš«å®šå¯¾ç­–...
 	hostListView.DeleteAllItems();
 
 	if (hListFont)
@@ -99,13 +100,13 @@ BOOL TSendDlg::PreProcMsg(MSG *msg)
 #define AW_BLEND 0x00080000
 
 BOOL (WINAPI *pAnimateWindow)(
-  HWND hwnd,     // ƒEƒBƒ“ƒhƒE‚Ìƒnƒ“ƒhƒ‹
-  DWORD dwTime,  // ƒAƒjƒ[ƒVƒ‡ƒ“‚ÌŠÔ(ƒ~ƒŠ•b)
-  DWORD dwFlags  // ƒAƒjƒ[ƒVƒ‡ƒ“‚Ìí—Ş
+  HWND hwnd,     // ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒãƒ³ãƒ‰ãƒ«
+  DWORD dwTime,  // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®æ™‚é–“(ãƒŸãƒªç§’)
+  DWORD dwFlags  // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®ç¨®é¡
 );
 
 /*
-	SendDialog ¶¬‚Ì CallBack
+	SendDialog ç”Ÿæˆæ™‚ã® CallBack
 */
 BOOL TSendDlg::EvCreate(LPARAM lParam)
 {
@@ -116,7 +117,7 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 
 	editSub.AttachWnd(GetDlgItem(SEND_EDIT));
 	editSub.SendMessage(EM_AUTOURLDETECT, 1, 0);
-	editSub.SendMessage(EM_SETTARGETDEVICE, 0, 0);		// Ü‚è•Ô‚µ
+	editSub.SendMessage(EM_SETTARGETDEVICE, 0, 0);		// æŠ˜ã‚Šè¿”ã—
 
 	separateSub.AttachWnd(GetDlgItem(SEPARATE_STATIC));
 	DWORD	add_style = LVS_EX_HEADERDRAGDROP|LVS_EX_FULLROWSELECT;
@@ -148,7 +149,7 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 
 	if (!IsNewShell())
 	{
-		ULONG	style;
+		ULONG_PTR	style;
 		style = GetWindowLong(GWL_STYLE);
 		style &= 0xffffff0f;
 		style |= 0x00000080;
@@ -180,6 +181,39 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 //		pAnimateWindow(hWnd, 1000, AW_HOR_POSITIVE|AW_BLEND|AW_ACTIVATE|AW_SLIDE);
 //	}
 
+#if 0
+
+TBBUTTON tbb[] = {
+    {0, 11000, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0},
+    {1, 11001, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0},
+    {2, 11002, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0},
+    {3, 11003, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0},
+    {4, 11004, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0}
+};
+TBBUTTON tb = {0, 0, TBSTATE_ENABLED, TBSTYLE_SEP, 0, 0};
+
+
+      HWND      hToolBar = CreateToolbarEx(
+                hWnd, //è¦ªã‚¦ã‚£ãƒ³ãƒ‰ã‚¦
+                WS_CHILD | WS_VISIBLE, //ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚¹ã‚¿ã‚¤ãƒ«
+                IDR_MAINFRAME, // ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ«ID
+                4, //ã‚¤ãƒ¡ãƒ¼ã‚¸ã®æ•°
+                TApp::GetInstance(),
+                IDR_MAINFRAME,
+                tbb,
+                5, // ãƒœã‚¿ãƒ³ã®æ•°
+                0, //ãƒœã‚¿ãƒ³ã®å¹…
+                0, //ãƒœã‚¿ãƒ³ã®é«˜ã•
+                16, //ã‚¤ãƒ¡ãƒ¼ã‚¸ã®å¹…
+                15, //ã‚¤ãƒ¡ãƒ¼ã‚¸ã®é«˜ã•
+                sizeof(TBBUTTON));
+           ::SendMessage(hToolBar, TB_INSERTBUTTON,
+                2, (LPARAM)&tb);
+
+
+	SendDlgItemMessage(IDC_BUTTON1, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hMenuIcon);
+#endif
+
 	PostMessage(WM_DELAYSETTEXT, 0, 0);
 
 	static HICON hMenuIcon;
@@ -197,7 +231,7 @@ void TSendDlg::InitializeHeader(void)
 	int		order[MAX_SENDWIDTH];
 	int		revItems[MAX_SENDWIDTH];
 
-// ƒJƒ‰ƒ€ƒwƒbƒ_‚ğ‘Síœ
+// ã‚«ãƒ©ãƒ ãƒ˜ãƒƒãƒ€ã‚’å…¨å‰Šé™¤
 	while (maxItems > 0)
 		hostListView.DeleteColumn(--maxItems);
 
@@ -343,10 +377,15 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		return	TRUE;
 
 	case MENU_FINDDLG:
-		if (!findDlg)
+		if (!findDlg) {
 			findDlg = new TFindDlg(cfg, this);
-		if (!findDlg->hWnd)
+		}
+		if (!findDlg->hWnd) {
 			findDlg->Create();
+		}
+		else {
+			findDlg->SetForegroundWindow();
+		}
 		return	TRUE;
 
 	case SEPARATE_STATIC:
@@ -373,8 +412,9 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	case MENU_SAVECOLUMN:
 		{
 			GetOrder();
-			for (int cnt=0; cnt < maxItems; cnt++)
-				cfg->SendWidth[items[cnt]] = hostListView.SendMessage(LVM_GETCOLUMNWIDTH, cnt, 0);
+			for (int cnt=0; cnt < maxItems; cnt++) {
+				cfg->SendWidth[items[cnt]] = (int)hostListView.SendMessage(LVM_GETCOLUMNWIDTH, cnt, 0);
+			}
 			cfg->WriteRegistry(CFG_WINSIZE);
 		}
 		return	TRUE;
@@ -560,8 +600,8 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 */
 BOOL TSendDlg::EvSysCommand(WPARAM uCmdType, POINTS pos)
 {
-	if (uCmdType >= MENU_SETUP && uCmdType < ALLSELECT_ACCEL) { // ƒƒjƒ…[”ÍˆÍ(10000-15000)
-		return	EvCommand(0, uCmdType, 0);
+	if (uCmdType >= MENU_SETUP && uCmdType < ALLSELECT_ACCEL) { // ãƒ¡ãƒ‹ãƒ¥ãƒ¼ç¯„å›²(10000-15000)
+		return	EvCommand(0, (WORD)uCmdType, 0);
 	}
 	return	FALSE;
 }
@@ -600,25 +640,41 @@ BOOL TSendDlg::EventInitMenu(UINT uMsg, HMENU hMenu, UINT uPos, BOOL fSystemMenu
 BOOL TSendDlg::EventCtlColor(UINT uMsg, HDC hDcCtl, HWND hWndCtl, HBRUSH *result)
 {
 #if 0
-	COLORREF	bkref	= 0x0000ff;
+	COLORREF	bkref	= 0x000000;
 	COLORREF	foreref	= 0x00ff00;
-	COLORREF	dlgref	= 0xff0000;
+	COLORREF	dlgref	= 0xeeeeee;
 	COLORREF	statref	= 0xffff00;
 
 	switch (uMsg) {
-	case WM_CTLCOLORDLG:	// dlg ’n
-		{ static HBRUSH hb; if (!hb) hb = ::CreateSolidBrush(dlgref); *result = hb; }
-//		SetTextColor(hDcCtl, foreref);
-//		SetBkColor(hDcCtl, dlgref);
+	case WM_CTLCOLORDLG:	// dlg åœ°
+		{
+			static HBRUSH hb;
+			if (!hb) hb = ::CreateSolidBrush(dlgref);
+			*result = hb;
+		}
+		SetTextColor(hDcCtl, foreref);
+		SetBkColor(hDcCtl, dlgref);
 		break;
-	case WM_CTLCOLOREDIT:	// edit ’n
-		{ static HBRUSH hb; if (!hb) hb = ::CreateSolidBrush(bkref); *result = hb; }
+	case WM_CTLCOLOREDIT:	// edit åœ°
+/*		{
+			static HBRUSH hb;
+			if (!hb) hb = ::CreateSolidBrush(bkref);
+			*result = hb;
+		}
 		SetTextColor(hDcCtl, foreref);
 		SetBkColor(hDcCtl, bkref);
-		break;
-	case WM_CTLCOLORSTATIC:	// static control & check box ’n
-		if (separateSub.hWnd == hWndCtl) { static HBRUSH hb; if (!hb) hb = ::CreateSolidBrush(bkref); *result = hb; } else { static HBRUSH hb; if (!hb) hb = ::CreateSolidBrush(dlgref); *result = hb; }
-		SetTextColor(hDcCtl, statref);
+*/		break;
+	case WM_CTLCOLORSTATIC:	// static control & check box åœ°
+		if (separateSub.hWnd == hWndCtl) {
+/*			static HBRUSH hb;
+			if (!hb) hb = ::CreateSolidBrush(bkref);
+			*result = hb;
+*/		} else {
+			static HBRUSH hb;
+			if (!hb) hb = ::CreateSolidBrush(dlgref);
+			*result = hb;
+		}
+//		SetTextColor(hDcCtl, statref);
 		SetBkColor(hDcCtl, dlgref);
 		break;
 	}
@@ -721,7 +777,7 @@ BOOL TSendDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 		}
 		return	TRUE;
 
-	case LVN_ENDSCROLL:	// XP ‚Ì‘Îô
+	case LVN_ENDSCROLL:	// XP ã®å¯¾ç­–
 		::InvalidateRect(editSub.hWnd, NULL, TRUE);
 		::UpdateWindow(editSub.hWnd);
 		return	TRUE;
@@ -794,7 +850,7 @@ BOOL TSendDlg::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 }
 
 /*
-	Size •ÏX
+	Size å¤‰æ›´
 */
 BOOL TSendDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 {
@@ -812,7 +868,7 @@ BOOL TSendDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	if (!hdwp)
 		return	FALSE;
 
-// ƒTƒCƒY‚ª¬‚³‚­‚È‚éê‡‚Ì’²®’l‚ÍATry and Error(^^;
+// ã‚µã‚¤ã‚ºãŒå°ã•ããªã‚‹å ´åˆã®èª¿æ•´å€¤ã¯ã€Try and Error(^^;
 	wpos = &item[host_item];
 	if (!(hdwp = ::DeferWindowPos(hdwp, hostListView.hWnd, NULL, wpos->x, wpos->y, wpos->cx + xdiff, wpos->cy + currentMidYdiff, dwFlg)))
 		return	FALSE;
@@ -868,13 +924,13 @@ BOOL TSendDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 }
 
 /*
-	Å‘å/Å¬ Size İ’è
+	æœ€å¤§/æœ€å° Size è¨­å®š
 */
 BOOL TSendDlg::EvGetMinMaxInfo(MINMAXINFO *info)
 {
 	info->ptMinTrackSize.x = (orgRect.right - orgRect.left) * 2 / 3;
 	info->ptMinTrackSize.y = (item[separate_item].y + item[separate_item].cy + currentMidYdiff) + (shareInfo && shareInfo->fileCnt ? 130 : 95);
-	info->ptMaxTrackSize.y = 10000;		//y•ûŒü‚Ì§ŒÀ‚ğŠO‚·
+	info->ptMaxTrackSize.y = 10000;		//yæ–¹å‘ã®åˆ¶é™ã‚’å¤–ã™
 
 	return	TRUE;
 }
@@ -899,7 +955,7 @@ BOOL TSendDlg::EvDrawItem(UINT ctlID, DRAWITEMSTRUCT *lpDis)
 }
 
 /*
-	App’è‹` Event CallBack
+	Appå®šç¾© Event CallBack
 */
 BOOL TSendDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -928,7 +984,7 @@ BOOL TSendDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 /*
 	WM_TIMER event call back
-	‘—MŠm”F/Ä‘——p
+	é€ä¿¡ç¢ºèª/å†é€ç”¨
 */
 BOOL TSendDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 {
@@ -941,7 +997,7 @@ BOOL TSendDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 	if (IsSendFinish())
 	{
 		::KillTimer(hWnd, IPMSG_SEND_TIMER);
-		if (timerID == IPMSG_DUMMY_TIMER)	// Ä“ü‚æ‚¯
+		if (timerID == IPMSG_DUMMY_TIMER)	// å†å…¥ã‚ˆã‘
 			return	FALSE;
 		timerID = IPMSG_DUMMY_TIMER;
 		::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, (LPARAM)this);
@@ -985,7 +1041,7 @@ BOOL TSendDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 
 
 /*
-	‘—M’†‚ÍAShow‚Ìvisible‚ğ‚Í‚¶‚­
+	é€ä¿¡ä¸­ã¯ã€Showã®visibleã‚’ã¯ã˜ã
 */
 void TSendDlg::Show(int mode)
 {
@@ -995,7 +1051,7 @@ void TSendDlg::Show(int mode)
 
 
 /*
-	ˆø—pmark ‚ğ‚Â‚¯‚ÄAEditControl‚É’£‚è•t‚¯
+	å¼•ç”¨mark ã‚’ã¤ã‘ã¦ã€EditControlã«å¼µã‚Šä»˜ã‘
 */
 void TSendDlg::SetQuoteStr(LPSTR str, LPCSTR quoteStr)
 {
@@ -1005,7 +1061,7 @@ void TSendDlg::SetQuoteStr(LPSTR str, LPCSTR quoteStr)
 	WCHAR	*s = wbuf.Buf();
 	WCHAR	*d = (WCHAR *)vbuf.Buf();
 	BOOL	is_quote = TRUE;
-	int		quote_len = wcslen(wquote);
+	int		quote_len = (int)wcslen(wquote);
 
 	for (int i=0; i < MAX_UDPBUF && *s; i++) {
 		if (is_quote) {
@@ -1027,12 +1083,44 @@ void TSendDlg::SetQuoteStr(LPSTR str, LPCSTR quoteStr)
 	editSub.SendMessageW(EM_REPLACESEL, 0, (LPARAM)vbuf.Buf());
 }
 
+inline char *strtoupper(char *buf, const char *org, int max_size)
+{
+	char	*buf_sv  = buf;
+	char	*buf_end = buf + max_size -1;
+
+	while (buf < buf_end && *org) {
+		*buf++ = toupper(*org++);
+	}
+	*buf = 0;
+
+	return	buf_sv;
+}
+
+BOOL TSendDlg::IsFilterHost(Host *host)
+{
+	char	buf[MAX_NAMEBUF], uname[MAX_NAMEBUF];
+	char	*p;
+
+	if (!*filterStr) return TRUE;
+
+	strtoupper(uname, host->hostSub.userName, sizeof(uname));
+	if ((p = (char *)GetUserNameDigestField(uname))) *p = 0;
+
+	if (strstr(*host->nickName ? strtoupper(buf, host->nickName, sizeof(buf)) : uname, filterStr)
+		|| cfg->FindAll && (strstr(strtoupper(buf, host->groupName, sizeof(buf)), filterStr)
+					|| strstr(strtoupper(buf, host->hostSub.hostName, sizeof(buf)), filterStr)
+					|| strstr(uname, filterStr))) {
+		return	TRUE;
+	}
+	return	FALSE;
+}
+
 /*
-	HostEntry‚Ì’Ç‰Á
+	HostEntryã®è¿½åŠ 
 */
 void TSendDlg::AddHost(Host *host)
 {
-	if (IsSending() || host->priority <= 0 && !hiddenDisp)
+	if (IsSending() || host->priority <= 0 && !hiddenDisp || !IsFilterHost(host))
 		return;
 
 	char	buf[MAX_BUF];
@@ -1106,16 +1194,16 @@ void TSendDlg::AddHost(Host *host)
 }
 
 /*
-	HostEntry‚ÌC³
+	HostEntryã®ä¿®æ­£
 */
 void TSendDlg::ModifyHost(Host *host)
 {
 	DelHost(host);
-	AddHost(host);		//«—ˆA‘I‘ğ‚ğ‰ğœ‚¹‚¸‚É‚µ‚½‚¢...
+	AddHost(host);		//å°†æ¥ã€é¸æŠã‚’è§£é™¤ã›ãšã«ã—ãŸã„...
 }
 
 /*
-	HostEntry‚Ìíœ
+	HostEntryã®å‰Šé™¤
 */
 void TSendDlg::DelHost(Host *host)
 {
@@ -1158,7 +1246,7 @@ void TSendDlg::ReregisterEntry()
 }
 
 /*
-	HostEntry‚Ö‚Ì‘}“üindexˆÊ’u‚ğ•Ô‚·
+	HostEntryã¸ã®æŒ¿å…¥indexä½ç½®ã‚’è¿”ã™
 */
 UINT TSendDlg::GetInsertIndexPoint(Host *host)
 {
@@ -1172,7 +1260,7 @@ UINT TSendDlg::GetInsertIndexPoint(Host *host)
 			min = index +1;
 		else if (ret < 0)
 			max = index -1;
-		else {	// –³‚¢”¤
+		else {	// ç„¡ã„ç­ˆ
 			min = index;
 			break;
 		}
@@ -1182,24 +1270,24 @@ UINT TSendDlg::GetInsertIndexPoint(Host *host)
 }
 
 /*
-	“ñ‚Â‚ÌHost‚Ì”äŠr ... binary search—p
+	äºŒã¤ã®Hostã®æ¯”è¼ƒ ... binary searchç”¨
 */
-#define IS_KANJI(x) ((x) & 0x80)		//‚È‚ñ‚Æè”²‚«ƒ}ƒNƒ(^^;
+#define IS_KANJI(x) ((x) & 0x80)		//ãªã‚“ã¨æ‰‹æŠœããƒã‚¯ãƒ­(^^;
 
 int TSendDlg::CompareHosts(Host *host1, Host *host2)
 {
 	int		ret = 0;
 
-	if (host1->hostStatus & IPMSG_SERVEROPT)	// server‚Íí‚ÉÅŒã”ö‚É
+	if (host1->hostStatus & IPMSG_SERVEROPT)	// serverã¯å¸¸ã«æœ€å¾Œå°¾ã«
 		return	1;
-	if (host2->hostStatus & IPMSG_SERVEROPT)	// ‚¿‚å‚Á‚Æè”²‚«”»’f(^^;
+	if (host2->hostStatus & IPMSG_SERVEROPT)	// ã¡ã‚‡ã£ã¨æ‰‹æŠœãåˆ¤æ–­(^^;
 		return	-1;
 
 	if (sortItem != -1) {
 		switch (sortItem) {
 		case SW_NICKNAME:
 			ret = strcmp(*host1->nickName ? host1->nickName : host1->hostSub.userName, *host2->nickName ? host2->nickName : host2->hostSub.userName); break;
-		case SW_ABSENCE:	// ¡‚Ì‚Æ‚±‚ëA’Ê‚ç‚¸
+		case SW_ABSENCE:	// ä»Šã®ã¨ã“ã‚ã€é€šã‚‰ãš
 			ret = (host1->hostStatus & IPMSG_ABSENCEOPT) > (host2->hostStatus & IPMSG_ABSENCEOPT) ? 1 : (host1->hostStatus & IPMSG_ABSENCEOPT) < (host2->hostStatus & IPMSG_ABSENCEOPT) ? -1 : 0; break;
 		case SW_GROUP:
 			ret = strcmp(*host1->groupName ? host1->groupName : "\xff", *host2->groupName ? host2->groupName : "\xff"); break;
@@ -1228,7 +1316,7 @@ int TSendDlg::CompareHosts(Host *host1, Host *host2)
 }
 
 /*
-	“ñ‚Â‚ÌHost‚Ì”äŠr Sub routine
+	äºŒã¤ã®Hostã®æ¯”è¼ƒ Sub routine
 */
 int TSendDlg::GroupCompare(Host *host1, Host *host2)
 {
@@ -1299,8 +1387,8 @@ int TSendDlg::SubCompare(Host *host1, Host *host2)
 		if (ret)
 			break;
 
-		// host–¼‚Å”äŠr‚ª‚Â‚©‚È‚¢‚Æ‚«‚Í IPADDRSORT‚É]‚¤
-		// ‚±‚Ì‚Ü‚Ü ‰º‚É—‚¿‚é
+		// hoståã§æ¯”è¼ƒãŒã¤ã‹ãªã„ã¨ãã¯ IPADDRSORTã«å¾“ã†
+		// ã“ã®ã¾ã¾ ä¸‹ã«è½ã¡ã‚‹
 
 	case IPMSG_IPADDRSORT:
 		if (Tntohl(host1->hostSub.addr) > Tntohl(host2->hostSub.addr))
@@ -1313,8 +1401,8 @@ int TSendDlg::SubCompare(Host *host1, Host *host2)
 }
 
 /*
-	ListBox“à‚Ìw’èhost‚ğ‘I‘ğ
-	force = TRUE ‚Ìê‡AŠù‘I‘ğ€–Ú‚ªƒNƒŠƒA‚³‚ê‚é
+	ListBoxå†…ã®æŒ‡å®šhostã‚’é¸æŠ
+	force = TRUE ã®å ´åˆã€æ—¢é¸æŠé …ç›®ãŒã‚¯ãƒªã‚¢ã•ã‚Œã‚‹
 */
 void TSendDlg::SelectHost(HostSub *hostSub, BOOL force, BOOL byAddr)
 {
@@ -1342,46 +1430,19 @@ void TSendDlg::SelectHost(HostSub *hostSub, BOOL force, BOOL byAddr)
 	}
 }
 
-inline char *strtoupper(char *buf, const char *org)
-{
-	for (int i=0; buf[i] = org[i]; i++) {
-		buf[i] = toupper(org[i]);
-	}
-	return	buf;
-}
-
-BOOL is_match_host(Host *host, char *key, BOOL is_all)
-{
-	char	key_buf[MAX_NAMEBUF], buf[MAX_NAMEBUF], user_name[MAX_NAMEBUF];
-	char	*p;
-
-	strtoupper(key_buf, key);
-	strtoupper(user_name, host->hostSub.userName);
-	if ((p = (char *)GetUserNameDigestField(user_name))) *p = 0;
-
-	if (strstr(*host->nickName ? strtoupper(buf, host->nickName) : user_name, key_buf) ||
-		is_all &&	(strstr(strtoupper(buf, host->groupName), key_buf)
-					|| strstr(strtoupper(buf, host->hostSub.hostName), key_buf)
-					|| strstr(user_name, key_buf))) {
-		return	TRUE;
-	}
-	return	FALSE;
-}
-
 /*
-	ŒŸõ
+	æ¤œç´¢
 */
-BOOL TSendDlg::FindHost(char *findStr)
+BOOL TSendDlg::SelectFilterHost()
 {
 	int		startNo = hostListView.GetFocusIndex() + 1;
 
-	if (*findStr == '\0')
-		return	FALSE;
+	if (!*filterStr) return	FALSE;
 
 	for (int i=0; i < memberCnt; i++) {
 		Host	*host = hostArray[(i + startNo) % memberCnt];
 
-		if (is_match_host(host, findStr, cfg->FindAll)) {
+		if (IsFilterHost(host)) {
 			SelectHost(&host->hostSub, TRUE);
 			return	TRUE;
 		}
@@ -1392,17 +1453,19 @@ BOOL TSendDlg::FindHost(char *findStr)
 /*
 	Filter
 */
-int TSendDlg::FilterHost(char *findStr)
+int TSendDlg::FilterHost(char *_filterStr)
 {
 	Host	*selected_host = NULL;
+
+	strtoupper(filterStr, _filterStr, sizeof(filterStr));
 
 	for (int i=0; i < hosts->HostCnt(); i++) {
 		Host	*host = hosts->GetHost(i);
 
-		if (!*findStr || is_match_host(host, findStr, cfg->FindAll)) {
+		if (!*filterStr || IsFilterHost(host)) {
 			int	idx = GetInsertIndexPoint(host);
 			if (idx < memberCnt && host == hostArray[idx]) {
-				if (!*findStr && !selected_host && hostListView.IsSelected(idx)) {
+				if (!*filterStr && !selected_host && hostListView.IsSelected(idx)) {
 					selected_host = host;
 				}
 			}
@@ -1413,14 +1476,14 @@ int TSendDlg::FilterHost(char *findStr)
 		}
 	}
 
-	// ‘I‘ğˆÊ’u‚ğ•\¦
+	// é¸æŠä½ç½®ã‚’è¡¨ç¤º
 	if (selected_host) SelectHost(&selected_host->hostSub);
 
 	return	memberCnt;
 }
 
 /*
-	Member”‚ğ•\¦
+	Memberæ•°ã‚’è¡¨ç¤º
 */
 void TSendDlg::DisplayMemberCnt(void)
 {
@@ -1445,7 +1508,7 @@ void TSendDlg::AddLruUsers(void)
 
 	if (cfg->lruUserMax <= 0) goto END;
 
-// Šù‘¶ƒGƒ“ƒgƒŠ‚ÌŒŸ¸
+// æ—¢å­˜ã‚¨ãƒ³ãƒˆãƒªã®æ¤œæŸ»
 	obj = (UsersObj *)cfg->lruUserList.TopObj();
 	for (i=0; obj; i++) {
 		if (sendEntryNum == obj->users.Num()) {
@@ -1481,7 +1544,7 @@ END:
 }
 
 /*
-	’Êí‘—M
+	é€šå¸¸é€ä¿¡
 */
 BOOL TSendDlg::SendMsg(void)
 {
@@ -1523,7 +1586,7 @@ BOOL TSendDlg::SendMsg(void)
 		return	FALSE;
 	}
 
-	timerID = IPMSG_DUMMY_TIMER;	// ‚±‚Ì“_‚Å‘—M’†‚É‚·‚é
+	timerID = IPMSG_DUMMY_TIMER;	// ã“ã®æ™‚ç‚¹ã§é€ä¿¡ä¸­ã«ã™ã‚‹
 
 	if (findDlg && findDlg->hWnd) findDlg->Destroy();
 	TWin::Show(SW_HIDE);
@@ -1541,7 +1604,7 @@ BOOL TSendDlg::SendMsg(void)
 					is_bmp_only = TRUE;
 				}
 				char	fname[MAX_PATH];
-				MakeClipFileName(msgMng->MakePacketNo(), TRUE, fname);
+				MakeClipFileName(msgMng->MakePacketNo(), pos, TRUE, fname);
 				if (shareMng->AddMemShare(shareInfo, fname, vbuf->Buf(), vbuf->Size(), pos)) {
 					if (cfg->LogCheck && (cfg->ClipMode & CLIP_SAVE)) {
 						FileInfo *fileInfo = shareInfo->fileInfo[shareInfo->fileCnt -1];
@@ -1613,12 +1676,9 @@ BOOL TSendDlg::SendMsg(void)
 
 	if (shareInfo && shareInfo->fileCnt)		// ...\0no:fname:size:mtime:
 	{
-		char	buf[MAX_UDPBUF / 2];
-		EncodeShareMsg(shareInfo, buf, sizeof(buf), TRUE);
+		DynBuf	buf(MAX_UDPBUF / 2);
+		EncodeShareMsg(shareInfo, buf, buf.Size(), TRUE);
 		shareStr = strdup(buf);
-
-	//	EncodeShareMsg(shareInfo, buf, sizeof(buf), TRUE);
-	//	shareExStr = strdup(buf);
 
 		shareMng->AddHostShare(shareInfo, sendEntry, sendEntryNum);
 	}
@@ -1635,7 +1695,7 @@ BOOL TSendDlg::SendMsg(void)
 }
 
 /*
-	ƒƒbƒZ[ƒW‚ÌˆÃ†‰»
+	ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®æš—å·åŒ–
 */
 BOOL TSendDlg::MakeMsgPacket(SendEntry *entry)
 {
@@ -1650,7 +1710,7 @@ BOOL TSendDlg::MakeMsgPacket(SendEntry *entry)
 	}
 	if (!ret) {
 		entry->SetCommand(entry->Command() & ~IPMSG_ENCRYPTOPT);
-		strncpyz(tmpbuf, target_msg, MAX_UDPBUF);
+		LocalNewLineToUnix(target_msg, tmpbuf, MAX_UDPBUF);
 	}
 
 	msgMng->MakeMsg(buf, packetNo, entry->Command(), tmpbuf,
@@ -1668,7 +1728,10 @@ BOOL TSendDlg::MakeEncryptMsg(SendEntry *entry, char *msgstr, char *buf)
 {
 	HCRYPTKEY	hExKey = 0, hKey = 0;
 	Host		*host = entry->Host();
-	BYTE		skey[MAX_BUF], data[MAX_UDPBUF], msg_data[MAX_UDPBUF], iv[256/8];
+	BYTE		skey[MAX_BUF];
+	DynBuf		data(MAX_UDPBUF);
+	DynBuf		msg_data(MAX_UDPBUF);
+	BYTE		iv[256/8];
 	int			len = 0, shareStrLen = 0;
 	int			capa = host->pubKey.Capa() & GetLocalCapa(cfg);
 	int			kt = (capa & IPMSG_RSA_2048) ? KEY_2048 : (capa & IPMSG_RSA_1024) ? KEY_1024 : KEY_512;
@@ -1679,7 +1742,7 @@ BOOL TSendDlg::MakeEncryptMsg(SendEntry *entry, char *msgstr, char *buf)
 	int			(*bin2str_revendian)(const BYTE *, int, char *) = NULL;
 	int			(*bin2str)(const BYTE *, int, char *)           = NULL;
 
-	// ‚·‚×‚Ä‚Ìƒ}ƒgƒŠƒNƒX‚ÍƒTƒ|[ƒg‚µ‚È‚¢i“Á’è‚Ì‘g‚İ‡‚í‚¹‚Ì‚İƒTƒ|[ƒgj
+	// ã™ã¹ã¦ã®ãƒãƒˆãƒªã‚¯ã‚¹ã¯ã‚µãƒãƒ¼ãƒˆã—ãªã„ï¼ˆç‰¹å®šã®çµ„ã¿åˆã‚ã›ã®ã¿ã‚µãƒãƒ¼ãƒˆï¼‰
 	if ((capa & IPMSG_RSA_2048) && (capa & IPMSG_AES_256)) {
 		capa &= IPMSG_RSA_2048 | IPMSG_AES_256 | IPMSG_SIGN_SHA1 | IPMSG_PACKETNO_IV | IPMSG_ENCODE_BASE64;
 	}
@@ -1704,62 +1767,62 @@ BOOL TSendDlg::MakeEncryptMsg(SendEntry *entry, char *msgstr, char *buf)
 	}
 
 	if (shareStr) {
-		shareStrLen = strlen(shareStr) + 1;
+		shareStrLen = (int)strlen(shareStr) + 1;
 		max_body_size -= shareStrLen;
 	}
 	max_body_size -= (int)(host->pubKey.KeyLen() * stringify_coef * ((capa & IPMSG_SIGN_SHA1) ? 2 : 1));
 	max_body_size = (int)(max_body_size / stringify_coef);
 
-	// KeyBlob ì¬
-	host->pubKey.KeyBlob(data, sizeof(data), &len);
+	// KeyBlob ä½œæˆ
+	host->pubKey.KeyBlob(data, data.Size(), &len);
 
-	// ‘—MæŒöŠJŒ®‚Ì import
+	// é€ä¿¡å…ˆå…¬é–‹éµã® import
 	if (!pCryptImportKey(target_csp, data, len, 0, 0, &hExKey)) {
 		host->pubKey.UnSet();
 		return GetLastErrorMsg("CryptImportKey"), FALSE;
 	}
 
-	// IV ‚Ì‰Šú‰»
+	// IV ã®åˆæœŸåŒ–
 	memset(iv, 0, sizeof(iv));
 	if (capa & IPMSG_PACKETNO_IV) sprintf((char *)iv, "%u", packetNo);
 
-	// UNIX Œ`®‚Ì‰üs‚É•ÏŠ·
-	msgLen = MsgMng::LocalNewLineToUnix(msgstr, (char *)msg_data, max_body_size) + 1;
+	// UNIX å½¢å¼ã®æ”¹è¡Œã«å¤‰æ›
+	msgLen = LocalNewLineToUnix(msgstr, msg_data, max_body_size) + 1;
 	if (shareStr && (entry->Command() & IPMSG_ENCEXTMSGOPT)) {
-		memcpy(msg_data + msgLen, shareStr, shareStrLen);
+		memcpy((char *)msg_data + msgLen, shareStr, shareStrLen);
 		msgLen += shareStrLen;
 	}
 
 	if (capa & IPMSG_AES_256) {	// AES
-		// AES —pƒ‰ƒ“ƒ_ƒ€Œ®ì¬
+		// AES ç”¨ãƒ©ãƒ³ãƒ€ãƒ éµä½œæˆ
 		if (!pCryptGenRandom(target_csp, len = 256/8, data))
 			return	GetLastErrorMsg("CryptGenRandom"), FALSE;
 
-		// AES —p‹¤’ÊŒ®‚ÌƒZƒbƒg
+		// AES ç”¨å…±é€šéµã®ã‚»ãƒƒãƒˆ
 		AES		aes(data, len);
 
-		//‹¤’ÊŒ®‚ÌˆÃ†‰»
+		//å…±é€šéµã®æš—å·åŒ–
 		if (!pCryptEncrypt(hExKey, 0, TRUE, 0, data, (DWORD *)&len, MAX_BUF))
 			return GetLastErrorMsg("CryptEncrypt"), FALSE;
-		bin2str_revendian(data, len, (char *)skey);	// Œ®‚ğhex•¶š—ñ‚É
+		bin2str_revendian(data, len, (char *)skey);	// éµã‚’hexæ–‡å­—åˆ—ã«
 
-		// ƒƒbƒZ[ƒWˆÃ†‰»
+		// ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸æš—å·åŒ–
 		encMsgLen = aes.Encrypt(msg_data, data, msgLen, iv);
 	}
 	else if (capa & IPMSG_BLOWFISH_128) {	// blowfish
-		// blowfish —pƒ‰ƒ“ƒ_ƒ€Œ®ì¬
+		// blowfish ç”¨ãƒ©ãƒ³ãƒ€ãƒ éµä½œæˆ
 		if (!pCryptGenRandom(target_csp, len = 128/8, data))
 			return	GetLastErrorMsg("CryptGenRandom"), FALSE;
 
-		// blowfish —p‹¤’ÊŒ®‚ÌƒZƒbƒg
+		// blowfish ç”¨å…±é€šéµã®ã‚»ãƒƒãƒˆ
 		CBlowFish	bl(data, len);
 
-		//‹¤’ÊŒ®‚ÌˆÃ†‰»
+		//å…±é€šéµã®æš—å·åŒ–
 		if (!pCryptEncrypt(hExKey, 0, TRUE, 0, data, (DWORD *)&len, MAX_BUF))
 			return GetLastErrorMsg("CryptEncrypt"), FALSE;
-		bin2str_revendian(data, len, (char *)skey);	// Œ®‚ğhex•¶š—ñ‚É
+		bin2str_revendian(data, len, (char *)skey);	// éµã‚’hexæ–‡å­—åˆ—ã«
 
-		// ƒƒbƒZ[ƒWˆÃ†‰»
+		// ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸æš—å·åŒ–
 		encMsgLen = bl.Encrypt(msg_data, data, msgLen, BF_CBC|BF_PKCS5, iv);
 	}
 	else {	// RC2
@@ -1771,10 +1834,10 @@ BOOL TSendDlg::MakeEncryptMsg(SendEntry *entry, char *msgstr, char *buf)
 			return GetLastErrorMsg("CryptExportKey"), FALSE;
 
 		len -= SKEY_HEADER_SIZE;
-		bin2str_revendian(data + SKEY_HEADER_SIZE, len, (char *)skey);
+		bin2str_revendian((BYTE*)data + SKEY_HEADER_SIZE, len, (char *)skey);
 		memcpy(data, msg_data, msgLen);
 
-		// ƒƒbƒZ[ƒW‚ÌˆÃ†‰»
+		// ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®æš—å·åŒ–
 		encMsgLen = msgLen;
 		if (!pCryptEncrypt(hKey, 0, TRUE, 0, data, &encMsgLen, MAX_UDPBUF))
 			return GetLastErrorMsg("CryptEncrypt RC2"), FALSE;
@@ -1785,7 +1848,7 @@ BOOL TSendDlg::MakeEncryptMsg(SendEntry *entry, char *msgstr, char *buf)
 
 	pCryptDestroyKey(hExKey);
 
-	// “dq–¼‚Ì’Ç‰Á
+	// é›»å­ç½²åã®è¿½åŠ 
 	if (capa & IPMSG_SIGN_SHA1) {
 		HCRYPTHASH	hHash;
 		if (pCryptCreateHash(target_csp, CALG_SHA, 0, 0, &hHash)) {
@@ -1805,7 +1868,7 @@ BOOL TSendDlg::MakeEncryptMsg(SendEntry *entry, char *msgstr, char *buf)
 }
 
 /*
-	’Êí‘—MSub routine
+	é€šå¸¸é€ä¿¡Sub routine
 */
 BOOL TSendDlg::SendMsgCore(void)
 {
@@ -1816,7 +1879,7 @@ BOOL TSendDlg::SendMsgCore(void)
 }
 
 /*
-	’Êí‘—MSub routine
+	é€šå¸¸é€ä¿¡Sub routine
 */
 BOOL TSendDlg::SendMsgCoreEntry(SendEntry *entry)
 {
@@ -1837,8 +1900,8 @@ BOOL TSendDlg::SendMsgCoreEntry(SendEntry *entry)
 }
 
 /*
-	‘—MI—¹’Ê’m
-	packet_no‚ªA‚±‚Ì SendDialog‚Ì‘—‚Á‚½‘—Mpacket‚Å‚ ‚ê‚ÎATRUE
+	é€ä¿¡çµ‚äº†é€šçŸ¥
+	packet_noãŒã€ã“ã® SendDialogã®é€ã£ãŸé€ä¿¡packetã§ã‚ã‚Œã°ã€TRUE
 */
 BOOL TSendDlg::SendFinishNotify(HostSub *hostSub, ULONG packet_no)
 {
@@ -1855,7 +1918,7 @@ BOOL TSendDlg::SendFinishNotify(HostSub *hostSub, ULONG packet_no)
 				::SendMessage(GetMainWnd(), WM_HISTDLG_NOTIFY,
 						(WPARAM)sendEntry[i].Host(), (LPARAM)packetNo);
 			}
-			if (IsSendFinish() && hWnd)		//Ä‘—MessageBoxU8‚ğÁ‚·
+			if (IsSendFinish() && hWnd)		//å†é€MessageBoxU8ã‚’æ¶ˆã™
 			{
 				HWND	hMessageWnd = ::GetNextWindow(hWnd, GW_HWNDPREV);
 				if (hMessageWnd && ::GetWindow(hMessageWnd, GW_OWNER) == hWnd)
@@ -1868,8 +1931,8 @@ BOOL TSendDlg::SendFinishNotify(HostSub *hostSub, ULONG packet_no)
 }
 
 /*
-	‘—MI—¹’Ê’m
-	packet_no‚ªA‚±‚Ì SendDialog‚Ì‘—‚Á‚½‘—Mpacket‚Å‚ ‚ê‚ÎATRUE
+	é€ä¿¡çµ‚äº†é€šçŸ¥
+	packet_noãŒã€ã“ã® SendDialogã®é€ã£ãŸé€ä¿¡packetã§ã‚ã‚Œã°ã€TRUE
 */
 BOOL TSendDlg::SendPubKeyNotify(HostSub *hostSub, BYTE *pubkey, int len, int e, int capa)
 {
@@ -1891,7 +1954,7 @@ BOOL TSendDlg::SendPubKeyNotify(HostSub *hostSub, BYTE *pubkey, int len, int e, 
 }
 
 /*
-	‘—M(Šm”F)’†‚©‚Ç‚¤‚©
+	é€ä¿¡(ç¢ºèª)ä¸­ã‹ã©ã†ã‹
 */
 BOOL TSendDlg::IsSending(void)
 {
@@ -1899,7 +1962,7 @@ BOOL TSendDlg::IsSending(void)
 }
 
 /*
-	‘—MI—¹‚µ‚½‚©‚Ç‚¤‚©
+	é€ä¿¡çµ‚äº†ã—ãŸã‹ã©ã†ã‹
 */
 BOOL TSendDlg::IsSendFinish(void)
 {
@@ -1931,7 +1994,7 @@ HBITMAP CreateStatusBmp(int cx, int cy, int status)
 
 	switch (status) {
 	case STI_NONE:		color = rRGB(128,128,128);	break; // Win v1.00-v1.47
-	case STI_FILE:		color = rRGB(180,180,240);	break; // MacX
+	case STI_FILE:		color = rRGB(180,180,240);	break; // MacOSX
 	case STI_CLIP:		color = rRGB(200,200,255);	break;
 	case STI_ENC:		color = rRGB(200,160,160);	break;
 	case STI_SIGN:		color = rRGB(240,180,180);	break;
@@ -1982,7 +2045,7 @@ HBITMAP CreateAbsenceBmp(int cx, int cy)
 
 
 /*
-	Font İ’è
+	Font è¨­å®š
 */
 void TSendDlg::SetFont(void)
 {
@@ -1993,7 +2056,7 @@ void TSendDlg::SetFont(void)
 	if (::GetObject(hDlgFont, sizeof(LOGFONT), (void *)&orgFont) == 0)
 		return;
 
-	if (*cfg->SendEditFont.lfFaceName == 0)	//‰Šúƒf[ƒ^ƒZƒbƒg
+	if (*cfg->SendEditFont.lfFaceName == 0)	//åˆæœŸãƒ‡ãƒ¼ã‚¿ã‚»ãƒƒãƒˆ
 		cfg->SendEditFont = orgFont;
 	if (*cfg->SendListFont.lfFaceName == 0) {
 		cfg->SendListFont = orgFont;
@@ -2010,7 +2073,7 @@ void TSendDlg::SetFont(void)
 		hListFont = hDlgFont;
  	}
 	hostListHeader.ChangeFontNotify();
-	if (hostListView.GetItemCount() > 0) {	// EvCreate‚Í•s—v
+	if (hostListView.GetItemCount() > 0) {	// EvCreateæ™‚ã¯ä¸è¦
 		ReregisterEntry();
 	}
 	if (*cfg->SendEditFont.lfFaceName && (hDlgFont = ::CreateFontIndirect(&cfg->SendEditFont)))
@@ -2054,7 +2117,7 @@ void TSendDlg::SetFont(void)
 }
 
 /*
-	Size İ’è
+	Size è¨­å®š
 */
 void TSendDlg::SetSize(void)
 {

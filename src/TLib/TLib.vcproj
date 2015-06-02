@@ -18,8 +18,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\Debug"
-			IntermediateDirectory=".\Debug"
+			OutputDirectory="../../obj/debugTlib"
+			IntermediateDirectory="../../obj/debugTlib"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -47,11 +47,11 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\Debug/TLib.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
+				RuntimeLibrary="1"
+				PrecompiledHeaderFile="../../Obj/DebugTlb/TLib.pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
@@ -81,7 +81,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\Debug/TLib.bsc"
+				OutputFile="../../Obj/DebugTlb/TLib.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -92,8 +92,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="../../x64/lib/"
-			IntermediateDirectory="../../x64/obj/debug"
+			OutputDirectory="../../Obj/x64/debugTlib"
+			IntermediateDirectory="../../Obj/x64/debugTlib"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -122,11 +122,11 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
-				PrecompiledHeaderFile="../../x64/obj/debug/TLib.pch"
-				AssemblerListingLocation="../../x64/obj/debug"
-				ObjectFile="../../x64/obj/debug"
-				ProgramDataBaseFileName="../../x64/obj/debug"
+				RuntimeLibrary="1"
+				PrecompiledHeaderFile="$(IntDir)/TLib.pch"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -156,7 +156,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\x64\Debug/TLib.bsc"
+				OutputFile="../../Obj/x64/DebugTlb/TLib.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -167,8 +167,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="../../Release/"
-			IntermediateDirectory="../../obj/ReleaseTlib"
+			OutputDirectory="../../Obj/ReleaseTlib"
+			IntermediateDirectory="../../Obj/ReleaseTlib"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -200,9 +200,9 @@
 				EnableFunctionLevelLinking="true"
 				PrecompiledHeaderFile="../../obj/ReleaseTlib/TLib.pch"
 				AssemblerOutput="2"
-				AssemblerListingLocation="../../obj/ReleaseTlib/"
-				ObjectFile="../../obj/ReleaseTlib/"
-				ProgramDataBaseFileName="../../obj/ReleaseTlib/"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -231,7 +231,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\Release/TLib.bsc"
+				OutputFile="../../Obj/ReleaseTlib/TLib.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -242,8 +242,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="../../x64/lib"
-			IntermediateDirectory="../../x64/obj/ReleaseTlib/"
+			OutputDirectory="../../Obj/x64/ReleaseTlib"
+			IntermediateDirectory="../../Obj/x64/ReleaseTlib"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -276,9 +276,9 @@
 				EnableFunctionLevelLinking="true"
 				PrecompiledHeaderFile=""
 				AssemblerOutput="2"
-				AssemblerListingLocation="../../x64/obj/ReleaseTlib/"
-				ObjectFile="../../x64/obj/ReleaseTlib/"
-				ProgramDataBaseFileName="../../x64/obj/ReleaseTlib/"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -307,7 +307,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\Release/TLib.bsc"
+				OutputFile="../../Obj/ReleaseTlib/TLib.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"

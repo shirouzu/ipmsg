@@ -1,4 +1,4 @@
-static char *msgmng_id = 
+ï»¿static char *msgmng_id = 
 	"@(#)Copyright (C) H.Shirouzu 1996-2011   msgmng.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -107,7 +107,7 @@ BOOL MsgMng::WSockInit(BOOL recv_flg)
 	if (::Tsetsockopt(udp_sd, SOL_SOCKET, SO_BROADCAST, (char *)&flg, sizeof(flg)) != 0)
 		return	GetSockErrorMsg("setsockopt(broadcast)"), FALSE;
 
-	int	buf_size = MAX_SOCKBUF, buf_minsize = MAX_SOCKBUF / 2;		// UDP ƒoƒbƒtƒ@Ý’è
+	int	buf_size = MAX_SOCKBUF, buf_minsize = MAX_SOCKBUF / 2;		// UDP ãƒãƒƒãƒ•ã‚¡è¨­å®š
 	if (::Tsetsockopt(udp_sd, SOL_SOCKET, SO_SNDBUF, (char *)&buf_size, sizeof(int)) != 0
 	&&	::Tsetsockopt(udp_sd, SOL_SOCKET, SO_SNDBUF, (char *)&buf_minsize, sizeof(int)) != 0)
 		GetSockErrorMsg("setsockopt(sendbuf)");
@@ -231,7 +231,7 @@ ULONG MsgMng::MakeMsg(char *buf, int _packetNo, ULONG command, const char *msg, 
 		if (!is_utf8 && IsUTF8(exMsg, &is_ascii) && !is_ascii) {
 			exMsg = out_exbuf = U8toA(exMsg, TRUE);
 		}
-		ex_len = strlen(exMsg);
+		ex_len = (int)strlen(exMsg);
 	}
 
 	if (ex_len + pkt_len + 2 >= MAX_UDPBUF)
@@ -261,47 +261,6 @@ ULONG MsgMng::MakeMsg(char *buf, int _packetNo, ULONG command, const char *msg, 
 	return	_packetNo;
 }
 
-int MsgMng::LocalNewLineToUnix(const char *src, char *dest, int maxlen)
-{
-	int		len = 0;
-
-	maxlen--;	// \0 Ši”[•ª
-
-	while (*src != '\0' && len < maxlen)
-		if ((dest[len] = *src++) != '\r')
-			len++;
-	dest[len] = 0;
-
-	return	len;
-}
-
-int MsgMng::UnixNewLineToLocal(const char *src, char *dest, int maxlen)
-{
-	int		len = 0;
-	char	*tmpbuf = NULL;
-
-	if (src == dest)
-		tmpbuf = strdup(src), src = tmpbuf;
-
-	maxlen--;	// \0 Ši”[•ª
-
-	while (*src != '\0' && len < maxlen)
-	{
-		if ((dest[len] = *src++) == '\n')
-		{
-			dest[len++] = '\r';
-			if (len < maxlen)
-				dest[len] = '\n';
-		}
-		len++;
-	}
-	dest[len] = 0;
-	if (tmpbuf)
-		free(tmpbuf);
-
-	return	len;
-}
-
 BOOL MsgMng::ResolveMsg(RecvBuf *buf, MsgBuf *msg)
 {
 	char	*exStr  = NULL, *tok, *p;
@@ -309,11 +268,11 @@ BOOL MsgMng::ResolveMsg(RecvBuf *buf, MsgBuf *msg)
 	char	*userName, *hostName;
 	int		len, exLen = 0;
 
-	len = strlen(buf->msgBuf); // main message
+	len = (int)strlen(buf->msgBuf); // main message
 
 	if (buf->size > len + 1) { // ex message (group name or attached file)
 		exStr = buf->msgBuf + len + 1;
-		exLen = strlen(exStr);
+		exLen = (int)strlen(exStr);
 		if (buf->size > len + 1 + exLen + 1) { // ex2 message (utf8 entry)
 			exStr2 = exStr + exLen + 1;
 		}
@@ -348,7 +307,7 @@ BOOL MsgMng::ResolveMsg(RecvBuf *buf, MsgBuf *msg)
 
 	int		cnt = 0;
 	*msg->msgBuf = 0;
-	if ((tok = separate_token(NULL, 0, &p))) // ‰üs‚ðUNIXŒ`Ž®‚©‚çDOSŒ`Ž®‚É•ÏŠ·
+	if ((tok = separate_token(NULL, 0, &p))) // æ”¹è¡Œã‚’UNIXå½¢å¼ã‹ã‚‰DOSå½¢å¼ã«å¤‰æ›
 	{
 		if (!is_utf8) {
 			tok = AtoU8(tok);
@@ -410,7 +369,7 @@ ULONG MsgMng::MakePacketNo(void)
 
 BOOL MsgMng::UdpSend(ULONG host_addr, int port_no, const char *buf)
 {
-	return	UdpSend(host_addr, port_no, buf, strlen(buf) +1);
+	return	UdpSend(host_addr, port_no, buf, (int)strlen(buf) +1);
 }
 
 BOOL MsgMng::UdpSend(ULONG host_addr, int port_no, const char *buf, int len)
@@ -529,11 +488,11 @@ BOOL MsgMng::AsyncSelectConnect(HWND hWnd, ConnectInfo *info)
 }
 
 /*
-	”ñ“¯ŠúŒn‚Ì—}§
+	éžåŒæœŸç³»ã®æŠ‘åˆ¶
 */
 BOOL MsgMng::ConnectDone(HWND hWnd, ConnectInfo *info)
 {
-	::TWSAAsyncSelect(info->sd, hWnd, 0, 0);	// ”ñ“¯ŠúƒƒbƒZ[ƒW‚Ì—}§
+	::TWSAAsyncSelect(info->sd, hWnd, 0, 0);	// éžåŒæœŸãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®æŠ‘åˆ¶
 	BOOL	flg = FALSE;
 	::Tioctlsocket(info->sd, FIONBIO, (unsigned long *)&flg);
 	return	TRUE;
@@ -579,7 +538,7 @@ AddrInfo *GetIPAddrs(BOOL strict, int *num)
 	if (pGetIpAddrTable(NULL, &dwSize, 0) != ERROR_INSUFFICIENT_BUFFER) return NULL;
 
 	DynBuf	buf(dwSize);
-	iat = (PMIB_IPADDRTABLE)buf.Buf();
+	iat = (PMIB_IPADDRTABLE)(void *)buf;
 	if (pGetIpAddrTable(iat, &dwSize, 0) != NO_ERROR || iat->dwNumEntries == 0) return NULL;
 
 	ret = new AddrInfo[iat->dwNumEntries * sizeof(AddrInfo)];

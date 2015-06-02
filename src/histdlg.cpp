@@ -1,4 +1,4 @@
-static char *histdlg_id = 
+ï»¿static char *histdlg_id = 
 	"@(#)Copyright (C) H.Shirouzu 2011   histdlg.cpp	Ver3.30";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -119,7 +119,7 @@ THistDlg::THistDlg(Cfg *_cfg, THosts *_hosts, TWin *_parent) : TDlg(HISTORY_DIAL
 }
 
 /*
-	I—¹ƒ‹[ƒ`ƒ“
+	çµ‚äº†ãƒ«ãƒ¼ãƒãƒ³
 */
 THistDlg::~THistDlg()
 {
@@ -232,7 +232,7 @@ BOOL THistDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 BOOL THistDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 {
-	if (histListView.hWnd) {	// EvCreate ’†‚É’Ê‚é‚Æ UserƒŠƒ\[ƒXƒŠ[ƒNH
+	if (histListView.hWnd) {	// EvCreate ä¸­ã«é€šã‚‹ã¨ Userãƒªã‚½ãƒ¼ã‚¹ãƒªãƒ¼ã‚¯ï¼Ÿ
 		if (fwSizeType == SIZE_RESTORED || fwSizeType == SIZE_MAXIMIZED) {
 			return	FitDlgItems();
 		}
@@ -241,7 +241,7 @@ BOOL THistDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 }
 
 /*
-	Window¶¬ƒ‹[ƒ`ƒ“
+	Windowç”Ÿæˆãƒ«ãƒ¼ãƒãƒ³
 */
 BOOL THistDlg::Create(HINSTANCE hI)
 {

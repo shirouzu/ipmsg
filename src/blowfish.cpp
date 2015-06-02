@@ -1,4 +1,4 @@
-// blowfish.cpp   C++ class implementation of the BLOWFISH encryption algorithm
+﻿// blowfish.cpp   C++ class implementation of the BLOWFISH encryption algorithm
 // _THE BLOWFISH ENCRYPTION ALGORITHM_
 // by Bruce Schneier
 // Revised code--3/20/94

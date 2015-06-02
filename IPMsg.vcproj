@@ -996,6 +996,26 @@
 			Name="Resource Files"
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
+			<File
+				RelativePath=".\src\dummypic.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipmsg.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\ipmsgrev.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\menu.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Toolbar.bmp"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

@@ -1,4 +1,4 @@
-static char *pubkey_id = 
+ï»¿static char *pubkey_id = 
 	"@(#)Copyright (C) H.Shirouzu 2011   pubkey.cpp	Ver3.01";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
@@ -15,7 +15,7 @@ static char *pubkey_id =
 #include "blowfish.h"
 
 
-/* VC4 ‚Å CryptoAPI ‚ğg—p‰Â”\‚É‚·‚é */
+/* VC4 ã§ CryptoAPI ã‚’ä½¿ç”¨å¯èƒ½ã«ã™ã‚‹ */
 BOOL SetupCryptAPI(Cfg *cfg, MsgMng *msgMng)
 {
 	if (pCryptProtectData == NULL) {
@@ -30,7 +30,7 @@ BOOL SetupCryptAPI(Cfg *cfg, MsgMng *msgMng)
 
 	SetupCryptAPICore(cfg, msgMng);
 
-// ‹N“®’¼Œã‚ÉA‚Ü‚ê‚ÉƒRƒP‚éŠÂ‹«‚ª‚ ‚é‚ç‚µ‚¢‚Ì‚ÅA‚í‚¸‚©‚ÉƒŠƒgƒ‰ƒC...
+// èµ·å‹•ç›´å¾Œã«ã€ã¾ã‚Œã«ã‚³ã‚±ã‚‹ç’°å¢ƒãŒã‚ã‚‹ã‚‰ã—ã„ã®ã§ã€ã‚ãšã‹ã«ãƒªãƒˆãƒ©ã‚¤...
 #define MAX_RETRY	3
 	int	cnt = 0;
 	while (1)
@@ -83,7 +83,7 @@ BOOL SetupCryptAPICore(Cfg *cfg, MsgMng *msgMng, int ctl_flg)
 	BOOL	ret = FALSE;
 	int		i;
 
-// RSA Œ®‚Ì¶¬
+// RSA éµã®ç”Ÿæˆ
 	for (i=KEY_512; i < MAX_KEY; i++) {
 		SetupRSAKey(cfg, msgMng, (KeyType)i, ctl_flg);
 	}
@@ -203,12 +203,12 @@ BOOL SetupRSAKey(Cfg *cfg, MsgMng *msgMng, KeyType kt, int ctl_flg)
 		hCsp = NULL;
 	}
 
-// ƒfƒtƒHƒ‹ƒgƒL[ƒZƒbƒg‚ğì¬‚µ‚Ä‚¨‚­
+// ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã‚­ãƒ¼ã‚»ãƒƒãƒˆã‚’ä½œæˆã—ã¦ãŠã
 	if (TIsEnableUAC() && TIsUserAnAdmin()) {
 		MakeDefaultRSAKey();
 	}
 
-// rebuld ‚É‚ÍA–‘O‚ÉŒöŠJŒ®‚ğÁ‹
+// rebuld æ™‚ã«ã¯ã€äº‹å‰ã«å…¬é–‹éµã‚’æ¶ˆå»
 	if ((ctl_flg & KEY_REBUILD) && pubKey.Key() == NULL) {
 		if (!pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET|CRYPT_MACHINE_KEYSET))
 			if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptAcquireContext(destroy)");
@@ -227,21 +227,21 @@ BOOL SetupRSAKey(Cfg *cfg, MsgMng *msgMng, KeyType kt, int ctl_flg)
 		return	FALSE;
 	}
 
-// ƒvƒ‰ƒCƒx[ƒgŒ®‚ğimport (1024/2048bit)
+// ãƒ—ãƒ©ã‚¤ãƒ™ãƒ¼ãƒˆéµã‚’import (1024/2048bit)
 	if (cfg->priv[kt].blob) {
 		if (LoadPrivBlob(&cfg->priv[kt], data, &len)
 			&& !pCryptImportKey(hCsp, data, len, 0, CRYPT_EXPORTABLE, &hPrivKey))
 		{	// import is fail...
 			if (ctl_flg & KEY_DIAG)
 				GetLastErrorMsg("CryptImportKey(blob)");
-			// ƒRƒP‚½ê‡AÄAcquire‚µ‚È‚¢‚Æ•›ì—p‚ªc‚é‚±‚Æ‚ª‚ ‚é...
+			// ã‚³ã‚±ãŸå ´åˆã€å†Acquireã—ãªã„ã¨å‰¯ä½œç”¨ãŒæ®‹ã‚‹ã“ã¨ãŒã‚ã‚‹...
 			pCryptReleaseContext(hCsp, 0), hCsp = NULL;
 			if (!pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_MACHINE_KEYSET))
 				pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, 0);
 		}
 		if (hPrivKey == NULL) {
 			if (cfg->priv[kt].encryptType == PRIV_BLOB_USER && cfg->priv[kt].encryptSeed) {
-				::SendMessage(GetMainWnd(), WM_FORCE_TERMINATE, 0, 0); // ‹­§I—¹
+				::SendMessage(GetMainWnd(), WM_FORCE_TERMINATE, 0, 0); // å¼·åˆ¶çµ‚äº†
 				return	FALSE;
 			}
 			delete [] cfg->priv[kt].blob;
@@ -249,7 +249,7 @@ BOOL SetupRSAKey(Cfg *cfg, MsgMng *msgMng, KeyType kt, int ctl_flg)
 		}
 	}
 
-// ‰‰ñ or 512bit Œ®‚Ìê‡‚ÍAhCsp ‚©‚çƒvƒ‰ƒCƒx[ƒgŒ®ƒnƒ“ƒhƒ‹‚ğæ“¾
+// åˆå› or 512bit éµã®å ´åˆã¯ã€hCsp ã‹ã‚‰ãƒ—ãƒ©ã‚¤ãƒ™ãƒ¼ãƒˆéµãƒãƒ³ãƒ‰ãƒ«ã‚’å–å¾—
 	if (hPrivKey == NULL) {
 		if (!pCryptGetUserKey(hCsp, AT_KEYEXCHANGE, &hPrivKey)
 		&& !pCryptGenKey(hCsp, CALG_RSA_KEYX, (key_bits << 16) | CRYPT_EXPORTABLE, &hPrivKey))
@@ -257,9 +257,9 @@ BOOL SetupRSAKey(Cfg *cfg, MsgMng *msgMng, KeyType kt, int ctl_flg)
 				GetLastErrorMsg("CryptGenKey");
 	}
 
-// ŒöŠJŒ®‚ğ export
+// å…¬é–‹éµã‚’ export
 	if (pCryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, data, (DWORD *)&len)) {
-		if (len < key_bits / 8) {	// Œ®’·‚Ì’Z‚¢ƒL[ƒyƒAiv2.50b14 ‚Å”­¶‚·‚é‰Â”\«j
+		if (len < key_bits / 8) {	// éµé•·ã®çŸ­ã„ã‚­ãƒ¼ãƒšã‚¢ï¼ˆv2.50b14 ã§ç™ºç”Ÿã™ã‚‹å¯èƒ½æ€§ï¼‰
 			pCryptDestroyKey(hPrivKey);
 			hPrivKey = NULL;
 			pCryptReleaseContext(hCsp, 0);
@@ -274,7 +274,7 @@ BOOL SetupRSAKey(Cfg *cfg, MsgMng *msgMng, KeyType kt, int ctl_flg)
 	}
 	else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptExportKey");
 
-// ƒvƒ‰ƒCƒx[ƒgŒ®‚ğ•Û‘¶
+// ãƒ—ãƒ©ã‚¤ãƒ™ãƒ¼ãƒˆéµã‚’ä¿å­˜
 	if (kt != KEY_512 && cfg->priv[kt].blob == NULL && hPrivKey) {
 		len = sizeof(data);
 		if (pCryptExportKey(hPrivKey, 0, PRIVATEKEYBLOB, 0, data, (DWORD *)&len)) {
@@ -305,7 +305,7 @@ BOOL LoadPrivBlob(PrivKey *priv, BYTE *rawBlob, int *rawBlobLen)
 			TPasswordDlg	dlg((char *)key);
 			if (!dlg.Exec())
 				return	FALSE;
-			CBlowFish	bl(key, strlen((char *)key));
+			CBlowFish	bl(key, (int)strlen((char *)key));
 			if (bl.Decrypt(priv->encryptSeed, key, priv->encryptSeedLen) == PRIV_SEED_LEN && memcmp(key, PRIV_SEED_HEADER, PRIV_SEED_HEADER_LEN) == 0)
 				break;
 		}
@@ -345,7 +345,7 @@ BOOL StorePrivBlob(PrivKey *priv, BYTE *rawBlob, int rawBlobLen)
 	}
 	else {
 		BYTE	seed[PRIV_SEED_LEN], *seedCore = seed + PRIV_SEED_HEADER_LEN;
-		// seed ‚Ìì¬
+		// seed ã®ä½œæˆ
 		memcpy(seed, PRIV_SEED_HEADER, PRIV_SEED_HEADER_LEN);
 		pCryptGenRandom(priv->hCsp, 128/8, seedCore);
 
@@ -353,14 +353,14 @@ BOOL StorePrivBlob(PrivKey *priv, BYTE *rawBlob, int rawBlobLen)
 			TPasswordDlg	dlg((char *)data);
 			if (!dlg.Exec())
 				return	FALSE;
-			// seed ‚ÌˆÃ†‰»
-			CBlowFish	bl(data, strlen((char *)data));
+			// seed ã®æš—å·åŒ–
+			CBlowFish	bl(data, (int)strlen((char *)data));
 			priv->encryptSeedLen = bl.Encrypt(seed, data, PRIV_SEED_LEN);
 			priv->encryptSeed = new BYTE [priv->encryptSeedLen];
 			memcpy(priv->encryptSeed, data, priv->encryptSeedLen);
 		}
 		else if (priv->encryptType == PRIV_BLOB_DPAPI) {
-			// seed ‚ÌˆÃ†‰»
+			// seed ã®æš—å·åŒ–
 			DATA_BLOB in = { PRIV_SEED_LEN, seed }, out;
 			if (!pCryptProtectData(&in, L"ipmsg", 0, 0, 0, CRYPTPROTECT_LOCAL_MACHINE|CRYPTPROTECT_UI_FORBIDDEN, &out))
 				return	FALSE;
@@ -369,7 +369,7 @@ BOOL StorePrivBlob(PrivKey *priv, BYTE *rawBlob, int rawBlobLen)
 			::LocalFree(out.pbData);
 		}
 		else return	FALSE;
-		// seed ‚É‚æ‚éAˆÃ†‰»blob ‚Ìì¬
+		// seed ã«ã‚ˆã‚‹ã€æš—å·åŒ–blob ã®ä½œæˆ
 		CBlowFish	bl(seedCore, 128/8);
 		priv->blobLen = bl.Encrypt(rawBlob, encodeBlob, rawBlobLen);
 	}

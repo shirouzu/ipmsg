@@ -1,4 +1,4 @@
-static char *logmng_id = 
+﻿static char *logmng_id = 
 	"@(#)Copyright (C) H.Shirouzu 1996-2011   logmng.cpp	Ver3.00";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -153,7 +153,7 @@ BOOL LogMng::Write(LPCSTR str)
 	{
 		::SetFilePointer(fh, 0, 0, FILE_END);
 		str = cfg->LogUTF8 ? str : U8toA(str);
-		ret = ::WriteFile(fh, str, strlen(str), &size, NULL);
+		ret = ::WriteFile(fh, str, (DWORD)strlen(str), &size, NULL);
 		::CloseHandle(fh);
 	}
 

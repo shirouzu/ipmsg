@@ -1,4 +1,4 @@
-static char *tdlg_id = 
+﻿static char *tdlg_id = 
 	"@(#)Copyright (C) 1996-2011 H.Shirouzu		tdlg.cpp	Ver0.97";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test

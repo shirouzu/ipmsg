@@ -1,4 +1,4 @@
-static char *tregist_id = 
+ï»¿static char *tregist_id = 
 	"@(#)Copyright (C) 1996-2011 H.Shirouzu		tregist.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
@@ -156,7 +156,7 @@ BOOL TRegistry::GetLongV(const void *subKey, long *val)
 			== ERROR_SUCCESS) {
 		return	TRUE;
 	}
-// Ì‚ÌŒİŠ·«—p
+// æ˜”ã®äº’æ›æ€§ç”¨
 	WCHAR	wbuf[100];
 	long	size_byte = sizeof(wbuf);
 
@@ -332,8 +332,8 @@ BOOL TRegistry::EnumValueV(DWORD cnt, void *buf, int size, DWORD *type)
 }
 
 /*
-	subKey ‚ğw’è‚µ‚½ê‡‚Í subkey ‚ğŠÜ‚ŞƒL[ˆÈ‰º‚ğíœ
-	subkey ‚ª NULL ‚Ìê‡AƒJƒŒƒ“ƒg ‚Ì”z‰º‚ğíœ
+	subKey ã‚’æŒ‡å®šã—ãŸå ´åˆã¯ subkey ã‚’å«ã‚€ã‚­ãƒ¼ä»¥ä¸‹ã‚’å‰Šé™¤
+	subkey ãŒ NULL ã®å ´åˆã€ã‚«ãƒ¬ãƒ³ãƒˆ ã®é…ä¸‹ã‚’å‰Šé™¤
 */
 BOOL TRegistry::DeleteChildTree(LPCSTR subKey)
 {

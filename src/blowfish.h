@@ -1,4 +1,4 @@
-// blowfish.h     interface file for blowfish.cpp
+﻿// blowfish.h     interface file for blowfish.cpp
 // _THE BLOWFISH ENCRYPTION ALGORITHM_
 // by Bruce Schneier
 // Revised code--3/20/94

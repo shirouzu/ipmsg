@@ -1,4 +1,4 @@
-/* @(#)Copyright (C) 1996-2011 H.Shirouzu		tapi32ex.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2011 H.Shirouzu		tapi32ex.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
@@ -439,30 +439,6 @@ typedef struct _FILE_STREAM_INFORMATION {
 extern NTSTATUS (WINAPI *pNtQueryInformationFile)(HANDLE FileHandle,
 				PIO_STATUS_BLOCK IoStatusBlock, PVOID FileInformation, ULONG Length,
 				FILE_INFORMATION_CLASS FileInformationClass);
-
-// ListView extended define for VC4
-#ifndef LVM_SETEXTENDEDLISTVIEWSTYLE
-#define LVM_SETEXTENDEDLISTVIEWSTYLE	(LVM_FIRST + 54)
-#define LVM_GETEXTENDEDLISTVIEWSTYLE	(LVM_FIRST + 55)
-#define LVM_SETCOLUMNORDERARRAY			(LVM_FIRST + 58)
-#define LVM_GETCOLUMNORDERARRAY			(LVM_FIRST + 59)
-#define LVS_EX_GRIDLINES				0x00000001
-#define LVS_EX_HEADERDRAGDROP			0x00000010
-#define LVS_EX_FULLROWSELECT			0x00000020
-#define LVS_SHOWSELALWAYS				0x0008
-#define LVM_GETHEADER					0x101F
-#define EM_AUTOURLDETECT				(WM_USER + 91)
-#endif
-
-// ListView extended define for VC4 & VC5
-#ifndef LVM_SETSELECTIONMARK
-#define LVM_SETSELECTIONMARK			(LVM_FIRST + 67)
-#define LVN_GETINFOTIPW					(LVN_FIRST-58)
-#endif
-
-#if _MSC_VER <= 1200
-#define LVN_ENDSCROLL					(LVN_FIRST-81)
-#endif
 
 u_int MakeHash(const void *data, int size, DWORD iv=0);
 

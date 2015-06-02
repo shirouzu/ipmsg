@@ -1,5 +1,5 @@
-static char *version_id = 
-	"@(#)Copyright (C) H.Shirouzu 2010-2011   version.cpp	Ver3.31"
+ï»¿static char *version_id = 
+	"@(#)Copyright (C) H.Shirouzu 2010-2011   version.cpp	Ver3.32"
 #ifdef _WIN64
 "(x64)"
 #endif
@@ -18,7 +18,7 @@ static char *version_id =
 #include <string.h>
 
 /*
-	Version•¶Žš—ñ
+	Versionæ–‡å­—åˆ—
 */
 char *GetVersionStr()
 {

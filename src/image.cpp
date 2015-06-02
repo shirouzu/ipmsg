@@ -1,4 +1,4 @@
-static char *image_id = 
+ï»¿static char *image_id = 
 	"@(#)Copyright (C) H.Shirouzu 2011   image.cpp	Ver3.30";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -22,15 +22,15 @@ void png_vbuf_wfunc(png_struct *png, png_byte *buf, png_size_t size)
 	if (!vbuf) return;
 
 	if (vbuf->RemainSize() < (int)size) {
-		int	grow_size = size - vbuf->RemainSize();
+		int	grow_size = (int)size - vbuf->RemainSize();
 		if (!vbuf->Grow(grow_size)) return;
 	}
 
-	// ˆ³k’†‚É‚àA‚í‚¸‚©‚ÉƒƒbƒZ[ƒWƒ‹[ƒv‚ð‰ñ‚µ‚ÄAƒtƒŠ[ƒY‚Á‚Û‚¢ó‘Ô‚ð”ð‚¯‚é
+	// åœ§ç¸®ä¸­ã«ã‚‚ã€ã‚ãšã‹ã«ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒ«ãƒ¼ãƒ—ã‚’å›žã—ã¦ã€ãƒ•ãƒªãƒ¼ã‚ºã£ã½ã„çŠ¶æ…‹ã‚’é¿ã‘ã‚‹
 	TApp::Idle(100);
 
 	memcpy(vbuf->Buf() + vbuf->UsedSize(), buf, size);
-	vbuf->AddUsedSize(size);
+	vbuf->AddUsedSize((int)size);
 }
 
 void png_vbuf_wflush(png_struct *png)
@@ -143,7 +143,7 @@ void png_vbuf_rfunc(png_struct *png, png_byte *buf, png_size_t size)
 
 	if (remain < size) size = remain;
 	memcpy(buf, vbuf->Buf() + vbuf->UsedSize(), size);
-	vbuf->AddUsedSize(size);
+	vbuf->AddUsedSize((int)size);
 }
 
 HBITMAP PngByteToBmpHandle(VBuf *vbuf)

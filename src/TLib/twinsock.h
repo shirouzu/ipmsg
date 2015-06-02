@@ -1,4 +1,4 @@
-#ifndef TWINSOCK_H
+﻿#ifndef TWINSOCK_H
 #define TWINSOCK_H
 
 extern int (WINAPI *TWSAStartup)(WORD wVersionRequested, WSADATA *lpWSAData);

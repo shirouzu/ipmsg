@@ -1,4 +1,4 @@
-static char *install_id = 
+ï»¿static char *install_id = 
 	"@(#)Copyright (C) H.Shirouzu 1998-2011   install.cpp	Ver3.21";
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
@@ -34,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR cmdLine, int nCmdShow)
 }
 
 /*
-	ƒCƒ“ƒXƒg[ƒ‹ƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒNƒ‰ƒX
+	ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ã‚¯ãƒ©ã‚¹
 */
 TInstApp::TInstApp(HINSTANCE _hI, LPSTR _cmdLine, int _nCmdShow) : TApp(_hI, _cmdLine, _nCmdShow)
 {
@@ -54,7 +54,7 @@ void TInstApp::InitWindow(void)
 
 
 /*
-	ƒƒCƒ“ƒ_ƒCƒAƒƒOƒNƒ‰ƒX
+	ãƒ¡ã‚¤ãƒ³ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ã‚¯ãƒ©ã‚¹
 */
 TInstDlg::TInstDlg(char *cmdLine) : TDlg(INSTALL_DIALOG)
 {
@@ -67,7 +67,7 @@ TInstDlg::~TInstDlg()
 }
 
 /*
-	ƒƒCƒ“ƒ_ƒCƒAƒƒO—p WM_INITDIALOG ˆ—ƒ‹[ƒ`ƒ“
+	ãƒ¡ã‚¤ãƒ³ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ç”¨ WM_INITDIALOG å‡¦ç†ãƒ«ãƒ¼ãƒãƒ³
 */
 BOOL TInstDlg::EvCreate(LPARAM lParam)
 {
@@ -90,13 +90,13 @@ BOOL TInstDlg::EvCreate(LPARAM lParam)
 		::SendMessage(hRunas, BCM_SETSHIELD, 0, 1);
 	}
 
-// Œ»İƒfƒBƒŒƒNƒgƒŠİ’è
+// ç¾åœ¨ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªè¨­å®š
 	char	buf[MAX_PATH_U8], setupDir[MAX_PATH_U8];
 #ifdef _WIN64
 	char	x86dir[MAX_PATH_U8] = "";
 #endif
 
-// Program Files‚ÌƒpƒXæ‚èo‚µ
+// Program Filesã®ãƒ‘ã‚¹å–ã‚Šå‡ºã—
 	TRegistry	reg(HKEY_LOCAL_MACHINE);
 	if (reg.OpenKey(REGSTR_PATH_SETUP)) {
 		if (reg.GetStr(REGSTR_PROGRAMFILES, buf, sizeof(buf))) {
@@ -109,7 +109,7 @@ BOOL TInstDlg::EvCreate(LPARAM lParam)
 		reg.CloseKey();
 	}
 
-// Šù‚ÉƒZƒbƒgƒAƒbƒv‚³‚ê‚Ä‚¢‚éê‡‚ÍAƒZƒbƒgƒAƒbƒvƒfƒBƒŒƒNƒgƒŠ‚ğ“Ç‚İo‚·
+// æ—¢ã«ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—ã•ã‚Œã¦ã„ã‚‹å ´åˆã¯ã€ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã‚’èª­ã¿å‡ºã™
 	if (reg.OpenKey(REGSTR_PATH_APPPATHS)) {
 		if (reg.OpenKey(IPMSG_EXENAME)) {
 			if (reg.GetStr(REGSTR_PATH, buf, sizeof(buf))) {
@@ -175,7 +175,7 @@ BOOL RunAsAdmin(HWND hWnd, BOOL imm)
 }
 
 /*
-	ƒƒCƒ“ƒ_ƒCƒAƒƒO—p WM_COMMAND ˆ—ƒ‹[ƒ`ƒ“
+	ãƒ¡ã‚¤ãƒ³ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ç”¨ WM_COMMAND å‡¦ç†ãƒ«ãƒ¼ãƒãƒ³
 */
 BOOL TInstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 {
@@ -244,11 +244,11 @@ BOOL TInstDlg::Install(void)
 	char	installPath[MAX_PATH_U8];
 	BOOL	extract_only = IsDlgButtonChecked(EXTRACT_CHECK);
 
-// Œ»İA‹N“®’†‚Ì ipmsg ‚ğI—¹
+// ç¾åœ¨ã€èµ·å‹•ä¸­ã® ipmsg ã‚’çµ‚äº†
 	int		st = extract_only ? 0 : TerminateIPMsg();
 	if (st == 1) return	FALSE;
 
-// ƒCƒ“ƒXƒg[ƒ‹ƒpƒXİ’è
+// ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ãƒ‘ã‚¹è¨­å®š
 	GetDlgItemTextU8(FILE_EDIT, setupDir, sizeof(setupDir));
 
 	if (IsWinVista() && !TIsUserAnAdmin() && TIsEnableUAC()
@@ -274,7 +274,7 @@ BOOL TInstDlg::Install(void)
 	}
 	runasImm = FALSE;
 
-// ƒtƒ@ƒCƒ‹¶¬
+// ãƒ•ã‚¡ã‚¤ãƒ«ç”Ÿæˆ
 	for (int i=0; SetupFiles[i]; i++) {
 		MakePath(installPath, setupDir, SetupFiles[i]);
 		CreateStatus cs = CreateFileBySelf(installPath, SetupFiles[i]);
@@ -289,13 +289,13 @@ BOOL TInstDlg::Install(void)
 		}
 	}
 
-// “WŠJ‚Ì‚İ
+// å±•é–‹ã®ã¿
 	if (extract_only) {
 		ShellExecuteU8(NULL, NULL, setupDir, 0, 0, SW_SHOW);
 		return TRUE;
 	}
 
-// ƒXƒ^[ƒgƒAƒbƒv•ƒfƒXƒNƒgƒbƒv‚É“o˜^
+// ã‚¹ã‚¿ãƒ¼ãƒˆã‚¢ãƒƒãƒ—ï¼†ãƒ‡ã‚¹ã‚¯ãƒˆãƒƒãƒ—ã«ç™»éŒ²
 	TRegistry	reg(HKEY_CURRENT_USER);
 	if (reg.OpenKey(REGSTR_SHELLFOLDERS)) {
 		char	*regStr[] = { REGSTR_STARTUP, REGSTR_PROGRAMS, REGSTR_DESKTOP, NULL };
@@ -314,7 +314,7 @@ BOOL TInstDlg::Install(void)
 		reg.CloseKey();
 	}
 
-// ƒŒƒWƒXƒgƒŠ‚ÉƒAƒvƒŠƒP[ƒVƒ‡ƒ“î•ñ‚ğ“o˜^
+// ãƒ¬ã‚¸ã‚¹ãƒˆãƒªã«ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³æƒ…å ±ã‚’ç™»éŒ²
 	reg.ChangeTopKey(HKEY_LOCAL_MACHINE);
 	if (reg.OpenKey(REGSTR_PATH_APPPATHS)) {
 		if (reg.CreateKey(IPMSG_EXENAME)) {
@@ -325,7 +325,7 @@ BOOL TInstDlg::Install(void)
 		reg.CloseKey();
 	}
 
-// ƒŒƒWƒXƒgƒŠ‚ÉƒAƒ“ƒCƒ“ƒXƒg[ƒ‹î•ñ‚ğ“o˜^
+// ãƒ¬ã‚¸ã‚¹ãƒˆãƒªã«ã‚¢ãƒ³ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«æƒ…å ±ã‚’ç™»éŒ²
 	if (reg.OpenKey(REGSTR_PATH_UNINSTALL)) {
 		if (reg.CreateKey(IPMSG_NAME)) {
 			MakePath(buf, setupDir, SETUP_EXENAME);
@@ -337,7 +337,7 @@ BOOL TInstDlg::Install(void)
 		reg.CloseKey();
 	}
 
-// ƒRƒs[‚µ‚½ƒAƒvƒŠƒP[ƒVƒ‡ƒ“‚ğ‹N“®
+// ã‚³ãƒ”ãƒ¼ã—ãŸã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ã‚’èµ·å‹•
 	const char *msg = GetLoadStr(IDS_SETUPCOMPLETE);
 	int			flg = MB_OKCANCEL|MB_ICONINFORMATION;
 
@@ -381,7 +381,7 @@ BOOL TInstDlg::Install(void)
 }
 
 /*
-	“¯‚¶“à—e‚ğ‚ÂƒVƒ‡[ƒgƒJƒbƒg‚ğíœiƒXƒ^[ƒgƒAƒbƒv‚Ö‚Ìd•¡“o˜^‚æ‚¯j
+	åŒã˜å†…å®¹ã‚’æŒã¤ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆã‚’å‰Šé™¤ï¼ˆã‚¹ã‚¿ãƒ¼ãƒˆã‚¢ãƒƒãƒ—ã¸ã®é‡è¤‡ç™»éŒ²ã‚ˆã‘ï¼‰
 */
 BOOL RemoveSameLink(const char *dir, char *remove_path)
 {
@@ -397,7 +397,8 @@ BOOL RemoveSameLink(const char *dir, char *remove_path)
 	do {
 		::wsprintf(path, "%s\\%s", dir, data.cFileName);
 		if (ReadLinkU8(path, dest, arg) && *arg == 0) {
-			int		dest_len = strlen(dest), ipmsg_len = strlen(IPMSG_EXENAME);
+			int		dest_len = (int)strlen(dest);
+			int		ipmsg_len = (int)strlen(IPMSG_EXENAME);
 			if (dest_len > ipmsg_len &&
 					strncmpi(dest + dest_len - ipmsg_len, IPMSG_EXENAME, ipmsg_len) == 0) {
 				ret = DeleteFileU8(path);
@@ -414,7 +415,7 @@ BOOL RemoveSameLink(const char *dir, char *remove_path)
 
 
 /*
-	—§‚¿ã‚ª‚Á‚Ä‚¢‚é IPMSG ‚ğI—¹
+	ç«‹ã¡ä¸ŠãŒã£ã¦ã„ã‚‹ IPMSG ã‚’çµ‚äº†
 */
 int TInstDlg::TerminateIPMsg()
 {
@@ -425,6 +426,7 @@ int TInstDlg::TerminateIPMsg()
 		if (MessageBox(GetLoadStr(IDS_TERMINATE), INSTALL_STR, MB_OKCANCEL) == IDCANCEL)
 			return	1;
 		::EnumWindows(TerminateIPMsgProc, NULL);
+		Sleep(500);
 	}
 	existFlg = FALSE;
 	::EnumWindows(TerminateIPMsgProc, (LPARAM)&existFlg);
@@ -433,9 +435,9 @@ int TInstDlg::TerminateIPMsg()
 }
 
 /*
-	lParam == NULL ...	‘S IPMSG ‚ğI—¹
-	lParam != NULL ...	lParam ‚ğ BOOL * ‚Æ‚İ‚È‚µAIPMSG proccess ‚ª‘¶İ‚·‚é
-						ê‡‚ÍA‚»‚±‚ÉTRUE ‚ğ‘ã“ü‚·‚éB
+	lParam == NULL ...	å…¨ IPMSG ã‚’çµ‚äº†
+	lParam != NULL ...	lParam ã‚’ BOOL * ã¨ã¿ãªã—ã€IPMSG proccess ãŒå­˜åœ¨ã™ã‚‹
+						å ´åˆã¯ã€ãã“ã«TRUE ã‚’ä»£å…¥ã™ã‚‹ã€‚
 */
 BOOL CALLBACK TerminateIPMsgProc(HWND hWnd, LPARAM lParam)
 {
@@ -443,13 +445,16 @@ BOOL CALLBACK TerminateIPMsgProc(HWND hWnd, LPARAM lParam)
 
 	if (::GetClassName(hWnd, buf, sizeof(buf)) != 0) {
 		if (strncmpi(IPMSG_CLASS, buf, strlen(IPMSG_CLASS)) == 0) {
-			if (lParam)
+			if (lParam) {
 				*(BOOL *)lParam = TRUE;		// existFlg;
+			}
 			else {
-				::SendMessage(hWnd, WM_CLOSE, 0, 0);
-				for (int i=0; i < 10; i++) {
-					Sleep(300);
-					if (!IsWindow(hWnd)) break;
+				DWORD	procId = 0;
+				if (::GetWindowThreadProcessId(hWnd, &procId) && procId) {
+					HANDLE	hProc = ::OpenProcess(SYNCHRONIZE, FALSE, procId);
+					::PostMessage(hWnd, WM_CLOSE, 0, 0);
+					::WaitForSingleObject(hProc, 5000);
+					::CloseHandle(hProc);
 				}
 			}
 		}
@@ -459,7 +464,7 @@ BOOL CALLBACK TerminateIPMsgProc(HWND hWnd, LPARAM lParam)
 
 
 /*
-	ƒfƒBƒŒƒNƒgƒŠƒ_ƒCƒAƒƒO—p”Ä—pƒ‹[ƒ`ƒ“
+	ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªãƒ€ã‚¤ã‚¢ãƒ­ã‚°ç”¨æ±ç”¨ãƒ«ãƒ¼ãƒãƒ³
 */
 void BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title)
 { 
@@ -498,7 +503,7 @@ void BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title)
 }
 
 /*
-	BrowseDirDlg—pƒR[ƒ‹ƒoƒbƒN
+	BrowseDirDlgç”¨ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯
 */
 int CALLBACK BrowseDirDlg_Proc(HWND hWnd, UINT uMsg, LPARAM lParam, LPARAM data)
 {
@@ -517,29 +522,29 @@ int CALLBACK BrowseDirDlg_Proc(HWND hWnd, UINT uMsg, LPARAM lParam, LPARAM data)
 }
 
 /*
-	BrowseDlg—pƒTƒuƒNƒ‰ƒX¶¬
+	BrowseDlgç”¨ã‚µãƒ–ã‚¯ãƒ©ã‚¹ç”Ÿæˆ
 */
 BOOL TBrowseDirDlg::AttachWnd(HWND _hWnd)
 {
 	BOOL	ret = TSubClass::AttachWnd(_hWnd);
 	dirtyFlg = FALSE;
 
-// ƒfƒBƒŒƒNƒgƒŠİ’è
+// ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªè¨­å®š
 	DWORD	attr = GetFileAttributesU8(fileBuf);
 	if (attr == 0xffffffff || (attr & FILE_ATTRIBUTE_DIRECTORY) == 0)
 		GetParentDirU8(fileBuf, fileBuf);
 	SendMessageW(BFFM_SETSELECTIONW, TRUE, (LPARAM)U8toW(fileBuf));
 	SetWindowText(IPMSG_FULLNAME);
 
-// ƒ{ƒ^ƒ“ì¬
+// ãƒœã‚¿ãƒ³ä½œæˆ
 	RECT	tmp_rect;
 	::GetWindowRect(GetDlgItem(IDOK), &tmp_rect);
 	POINT	pt = { tmp_rect.left, tmp_rect.top };
 	::ScreenToClient(hWnd, &pt);
 	int		cx = (pt.x - 30) / 2, cy = tmp_rect.bottom - tmp_rect.top;
 
-	::CreateWindowU8(BUTTON_CLASS, GetLoadStr(IDS_MKDIR), WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON, 10, pt.y, cx, cy, hWnd, (HMENU)MKDIR_BUTTON, TApp::GetInstance(), NULL);
-	::CreateWindowU8(BUTTON_CLASS, GetLoadStr(IDS_RMDIR), WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON, 18 + cx, pt.y, cx, cy, hWnd, (HMENU)RMDIR_BUTTON, TApp::GetInstance(), NULL);
+	::CreateWindowU8(BUTTON_CLASS, GetLoadStrU8(IDS_MKDIR), WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON, 10, pt.y, cx, cy, hWnd, (HMENU)MKDIR_BUTTON, TApp::GetInstance(), NULL);
+	::CreateWindowU8(BUTTON_CLASS, GetLoadStrU8(IDS_RMDIR), WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON, 18 + cx, pt.y, cx, cy, hWnd, (HMENU)RMDIR_BUTTON, TApp::GetInstance(), NULL);
 
 	HFONT	hDlgFont = (HFONT)SendDlgItemMessage(IDOK, WM_GETFONT, 0, 0L);
 	if (hDlgFont) {
@@ -551,7 +556,7 @@ BOOL TBrowseDirDlg::AttachWnd(HWND _hWnd)
 }
 
 /*
-	BrowseDlg—p WM_COMMAND ˆ—
+	BrowseDlgç”¨ WM_COMMAND å‡¦ç†
 */
 BOOL TBrowseDirDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 {
@@ -596,7 +601,7 @@ BOOL TBrowseDirDlg::SetFileBuf(LPARAM list)
 }
 
 /*
-	ˆês“ü—Í
+	ä¸€è¡Œå…¥åŠ›
 */
 BOOL TInputDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 {
@@ -615,7 +620,7 @@ BOOL TInputDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 }
 
 /*
-	eƒfƒBƒŒƒNƒgƒŠæ“¾i•K‚¸ƒtƒ‹ƒpƒX‚Å‚ ‚é‚±‚ÆBUNC‘Î‰j
+	è¦ªãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªå–å¾—ï¼ˆå¿…ãšãƒ•ãƒ«ãƒ‘ã‚¹ã§ã‚ã‚‹ã“ã¨ã€‚UNCå¯¾å¿œï¼‰
 */
 BOOL GetParentDirU8(const char *srcfile, char *dir)
 {
@@ -627,15 +632,15 @@ BOOL GetParentDirU8(const char *srcfile, char *dir)
 	if (fname - path > 3 || path[1] != ':')
 		*(fname - 1) = 0;
 	else
-		*fname = 0;		// C:\ ‚Ìê‡
+		*fname = 0;		// C:\ ã®å ´åˆ
 
 	strcpy(dir, path);
 	return	TRUE;
 }
 
 /*
-	ƒŠƒ“ƒN
-	‚ ‚ç‚©‚¶‚ßACoInitialize(NULL); ‚ğÀs‚µ‚Ä‚¨‚­‚±‚Æ
+	ãƒªãƒ³ã‚¯
+	ã‚ã‚‰ã‹ã˜ã‚ã€CoInitialize(NULL); ã‚’å®Ÿè¡Œã—ã¦ãŠãã“ã¨
 */
 BOOL SymLink(LPCSTR src, LPSTR dest, LPCSTR arg)
 {
@@ -665,7 +670,7 @@ BOOL SymLink(LPCSTR src, LPSTR dest, LPCSTR arg)
 }
 
 /*
-	ƒŠƒ“ƒNƒtƒ@ƒCƒ‹íœ
+	ãƒªãƒ³ã‚¯ãƒ•ã‚¡ã‚¤ãƒ«å‰Šé™¤
 */
 BOOL DeleteLink(LPCSTR path)
 {
@@ -701,11 +706,11 @@ BOOL DeflateData(BYTE *buf, DWORD size, VBuf *vbuf)
 BYTE *FindSeparatedData(BYTE *buf, DWORD buf_size, char *fname, DWORD *size)
 {
 	char	*sep = "\n======================================================================\n";
-	int		sep_len = strlen(sep);
+	int		sep_len = (int)strlen(sep);
 	int		sep_end = sep_len -1;
 	BYTE	*search_end = buf + buf_size - 1000;
 	BYTE	*p = buf;
-	int		fname_len = strlen(fname);
+	int		fname_len = (int)strlen(fname);
 
 	while (p < search_end) {
 		if (p[sep_end] != '\n' && p[sep_end] != '=') {

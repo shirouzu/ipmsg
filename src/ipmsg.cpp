@@ -1,4 +1,4 @@
-static char *ipmsg_id = 
+Ôªøstatic char *ipmsg_id = 
 	"@(#)Copyright (C) H.Shirouzu 1996-2011   ipmsg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -57,7 +57,7 @@ void TMsgApp::InitWindow(void)
 				delete [] addrs;
 				status = ST_EXIT;
 			}
-			else if (stricmp(tok, "/NICID") == 0) {	// NICID éwíË
+			else if (stricmp(tok, "/NICID") == 0) {	// NICID ÊåáÂÆö
 				status = ST_ERR;
 				if ((tok = separate_token(NULL, ' ', &p))) {
 					int			target = atoi(tok) - 1;
@@ -71,13 +71,13 @@ void TMsgApp::InitWindow(void)
 				}
 				if (status == ST_ERR) break;
 			}
-			else if (stricmp(tok, "/NIC") == 0) {	// NIC éwíË
+			else if (stricmp(tok, "/NIC") == 0) {	// NIC ÊåáÂÆö
 				if (!(tok = separate_token(NULL, ' ', &p)) || !(nicAddr = ResolveAddr(tok))) {
 					status = ST_ERR;
 					break;
 				}
 			}
-			else if (stricmp(tok, "/MSG") == 0) {	// ÉRÉ}ÉìÉhÉâÉCÉìÉÇÅ[Éh
+			else if (stricmp(tok, "/MSG") == 0) {	// „Ç≥„Éû„É≥„Éâ„É©„Ç§„É≥„É¢„Éº„Éâ
 				MsgMng	msgMng(nicAddr, port_no);
 				ULONG	command = IPMSG_SENDMSG|IPMSG_NOADDLISTOPT|IPMSG_NOLOGOPT, destAddr;
 				status  = ST_EXIT;
@@ -93,7 +93,7 @@ void TMsgApp::InitWindow(void)
 				}
 				else status = ST_ERR;
 			}
-			else if (stricmp(tok, "/SHOW_HISTORY") == 0) {	// ÉCÉìÉXÉgÅ[ÉâÇ©ÇÁÇÃãNìÆ
+			else if (stricmp(tok, "/SHOW_HISTORY") == 0) {	// „Ç§„É≥„Çπ„Éà„Éº„É©„Åã„Çâ„ÅÆËµ∑Âãï
 				show_history = TRUE;
 			}
 			else status = ST_ERR;

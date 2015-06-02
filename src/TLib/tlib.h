@@ -1,4 +1,4 @@
-/* @(#)Copyright (C) 1996-2011 H.Shirouzu		tlib.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2011 H.Shirouzu		tlib.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
@@ -336,6 +336,7 @@ public:
 
 	virtual	int		MessageBox(LPCSTR msg, LPCSTR title="msg", UINT style=MB_OK);
 	virtual	int		MessageBoxV(void *msg, void *title=EMPTY_STR_V, UINT style=MB_OK);
+	virtual	int		MessageBoxW(LPCWSTR msg, LPCWSTR title=L"", UINT style=MB_OK);
 	virtual	int		MessageBoxU8(const char *msg, char *title="msg", UINT style=MB_OK);
 	virtual BOOL	BringWindowToTop(void);
 	virtual BOOL	SetForegroundWindow(void);

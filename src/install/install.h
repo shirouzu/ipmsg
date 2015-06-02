@@ -1,4 +1,4 @@
-/* @(#)Copyright (C) H.Shirouzu 1998-2011   install.h	Ver3.20 */
+﻿/* @(#)Copyright (C) H.Shirouzu 1998-2011   install.h	Ver3.20 */
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Main Header

@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
-// Used by IPMsg.rc
+// Microsoft Visual C++ generated include file.
+// Used by ipmsg.rc
 //
 #define APPLY_BUTTON                    3
 #define IDS_BROADCAST                   100
@@ -166,6 +166,9 @@
 #define IDS_UNOPENINFO                  282
 #define IDS_IMAGERECTMENU               283
 #define IDS_TOOLONG_BALLOON             284
+#define IDS_CLIPALWAYS                  285
+#define IDS_CLIPNORMAL                  286
+#define IDS_CLIPSTRICT                  287
 #define IDS_SETUP_SHEET1                301
 #define IDS_SETUP_SHEET2                302
 #define IDS_SETUP_SHEET3                303
@@ -360,6 +363,8 @@
 #define CLIPDISP_SLIDER                 1226
 #define CLIPDISP_STATIC                 1227
 #define SAVE_BUTTON                     1228
+#define CLIPCONFIRM_COMBO               1230
+#define IDC_BUTTON1                     1233
 #define MENU_SETUP                      10001
 #define MENU_EXIT                       10003
 #define MENU_ABOUT                      10008
@@ -409,7 +414,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        700
 #define _APS_NEXT_COMMAND_VALUE         16000
-#define _APS_NEXT_CONTROL_VALUE         1230
+#define _APS_NEXT_CONTROL_VALUE         1234
 #define _APS_NEXT_SYMED_VALUE           2001
 #endif
 #endif

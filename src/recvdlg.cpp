@@ -1,4 +1,4 @@
-static char *recvdlg_id = 
+Ôªøstatic char *recvdlg_id = 
 	"@(#)Copyright (C) H.Shirouzu 1996-2011   recvdlg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -69,7 +69,8 @@ TRecvDlg::TRecvDlg(MsgMng *_msgMng, MsgBuf *_msg, THosts *_hosts, Cfg *_cfg, Log
 				if (ext && strcmpi(ext, ".png") == 0 && clip_num++ < cfg->ClipMax) {
 					shareInfo->fileInfo[i]->SetSelected(TRUE);
 					char	buf[MAX_PATH];
-					MakeClipFileName(msgMng->MakePacketNo(), FALSE, buf);
+					MakeClipFileName(msgMng->MakePacketNo(), shareInfo->fileInfo[i]->Pos(),
+										FALSE, buf);
 					shareInfo->fileInfo[i]->SetFname(buf);
 				}
 				else {
@@ -104,7 +105,7 @@ TRecvDlg::~TRecvDlg()
 	{
 		if (shareInfo->fileCnt > 0)
 			msgMng->Send(&msg.hostSub, IPMSG_RELEASEFILES, msg.packetNo);
-		// Ç†Ç∆Ç≈éÛêMèIóπí ímÇÃÉRÅ[ÉhÇì¸ÇÍÇÈ
+		// „ÅÇ„Å®„ÅßÂèó‰ø°ÁµÇ‰∫ÜÈÄöÁü•„ÅÆ„Ç≥„Éº„Éâ„ÇíÂÖ•„Çå„Çã
 		FreeDecodeShareMsg(shareInfo);
 	}
 	if (fileObj)
@@ -129,7 +130,7 @@ TRecvDlg::~TRecvDlg()
 }
 
 /*
-	ÉÅÉbÉZÅ[ÉWÇÃïúçÜâª
+	„É°„ÉÉ„Çª„Éº„Ç∏„ÅÆÂæ©Âè∑Âåñ
 */
 BOOL TRecvDlg::DecryptMsg()
 {
@@ -140,6 +141,7 @@ BOOL TRecvDlg::DecryptMsg()
 	HCRYPTPROV	target_csp;
 	BOOL		(*str2bin_revendian)(const char *, BYTE *, int, int *) = NULL;
 	BOOL		(*str2bin)(const char *, BYTE *, int, int *)           = NULL;
+	DynBuf		tmpBuf(MAX_UDPBUF);
 
 	if ((capa_hex = separate_token(msg.msgBuf, ':', &p)) == NULL)
 		return	FALSE;
@@ -175,32 +177,32 @@ BOOL TRecvDlg::DecryptMsg()
 			return	FALSE;
 	}
 
-	// IV ÇÃèâä˙âª
+	// IV „ÅÆÂàùÊúüÂåñ
 	memset(iv, 0, sizeof(iv));
 	if (cryptCapa & IPMSG_PACKETNO_IV) strncpyz((char *)iv, msg.packetNoStr, sizeof(iv));
 
 	if (cryptCapa & IPMSG_AES_256) {	// AES
 		str2bin_revendian(skey_hex, skey, sizeof(skey), &len);
-		// åˆäJåÆéÊìæ
+		// ÂÖ¨ÈñãÈçµÂèñÂæó
 		if (!pCryptDecrypt(hExKey, 0, TRUE, 0, (BYTE *)skey, (DWORD *)&len))
 			return	wsprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), FALSE;
 
 		AES	aes(skey, len);
-		str2bin(msg_hex, (BYTE *)msg.msgBuf, sizeof(msg.msgBuf), &encMsgLen);
-		msgLen = aes.Decrypt((u8 *)msg.msgBuf, (u8 *)msg.msgBuf, encMsgLen, iv);
+		str2bin(msg_hex, tmpBuf, tmpBuf.Size(), &encMsgLen);
+		msgLen = aes.Decrypt(tmpBuf, tmpBuf, encMsgLen, iv);
 	}
 	else if (cryptCapa & IPMSG_BLOWFISH_128) {	// blowfish
 		str2bin_revendian(skey_hex, skey, sizeof(skey), &len);
-		// åˆäJåÆéÊìæ
+		// ÂÖ¨ÈñãÈçµÂèñÂæó
 		if (!pCryptDecrypt(hExKey, 0, TRUE, 0, (BYTE *)skey, (DWORD *)&len))
 			return	wsprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), FALSE;
 
 		CBlowFish	bl(skey, len);
-		str2bin(msg_hex, (BYTE *)msg.msgBuf, sizeof(msg.msgBuf), &encMsgLen);
-		msgLen = bl.Decrypt((BYTE *)msg.msgBuf, (BYTE *)msg.msgBuf, encMsgLen, BF_CBC|BF_PKCS5, iv);
+		str2bin(msg_hex, tmpBuf, tmpBuf.Size(), &encMsgLen);
+		msgLen = bl.Decrypt(tmpBuf, tmpBuf, encMsgLen, BF_CBC|BF_PKCS5, iv);
 	}
 	else {	// RC2
-		// Skey Blob ÇçÏÇÈ
+		// Skey Blob „Çí‰Ωú„Çã
 		skey[0] = SIMPLEBLOB;
 		skey[1] = CUR_BLOB_VERSION;
 		*(WORD *)(skey + 2) = 0;
@@ -208,19 +210,19 @@ BOOL TRecvDlg::DecryptMsg()
 		*(ALG_ID *)(skey + 8) = CALG_RSA_KEYX;
 		str2bin_revendian(skey_hex, skey + SKEY_HEADER_SIZE, sizeof(skey) - SKEY_HEADER_SIZE, &len);
 
-		// ÉZÉbÉVÉáÉìÉLÅ[ÇÃ import
+		// „Çª„ÉÉ„Ç∑„Éß„É≥„Ç≠„Éº„ÅÆ import
 		if (!pCryptImportKey(target_csp, skey, len + SKEY_HEADER_SIZE, hExKey, 0, &hKey))
 			return	wsprintf(msg.msgBuf, "CryptImportKey Err(%X)", GetLastError()), FALSE;
 
-		// ÉÅÉbÉZÅ[ÉWÇÃ Decrypt
-		str2bin(msg_hex, (BYTE *)msg.msgBuf, sizeof(msg.msgBuf), &encMsgLen);
+		// „É°„ÉÉ„Çª„Éº„Ç∏„ÅÆ Decrypt
+		str2bin(msg_hex, tmpBuf, tmpBuf.Size(), &encMsgLen);
 		msgLen = encMsgLen;
-		if (!pCryptDecrypt(hKey, 0, TRUE, 0, (BYTE *)msg.msgBuf, (DWORD *)&msgLen))
+		if (!pCryptDecrypt(hKey, 0, TRUE, 0, tmpBuf, (DWORD *)&msgLen))
 			return	wsprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), FALSE;
 		pCryptDestroyKey(hKey);
 	}
 
-	// ìdéqèêñºÇÃåüèÿ
+	// ÈõªÂ≠êÁΩ≤Âêç„ÅÆÊ§úË®º
 	if (cryptCapa & IPMSG_SIGN_SHA1) {
 		Host		*host = hosts->GetHostByAddr(&msg.hostSub);
 
@@ -234,10 +236,10 @@ BOOL TRecvDlg::DecryptMsg()
 
 			logOpt |= LOG_SIGN_ERR;
 			target_csp = cfg->priv[kt].hCsp;
-			host->pubKey.KeyBlob(data, sizeof(data), &len);	// KeyBlob çÏê¨/import
+			host->pubKey.KeyBlob(data, sizeof(data), &len);	// KeyBlob ‰ΩúÊàê/import
 			if (pCryptImportKey(target_csp, data, len, 0, 0, &hExKey)) {
 				if (pCryptCreateHash(target_csp, CALG_SHA, 0, 0, &hHash)) {
-					if (pCryptHashData(hHash, (BYTE *)msg.msgBuf, msgLen, 0)) {
+					if (pCryptHashData(hHash, tmpBuf, msgLen, 0)) {
 						int		sigLen = 0;
 						str2bin_revendian(hash_hex, sig_data, sizeof(sig_data), &sigLen);
 						if (pCryptVerifySignature(hHash, sig_data, sigLen, hExKey, 0, 0)) {
@@ -256,15 +258,15 @@ BOOL TRecvDlg::DecryptMsg()
 			  (cryptCapa & IPMSG_RSA_1024) ? LOG_ENC1 : LOG_ENC0;
 
 
-	// à√çÜâªìYïtÉÅÉbÉZÅ[ÉW
+	// ÊöóÂè∑ÂåñÊ∑ª‰ªò„É°„ÉÉ„Çª„Éº„Ç∏
 	if ((msg.command & IPMSG_ENCEXTMSGOPT)) {
-		if ((len = strlen(msg.msgBuf) + 1) < msgLen) {
-			strncpyz(msg.exBuf, msg.msgBuf + len, MAX_UDPBUF);
+		if ((len = (int)strlen(tmpBuf) + 1) < msgLen) {
+			strncpyz(msg.exBuf, (char *)tmpBuf + len, MAX_UDPBUF);
 		}
 	}
 
-	// UNIX å`éÆÇÃâ¸çsÇïœä∑
-	MsgMng::UnixNewLineToLocal(msg.msgBuf, msg.msgBuf, sizeof(msg.msgBuf));
+	// UNIX ÂΩ¢Âºè„ÅÆÊîπË°å„ÇíÂ§âÊèõ
+	UnixNewLineToLocal(tmpBuf, msg.msgBuf, sizeof(msg.msgBuf));
 	if ((msg.command & IPMSG_UTF8OPT) == 0) {
 		strncpyz(msg.msgBuf, AtoU8(msg.msgBuf), sizeof(msg.msgBuf));
 	}
@@ -287,7 +289,7 @@ BOOL TRecvDlg::EvCreate(LPARAM lParam)
 
 	editSub.SendMessage(EM_AUTOURLDETECT, 1, 0);
 	editSub.SendMessage(EM_SETBKGNDCOLOR, FALSE, ::GetSysColor(COLOR_3DFACE));
-	editSub.SendMessage(EM_SETTARGETDEVICE, 0, 0);		// ê‹ÇËï‘Çµ
+	editSub.SendMessage(EM_SETTARGETDEVICE, 0, 0);		// Êäò„ÇäËøî„Åó
 
 	SetDlgIcon(hWnd);
 	SetDlgItemTextU8(RECV_HEAD, head);
@@ -367,7 +369,7 @@ BOOL TRecvDlg::EvCreate(LPARAM lParam)
 
 	if (!IsNewShell())
 	{
-		ULONG	style = GetWindowLong(GWL_STYLE);
+		ULONG_PTR	style = GetWindowLong(GWL_STYLE);
 		style &= 0xffffff0f;
 		style |= 0x00000080;
 		SetWindowLong(GWL_STYLE, style);
@@ -389,6 +391,15 @@ BOOL TRecvDlg::EvCreate(LPARAM lParam)
 	}
 
 	return	TRUE;
+}
+
+BOOL IsShowDirectImage(Cfg *cfg, HostSub *hostSub)
+{
+	if ((cfg->ClipMode & CLIP_CONFIRM_ALL) == 0) return	TRUE;
+	if ((cfg->ClipMode & CLIP_CONFIRM_STRICT))   return FALSE;
+
+	Host *host = cfg->priorityHosts.GetHostByName(hostSub);
+	return	host && host->priority > DEFAULT_PRIORITY ? TRUE : FALSE;
 }
 
 BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
@@ -458,7 +469,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		if (shareInfo)
 			SetFileButton(this, FILE_BUTTON, shareInfo), EvSize(SIZE_RESTORED, 0, 0);
 
-		if ((cfg->ClipMode & CLIP_CONFIRM) == 0) {
+		if (IsShowDirectImage(cfg, &msg.hostSub)) {
 			InsertImages();
 		}
 
@@ -601,14 +612,14 @@ BOOL TRecvDlg::EvSysCommand(WPARAM uCmdType, POINTS pos)
 	case MENU_NORMALSIZE:
 	case MENU_EDITFONT: case MENU_HEADFONT:
 	case MENU_DEFAULTFONT:
-		return	EvCommand(0, uCmdType, 0);
+		return	EvCommand(0, (WORD)uCmdType, 0);
 	}
 
 	return	FALSE;
 }
 
 /*
-	AppíËã` Event CallBack
+	AppÂÆöÁæ© Event CallBack
 */
 BOOL TRecvDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -627,7 +638,7 @@ BOOL TRecvDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 /*
 	WM_TIMER event call back
-	ëóêMämîF/çƒëóóp
+	ÈÄÅ‰ø°Á¢∫Ë™ç/ÂÜçÈÄÅÁî®
 */
 BOOL TRecvDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 {
@@ -638,7 +649,7 @@ BOOL TRecvDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 	}
 
 	::KillTimer(hWnd, IPMSG_RECV_TIMER);
-	if (timerID == 0)	// çƒì¸ÇÊÇØ
+	if (timerID == 0)	// ÂÜçÂÖ•„Çà„Åë
 		return	FALSE;
 	timerID = 0;
 
@@ -651,7 +662,7 @@ BOOL TRecvDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 BOOL GetNoWrapString(HWND hWnd, int cx, char *str, char *buf, int maxlen)
 {
 	Wstr	wstr(str);
-	int		len = wcslen(wstr);
+	int		len = (int)wcslen(wstr);
 	int		fit_len = 0;
 	SIZE    size;
 	HDC		hDc;
@@ -695,7 +706,7 @@ BOOL TRecvDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	if (hdwp == NULL)
 		return	FALSE;
 
-// ÉTÉCÉYÇ™è¨Ç≥Ç≠Ç»ÇÈèÍçáÇÃí≤êÆílÇÕÅATry and Error(^^;
+// „Çµ„Ç§„Ç∫„ÅåÂ∞è„Åï„Åè„Å™„ÇãÂ†¥Âêà„ÅÆË™øÊï¥ÂÄ§„ÅØ„ÄÅTry and Error(^^;
 	wpos = &item[title_item];
 	if ((hdwp = ::DeferWindowPos(hdwp, GetDlgItem(RECV_TITLE), NULL, wpos->x, wpos->y, wpos->cx + xdiff, wpos->cy, dwFlg)) == NULL)
 		return	FALSE;
@@ -808,9 +819,9 @@ void TRecvDlg::SetFont(void)
 	if (::GetObject(hDlgFont, sizeof(LOGFONT), (LPSTR)&orgFont) == NULL)
 		return;
 
-	if (*cfg->RecvHeadFont.lfFaceName == 0)	//èâä˙ÉfÅ[É^ÉZÉbÉg
+	if (*cfg->RecvHeadFont.lfFaceName == 0)	//ÂàùÊúü„Éá„Éº„Çø„Çª„ÉÉ„Éà
 		cfg->RecvHeadFont = orgFont;
-	if (*cfg->RecvEditFont.lfFaceName == 0)	//èâä˙ÉfÅ[É^ÉZÉbÉg
+	if (*cfg->RecvEditFont.lfFaceName == 0)	//ÂàùÊúü„Éá„Éº„Çø„Çª„ÉÉ„Éà
 		cfg->RecvEditFont = orgFont;
 
 	if (*cfg->RecvHeadFont.lfFaceName && (hDlgFont = ::CreateFontIndirect(&cfg->RecvHeadFont)))
@@ -968,7 +979,7 @@ void TRecvDlg::SetMainMenu(HMENU hMenu)
 }
 
 /*
-	ëóêMèIóπí ím
+	ÈÄÅ‰ø°ÁµÇ‰∫ÜÈÄöÁü•
 */
 BOOL TRecvDlg::SendFinishNotify(HostSub *hostSub, ULONG packet_no)
 {
@@ -985,7 +996,7 @@ BOOL TRecvDlg::SendFinishNotify(HostSub *hostSub, ULONG packet_no)
 }
 
 /*
-	ëóêMíÜÇÕÅAShowÇÃvisibleÇÇÕÇ∂Ç≠
+	ÈÄÅ‰ø°‰∏≠„ÅØ„ÄÅShow„ÅÆvisible„Çí„ÅØ„Åò„Åè
 */
 void TRecvDlg::Show(int mode)
 {
@@ -994,7 +1005,7 @@ void TRecvDlg::Show(int mode)
 	EnableWindow(TRUE);
 
 	if (timerID == 0 && hWnd) {
-		if (mode != SW_HIDE && (cfg->ClipMode & CLIP_CONFIRM) == 0 && openFlg) {
+		if (mode != SW_HIDE && openFlg && IsShowDirectImage(cfg, &msg.hostSub)) {
 			InsertImages(); // display and remove
 		}
 		TWin::Show(mode);
@@ -1079,7 +1090,7 @@ BOOL TRecvDlg::StartRecvFile(void)
 
 //fileObj->offset = fileObj->woffset = OFFSET;
 
-	if (::Tsend(fileObj->conInfo->sd, tcpbuf, strlen(tcpbuf), 0) < (int)strlen(tcpbuf))
+	if (::Tsend(fileObj->conInfo->sd, tcpbuf, (int)strlen(tcpbuf), 0) < (int)strlen(tcpbuf))
 		return	EndRecvFile(), FALSE;
 
 	fileObj->conInfo->startTick = fileObj->conInfo->lastTick = ::GetTickCount();
@@ -1094,11 +1105,11 @@ BOOL TRecvDlg::StartRecvFile(void)
 
 		if (size <= MAX_CLIPBOARD && size > 0) {
 			clipBuf = new ClipBuf((int)size, fileObj->curFileInfo.Pos());
-			if (clipBuf && clipBuf->vbuf.Buf()) {
+			if (clipBuf && clipBuf->vbuf) {
 				clipList.AddObj(clipBuf);
 			}
 		}
-		if (!clipBuf || !clipBuf->vbuf.Buf()) {
+		if (!clipBuf || !clipBuf->vbuf) {
 			if (clipBuf) delete clipBuf;
 			return	EndRecvFile(), FALSE;
 		}
@@ -1108,7 +1119,7 @@ BOOL TRecvDlg::StartRecvFile(void)
 		fileObj->recvBuf = new char [cfg->IoBufMax];
 	}
 
-	// 0byte file ÇæÇØÇÕÅAì¡ó·
+	// 0byte file „Å†„Åë„ÅØ„ÄÅÁâπ‰æã
 	if (!fileObj->isDir && fileObj->curFileInfo.Size() == 0)
 	{
 		if (OpenRecvFile())
@@ -1122,9 +1133,9 @@ BOOL TRecvDlg::StartRecvFile(void)
 		return	TRUE;
 	}
 
-	DWORD	id;	// égÇÌÇ∏Åi95ånÇ≈ error Ç…Ç»ÇÈÇÃÇñhÇÆÇæÇØÅj
-	fileObj->hThread = (HANDLE)~0;	// î˜ñ≠Ç»óÃàÊÇîÇØÇÈ
-	// thread ì‡Ç≈ÇÕ MT ëŒâûÇ™ïKóvÇ» crt ÇÕégÇÌÇ∏
+	DWORD	id;	// ‰Ωø„Çè„ÅöÔºà95Á≥ª„Åß error „Å´„Å™„Çã„ÅÆ„ÇíÈò≤„Åê„Å†„ÅëÔºâ
+	fileObj->hThread = (HANDLE)~0;	// ÂæÆÂ¶ô„Å™È†òÂüü„ÇíÈÅø„Åë„Çã
+	// thread ÂÜÖ„Åß„ÅØ MT ÂØæÂøú„ÅåÂøÖË¶Å„Å™ crt „ÅØ‰Ωø„Çè„Åö
 	if ((fileObj->hThread = ::CreateThread(NULL, 0, RecvFileThread, this, 0, &id)) == NULL)
 	{
 		EndRecvFile();
@@ -1150,7 +1161,7 @@ DWORD WINAPI TRecvDlg::RecvFileThread(void *_recvDlg)
 	for (int waitCnt=0; waitCnt < 120 && fileObj->hThread; waitCnt++)
 	{
 		tv.tv_sec = 1, tv.tv_usec = 0;
-		if ((sock_ret = ::Tselect(fileObj->conInfo->sd + 1, &rfd, NULL, NULL, &tv)) > 0)
+		if ((sock_ret = ::Tselect((int)fileObj->conInfo->sd + 1, &rfd, NULL, NULL, &tv)) > 0)
 		{
 			waitCnt = 0;
 			if (!(recvDlg->*RecvFileFunc)())
@@ -1188,7 +1199,7 @@ BOOL TRecvDlg::CloseRecvFile(BOOL setAttr)
 		{
 			FILETIME	ft;
 			UnixTime2FileTime(fileObj->curFileInfo.Mtime(), &ft);
-#if 1	// ébíËèàíuÅiprotocol format ïœçXÇÃâ¬î\ê´Åj
+#if 1	// Êö´ÂÆöÂá¶ÁΩÆÔºàprotocol format Â§âÊõ¥„ÅÆÂèØËÉΩÊÄßÔºâ
 			if (fileObj->isDir || (fileObj->curFileInfo.Mtime() & 0xffffff00))
 #endif
 				::SetFileTime(fileObj->hFile, NULL, &ft, &ft);
@@ -1225,7 +1236,7 @@ BOOL TRecvDlg::DecodeDirEntry(char *buf, FileInfo *info, char *u8fname)
 	}
 
 	info->SetFname(u8fname);
-	while ((ptr = strchr(tok, '?')))	// UNICODE Ç‹Ç≈ÇÃébíË
+	while ((ptr = strchr(tok, '?')))	// UNICODE „Åæ„Åß„ÅÆÊö´ÂÆö
 		*ptr = '_';
 
 	if (strlen(tok) >= MAX_PATH_U8)
@@ -1286,7 +1297,7 @@ BOOL TRecvDlg::RecvDirFile(void)
 			fileObj->info[fileObj->infoLen] = 0;
 			if (!DecodeDirEntry(fileObj->info, &fileObj->curFileInfo, fileObj->u8fname))
 				return	FALSE;	// Illegal entry
-			fileObj->offset = fileObj->infoLen = 0;	// èâä˙âª
+			fileObj->offset = fileObj->infoLen = 0;	// ÂàùÊúüÂåñ
 
 			if (GET_MODE(fileObj->curFileInfo.Attr()) == IPMSG_FILE_DIR)
 			{
@@ -1305,7 +1316,7 @@ BOOL TRecvDlg::RecvDirFile(void)
 			}
 			else if (GET_MODE(fileObj->curFileInfo.Attr()) == IPMSG_FILE_RETPARENT)
 			{
-				if (fileObj->curFileInfo.Mtime())	// directory ÇÃ time stamp ÇÇ†ÇÌÇπÇÈ(NTånÇÃÇ›)
+				if (fileObj->curFileInfo.Mtime())	// directory „ÅÆ time stamp „Çí„ÅÇ„Çè„Åõ„Çã(NTÁ≥ª„ÅÆ„Åø)
 				{
 					FILETIME	ft;
 					HANDLE		hFile;
@@ -1331,7 +1342,7 @@ BOOL TRecvDlg::RecvDirFile(void)
 				
 				if (fileObj->curFileInfo.Size() == 0)	// 0byte file
 				{
-					if (OpenRecvFile())		// 0byteÇÃèÍçáÇÕçÏê¨é∏îsÇñ≥éã
+					if (OpenRecvFile())		// 0byte„ÅÆÂ†¥Âêà„ÅØ‰ΩúÊàêÂ§±Êïó„ÇíÁÑ°Ë¶ñ
 						CloseRecvFile(TRUE);
 				}
 				fileObj->status = fileObj->curFileInfo.Size() ? FS_TRANSFILE : FS_TRANSINFO;
@@ -1428,7 +1439,7 @@ int MakeTransRateStr(char *buf, DWORD ticks, _int64 cur_size, _int64 total_size)
 {
 	int len = 0;
 	buf[len++] = ' ';
-	len += MakeSizeString(buf + len, cur_size) -2;	// "MB"ïîï™Çî≤Ç≠
+	len += MakeSizeString(buf + len, cur_size) -2;	// "MB"ÈÉ®ÂàÜ„ÇíÊäú„Åè
 	buf[len++] = '/';
 	len += MakeSizeString(buf + len, total_size);
 	buf[len++] = ' ';
@@ -1508,7 +1519,7 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 	if (fileObj->hThread)
 	{
 		HANDLE	hThread = fileObj->hThread;
-		fileObj->hThread = 0;	// íÜífÇÃçáê}
+		fileObj->hThread = 0;	// ‰∏≠Êñ≠„ÅÆÂêàÂõ≥
 		WaitForSingleObject(hThread, INFINITE);
 		::CloseHandle(hThread);
 	}
@@ -1557,8 +1568,8 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 				}
 			}
 		}
-		if (fileObj->isClip && is_clip_finish) {
-			if ((cfg->ClipMode & CLIP_CONFIRM) == 0 && status == SHOW && openFlg) {
+		if (fileObj->isClip && is_clip_finish && status == SHOW && openFlg) {
+			if (IsShowDirectImage(cfg, &msg.hostSub)) {
 				isInsertImage = TRUE;
 			}
 		}

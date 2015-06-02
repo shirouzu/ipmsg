@@ -1,4 +1,4 @@
-static char *twin_id = 
+ï»¿static char *twin_id = 
 	"@(#)Copyright (C) 1996-2011 H.Shirouzu		twin.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
@@ -103,7 +103,7 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_NCDESTROY:
 		if (!::IsIconic(hWnd)) GetWindowRect(&rect);
-		if (!EvNcDestroy())	// hWnd‚ð0‚É‚·‚é‘O‚ÉŒÄ‚Ño‚·
+		if (!EvNcDestroy())	// hWndã‚’0ã«ã™ã‚‹å‰ã«å‘¼ã³å‡ºã™
 			DefWindowProc(uMsg, wParam, lParam);
 		done = TRUE;
 		TApp::GetApp()->DelWin(this);
@@ -584,6 +584,11 @@ int TWin::MessageBox(LPCSTR msg, LPCSTR title, UINT style)
 int TWin::MessageBoxV(void *msg, void *title, UINT style)
 {
 	return	::MessageBoxV(hWnd, msg, title, style);
+}
+
+int TWin::MessageBoxW(LPCWSTR msg, LPCWSTR title, UINT style)
+{
+	return	::MessageBoxW(hWnd, msg, title, style);
 }
 
 BOOL TWin::BringWindowToTop(void)

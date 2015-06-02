@@ -1,4 +1,4 @@
-static char *tmisc_id = 
+ï»¿static char *tmisc_id = 
 	"@(#)Copyright (C) 1996-2011 H.Shirouzu		tmisc.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
@@ -122,10 +122,10 @@ THashObj *THashTbl::Search(const void *data, u_int hash_id)
 
 
 /*=========================================================================
-  ƒNƒ‰ƒX F Condition
-  ŠT  —v F ğŒ•Ï”ƒNƒ‰ƒX
-  à  –¾ F 
-  ’  ˆÓ F 
+  ã‚¯ãƒ©ã‚¹ ï¼š Condition
+  æ¦‚  è¦ ï¼š æ¡ä»¶å¤‰æ•°ã‚¯ãƒ©ã‚¹
+  èª¬  æ˜ ï¼š 
+  æ³¨  æ„ ï¼š 
 =========================================================================*/
 Condition::Condition(void)
 {
@@ -173,7 +173,7 @@ BOOL Condition::Wait(DWORD timeout)
 
 	for (wait_id=0; wait_id < max_threads && waitEvents[wait_id] != CLEAR_EVENT; wait_id++)
 		;
-	if (wait_id == max_threads) {	// ’Êí‚Í‚ ‚è‚¦‚È‚¢
+	if (wait_id == max_threads) {	// é€šå¸¸ã¯ã‚ã‚Šãˆãªã„
 		MessageBox(0, "Detect too many wait threads", "TLib", MB_OK);
 		return	FALSE;
 	}
@@ -190,7 +190,7 @@ BOOL Condition::Wait(DWORD timeout)
 	return	status == WAIT_TIMEOUT ? FALSE : TRUE;
 }
 
-void Condition::Notify(void)	// Œ»ó‚Å‚ÍA–°‚Á‚Ä‚¢‚éƒXƒŒƒbƒh‘Sˆõ‚ğ‹N‚±‚·
+void Condition::Notify(void)	// ç¾çŠ¶ã§ã¯ã€çœ ã£ã¦ã„ã‚‹ã‚¹ãƒ¬ãƒƒãƒ‰å…¨å“¡ã‚’èµ·ã“ã™
 {
 	if (waitCnt > 0) {
 		for (int wait_id=0, done_cnt=0; wait_id < max_threads; wait_id++) {
@@ -205,10 +205,10 @@ void Condition::Notify(void)	// Œ»ó‚Å‚ÍA–°‚Á‚Ä‚¢‚éƒXƒŒƒbƒh‘Sˆõ‚ğ‹N‚±‚·
 }
 
 /*=========================================================================
-  ƒNƒ‰ƒX F VBuf
-  ŠT  —v F ‰¼‘zƒƒ‚ƒŠŠÇ—ƒNƒ‰ƒX
-  à  –¾ F 
-  ’  ˆÓ F 
+  ã‚¯ãƒ©ã‚¹ ï¼š VBuf
+  æ¦‚  è¦ ï¼š ä»®æƒ³ãƒ¡ãƒ¢ãƒªç®¡ç†ã‚¯ãƒ©ã‚¹
+  èª¬  æ˜ ï¼š 
+  æ³¨  æ„ ï¼š 
 =========================================================================*/
 VBuf::VBuf(int _size, int _max_size, VBuf *_borrowBuf)
 {
@@ -244,7 +244,7 @@ BOOL VBuf::AllocBuf(int _size, int _max_size, VBuf *_borrowBuf)
 		borrowBuf->AddUsedSize(maxSize + PAGE_SIZE);
 	}
 	else {
-	// 1page •ª‚¾‚¯—]Œv‚ÉŠm•Ûibuffer over flow ŒŸo—pj
+	// 1page åˆ†ã ã‘ä½™è¨ˆã«ç¢ºä¿ï¼ˆbuffer over flow æ¤œå‡ºç”¨ï¼‰
 		if (!(buf = (BYTE *)::VirtualAlloc(NULL, maxSize + PAGE_SIZE, MEM_RESERVE, PAGE_READWRITE))) {
 			Init();
 			return	FALSE;
@@ -362,7 +362,7 @@ HMODULE TLoadLibraryV(void *dllname)
 }
 
 /*=========================================================================
-	ƒpƒX‡¬iANSI ”Åj
+	ãƒ‘ã‚¹åˆæˆï¼ˆANSI ç‰ˆï¼‰
 =========================================================================*/
 int MakePath(char *dest, const char *dir, const char *file)
 {
@@ -372,7 +372,7 @@ int MakePath(char *dest, const char *dir, const char *file)
 	if ((len = strlen(dir)) == 0)
 		return	wsprintf(dest, "%s", file);
 
-	if (dir[len -1] == '\\')	// •\‚È‚ÇA2byte–Ú‚ª'\\'‚ÅI‚é•¶š—ñ‘Îô
+	if (dir[len -1] == '\\')	// è¡¨ãªã©ã€2byteç›®ãŒ'\\'ã§çµ‚ã‚‹æ–‡å­—åˆ—å¯¾ç­–
 	{
 		if (len >= 2 && !IsDBCSLeadByte(dir[len -2]))
 			separetor = FALSE;
@@ -388,7 +388,7 @@ int MakePath(char *dest, const char *dir, const char *file)
 }
 
 /*=========================================================================
-	ƒpƒX‡¬iUNICODE ”Åj
+	ãƒ‘ã‚¹åˆæˆï¼ˆUNICODE ç‰ˆï¼‰
 =========================================================================*/
 int MakePathW(WCHAR *dest, const WCHAR *dir, const WCHAR *file)
 {
@@ -411,7 +411,7 @@ WCHAR lGetCharIncA(const char **str)
 
 	if (IsDBCSLeadByte((BYTE)ch)) {
 		ch <<= BITS_OF_BYTE;
-		ch |= *(*str)++;	// null ”»’è‚Íè”²‚«
+		ch |= *(*str)++;	// null åˆ¤å®šã¯æ‰‹æŠœã
 	}
 	return	ch;
 }
@@ -575,7 +575,7 @@ int bin2b64str_revendian(const BYTE *bindata, int len, char *buf)
 }
 
 /*
-	16i -> long long
+	16é€² -> long long
 */
 _int64 hex2ll(char *buf)
 {
@@ -678,7 +678,7 @@ const WCHAR *FmtW(WCHAR *fmt,...)
 
 
 /*=========================================================================
-	—áŠOî•ñæ“¾
+	ä¾‹å¤–æƒ…å ±å–å¾—
 =========================================================================*/
 static char *ExceptionTitle;
 static char *ExceptionLogFile;
@@ -776,9 +776,9 @@ BOOL InstallExceptionFilter(char *title, char *info)
 
 
 /*
-	nul•¶š‚ğ•K‚¸•t—^‚·‚é strncpy
+	nulæ–‡å­—ã‚’å¿…ãšä»˜ä¸ã™ã‚‹ strncpy
 */
-char *strncpyz(char *dest, const char *src, int num)
+char *strncpyz(char *dest, const char *src, size_t num)
 {
 	char	*sv = dest;
 
@@ -792,11 +792,11 @@ char *strncpyz(char *dest, const char *src, int num)
 }
 
 /*
-	‘å•¶š¬•¶š‚ğ–³‹‚·‚é strncmp
+	å¤§æ–‡å­—å°æ–‡å­—ã‚’ç„¡è¦–ã™ã‚‹ strncmp
 */
-int strncmpi(const char *str1, const char *str2, int num)
+int strncmpi(const char *str1, const char *str2, size_t num)
 {
-	for (int cnt=0; cnt < num; cnt++)
+	for (size_t cnt=0; cnt < num; cnt++)
 	{
 		char	c1 = toupper(str1[cnt]), c2 = toupper(str2[cnt]);
 
@@ -817,7 +817,7 @@ int strncmpi(const char *str1, const char *str2, int num)
 
 
 /*=========================================================================
-	UCS2(W) - ANSI(A) ‘ŠŒİ•ÏŠ·
+	UCS2(W) - ANSI(A) ç›¸äº’å¤‰æ›
 =========================================================================*/
 WCHAR *AtoW(const char *src, BOOL noStatic) {
 	static	WCHAR	*_wbuf = NULL;
@@ -855,6 +855,40 @@ WCHAR *wcsdupNew(const WCHAR *_s)
 }
 
 
+/* UNIX - Windows æ–‡å­—ã‚³ãƒ¼ãƒ‰å¤‰æ› */
+int LocalNewLineToUnix(const char *src, char *dest, int maxlen)
+{
+	char	*sv_dest = dest;
+	char	*max_dest = dest + maxlen - 1;
+	int		len = 0;
+
+	while (*src && dest < max_dest) {
+		if ((*dest = *src++) != '\r') dest++;
+	}
+	*dest = 0;
+
+	return	int(dest - sv_dest);
+}
+
+int UnixNewLineToLocal(const char *src, char *dest, int maxlen)
+{
+	char	*sv_dest = dest;
+	char	*max_dest = dest + maxlen - 1;
+
+	while (*src && dest < max_dest) {
+		if ((*dest = *src++) == '\n' && dest + 1 < max_dest) {
+			*dest++ = '\r';
+			*dest++ = '\n';
+		}
+		else dest++;
+	}
+	*dest = 0;
+
+	return	int(dest - sv_dest);
+}
+
+
+/* Win64æ¤œå‡º */
 BOOL TIsWow64()
 {
 	static BOOL	once = FALSE;
@@ -1103,8 +1137,8 @@ void TSwitchToThisWindow(HWND hWnd, BOOL flg)
 }
 
 /*
-	ƒŠƒ“ƒN
-	‚ ‚ç‚©‚¶‚ßACoInitialize(NULL); ‚ğÀs‚µ‚Ä‚¨‚­‚±‚Æ
+	ãƒªãƒ³ã‚¯
+	ã‚ã‚‰ã‹ã˜ã‚ã€CoInitialize(NULL); ã‚’å®Ÿè¡Œã—ã¦ãŠãã“ã¨
 	src  ... old_path
 	dest ... new_path
 */
@@ -1141,7 +1175,7 @@ BOOL SymLinkV(void *src, void *dest, void *arg)
 
 BOOL ReadLinkV(void *src, void *dest, void *arg)
 {
-	IShellLink		*shellLink;		// ÀÛ‚Í IShellLinkA or IShellLinkW
+	IShellLink		*shellLink;		// å®Ÿéš›ã¯ IShellLinkA or IShellLinkW
 	IPersistFile	*persistFile;
 	WCHAR			wbuf[MAX_PATH];
 	BOOL			ret = FALSE;
@@ -1169,7 +1203,7 @@ BOOL ReadLinkV(void *src, void *dest, void *arg)
 }
 
 /*
-	ƒŠƒ“ƒNƒtƒ@ƒCƒ‹íœ
+	ãƒªãƒ³ã‚¯ãƒ•ã‚¡ã‚¤ãƒ«å‰Šé™¤
 */
 BOOL DeleteLinkV(void *path)
 {
@@ -1185,7 +1219,7 @@ BOOL DeleteLinkV(void *path)
 }
 
 /*
-	eƒfƒBƒŒƒNƒgƒŠæ“¾i•K‚¸ƒtƒ‹ƒpƒX‚Å‚ ‚é‚±‚ÆBUNC‘Î‰j
+	è¦ªãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªå–å¾—ï¼ˆå¿…ãšãƒ•ãƒ«ãƒ‘ã‚¹ã§ã‚ã‚‹ã“ã¨ã€‚UNCå¯¾å¿œï¼‰
 */
 BOOL GetParentDirV(const void *srcfile, void *dir)
 {
@@ -1197,7 +1231,7 @@ BOOL GetParentDirV(const void *srcfile, void *dir)
 	if (((char *)fname - (char *)path) > 3 * CHAR_LEN_V || GetChar(path, 1) != ':')
 		SetChar(fname, -1, 0);
 	else
-		SetChar(fname, 0, 0);		// C:\ ‚Ìê‡
+		SetChar(fname, 0, 0);		// C:\ ã®å ´åˆ
 
 	strcpyV(dir, path);
 	return	TRUE;
@@ -1205,8 +1239,8 @@ BOOL GetParentDirV(const void *srcfile, void *dir)
 
 
 
-// HtmlHelp WorkShop ‚ğƒCƒ“ƒXƒg[ƒ‹‚µ‚ÄAhtmlhelp.h ‚ğ include path ‚É
-// “ü‚ê‚é‚±‚ÆB
+// HtmlHelp WorkShop ã‚’ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã—ã¦ã€htmlhelp.h ã‚’ include path ã«
+// å…¥ã‚Œã‚‹ã“ã¨ã€‚
 #define ENABLE_HTML_HELP
 #if defined(ENABLE_HTML_HELP)
 #include <htmlhelp.h>

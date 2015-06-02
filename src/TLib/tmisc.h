@@ -1,4 +1,4 @@
-/* @(#)Copyright (C) 1996-2011 H.Shirouzu		tlib.h	Ver0.99 */
+ï»¿/* @(#)Copyright (C) 1996-2011 H.Shirouzu		tlib.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
@@ -88,7 +88,7 @@ public:
 	void Lock(void)		{ ::EnterCriticalSection(&cs); }
 	void UnLock(void)	{ ::LeaveCriticalSection(&cs); }
 
-	// ƒƒbƒN‚ğæ“¾‚µ‚Ä‚©‚ç—˜—p‚·‚é‚±‚Æ
+	// ãƒ­ãƒƒã‚¯ã‚’å–å¾—ã—ã¦ã‹ã‚‰åˆ©ç”¨ã™ã‚‹ã“ã¨
 	int  WaitThreads()	{ return waitCnt; }
 	int  IsWait()		{ return waitCnt ? TRUE : FALSE; }
 	void DetachThread() { max_threads--; }
@@ -116,7 +116,9 @@ public:
 	BOOL	LockBuf();
 	void	FreeBuf();
 	BOOL	Grow(int grow_size);
+	operator BYTE *() { return buf; }
 	BYTE	*Buf() { return	buf; }
+	WCHAR	*WBuf() { return (WCHAR *)buf; }
 	int		Size() { return size; }
 	int		MaxSize() { return maxSize; }
 	int		UsedSize() { return usedSize; }
@@ -159,8 +161,11 @@ void rev_order(const BYTE *src, BYTE *dst, int size);
 char *strdupNew(const char *_s);
 WCHAR *wcsdupNew(const WCHAR *_s);
 
-int strncmpi(const char *str1, const char *str2, int num);
-char *strncpyz(char *dest, const char *src, int num);
+int strncmpi(const char *str1, const char *str2, size_t num);
+char *strncpyz(char *dest, const char *src, size_t num);
+
+int LocalNewLineToUnix(const char *src, char *dest, int maxlen);
+int UnixNewLineToLocal(const char *src, char *dest, int maxlen);
 
 BOOL TIsWow64();
 BOOL TRegEnableReflectionKey(HKEY hBase);

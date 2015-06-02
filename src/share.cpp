@@ -1,4 +1,4 @@
-static char *share_id = 
+ï»¿static char *share_id = 
 	"@(#)Copyright (C) H.Shirouzu 2002-2011   share.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -16,11 +16,11 @@ static char *share_id =
 #define BIG_ALLOC 100
 
 /*
-	ŒöŠJƒtƒ@ƒCƒ‹ŠÇ—
+	å…¬é–‹ãƒ•ã‚¡ã‚¤ãƒ«ç®¡ç†
 */
 ShareMng::ShareMng(Cfg *_cfg)
 {
-	top = (ShareInfo *)&_top;	// ”Ô•º
+	top = (ShareInfo *)&_top;	// ç•ªå…µ
 	top->prior = top->next = top;
 	cfg = _cfg;
 	statDlg = NULL;
@@ -253,7 +253,7 @@ BOOL ShareMng::GetShareCntInfo(ShareCntInfo *cntInfo, ShareInfo *shareInfo)
 
 BOOL ShareMng::GetAcceptableFileInfo(ConnectInfo *info, char *buf, AcceptFileInfo *fileInfo)
 {
-	// –{“–‚Í‚±‚ñ‚È‚Æ‚±‚ë‚ÅƒfƒR[ƒh‚¹‚¸Amsgmng ‚É‚â‚ç‚¹‚é‚×‚«‚¾‚ª...
+	// æœ¬å½“ã¯ã“ã‚“ãªã¨ã“ã‚ã§ãƒ‡ã‚³ãƒ¼ãƒ‰ã›ãšã€msgmng ã«ã‚„ã‚‰ã›ã‚‹ã¹ãã ãŒ...
 	char		*tok, *p, *user_name, *host_name;
 	int			targetID;
 	ShareInfo	*shareInfo;
@@ -324,8 +324,8 @@ BOOL ShareMng::GetAcceptableFileInfo(ConnectInfo *info, char *buf, AcceptFileInf
 		{
 			fileInfo->fileInfo = shareInfo->fileInfo[file_cnt];
 			if (shareInfo->transStat[shareInfo->fileCnt * host_cnt + file_cnt] != TRANS_INIT)
-				return	FALSE;	// download Ï‚İior Å’†j
-			if (GET_MODE(fileInfo->command) != IPMSG_GETDIRFILES && GET_MODE(fileInfo->fileInfo->Attr()) == IPMSG_FILE_DIR)		// dir ‚É‘Î‚µ‚Ä IPMSG_GETDIRFILES ˆÈŠO‚Í”F‚ß‚È‚¢
+				return	FALSE;	// download æ¸ˆã¿ï¼ˆor æœ€ä¸­ï¼‰
+			if (GET_MODE(fileInfo->command) != IPMSG_GETDIRFILES && GET_MODE(fileInfo->fileInfo->Attr()) == IPMSG_FILE_DIR)		// dir ã«å¯¾ã—ã¦ IPMSG_GETDIRFILES ä»¥å¤–ã¯èªã‚ãªã„
 				return	FALSE;
 			fileInfo->attachTime = shareInfo->attachTime;
 			shareInfo->transStat[shareInfo->fileCnt * host_cnt + file_cnt] = TRANS_BUSY;
@@ -502,7 +502,7 @@ BOOL TShareDlg::FileAddDlg(TDlg *dlg, ShareMng *shareMng, ShareInfo *shareInfo, 
 
 	cfg->WriteRegistry(CFG_GENERAL);
 
-	int		dirlen = strlen(cfg->lastOpenDir);
+	int		dirlen = (int)strlen(cfg->lastOpenDir);
 	if (buf[dirlen])
 		return	shareMng->AddFileShare(shareInfo, buf);
 
@@ -592,7 +592,7 @@ BOOL TShareStatDlg::SetAllList(void)
 		for (j=0; j < info->fileCnt && len < sizeof(buf); j++) {
 			ForcePathToFname(info->fileInfo[j]->Fname(), buf + len);
 			strcat(buf + len, " ");
-			len += strlen(buf + len);
+			len += (int)strlen(buf + len);
 			if (len + MAX_PATH_U8 >= sizeof(buf)) break;
 		}
 		shareListView.SetSubItem(i, 1, buf);
@@ -689,7 +689,7 @@ BOOL GetParentDir(const char *srcfile, char *dir)
 	if (fname - path > 3 || path[1] != ':')
 		*(fname - 1) = 0;
 	else
-		*fname = 0;		// C:\ ‚Ìê‡
+		*fname = 0;		// C:\ ã®å ´åˆ
 
 	strcpy(dir, path);
 	return	TRUE;
@@ -702,7 +702,7 @@ int TSaveCommonDlg::Exec(void)
 
 	char	fname[MAX_BUF], last_dir[MAX_BUF], buf[MAX_BUF], *ext;
 
-	// ÅI•Û‘¶ƒfƒBƒŒƒNƒgƒŠ‚ª–³‚­‚È‚Á‚Ä‚¢‚éê‡A­‚µ‚³‚©‚Ì‚Ú‚é
+	// æœ€çµ‚ä¿å­˜ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªãŒç„¡ããªã£ã¦ã„ã‚‹å ´åˆã€å°‘ã—ã•ã‹ã®ã¼ã‚‹
 	for (int i=0; i < 5; i++) {
 		if (*cfg->lastSaveDir && GetFileAttributesU8(cfg->lastSaveDir) == 0xffffffff)
 			if (!PathToDir(cfg->lastSaveDir, cfg->lastSaveDir))
@@ -716,7 +716,7 @@ int TSaveCommonDlg::Exec(void)
 
 		MakePath(fname, last_dir, fileInfo->Fname());
 
-	// ƒtƒ@ƒCƒ‹ƒ_ƒCƒAƒƒO
+	// ãƒ•ã‚¡ã‚¤ãƒ«ãƒ€ã‚¤ã‚¢ãƒ­ã‚°
 		TApp::GetApp()->AddWin(this);
 		BOOL	ret = OpenFileDlg(parentWin, OpenFileDlg::NODEREF_SAVE, (LPOFNHOOKPROC)TApp::WinProc).Exec(fname, GetLoadStrU8(IDS_SAVEFILE), GetLoadStrAsFilterU8(IDS_OPENFILEALLFLTR), last_dir);
 		TApp::GetApp()->DelWin(this);
@@ -725,7 +725,7 @@ int TSaveCommonDlg::Exec(void)
 		if (!ret)
 			return	FALSE;
 
-	// shortcut ‚Ìê‡‚ÍAƒŠƒ“ƒNæ‚É”ò‚Ô
+	// shortcut ã®å ´åˆã¯ã€ãƒªãƒ³ã‚¯å…ˆã«é£›ã¶
 		if (!isLinkFile && (ext = strrchr(fname, '.')) && stricmp(ext, ".lnk") == 0) {
 			char	arg[MAX_BUF];
 			if (ReadLinkU8(fname, last_dir, arg)) {
@@ -741,7 +741,7 @@ int TSaveCommonDlg::Exec(void)
 		ForcePathToFname(fname, fname);
 		fileInfo->SetSelected(TRUE);
 
-	// ã‘‚«Šm”F
+	// ä¸Šæ›¸ãç¢ºèª
 		for (int i=0; i < shareInfo->fileCnt; i++)
 		{
 			if (!shareInfo->fileInfo[i]->IsSelected())
@@ -784,7 +784,7 @@ BOOL TSaveCommonDlg::EvCreate(LPARAM lParam)
 	int	ok_xsize = ok_rect.right - ok_rect.left;
 	int	ok_ysize = ok_rect.bottom - ok_rect.top;
 
-// ƒ{ƒ^ƒ“‚‚³‚Ì2”{•ªL‚°‚é
+// ãƒœã‚¿ãƒ³é«˜ã•ã®2å€åˆ†åºƒã’ã‚‹
 	SetWindowLong(GWL_STYLE, GetWindowLong(GWL_STYLE)|WS_CLIPSIBLINGS);
 	::GetClientRect(pWnd, &cl_rect);
 	GetWindowRect(&rect);
@@ -882,7 +882,7 @@ BOOL TSaveCommonDlg::SetInfo(void)
 
 
 /*
-	ƒtƒ@ƒCƒ‹‹¤—Li“Y•tjî•ñ‚ğƒGƒ“ƒR[ƒh
+	ãƒ•ã‚¡ã‚¤ãƒ«å…±æœ‰ï¼ˆæ·»ä»˜ï¼‰æƒ…å ±ã‚’ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‰
 */
 BOOL EncodeShareMsg(ShareInfo *info, char *buf, int bufsize, BOOL incMem)
 {
@@ -891,7 +891,7 @@ BOOL EncodeShareMsg(ShareInfo *info, char *buf, int bufsize, BOOL incMem)
 	int		id_base = 0;
 
 	TGenRandom(&id_base, sizeof(id_base));
-	id_base &= 0x3fffffff; // •‰”‚É‚È‚é‚Ì‚ğ–h‚®
+	id_base &= 0x3fffffff; // è² æ•°ã«ãªã‚‹ã®ã‚’é˜²ã
 
 	*buf = 0;
 	for (int i=0; i < info->fileCnt; i++)
@@ -916,8 +916,8 @@ BOOL EncodeShareMsg(ShareInfo *info, char *buf, int bufsize, BOOL incMem)
 }
 
 /*
-	ƒtƒ@ƒCƒ‹–¼‚É ':' ‚ğŠÜ‚Şê‡A"::" ‚ÆƒGƒXƒP[ƒv‚³‚ê‚Ä‚¢‚é‚ªA
-	Windows ‚Å‚Íg‚¦‚È‚¢‚Ì‚ÅA';' ‚É’u‚«Š·‚¦‚é
+	ãƒ•ã‚¡ã‚¤ãƒ«åã« ':' ã‚’å«ã‚€å ´åˆã€"::" ã¨ã‚¨ã‚¹ã‚±ãƒ¼ãƒ—ã•ã‚Œã¦ã„ã‚‹ãŒã€
+	Windows ã§ã¯ä½¿ãˆãªã„ã®ã§ã€';' ã«ç½®ãæ›ãˆã‚‹
 */
 void ConvertShareMsgEscape(char *str)
 {
@@ -930,8 +930,8 @@ void ConvertShareMsgEscape(char *str)
 }
 
 /*
-	ƒtƒ@ƒCƒ‹‹¤—Li“Y•tjî•ñ‚ğƒfƒR[ƒh
-	’ˆÓF”j‰ó“Ço‚µBg—p‚ªI‚í‚èŸ‘æ FreeDecodeShareMsg ‚ğŒÄ‚Ño‚·‚±‚ÆB
+	ãƒ•ã‚¡ã‚¤ãƒ«å…±æœ‰ï¼ˆæ·»ä»˜ï¼‰æƒ…å ±ã‚’ãƒ‡ã‚³ãƒ¼ãƒ‰
+	æ³¨æ„ï¼šç ´å£Šèª­å‡ºã—ã€‚ä½¿ç”¨ãŒçµ‚ã‚ã‚Šæ¬¡ç¬¬ FreeDecodeShareMsg ã‚’å‘¼ã³å‡ºã™ã“ã¨ã€‚
 */
 ShareInfo *DecodeShareMsg(char *buf, BOOL enable_clip)
 {
@@ -949,7 +949,7 @@ ShareInfo *DecodeShareMsg(char *buf, BOOL enable_clip)
 
 		if ((tok = separate_token(NULL, ':', &p2)) == NULL || strlen(tok) >= MAX_FILENAME)
 			break;
-		while ((p3 = strchr(tok, '?')))	// UNICODE ‘Î‰‚Ü‚Å‚Ìb’è
+		while ((p3 = strchr(tok, '?')))	// UNICODE å¯¾å¿œã¾ã§ã®æš«å®š
 			*p3 = '_';
 		if (!IsValidFileName(tok))
 			break;
@@ -994,7 +994,7 @@ ShareInfo *DecodeShareMsg(char *buf, BOOL enable_clip)
 		shareInfo->fileInfo[shareInfo->fileCnt++] = fileInfo;
 		fileInfo = NULL;
 	}
-	if (fileInfo)	// ƒfƒR[ƒh’†‚É”²‚¯‚½
+	if (fileInfo)	// ãƒ‡ã‚³ãƒ¼ãƒ‰ä¸­ã«æŠœã‘ãŸ
 		delete fileInfo;
 
 	if (shareInfo->fileCnt <= 0)
@@ -1006,7 +1006,7 @@ ShareInfo *DecodeShareMsg(char *buf, BOOL enable_clip)
 }
 
 /*
-	ƒfƒR[ƒhî•ñ‚ÌŠJ•ú
+	ãƒ‡ã‚³ãƒ¼ãƒ‰æƒ…å ±ã®é–‹æ”¾
 */
 BOOL FreeDecodeShareMsg(ShareInfo *info)
 {
@@ -1018,7 +1018,7 @@ BOOL FreeDecodeShareMsg(ShareInfo *info)
 }
 
 /*
-	ƒfƒR[ƒhî•ñ“à‚Ìƒtƒ@ƒCƒ‹î•ñíœ
+	ãƒ‡ã‚³ãƒ¼ãƒ‰æƒ…å ±å†…ã®ãƒ•ã‚¡ã‚¤ãƒ«æƒ…å ±å‰Šé™¤
 */
 BOOL FreeDecodeShareMsgFile(ShareInfo *info, int index)
 {

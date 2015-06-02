@@ -1,4 +1,4 @@
-static char *cfg_id = 
+Ôªøstatic char *cfg_id = 
 	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -23,10 +23,10 @@ static char *cfg_id =
 #define IPMSG_DEFAULT_FINDMAX		12
 #define IPMSG_DEFAULT_DELAY			500
 #define IPMSG_DEFAULT_UPDATETIME	10
-#define IPMSG_DEFAULT_KEEPHOSTTIME	(3600 * 24 * 180)	// 180ì˙ä‘
+#define IPMSG_DEFAULT_KEEPHOSTTIME	(3600 * 24 * 180)	// 180Êó•Èñì
 #define IPMSG_DEFAULT_QUOTE			">"
 #define IPMSG_DEFAULT_ENCRYPTNUM	50
-#define IPMSG_DEFAULT_CLIPMODE		7
+#define IPMSG_DEFAULT_CLIPMODE		(CLIP_ENABLE|CLIP_SAVE|CLIP_CONFIRM_NORMAL)
 #define IPMSG_DEFAULT_CLIPMAX		10
 #define IPMSG_DEFAULT_LRUUSERMAX	10
 #define IPMSG_DEFAULT_OPENMSGTIME	3000
@@ -417,6 +417,7 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(RESOLVEOPT_STR, &ResolveOpt);
 	reg.GetInt(ENCRYPTNUM_STR, &EncryptNum);
 	reg.GetInt(CLIPMODE_STR, &ClipMode);
+	ClipMode |= CLIP_ENABLE;
 	reg.GetInt(CLIPMAX_STR, &ClipMax);
 	reg.GetInt(CAPTUREDELAY_STR, &CaptureDelay);
 	reg.GetInt(CAPTUREDELAYEX_STR, &CaptureDelayEx);
@@ -429,16 +430,16 @@ BOOL Cfg::ReadRegistry(void)
 
 // for File Transfer
 	reg.GetInt(VIEWMAX_STR, &ViewMax);
-	if (ViewMax < 1024 * 1024)	// 1MB à»â∫ÇÃ MapFileOfView ÇÕîFÇﬂÇ»Ç¢
+	if (ViewMax < 1024 * 1024)	// 1MB ‰ª•‰∏ã„ÅÆ MapFileOfView „ÅØË™ç„ÇÅ„Å™„ÅÑ
 		ViewMax = IPMSG_DEFAULT_VIEWMAX;
 	reg.GetInt(TRANSMAX_STR, &TransMax);
-	if (TransMax < 8 * 1024)	// 8KB à»â∫ÇÃ file transfer buf ÇÕîFÇﬂÇ»Ç¢
+	if (TransMax < 8 * 1024)	// 8KB ‰ª•‰∏ã„ÅÆ file transfer buf „ÅØË™ç„ÇÅ„Å™„ÅÑ
 		TransMax = IPMSG_DEFAULT_TRANSMAX;
 	reg.GetInt(TCPBUFMAX_STR, &TcpbufMax);
-	if (TcpbufMax < 8 * 1024)	// 8KB à»â∫ÇÃ sockbuf ÇÕîFÇﬂÇ»Ç¢
+	if (TcpbufMax < 8 * 1024)	// 8KB ‰ª•‰∏ã„ÅÆ sockbuf „ÅØË™ç„ÇÅ„Å™„ÅÑ
 		TcpbufMax = IPMSG_DEFAULT_TCPBUFMAX;
 	reg.GetInt(IOBUFMAX_STR, &IoBufMax);
-	if (IoBufMax < TransMax)	// transmax à»â∫ÇÃ IO/Buf ÇÕîFÇﬂÇ»Ç¢
+	if (IoBufMax < TransMax)	// transmax ‰ª•‰∏ã„ÅÆ IO/Buf „ÅØË™ç„ÇÅ„Å™„ÅÑ
 		IoBufMax = TransMax;
 
 	reg.GetInt(LUMPCHECK_STR, &LumpCheck);
@@ -698,7 +699,7 @@ BOOL Cfg::ReadRegistry(void)
 	{
 		int		i = 0, priority = DEFAULT_PRIORITY;
 		Host	*host;
-		Time_t	default_time = Time() - KeepHostTime / 2;	// 90 ì˙
+		Time_t	default_time = Time() - KeepHostTime / 2;	// 90 Êó•
 		BOOL	rewriteFlg = FALSE;
 
 		priorityHosts.Enable(THosts::NAME, TRUE);
@@ -732,7 +733,7 @@ BOOL Cfg::ReadRegistry(void)
 				}
 				if (pubkeySize) {
 					host->pubKey.UnSerialize(pubkey, pubkeySize);
-// å√Ç¢ÉGÉìÉgÉäÇçÌèúÇ…Ç∑ÇÈèàóùÇÕÅAàÍíUÅAóléqå©
+// Âè§„ÅÑ„Ç®„É≥„Éà„É™„ÇíÂâäÈô§„Å´„Åô„ÇãÂá¶ÁêÜ„ÅØ„ÄÅ‰∏ÄÊó¶„ÄÅÊßòÂ≠êË¶ã
 //					char	*p = (char *)GetUserNameDigestField(host->hostSub.userName);
 //					if (p) {
 //						*p = 0;
@@ -778,7 +779,7 @@ BOOL Cfg::ReadRegistry(void)
 		}
 	}
 
-	if (reg.OpenKey(DEBUG_STR))	// ãåÉoÅ[ÉWÉáÉìÉåÉWÉXÉgÉäçÌèú
+	if (reg.OpenKey(DEBUG_STR))	// Êóß„Éê„Éº„Ç∏„Éß„É≥„É¨„Ç∏„Çπ„Éà„É™ÂâäÈô§
 	{
 		reg.CloseKey();
 		reg.DeleteChildTree();

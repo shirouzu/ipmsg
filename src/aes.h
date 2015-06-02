@@ -1,4 +1,4 @@
-/* append by H.Shirouzu */
+﻿/* append by H.Shirouzu */
 
 #ifndef AES_H
 #define AES_H

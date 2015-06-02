@@ -1,4 +1,4 @@
-static char *tini_id = 
+﻿static char *tini_id = 
 	"@(#)Copyright (C) 1996-2010 H.Shirouzu		tini.cpp	Ver0.97";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test

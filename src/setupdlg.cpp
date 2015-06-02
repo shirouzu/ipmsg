@@ -1,4 +1,4 @@
-static char *setupdlg_id = 
+ï»¿static char *setupdlg_id = 
 	"@(#)Copyright (C) H.Shirouzu 1996-2011   setupdlg.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -15,7 +15,7 @@ static char *setupdlg_id =
 #include "plugin.h"
 
 /*
-	Setup—pSheet
+	Setupç”¨Sheet
 */
 BOOL TSetupSheet::Create(int _resId, Cfg *_cfg, THosts *_hosts, TWin *_parent)
 {
@@ -197,8 +197,16 @@ BOOL TSetupSheet::SetData()
 		SetDlgItemTextU8(SOUND_EDIT, cfg->SoundFile);
 	}
 	else if (resId == IMAGE_SHEET) {
-		CheckDlgButton(CLIPMODE_CHECK, (cfg->ClipMode & CLIP_ENABLE));
-		CheckDlgButton(CLIPCONFIRM_CHECK, (cfg->ClipMode & CLIP_CONFIRM) ? 1 : 0);
+//		CheckDlgButton(CLIPMODE_CHECK, (cfg->ClipMode & CLIP_ENABLE));
+
+		SendDlgItemMessage(CLIPCONFIRM_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_CLIPALWAYS));
+		SendDlgItemMessage(CLIPCONFIRM_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_CLIPNORMAL));
+		SendDlgItemMessage(CLIPCONFIRM_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_CLIPSTRICT));
+
+		int idx =   (cfg->ClipMode & CLIP_CONFIRM_STRICT) ? 2 :
+					(cfg->ClipMode & CLIP_CONFIRM_NORMAL) ? 1 : 0;
+		SendDlgItemMessage(CLIPCONFIRM_COMBO, CB_SETCURSEL, idx, 0);
+
 		CheckDlgButton(MINIMIZE_CHECK, cfg->CaptureMinimize);
 		CheckDlgButton(CLIPBORAD_CHECK, cfg->CaptureClip);
 		CheckDlgButton(SAVE_CHECK, cfg->CaptureSave);
@@ -313,15 +321,15 @@ BOOL TSetupSheet::GetData()
 		GetDlgItemTextU8(SOUND_EDIT, cfg->SoundFile, sizeof(cfg->SoundFile));
 	}
 	else if (resId == IMAGE_SHEET) {
-		if (IsDlgButtonChecked(CLIPMODE_CHECK)) {
-			cfg->ClipMode |=  CLIP_ENABLE;
-		} else {
-			cfg->ClipMode &= ~CLIP_ENABLE;
-		}
-		if (IsDlgButtonChecked(CLIPCONFIRM_CHECK)) {
-			cfg->ClipMode |=  CLIP_CONFIRM;
-		} else {
-			cfg->ClipMode &= ~CLIP_CONFIRM;
+//		if (IsDlgButtonChecked(CLIPMODE_CHECK)) {
+//			cfg->ClipMode |=  CLIP_ENABLE;
+//		} else {
+//			cfg->ClipMode &= ~CLIP_ENABLE;
+//		}
+		cfg->ClipMode &= ~CLIP_CONFIRM_ALL;
+		switch ((int)SendDlgItemMessage(CLIPCONFIRM_COMBO, CB_GETCURSEL, 0, 0)) {
+		case 1: cfg->ClipMode |= CLIP_CONFIRM_NORMAL; break;
+		case 2: cfg->ClipMode |= CLIP_CONFIRM_STRICT; break;
 		}
 		cfg->CaptureMinimize = IsDlgButtonChecked(MINIMIZE_CHECK);
 		cfg->CaptureClip = IsDlgButtonChecked(CLIPBORAD_CHECK);
@@ -498,7 +506,7 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 }
 
 /*
-	Setup Dialog‰Šú‰»ˆ—
+	Setup DialogåˆæœŸåŒ–å‡¦ç†
 */
 TSetupDlg::TSetupDlg(Cfg *_cfg, THosts *_hosts, TWin *_parent) : TDlg(SETUP_DIALOG, _parent)
 {
@@ -508,7 +516,7 @@ TSetupDlg::TSetupDlg(Cfg *_cfg, THosts *_hosts, TWin *_parent) : TDlg(SETUP_DIAL
 }
 
 /*
-	Window ¶¬‚Ì CallBack
+	Window ç”Ÿæˆæ™‚ã® CallBack
 */
 BOOL TSetupDlg::EvCreate(LPARAM lParam)
 {

@@ -1,4 +1,4 @@
-static char *plugin_id = 
+﻿static char *plugin_id = 
 	"@(#)Copyright (C) H.Shirouzu 1996-2001   plugin.cpp	Ver1.47";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32

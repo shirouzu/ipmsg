@@ -1,4 +1,4 @@
-/*	@(#)Copyright (C) H.Shirouzu 2011   ipmsgcmn.h	Ver3.31 */
+ï»¿/*	@(#)Copyright (C) H.Shirouzu 2011   ipmsgcmn.h	Ver3.31 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Common Header
@@ -125,7 +125,9 @@ typedef long	Time_t;		// size of time_t is 64bit in VS2005 or later
 
 #define CLIP_ENABLE			0x1
 #define CLIP_SAVE			0x2
-#define CLIP_CONFIRM		0x4
+#define CLIP_CONFIRM_NORMAL	0x4
+#define CLIP_CONFIRM_STRICT	0x8
+#define CLIP_CONFIRM_ALL	(CLIP_CONFIRM_NORMAL|CLIP_CONFIRM_STRICT)
 
 class PubKey {
 protected:
@@ -138,7 +140,7 @@ public:
 	PubKey(void) { key = NULL; keyLen = 0; e = 0; capa = 0; }
 	~PubKey() { UnSet(); }
 
-	// ‘ã“ü‘Î‰ž
+	// ä»£å…¥å¯¾å¿œ
 	PubKey(const PubKey& o) { PubKey(); *this = o; }
 	PubKey &operator=(const PubKey &o) {
 		Set(o.key, o.keyLen, o.e, o.capa);
@@ -506,7 +508,7 @@ struct MsgBuf {
 		*packetNoStr = 0;
 	}
 
-	// ƒƒ‚ƒŠƒRƒs[ß–ñ‚Ì‚½‚ßB
+	// ãƒ¡ãƒ¢ãƒªã‚³ãƒ”ãƒ¼ç¯€ç´„ã®ãŸã‚ã€‚
 	void	Init(MsgBuf *org) {
 		if (org == NULL) {
 			memset(this, 0, (char *)&this->msgBuf - (char *)this);
@@ -538,8 +540,10 @@ struct DynBuf {
 		if ((size = _size) <= 0) return NULL;
 		return	(buf = (char *)malloc(size));
 	}
-	char 	*Buf()		{ return buf; }
-	WCHAR	*Wbuf()		{ return (WCHAR *)buf; }
+	operator char*()	{ return (char *)buf; }
+	operator BYTE*()	{ return (BYTE *)buf; }
+	operator WCHAR*()	{ return (WCHAR *)buf; }
+	operator void*()	{ return (void *)buf; }
 	int		Size()		{ return size; }
 };
 
@@ -619,9 +623,6 @@ public:
 	BOOL	Connect(HWND hWnd, ConnectInfo *info);
 	BOOL	AsyncSelectConnect(HWND hWnd, ConnectInfo *info);
 	BOOL	ConnectDone(HWND hWnd, ConnectInfo *info);
-
-	static int LocalNewLineToUnix(const char *src, char *dest, int maxlen);
-	static int UnixNewLineToLocal(const char *src, char *dest, int maxlen);
 };
 
 class TAbsenceDlg : public TDlg {
@@ -920,7 +921,7 @@ class ShareMng {
 public:
 	enum			{ TRANS_INIT, TRANS_BUSY, TRANS_DONE };
 protected:
-	TListObj		_top;	// ”Ô•º—p
+	TListObj		_top;	// ç•ªå…µç”¨
 	ShareInfo		*top;
 	TShareStatDlg	*statDlg;
 	Cfg				*cfg;
@@ -984,7 +985,7 @@ public:
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	virtual void	EndDialog(int) {}	// –³Ž‹‚³‚¹‚é
+	virtual void	EndDialog(int) {}	// ç„¡è¦–ã•ã›ã‚‹
 };
 
 #define LOG_ENC0		0x0001
@@ -1079,10 +1080,11 @@ protected:
 	char		*shareStr;
 	char		*shareExStr;
 	char		selectGroup[MAX_NAMEBUF];
+	char		filterStr[MAX_NAMEBUF];
 
 	ULONG		packetNo;
 	int			packetLen;
-	UINT		timerID;
+	UINT_PTR	timerID;
 	UINT		retryCnt;
 
 // display
@@ -1141,6 +1143,7 @@ protected:
 	BOOL	IsSendFinish(void);
 	void	InitializeHeader(void);
 	void	GetListItemStr(Host *host, int item, char *buf);
+	BOOL	IsFilterHost(Host *host);
 
 public:
 	TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *cfg, LogMng *logmng,
@@ -1155,8 +1158,8 @@ public:
 	BOOL	IsSending(void);
 	BOOL	SendFinishNotify(HostSub *hostSub, ULONG packet_no);
 	BOOL	SendPubKeyNotify(HostSub *hostSub, BYTE *pubkey, int len, int e, int capa);
-	BOOL	FindHost(char *findStr);
-	int		FilterHost(char *findStr);
+	BOOL	SelectFilterHost(void);
+	int		FilterHost(char *filterStr);
 	void	InsertBitmapByHandle(HBITMAP hBitmap, int pos=-1) {
 				editSub.InsertBitmapByHandle(hBitmap, pos);
 			}
@@ -1253,7 +1256,7 @@ protected:
 	int			useClipBuf;
 	int			useDummyBmp;
 
-	UINT		timerID;
+	UINT_PTR	timerID;
 	UINT		retryCnt;
 	char		readMsgBuf[MAX_LISTBUF];
 	ULONG		packetNo;
@@ -1547,7 +1550,7 @@ protected:
 	UINT		entryTimerStatus;
 	UINT		reverseTimerStatus;
 	UINT		reverseCount;
-	UINT		ansTimerID;
+	UINT_PTR	ansTimerID;
 	UINT		TaskBarCreateMsg;
 	BOOL		terminateFlg;
 	BOOL		activeToggle;
@@ -1747,7 +1750,7 @@ const char *GetUserNameDigestField(const char *user);
 BOOL VerifyUserNameExtension(Cfg *cfg, MsgBuf *msg);
 BOOL IsUserNameExt(Cfg *cfg);
 
-void MakeClipFileName(int id, BOOL is_send, char *buf);
+void MakeClipFileName(int id, int pos, BOOL is_send, char *buf);
 BOOL MakeImageFolder(Cfg *, char *dir);
 BOOL SaveImageFile(Cfg *cfg, const char *target_fname, VBuf *buf);
 
@@ -1769,7 +1772,7 @@ AddrInfo *GetIPAddrs(BOOL strict, int *num);
 
 #define rRGB(r,g,b)  ((DWORD)(((BYTE)(b)|((WORD)(g) << 8))|(((DWORD)(BYTE)(r)) << 16)))
 
-// 1601”N1ŒŽ1“ú‚©‚ç1970”N1ŒŽ1“ú‚Ü‚Å‚Ì’ÊŽZ100ƒiƒm•b
+// 1601å¹´1æœˆ1æ—¥ã‹ã‚‰1970å¹´1æœˆ1æ—¥ã¾ã§ã®é€šç®—100ãƒŠãƒŽç§’
 #define UNIXTIME_BASE	((_int64)0x019db1ded53e8000)
 
 inline Time_t FileTime2UnixTime(FILETIME *ft) {

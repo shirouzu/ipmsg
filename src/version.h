@@ -1,4 +1,4 @@
-/*static char *version_id = 
+﻿/*static char *version_id = 
 	"@(#)Copyright (C) H.Shirouzu 2011   version.h	Ver3.00"; */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32

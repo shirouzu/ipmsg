@@ -1,4 +1,4 @@
-static char *tlist_id = 
+﻿static char *tlist_id = 
 	"@(#)Copyright (C) 1996-2009 H.Shirouzu		tlist.cpp	Ver0.97";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test

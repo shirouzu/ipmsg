@@ -1,4 +1,4 @@
-/*	@(#)Copyright (C) H.Shirouzu 2005   ipmsg.h	Ver2.50 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2005   ipmsg.h	Ver2.50 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Main Header

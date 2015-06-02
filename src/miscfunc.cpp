@@ -1,4 +1,4 @@
-static char *miscfunc_id = 
+ï»¿static char *miscfunc_id = 
 	"@(#)Copyright (C) H.Shirouzu 2011   miscfunc.cpp	Ver3.31";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -14,7 +14,7 @@ static char *miscfunc_id =
 #include "blowfish.h"
 
 /*
-	URLŒŸõƒ‹[ƒ`ƒ“
+	URLæ¤œç´¢ãƒ«ãƒ¼ãƒãƒ³
 */
 UrlObj *SearchUrlObj(TList *list, char *protocol)
 {
@@ -26,7 +26,7 @@ UrlObj *SearchUrlObj(TList *list, char *protocol)
 }
 
 /*
-	ƒ_ƒCƒAƒƒO—pƒAƒCƒRƒ“İ’è
+	ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ç”¨ã‚¢ã‚¤ã‚³ãƒ³è¨­å®š
 */
 void SetDlgIcon(HWND hWnd)
 {
@@ -40,7 +40,7 @@ void SetDlgIcon(HWND hWnd)
 }
 
 /*
-	ƒƒO‹L˜^/ƒEƒBƒ“ƒhƒE•\¦—p‚Ì HostEntry•\¦•¶š—ñ
+	ãƒ­ã‚°è¨˜éŒ²/ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦è¡¨ç¤ºç”¨ã® HostEntryè¡¨ç¤ºæ–‡å­—åˆ—
 */
 void MakeListString(Cfg *cfg, HostSub *hostSub, THosts *hosts, char *buf, BOOL is_log)
 {
@@ -60,7 +60,7 @@ void MakeListString(Cfg *cfg, HostSub *hostSub, THosts *hosts, char *buf, BOOL i
 }
 
 /*
-	ƒƒO‹L˜^/ƒEƒBƒ“ƒhƒE•\¦—p‚Ì HostEntry•\¦•¶š—ñ
+	ãƒ­ã‚°è¨˜éŒ²/ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦è¡¨ç¤ºç”¨ã® HostEntryè¡¨ç¤ºæ–‡å­—åˆ—
 */
 void MakeListString(Cfg *cfg, Host *host, char *buf, BOOL is_log)
 {
@@ -81,7 +81,7 @@ void MakeListString(Cfg *cfg, Host *host, char *buf, BOOL is_log)
 }
 
 /*
-	IME §Œä
+	IME åˆ¶å¾¡
 */
 BOOL SetImeOpenStatus(HWND hWnd, BOOL flg)
 {
@@ -112,7 +112,7 @@ BOOL GetImeOpenStatus(HWND hWnd)
 }
 
 /*
-	ƒzƒbƒgƒL[İ’è
+	ãƒ›ãƒƒãƒˆã‚­ãƒ¼è¨­å®š
 */
 BOOL SetHotKey(Cfg *cfg)
 {
@@ -147,7 +147,7 @@ void MakePassword(const char *inputPasswd, char *outputPasswd)
 }
 
 /*
-	Host1 ‚Æ Host2 ‚ª“¯ˆê‚©‚Ç‚¤‚©‚ğ”äŠr
+	Host1 ã¨ Host2 ãŒåŒä¸€ã‹ã©ã†ã‹ã‚’æ¯”è¼ƒ
 */
 BOOL IsSameHost(HostSub *hostSub1, HostSub *hostSub2)
 {
@@ -239,7 +239,7 @@ BOOL THosts::AddHost(Host *host)
 {
 	int		insertIndex[MAX_ARRAY], kind;
 
-// ‚·‚×‚Ä‚ÌƒCƒ“ƒfƒbƒNƒXí—Ş‚Å‚ÌŠm”F‚ğæ‚És‚¤
+// ã™ã¹ã¦ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ç¨®é¡ã§ã®ç¢ºèªã‚’å…ˆã«è¡Œã†
 	for (kind=0; kind < MAX_ARRAY; kind++) {
 		if (!enable[kind])
 			continue;
@@ -270,7 +270,7 @@ BOOL THosts::DelHost(Host *host)
 {
 	int		insertIndex[MAX_ARRAY], kind;
 
-// ‚·‚×‚Ä‚ÌƒCƒ“ƒfƒbƒNƒXí—Ş‚Å‚ÌŠm”F‚ğæ‚És‚¤
+// ã™ã¹ã¦ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ç¨®é¡ã§ã®ç¢ºèªã‚’å…ˆã«è¡Œã†
 	for (kind=0; kind < MAX_ARRAY; kind++) {
 		if (!enable[kind])
 			continue;
@@ -316,7 +316,7 @@ BOOL GetSockErrorMsg(char *msg, TWin *win)
 
 
 /*
-	ƒpƒX‚©‚çƒtƒ@ƒCƒ‹–¼•”•ª‚¾‚¯‚ğæ‚èo‚·
+	ãƒ‘ã‚¹ã‹ã‚‰ãƒ•ã‚¡ã‚¤ãƒ«åéƒ¨åˆ†ã ã‘ã‚’å–ã‚Šå‡ºã™
 */
 BOOL PathToFname(const char *org_path, char *target_fname)
 {
@@ -330,7 +330,7 @@ BOOL PathToFname(const char *org_path, char *target_fname)
 }
 
 /*
-	ƒpƒX‚©‚çƒtƒ@ƒCƒ‹–¼•”•ª‚¾‚¯‚ğæ‚èo‚·i‹­§“I‚É–¼‘O‚ğì‚éj
+	ãƒ‘ã‚¹ã‹ã‚‰ãƒ•ã‚¡ã‚¤ãƒ«åéƒ¨åˆ†ã ã‘ã‚’å–ã‚Šå‡ºã™ï¼ˆå¼·åˆ¶çš„ã«åå‰ã‚’ä½œã‚‹ï¼‰
 */
 void ForcePathToFname(const char *org_path, char *target_fname)
 {
@@ -347,8 +347,8 @@ void ForcePathToFname(const char *org_path, char *target_fname)
 }
 
 /*
-	2byte•¶šŒn‚Å‚à‚«‚¿‚ñ‚Æ“®ì‚³‚¹‚é‚½‚ß‚Ìƒ‹[ƒ`ƒ“
-	 (*strrchr(path, "\\")=0 ‚¾‚Æ '•\'‚È‚Ç‚Å–â‘è‚ğ‹N‚·‚½‚ß)
+	2byteæ–‡å­—ç³»ã§ã‚‚ãã¡ã‚“ã¨å‹•ä½œã•ã›ã‚‹ãŸã‚ã®ãƒ«ãƒ¼ãƒãƒ³
+	 (*strrchr(path, "\\")=0 ã ã¨ 'è¡¨'ãªã©ã§å•é¡Œã‚’èµ·ã™ãŸã‚)
 */
 BOOL PathToDir(const char *org_path, char *target_dir)
 {
@@ -360,14 +360,14 @@ BOOL PathToDir(const char *org_path, char *target_dir)
 	if (fname - path > 3 || path[1] != ':')
 		*(fname - 1) = 0;
 	else
-		*fname = 0;		// C:\ ‚Ìê‡
+		*fname = 0;		// C:\ ã®å ´åˆ
 
 	strncpyz(target_dir, path, MAX_PATH_U8);
 	return	TRUE;
 }
 
 /*
-	fname ‚Éƒtƒ@ƒCƒ‹–¼ˆÈŠO‚Ì—v‘f‚ªŠÜ‚Ü‚ê‚Ä‚¢‚È‚¢‚±‚Æ‚ğŠm‚©‚ß‚é
+	fname ã«ãƒ•ã‚¡ã‚¤ãƒ«åä»¥å¤–ã®è¦ç´ ãŒå«ã¾ã‚Œã¦ã„ãªã„ã“ã¨ã‚’ç¢ºã‹ã‚ã‚‹
 */
 BOOL IsSafePath(const char *fullpath, const char *fname)
 {
@@ -388,7 +388,7 @@ int MakePath(char *dest, const char *dir, const char *file)
 	if ((len = strlen(dir)) == 0)
 		return	wsprintf(dest, "%s", file);
 
-	if (dir[len -1] == '\\')	// •\‚È‚ÇA2byte–Ú‚ª'\\'‚ÅI‚é•¶š—ñ‘Îô
+	if (dir[len -1] == '\\')	// è¡¨ãªã©ã€2byteç›®ãŒ'\\'ã§çµ‚ã‚‹æ–‡å­—åˆ—å¯¾ç­–
 	{
 		if (len >= 2 && !IsDBCSLeadByte(dir[len -2]))
 			separetor = FALSE;
@@ -411,13 +411,13 @@ BOOL IsValidFileName(char *fname)
 
 
 /*
-	time() ‚Ì‘ã‚í‚è
+	time() ã®ä»£ã‚ã‚Š
 */
 Time_t Time(void)
 {
 	SYSTEMTIME	st;
 	_int64		ft;
-// 1601”N1Œ1“ú‚©‚ç1970”N1Œ1“ú‚Ü‚Å‚Ì’ÊZ100ƒiƒm•b
+// 1601å¹´1æœˆ1æ—¥ã‹ã‚‰1970å¹´1æœˆ1æ—¥ã¾ã§ã®é€šç®—100ãƒŠãƒç§’
 #define UNIXTIME_BASE	((_int64)0x019db1ded53e8000)
 
 	::GetSystemTime(&st);
@@ -426,8 +426,8 @@ Time_t Time(void)
 }
 
 /*
-	ctime() ‚Ì‘ã‚í‚è
-	‚½‚¾‚µA‰üs‚È‚µ
+	ctime() ã®ä»£ã‚ã‚Š
+	ãŸã ã—ã€æ”¹è¡Œãªã—
 */
 char *Ctime(SYSTEMTIME *st)
 {
@@ -446,7 +446,7 @@ char *Ctime(SYSTEMTIME *st)
 }
 
 /*
-	ƒTƒCƒY‚ğ•¶š—ñ‚É
+	ã‚µã‚¤ã‚ºã‚’æ–‡å­—åˆ—ã«
 */
 int MakeSizeString(char *buf, _int64 size, int flg)
 {
@@ -461,7 +461,7 @@ int MakeSizeString(char *buf, _int64 size, int flg)
 }
 
 /*
-	strtok_r() ‚ÌŠÈˆÕ”Å
+	strtok_r() ã®ç°¡æ˜“ç‰ˆ
 */
 char *separate_token(char *buf, char separetor, char **handle)
 {
@@ -609,12 +609,12 @@ BOOL GetCurrentScreenSize(RECT *rect, HWND hRefWnd)
 }
 
 
-#define IPMSG_CLIPBOARD_PSEUDOFILE	"ipmsgclip_%s_%d.png"
+#define IPMSG_CLIPBOARD_PSEUDOFILE	"ipmsgclip_%s_%d_%d.png"
 #define IPMSG_CLIPBOARD_STOREDIR	"ipmsg_img"
 
-void MakeClipFileName(int id, BOOL is_send, char *buf)
+void MakeClipFileName(int id, int pos, BOOL is_send, char *buf)
 {
-	sprintf(buf, IPMSG_CLIPBOARD_PSEUDOFILE, is_send ? "s" : "r", id);
+	sprintf(buf, IPMSG_CLIPBOARD_PSEUDOFILE, is_send ? "s" : "r", id, pos);
 }
 
 BOOL MakeImageFolder(Cfg *cfg, char *dir)
@@ -669,7 +669,7 @@ BOOL GenUserNameDigestVal(const BYTE *key, BYTE *digest)
 	unsigned _int64	*in3 = (unsigned _int64 *)(data + 16);
 	unsigned _int64	*out = (unsigned _int64 *)(digest);
 
-	*in3 = 0; // 160bit‚ğ’´‚¦‚é—Ìˆæ‚Í‰Šú‰»‚ª•K—v
+	*in3 = 0; // 160bitã‚’è¶…ãˆã‚‹é ˜åŸŸã¯åˆæœŸåŒ–ãŒå¿…è¦
 
 	if (!d.Init() || !d.Update((void *)key, 2048/8) || !d.GetRevVal((void *)data)) return FALSE;
 
@@ -682,7 +682,7 @@ BOOL GenUserNameDigest(char *org_name, const BYTE *key, char *new_name)
 	if (org_name != new_name) strncpyz(new_name, org_name, MAX_NAMEBUF);
 
 	BYTE	val[8];
-	int		len = strlen(new_name);
+	int		len = (int)strlen(new_name);
 
 	if (!GenUserNameDigestVal(key, val)) return	FALSE;
 

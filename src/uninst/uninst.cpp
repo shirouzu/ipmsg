@@ -280,7 +280,8 @@ BOOL RemoveSameLink(const char *dir, char *remove_path)
 	do {
 		::wsprintf(path, "%s\\%s", dir, data.cFileName);
 		if (ReadLinkU8(path, dest, arg) && *arg == 0) {
-			int		dest_len = strlen(dest), ipmsg_len = strlen(IPMSG_EXENAME);
+			int		dest_len = (int)strlen(dest);
+			int		ipmsg_len = (int)strlen(IPMSG_EXENAME);
 			if (dest_len > ipmsg_len && strncmpi(dest + dest_len - ipmsg_len, IPMSG_EXENAME, ipmsg_len) == 0) {
 				ret = DeleteFileU8(path);
 				if (remove_path)
@@ -371,13 +372,13 @@ UINT GetDriveTypeEx(const char *file)
 		return	DRIVE_REMOTE;
 
 	char	buf[MAX_PATH_U8];
-	int		len = strlen(file), len2;
+	int		len = (int)strlen(file), len2;
 
 	strcpy(buf, file);
 	do {
 		len2 = len;
 		GetParentDirU8(buf, buf);
-		len = strlen(buf);
+		len = (int)strlen(buf);
 	} while (len != len2);
 
 	return	GetDriveTypeU8(buf);

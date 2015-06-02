@@ -1,4 +1,4 @@
-static char *richedit_id = 
+ï»¿static char *richedit_id = 
 	"@(#)Copyright (C) H.Shirouzu 2011   richedit.cpp	Ver3.30";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
@@ -288,7 +288,7 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 				fe.cfFormat = CF_UNICODETEXT;
 				if (SUCCEEDED(dataObj->GetData(&fe, &sm))) {
 					WCHAR	*org_str = (WCHAR *)::GlobalLock(sm.hGlobal);
-					if (org_str) { // RichEdit ‚Í paste ‚Å––”ö‚Ì‰üs‚ªÁ‚¦‚é‚Ì‚ÅŽb’è hack
+					if (org_str) { // RichEdit ã¯ paste ã§æœ«å°¾ã®æ”¹è¡ŒãŒæ¶ˆãˆã‚‹ã®ã§æš«å®š hack
 						delay_text = wcsdup(org_str);
 						::GlobalUnlock(org_str);
 					}
@@ -309,7 +309,7 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 				if (editWnd->GetImageNum() < cfg->ClipMax) {
 					if (!hDelayBmp && SUCCEEDED(dataObj->GetData(&fe, &sm))) {
 						if (fe.cfFormat == CF_BITMAP) {
-							hDelayBmp = sm.hBitmap; // WM_DELAY_BITMAP ‚ÅŠJ•ú
+							hDelayBmp = sm.hBitmap; // WM_DELAY_BITMAP ã§é–‹æ”¾
 						} else {
 							BITMAPINFO	*bmi = (BITMAPINFO *)::GlobalLock(sm.hGlobal);
 							if (bmi) {
@@ -381,7 +381,7 @@ HRESULT TRichEditOleCallback::GetContextMenu(WORD seltype, LPOLEOBJECT pOleObj, 
 }
 
 /*
-	edit control ‚Ì subclass‰»
+	edit control ã® subclassåŒ–
 */
 TEditSub::TEditSub(Cfg *_cfg, TWin *_parent) : TSubClassCtl(_parent)
 {
@@ -413,7 +413,7 @@ BOOL TEditSub::AttachWnd(HWND _hWnd)
 	richOle = NULL;
 	SendMessage(EM_GETOLEINTERFACE, 0, (LPARAM)&richOle);
 
-	DWORD	evMask = SendMessage(EM_GETEVENTMASK, 0, 0) | ENM_LINK;
+	LRESULT	evMask = SendMessage(EM_GETEVENTMASK, 0, 0) | ENM_LINK;
 	SendMessage(EM_SETEVENTMASK, 0, evMask); 
 	dblClicked = FALSE;
 	selStart = selEnd = 0;
@@ -423,8 +423,8 @@ BOOL TEditSub::AttachWnd(HWND _hWnd)
 HMENU TEditSub::CreatePopupMenu()
 {
 	HMENU	hMenu = ::CreatePopupMenu();
-	BOOL	is_readonly = GetWindowLong(GWL_STYLE) & ES_READONLY;
-	BOOL	is_paste = SendMessage(EM_CANPASTE, 0, 0);
+	BOOL	is_readonly = BOOL(GetWindowLong(GWL_STYLE) & ES_READONLY);
+	BOOL	is_paste = BOOL(SendMessage(EM_CANPASTE, 0, 0));
 
 	AppendMenuU8(hMenu, MF_STRING|((is_readonly || !SendMessage(EM_CANUNDO, 0, 0)) ?
 				MF_DISABLED|MF_GRAYED : 0), WM_UNDO, GetLoadStrU8(IDS_UNDO));
@@ -539,7 +539,7 @@ BOOL TEditSub::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			WCHAR	*wbuf = new WCHAR[MAX_UDPBUF];
 			UrlObj	*obj = NULL;
 			BOOL	modify = FALSE;
-			WCHAR	*terminate_chars = L"\r\n\t \x3000";	// \x3000 ... ‘SŠp‹ó”’
+			WCHAR	*terminate_chars = L"\r\n\t \x3000";	// \x3000 ... å…¨è§’ç©ºç™½
 
 			int max_len = ExGetText(wbuf, MAX_UDPBUF, GT_DEFAULT, 1200);	// 1200 == UNICODE
 	//		int max_len = ::GetWindowTextW(hWnd, wbuf, MAX_UDPBUF);
@@ -620,7 +620,7 @@ BOOL TEditSub::SetFont(LOGFONT	*lf, BOOL dualFont)
 	strcpy(cf.szFaceName, lf->lfFaceName);
 	SendMessage(EM_SETCHARFORMAT, 0, (LPARAM)&cf);
 
-	DWORD	langOpts = SendMessage(EM_GETLANGOPTIONS, 0, 0);
+	LRESULT	langOpts = SendMessage(EM_GETLANGOPTIONS, 0, 0);
 	langOpts = dualFont ? (langOpts | IMF_DUALFONT) : (langOpts & ~IMF_DUALFONT);
 	SendMessage(EM_SETLANGOPTIONS, 0, langOpts);
 	return	TRUE;
@@ -635,14 +635,14 @@ int TEditSub::ExGetText(void *buf, int max_len, DWORD flags, UINT codepage)
 	ge.flags    = flags;
 	ge.codepage = codepage;
 
-	int	ret = SendMessageW(EM_GETTEXTEX, (WPARAM)&ge, (LPARAM)buf);
+	int	ret = (int)SendMessageW(EM_GETTEXTEX, (WPARAM)&ge, (LPARAM)buf);
 
 	return	ret;
 }
 
 int TEditSub::GetTextUTF8(char *buf, int max_len, BOOL force_select)
 {
-	int			max_wlen = SendMessageW(WM_GETTEXTLENGTH, 0, 0) + 1;
+	int			max_wlen = (int)SendMessageW(WM_GETTEXTLENGTH, 0, 0) + 1;
 	DynBuf		cbuf(max_len);
 	VBuf		wbuf(max_wlen * 3); // protect for EM_GETSELTEXT
 	BOOL		change_select = FALSE;
@@ -665,8 +665,8 @@ int TEditSub::GetTextUTF8(char *buf, int max_len, BOOL force_select)
 		SendMessageW(EM_EXSETSEL, 0, (LPARAM)&cr);
 	}
 
-	WtoU8((WCHAR *)wbuf.Buf(), cbuf.Buf(), max_len);
-	u_char	*s   = (u_char *)cbuf.Buf();
+	WtoU8(wbuf.WBuf(), cbuf, max_len);
+	u_char	*s   = cbuf;
 	char	*d   = buf;
 	char	*max = buf + max_len - 2;
 
@@ -685,7 +685,7 @@ int TEditSub::GetTextUTF8(char *buf, int max_len, BOOL force_select)
 //		Debug("%02x ", (unsigned char)buf[i]);
 //	Debug("\n");
 
-	return	d - buf;
+	return	int(d - buf);
 }
 
 struct RichStreamObj {
@@ -712,7 +712,7 @@ int TEditSub::GetStreamText(void *buf, int max_len, DWORD flags)
 	RichStreamObj	obj = { (BYTE *)buf, max_len, 0 };
 	EDITSTREAM		es = { (DWORD_PTR)&obj, 0, RichStreamCallback };
 
-	return	SendMessageW(EM_STREAMOUT, flags, (LPARAM)&es);
+	return	(int)SendMessageW(EM_STREAMOUT, flags, (LPARAM)&es);
 }
 
 int TEditSub::ExSetText(const void *buf, int max_len, DWORD flags, UINT codepage)
@@ -722,7 +722,7 @@ int TEditSub::ExSetText(const void *buf, int max_len, DWORD flags, UINT codepage
 	se.flags    = flags;
 	se.codepage = codepage;
 
-	return	SendMessageW(EM_SETTEXTEX, (WPARAM)&se, (LPARAM)buf);
+	return	(int)SendMessageW(EM_SETTEXTEX, (WPARAM)&se, (LPARAM)buf);
 }
 
 void TEditSub::InsertBitmapByHandle(HBITMAP hBmp, int pos)
