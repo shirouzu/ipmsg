@@ -1,10 +1,10 @@
 ﻿static char *senddlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   senddlg.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   senddlg.cpp	Ver3.41";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-02(Mon)
+	Update					: 2012-04-03(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -176,12 +176,26 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 
 	PostMessage(WM_DELAYSETTEXT, 0, 0);
 
+	if (IsWinVista()) {
+		HWND		hSubItem;
+		ULONG_PTR	exStyle;
+
+		hSubItem = GetDlgItem(CAPTURE_BUTTON);
+		exStyle  = ::GetWindowLong(hSubItem, GWL_EXSTYLE) & ~WS_EX_STATICEDGE;
+		::SetWindowLong(hSubItem, GWL_EXSTYLE, exStyle);
+
+		hSubItem = GetDlgItem(REFRESH_BUTTON);
+		exStyle  = ::GetWindowLong(hSubItem, GWL_EXSTYLE) & ~WS_EX_STATICEDGE;
+		::SetWindowLong(hSubItem, GWL_EXSTYLE, exStyle);
+	}
+
 	static HICON hMenuIcon;
 	if (!hMenuIcon) hMenuIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)MENU_ICON);
 	SendDlgItemMessage(MENU_CHECK, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hMenuIcon);
 
 	static HICON hCameraIcon;
-	if (!hCameraIcon) hCameraIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)CAMERA_ICON);
+	if (!hCameraIcon) hCameraIcon = ::LoadIcon(TApp::GetInstance(),
+											(LPCSTR)(IsWinVista() ? CAMERA_ICON : CAMERAXP_ICON));
 	SendDlgItemMessage(CAPTURE_BUTTON, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hCameraIcon);
 
 	static HICON hRefreshIcon;
@@ -200,6 +214,7 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 	if (!hKeyIcon) hKeyIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)KEY_ICON);
 	SendDlgItemMessage(PASSWORD_CHECK, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hKeyIcon);
 */
+
 	return	TRUE;
 }
 
@@ -488,6 +503,7 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	case WM_PASTE:
 	case WM_PASTE_REV:
 	case WM_PASTE_IMAGE:
+	case WM_SAVE_IMAGE:
 	case WM_CLEAR:
 	case EM_SETSEL:
 		editSub.SendMessage(WM_COMMAND, wID, 0);

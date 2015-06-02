@@ -1061,6 +1061,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\cameraxp.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\src\col_b.ico"
 				>
 			</File>
@@ -1074,6 +1078,10 @@
 			</File>
 			<File
 				RelativePath=".\src\col_y.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\src\cross.cur"
 				>
 			</File>
 			<File

@@ -1,10 +1,10 @@
 ﻿static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   mainwin.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   mainwin.cpp	Ver3.41";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-02(Mon)
+	Update					: 2012-04-03(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -667,7 +667,7 @@ BOOL TMainWin::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return	TRUE;
 	}
 	else if (uMsg == TaskBarButtonMsg) {
-		Debug("TaskBarButtonMsg wParam=%x lParam=%d\n", wParam, lParam);
+//		Debug("TaskBarButtonMsg wParam=%x lParam=%d\n", wParam, lParam);
 		return	TRUE;
 	}
 	else if (uMsg == TaskBarNotifyMsg) {

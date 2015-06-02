@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2011-2012   ipmsgcmn.h	Ver3.40 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2011-2012   ipmsgcmn.h	Ver3.41 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Common Header
 	Create					: 2011-05-03(Tue)
-	Update					: 2012-04-02(Mon)
+	Update					: 2012-04-03(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -88,6 +88,7 @@
 #define WM_PASTE_REV			(WM_APP + 184)
 #define WM_PASTE_IMAGE			(WM_APP + 185)
 #define WM_PASTE_TEXT			(WM_APP + 186)
+#define WM_SAVE_IMAGE			(WM_APP + 187)
 #define WM_HISTDLG_OPEN			(WM_APP + 190)
 #define WM_HISTDLG_HIDE			(WM_APP + 191)
 #define WM_HISTDLG_NOTIFY		(WM_APP + 192)
@@ -729,9 +730,12 @@ public:
 	virtual void	InsertBitmap(BITMAPINFO	*bmi, int size, int pos);
 
 	virtual BOOL	InsertPng(VBuf *vbuf, int pos);
-	virtual VBuf	*GetPngByte(int idx, int *pos);
+	virtual VBuf	*GetPngByte(int idx, int *pos=NULL);
 	virtual int		GetImagePos(int idx);
 	virtual int		GetImageNum();
+
+	virtual void	SaveSelectedImage();
+	virtual int		SelectedImageIndex();
 
 	virtual int		GetTextUTF8(char *buf, int max_len, BOOL force_select=FALSE);
 	virtual int		ExGetText(void *buf, int max_len, DWORD flags=GT_USECRLF,

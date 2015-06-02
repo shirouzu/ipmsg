@@ -1,5 +1,5 @@
-﻿//{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+//{{NO_DEPENDENCIES}}
+// Microsoft Visual C++ generated include file.
 // Used by install.rc
 //
 #define IDS_SETUPCOMPLETE               11
@@ -15,11 +15,14 @@
 #define IDS_RMDIR                       21
 #define IDS_REQUIREADMIN                22
 #define IDS_IPMSGHELP                   23
+#define IDS_TRAYURL                     24
 #define SETUP_ICON                      104
 #define MKDIR_BUTTON                    110
 #define RMDIR_BUTTON                    111
 #define INSTALL_DIALOG                  149
 #define INPUT_DIALOG                    150
+#define LAUNCH_DIALOG                   154
+#define LAUNCH_DIALOG1                  155
 #define FILE_EDIT                       1135
 #define FILE_BUTTON                     1136
 #define STARTUP_CHECK                   1137
@@ -29,6 +32,8 @@
 #define INPUT_EDIT                      1142
 #define EXTRACT_BUTTON                  1155
 #define RUNAS_BUTTON                    1156
+#define LAUNCH_BUTTON                   1164
+#define MESSAGE_STATIC                  1165
 
 // Next default values for new objects
 // 
@@ -36,9 +41,9 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        154
+#define _APS_NEXT_RESOURCE_VALUE        155
 #define _APS_NEXT_COMMAND_VALUE         30034
-#define _APS_NEXT_CONTROL_VALUE         1164
+#define _APS_NEXT_CONTROL_VALUE         1166
 #define _APS_NEXT_SYMED_VALUE           112
 #endif
 #endif

@@ -60,6 +60,20 @@ public:
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 };
 
+class TLaunchDlg : public TDlg
+{
+protected:
+	char *msg;
+
+public:
+	TLaunchDlg(LPCSTR _msg, TWin *_win);
+	virtual ~TLaunchDlg();
+
+	virtual BOOL	EvCreate(LPARAM lParam);
+	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
+};
+
+
 #define WM_IPMSG_HIDE			(WM_APP + 100)
 #define WM_IPMSG_QUIT			(WM_APP + 101)
 #define WM_IPMSG_INSTALL		(WM_APP + 102)

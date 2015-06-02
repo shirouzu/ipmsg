@@ -1,10 +1,10 @@
 ﻿static char *install_id = 
-	"@(#)Copyright (C) H.Shirouzu 1998-2011   install.cpp	Ver3.21";
+	"@(#)Copyright (C) H.Shirouzu 1998-2012   install.cpp	Ver3.41";
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Installer Application Class
 	Create					: 1998-06-14(Sun)
-	Update					: 2011-05-23(Mon)
+	Update					: 2012-04-03(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -348,7 +348,8 @@ BOOL TInstDlg::Install(void)
 	if (IsWin7()) {
 		msg = Fmt("%s%s", msg, GetLoadStr(IDS_COMPLETE_WIN7));
 	}
-	if (MessageBox(msg, INSTALL_STR, flg) == IDOK) {
+	TLaunchDlg	dlg(msg, this);
+	if (dlg.Exec() == IDOK) {
 		if (runasWnd) {
 			Wstr	wbuf(setupDir);
 			if (::SendDlgItemMessageW(runasWnd, FILE_EDIT, WM_SETTEXT, 0, (LPARAM)wbuf.Buf())) {
@@ -775,4 +776,51 @@ END:
 	::CloseHandle(hSelfFile);
 	return	ret;
 }
+
+/*
+	起動ダイアログ
+*/
+TLaunchDlg::TLaunchDlg(LPCSTR _msg, TWin *_win) : TDlg(LAUNCH_DIALOG, _win)
+{
+	msg = strdup(_msg);
+}
+
+TLaunchDlg::~TLaunchDlg()
+{
+	free(msg);
+}
+
+/*
+	メインダイアログ用 WM_INITDIALOG 処理ルーチン
+*/
+BOOL TLaunchDlg::EvCreate(LPARAM lParam)
+{
+	SetDlgItemText(MESSAGE_STATIC, msg);
+	if (IsWin7()) {
+		::ShowWindow(GetDlgItem(LAUNCH_BUTTON), SW_SHOW);
+	}
+
+	Show();
+	return	TRUE;
+}
+
+#define NOTIFY_SETTINGS	"shell32.dll,Options_RunDLL 5"
+
+BOOL TLaunchDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
+{
+	switch (wID)
+	{
+	case IDOK: case IDCANCEL:
+		EndDialog(wID);
+		return	TRUE;
+
+	case LAUNCH_BUTTON:
+		//ShellExecuteU8(NULL, NULL, GetLoadStr(IDS_TRAYURL), 0, 0, SW_SHOW);
+		ShellExecuteU8(NULL, "open", "rundll32.exe", NOTIFY_SETTINGS, 0, SW_SHOW);
+		EndDialog(IDOK);
+		return	TRUE;
+	}
+	return	FALSE;
+}
+
 

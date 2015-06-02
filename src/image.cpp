@@ -1,10 +1,10 @@
 ﻿static char *image_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2012   image.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 2011-2012   image.cpp	Ver3.41";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Image
 	Create					: 2011-07-24(Mon)
-	Update					: 2012-04-02(Mon)
+	Update					: 2012-04-03(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -469,7 +469,7 @@ BOOL TImageWin::Create()
 	::ReleaseDC(hDesktop, hDesktopDc);
 
 	if (cursorMap.empty()) {
-		cursorMap[CROSS_ID]			= ::LoadCursor(NULL, (LPCSTR)IDC_CROSS);
+		cursorMap[CROSS_ID]			= ::LoadCursor(TApp::GetInstance(), (LPCSTR)CROSS_CUR);
 		cursorMap[ARROW_ID]			= ::LoadCursor(NULL, (LPCSTR)IDC_ARROW);
 		cursorMap[RGB(255,0,0)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)RED_CUR);
 		cursorMap[RGB(0,255,0)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GREEN_CUR);

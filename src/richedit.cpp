@@ -1,10 +1,10 @@
 ﻿static char *richedit_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2012   richedit.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 2011-2012   richedit.cpp	Ver3.41";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Rich Edit Control and PNG-BMP convert
 	Create					: 2011-05-03(Tue)
-	Update					: 2012-04-02(Mon)
+	Update					: 2012-04-03(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -428,6 +428,52 @@ BOOL TEditSub::AttachWnd(HWND _hWnd)
 	return	TRUE;
 }
 
+int TEditSub::SelectedImageIndex()
+{
+	int		image_num = GetImageNum();
+	DWORD	selStart  = 0;
+	DWORD	selEnd    = 0;
+
+	SendMessageW(EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+
+	if ((selEnd - selStart) == 1) {
+		for (int i=0; i < image_num; i++) {
+			if (GetImagePos(i) == selStart) {
+				return	i;
+			}
+		}
+	}
+
+	return	-1;
+}
+
+void TEditSub::SaveSelectedImage()
+{
+	int	idx = SelectedImageIndex();
+	if (idx == -1) return;
+
+	VBuf	*vbuf = GetPngByte(idx);
+	if (!vbuf) return;
+
+	char	fname[MAX_PATH_U8] = "";
+	OpenFileDlg	dlg(this->parent, OpenFileDlg::SAVE, NULL, OFN_OVERWRITEPROMPT);
+
+	if (dlg.Exec(fname, sizeof(fname), NULL, "PNG file(*.png)\0*.png\0\0", cfg->lastSaveDir, "png")) {
+		HANDLE	hFile = CreateFileU8(fname, GENERIC_WRITE,
+									 FILE_SHARE_READ|FILE_SHARE_WRITE,
+									 NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+		DWORD	size = 0;
+
+		if (hFile != INVALID_HANDLE_VALUE) {
+			WriteFile(hFile, vbuf->Buf(), vbuf->Size(), &size, 0);
+			CloseHandle(hFile);
+			PathToDir(fname, cfg->lastSaveDir);
+		}
+	}
+	delete vbuf;
+}
+
+
 HMENU TEditSub::CreatePopupMenu()
 {
 	HMENU	hMenu = ::CreatePopupMenu();
@@ -450,6 +496,11 @@ HMENU TEditSub::CreatePopupMenu()
 				GetLoadStrU8(IDS_DELETE));
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 	AppendMenuU8(hMenu, MF_STRING, EM_SETSEL, GetLoadStrU8(IDS_SELECTALL));
+
+	/* 画像保存 */
+	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
+	AppendMenuU8(hMenu, MF_STRING|(SelectedImageIndex() < 0 ? MF_DISABLED : 0),
+					WM_SAVE_IMAGE, GetLoadStrU8(IDS_SAVE_IMAGE));
 
 	return	hMenu;
 }
@@ -478,6 +529,10 @@ BOOL TEditSub::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			cb->pasteMode = 2;
 		}
 		SendMessage(WM_PASTE, 0, 0);
+		return	TRUE;
+
+	case WM_SAVE_IMAGE:
+		SaveSelectedImage();
 		return	TRUE;
 
 	case EM_SETSEL:
@@ -790,7 +845,7 @@ VBuf *TEditSub::GetPngByte(int idx, int *pos)
 	reobj.cbStruct = sizeof(REOBJECT);
 
 	if (SUCCEEDED(richOle->GetObject(idx, &reobj, REO_GETOBJ_POLEOBJ))) {
-		*pos = reobj.cp;
+		if (pos) *pos = reobj.cp;
 		if (SUCCEEDED(reobj.poleobj->QueryInterface(IID_IDataObject, (void **)&dobj))) {
 			STGMEDIUM	sm;
 			FORMATETC	fe;

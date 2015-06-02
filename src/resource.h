@@ -133,6 +133,7 @@
 #define IDS_DELAYOPEN                   242
 #define IDS_RECVMSG                     243
 #define IDS_LRUUSER                     244
+#define IDS_SAVE_IMAGE                  245
 #define IDS_ENCRYPT                     250
 #define IDS_ENCRYPT2                    251
 #define IDS_ENCRYPT2_SIGNED             252
@@ -235,6 +236,7 @@
 #define SETUP_SHEET10                   610
 #define SEP_CUR                         700
 #define REFRESH_ICON                    702
+#define CAMERAXP_ICON                   703
 #define SEAL_ICON                       704
 #define KEY_ICON                        705
 #define SEND_ICON                       706
@@ -244,6 +246,8 @@
 #define BLUE_CUR                        710
 #define YELLOW_CUR                      711
 #define AREA_TOOLBAR                    712
+#define SEP_CUR1                        712
+#define CROSS_CUR                       712
 #define SEND_EDIT                       1001
 #define SECRET_CHECK                    1004
 #define PASSWORD_CHECK                  1005

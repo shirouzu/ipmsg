@@ -138,8 +138,8 @@ BOOL THistDlg::EvCreate(LPARAM lParam)
 
 	SetDlgItem(HISTORY_LIST, XY_FIT);
 	SetDlgItem(IDOK, HMID_FIT);
-	SetDlgItem(CLEAR_BUTTON, LEFT_FIT);
-	SetDlgItem(OPENED_CHECK, RIGHT_FIT);
+	SetDlgItem(OPENED_CHECK, LEFT_FIT);
+	SetDlgItem(CLEAR_BUTTON, RIGHT_FIT);
 
 	if (rect.left == CW_USEDEFAULT)
 	{

@@ -1,10 +1,10 @@
 ﻿static char *recvdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   recvdlg.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   recvdlg.cpp	Ver3.41";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Receive Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-02(Mon)
+	Update					: 2012-04-03(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -583,6 +583,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	case WM_PASTE:
 	case WM_PASTE_REV:
 	case WM_PASTE_IMAGE:
+	case WM_SAVE_IMAGE:
 	case WM_CLEAR:
 	case EM_SETSEL:
 		editSub.SendMessage(WM_COMMAND, wID, 0);
