@@ -1,10 +1,10 @@
 static char *install_id = 
-	"@(#)Copyright (C) H.Shirouzu 1998-2011   install.cpp	Ver3.10";
+	"@(#)Copyright (C) H.Shirouzu 1998-2011   install.cpp	Ver3.20";
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Installer Application Class
 	Create					: 1998-06-14(Sun)
-	Update					: 2011-05-07(Sat)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -59,6 +59,7 @@ void TInstApp::InitWindow(void)
 TInstDlg::TInstDlg(char *cmdLine) : TDlg(INSTALL_DIALOG)
 {
 	runasImm = FALSE;
+	runasWnd = NULL;
 }
 
 TInstDlg::~TInstDlg()
@@ -116,7 +117,7 @@ BOOL TInstDlg::EvCreate(LPARAM lParam)
 
 	char	*p = strstr(GetCommandLine(), "runas=");
 	if (p) {
-		HWND	runasWnd = (HWND)strtoul(p+6, 0, 16);
+		runasWnd = (HWND)strtoul(p+6, 0, 16);
 		if (!runasWnd || !IsWindow(runasWnd)) PostQuitMessage(0);
 		if ((p = strstr(p, ",imm="))) runasImm = atoi(p+5);
 
@@ -129,13 +130,22 @@ BOOL TInstDlg::EvCreate(LPARAM lParam)
 		::SendDlgItemMessageW(runasWnd, FILE_EDIT, WM_GETTEXT, MAX_PATH, (LPARAM)wbuf);
 		SetDlgItemTextU8(FILE_EDIT, WtoU8(wbuf));
 
-		::SendMessage(runasWnd, WM_IPMSG_QUIT, 0, 0);
+		::SendMessage(runasWnd, WM_IPMSG_HIDE, 0, 0);
 		if (runasImm) {
 			PostMessage(WM_IPMSG_INSTALL, 0, 0);
 		}
 	}
 
 	return	TRUE;
+}
+
+BOOL TInstDlg::EvNcDestroy(void)
+{
+	if (runasWnd) {
+		::PostMessage(runasWnd, WM_IPMSG_QUIT, 0, 0);
+		runasWnd = NULL;
+	}
+	return	FALSE;
 }
 
 BOOL RunAsAdmin(HWND hWnd, BOOL imm)
@@ -184,7 +194,14 @@ BOOL TInstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 BOOL TInstDlg::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) {
+	case WM_IPMSG_HIDE:
+		Show(SW_HIDE);
+		return	TRUE;
+
 	case WM_IPMSG_QUIT:
+		if (wParam == 1) {
+			AppKick();
+		}
 		PostQuitMessage(0);
 		return	TRUE;
 
@@ -195,6 +212,16 @@ BOOL TInstDlg::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return	FALSE;
 }
 
+BOOL TInstDlg::AppKick()
+{
+	char	setupDir[MAX_PATH_U8], setupPath[MAX_PATH_U8];
+
+	GetDlgItemTextU8(FILE_EDIT, setupDir, sizeof(setupDir));
+	SetCurrentDirectoryU8(setupDir);
+
+	MakePath(setupPath, setupDir, IPMSG_EXENAME);
+	return	(int)ShellExecuteU8(NULL, NULL, setupPath, "/SHOW_HISTORY", 0, SW_SHOW) > 32;
+}
 
 BOOL TInstDlg::Install(void)
 {
@@ -298,17 +325,41 @@ BOOL TInstDlg::Install(void)
 	const char *msg = GetLoadStr(IDS_SETUPCOMPLETE);
 	int			flg = MB_OKCANCEL|MB_ICONINFORMATION;
 
-	if (IsWinVista() && TIsUserAnAdmin() && TIsEnableUAC()) {
-		msg = FmtStr("%s%s", msg, GetLoadStr(IDS_COMPLETE_UACADD));
-		flg |= MB_DEFBUTTON2;
+//	if (IsWinVista() && TIsUserAnAdmin() && TIsEnableUAC()) {
+//		msg = FmtStr("%s%s", msg, GetLoadStr(IDS_COMPLETE_UACADD));
+//		flg |= MB_DEFBUTTON2;
+//	}
+	if (IsWin7()) {
+		msg = FmtStr("%s%s", msg, GetLoadStr(IDS_COMPLETE_WIN7));
 	}
 	if (MessageBox(msg, INSTALL_STR, flg) == IDOK) {
-		SetCurrentDirectoryU8(setupDir);
-		ShellExecuteU8(NULL, NULL, setupPath, 0, 0, SW_SHOW);
+		if (runasWnd) {
+			Wstr	wbuf(setupDir);
+			if (::SendDlgItemMessageW(runasWnd, FILE_EDIT, WM_SETTEXT, 0, (LPARAM)wbuf.Buf())) {
+				::PostMessage(runasWnd, WM_IPMSG_QUIT, 1, 0);
+				runasWnd = NULL;
+			}
+		}
+		else {
+			AppKick();
+		}
+	}
+	else {
+		HWND	hHelp = ShowHelpU8(0, setupDir, GetLoadStrU8(IDS_IPMSGHELP), "#history");
+		if (hHelp) {
+			Show(SW_HIDE);
+			while (::IsWindow(hHelp)) {
+				this->Sleep(100);
+			}
+		}
+	}
+
+	if (runasWnd) {
+		::PostMessage(runasWnd, WM_IPMSG_QUIT, 0, 0);
+		runasWnd = NULL;
 	}
 
 //	ShellExecuteU8(NULL, NULL, setupDir, 0, 0, SW_SHOW);
-
 	::PostQuitMessage(0);
 	return	TRUE;
 }

@@ -1,10 +1,10 @@
 static char *miscfunc_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   miscfunc.cpp	Ver3.01";
+	"@(#)Copyright (C) H.Shirouzu 2011   miscfunc.cpp	Ver3.20";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc functions
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-05-03(Tue)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -40,7 +40,7 @@ void SetDlgIcon(HWND hWnd)
 }
 
 /*
-	ログ記録用の HostEntry表示文字列
+	ログ記録/ウィンドウ表示用の HostEntry表示文字列
 */
 void MakeListString(Cfg *cfg, HostSub *hostSub, THosts *hosts, char *buf, BOOL is_log)
 {
@@ -60,7 +60,7 @@ void MakeListString(Cfg *cfg, HostSub *hostSub, THosts *hosts, char *buf, BOOL i
 }
 
 /*
-	ログ記録用の HostEntry表示文字列
+	ログ記録/ウィンドウ表示用の HostEntry表示文字列
 */
 void MakeListString(Cfg *cfg, Host *host, char *buf, BOOL is_log)
 {

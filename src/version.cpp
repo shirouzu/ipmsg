@@ -1,10 +1,10 @@
 static char *version_id = 
-	"@(#)Copyright (C) H.Shirouzu 2010-2011   version.cpp	Ver3.10";
+	"@(#)Copyright (C) H.Shirouzu 2010-2011   version.cpp	Ver3.20";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Version
 	Create					: 2010-05-23(Sun)
-	Update					: 2011-05-11(Wed)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

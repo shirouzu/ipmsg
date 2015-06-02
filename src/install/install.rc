@@ -128,8 +128,8 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_SETUPCOMPLETE       "セットアップは完了しました。\r\nアンインストールは「アプリケーションの追加と削除」から行ってください。\r\r\nこのまま、IP Messenger を起動しますか？"
-    IDS_COMPLETE_UACADD     "\r\n\r\n Vista以降の UAC環境では、別途、手動起動をお勧めします。\r\n このまま起動した場合、管理権限モードで動作します。\r\n 初回起動が管理者権限モードの場合、\r\n Uninstall時にも管理者権限が必要となります。"
+    IDS_SETUPCOMPLETE       "セットアップは完了しました。\r\nアンインストールは「アプリケーションの追加と削除」から行ってください。\r\r\nIP Messenger を起動しますか？"
+    IDS_COMPLETE_WIN7      "\r\n\r\nタスクトレイ右クリック → 通知アイコンのカスタマイズで\r\nIPMsg を「アイコンと通知を表示」に設定しておくことをお勧めします。"
     IDS_TERMINATE           "あらかじめ、現在起動している\r\nIP Messenger を終了させる必要があります。\r\nよろしいですか？"
     IDS_CANTTERMINATE       "IP Messenger を終了できません。手動で終了してください"
     IDS_NOTCREATEDIR        "ディレクトリが作れません"
@@ -144,6 +144,7 @@ BEGIN
     IDS_MKDIR               "作成"
     IDS_RMDIR               "削除"
     IDS_REQUIREADMIN        "このフォルダへのインストールには管理者権限が必要です。\r\n管理者権限で実行しますか？"
+    IDS_IPMSGHELP           "ipmsg.chm::/ipmsghlp.htm"
 END
 
 #endif    // 日本語 resources
@@ -234,7 +235,7 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_SETUPCOMPLETE       "Setup is completed.\r\n\r\nDo you want to start IPMSG?\r\n\r\n (If you use on Vista/Win7, it is not recommended to launch by setup.exe.\r\n If you launch by setup, ipmsg will run as administrator privilege)"
-    IDS_COMPLETE_UACADD     "\r\n\r\n If you use on Vista or later with UAC,\r\n it is not recommended to launch by setup.exe.\r\n If you launch by setup, ipmsg will run as administrator privilege. \r\n and it will be required administrator privilege at uninstalling."
+    IDS_COMPLETE_WIN7       "\r\n\r\nWe recommend that choose 'Show icon and notifications' for IPMsg in custumize NotificationAreaIcons (right click in notification area of taskbar)"
     IDS_TERMINATE           "Do you permit to close IPMSG?"
     IDS_CANTTERMINATE       "Can't terminate IP Messenger. Please terminate by manual."
     IDS_NOTCREATEDIR        "Can't create directory"
@@ -249,6 +250,7 @@ BEGIN
     IDS_MKDIR               "CREATE"
     IDS_RMDIR               "DELETE"
     IDS_REQUIREADMIN        "Admin privillege is required for this install folder.\r\nDo you want to run by Admin?"
+    IDS_IPMSGHELP           "ipmsg.chm::/ipmsghlp_eng.htm"
 END
 
 #endif    // 英語 (ｱﾒﾘｶ) resources

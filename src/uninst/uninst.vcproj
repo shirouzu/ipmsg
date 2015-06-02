@@ -250,6 +250,10 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath="..\version.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

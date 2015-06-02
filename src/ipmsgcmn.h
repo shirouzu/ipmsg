@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2011   ipmsgcmn.h	Ver3.10 */
+/*	@(#)Copyright (C) H.Shirouzu 2011   ipmsgcmn.h	Ver3.20 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Common Header
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-05-11(Wed)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -19,20 +19,14 @@
 #include "../external/libpng/png.h"
 #include <richole.h>
 
-typedef long	Time_t;		// size of time_t is 64bit in VS2005 or later
-
-#ifndef NIN_BALLOONSHOW
-#define NIN_BALLOONSHOW      (WM_USER + 2)
-#define NIN_BALLOONHIDE      (WM_USER + 3)
-#define NIN_BALLOONTIMEOUT   (WM_USER + 4)
-#define NIN_BALLOONUSERCLICK (WM_USER + 5)
-#endif
-
 /*  IP Messenger for Windows  internal define  */
 #define IPMSG_REVERSEICON			0x0100
 #define IPMSG_TIMERINTERVAL			500
 #define IPMSG_ENTRYMINSEC			5
 #define IPMSG_GETLIST_FINISH		0
+#define IPMSG_OPENMSG_TIME			3000
+#define IPMSG_DELAYMSG_TIME			5000
+#define IPMSG_RECVMSG_TIME			10000
 
 #define IPMSG_BROADCAST_TIMER		0x0101
 #define IPMSG_SEND_TIMER			0x0102
@@ -45,6 +39,7 @@ typedef long	Time_t;		// size of time_t is 64bit in VS2005 or later
 #define IPMSG_CLEANUP_TIMER			0x010a
 #define IPMSG_BALLOON_RECV_TIMER	0x010b
 #define IPMSG_BALLOON_OPEN_TIMER	0x010c
+#define IPMSG_BALLOON_DELAY_TIMER	0x010d
 
 
 #define IPMSG_NICKNAME			1
@@ -95,110 +90,7 @@ typedef long	Time_t;		// size of time_t is 64bit in VS2005 or later
 #define WM_IPMSG_IMECTRL		(WM_USER + 200)
 #define WM_IPMSG_BRNOTIFY		(WM_USER + 201)
 
-// ListView extended define for VC4
-#ifndef LVM_SETEXTENDEDLISTVIEWSTYLE
-#define LVM_SETEXTENDEDLISTVIEWSTYLE	(LVM_FIRST + 54)
-#define LVM_GETEXTENDEDLISTVIEWSTYLE	(LVM_FIRST + 55)
-#define LVM_SETCOLUMNORDERARRAY			(LVM_FIRST + 58)
-#define LVM_GETCOLUMNORDERARRAY			(LVM_FIRST + 59)
-#define LVS_EX_GRIDLINES				0x00000001
-#define LVS_EX_HEADERDRAGDROP			0x00000010
-#define LVS_EX_FULLROWSELECT			0x00000020
-#define LVS_SHOWSELALWAYS				0x0008
-#define LVM_GETHEADER					0x101F
-#define EM_AUTOURLDETECT				(WM_USER + 91)
-#endif
-
-// ListView extended define for VC4 & VC5
-#ifndef LVM_SETSELECTIONMARK
-#define LVM_SETSELECTIONMARK			(LVM_FIRST + 67)
-#define LVN_GETINFOTIPW					(LVN_FIRST-58)
-#endif
-
-#if _MSC_VER <= 1200
-#define LVN_ENDSCROLL					(LVN_FIRST-81)
-#endif
-
-#ifndef REGSTR_SHELLFOLDERS
-#define REGSTR_SHELLFOLDERS			REGSTR_PATH_EXPLORER "\\Shell Folders"
-#define REGSTR_MYDOCUMENT			"Personal"
-#endif
-
-// CryptoAPI for VC4
-#ifndef MS_DEF_PROV
-typedef unsigned long HCRYPTPROV;
-typedef unsigned long HCRYPTKEY;
-typedef unsigned long HCRYPTHASH;
-typedef unsigned int ALG_ID;
-#define ALG_TYPE_RSA			(2 << 9)
-#define ALG_TYPE_BLOCK			(3 << 9)
-#define ALG_CLASS_DATA_ENCRYPT	(3 << 13)
-#define ALG_CLASS_HASH			(4 << 13)
-#define ALG_CLASS_KEY_EXCHANGE	(5 << 13)
-#define ALG_SID_RSA_ANY			0
-#define ALG_TYPE_ANY			0
-#define ALG_SID_RC2				2
-#define ALG_SID_MD5				3
-#define CALG_RSA_KEYX			(ALG_CLASS_KEY_EXCHANGE|ALG_TYPE_RSA|ALG_SID_RSA_ANY)
-#define CALG_RC2				(ALG_CLASS_DATA_ENCRYPT|ALG_TYPE_BLOCK|ALG_SID_RC2)
-#define CALG_MD5				(ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_MD5)
-#define CRYPT_EXPORTABLE		0x00000001
-#define PROV_RSA_FULL			1
-#define MS_DEF_PROV				"Microsoft Base Cryptographic Provider v1.0"
-#define MS_ENHANCED_PROV		"Microsoft Enhanced Cryptographic Provider v1.0"
-#define CUR_BLOB_VERSION		0x02
-#define SIMPLEBLOB				0x1
-#define PUBLICKEYBLOB			0x6
-#define PRIVATEKEYBLOB          0x7
-#define CRYPT_NEWKEYSET			0x00000008
-#define CRYPT_DELETEKEYSET      0x00000010
-#define CRYPT_MACHINE_KEYSET    0x00000020
-#define AT_KEYEXCHANGE			1
-#define AT_SIGNATURE			2
-#define KP_EFFECTIVE_KEYLEN		19	// for CryptSetKeyParam
-#define NTE_BAD_KEY				0x80090003L
-#endif
-
-#ifndef NIIF_NONE
-#define NIIF_NONE					0x00000000
-#define NIIF_INFO					0x00000001
-#define NIIF_WARNING				0x00000002
-#define NIIF_ERROR					0x00000003
-#define NIIF_USER					0x00000004
-#define NIIF_ICON_MASK				0x0000000F
-#define NIIF_NOSOUND				0x00000010
-#define NIIF_LARGE_ICON				0x00000020
-
-#define NIF_MESSAGE					0x00000001
-#define NIF_ICON					0x00000002
-#define NIF_TIP						0x00000004
-#define NIF_STATE					0x00000008	// IE5
-#define NIF_INFO					0x00000010	// IE5
-#define NIF_GUID					0x00000020	// IE6
-#define NIF_REALTIME				0x00000040
-#define NIF_SHOWTIP					0x00000080
-#endif
-
-typedef struct _NOTIFYICONDATA2W { 
-    DWORD  cbSize; 
-    HWND   hWnd; 
-    UINT   uID; 
-    UINT   uFlags; 
-    UINT   uCallbackMessage; 
-    HICON  hIcon; 
-    WCHAR  szTip[128];
-    DWORD  dwState;
-    DWORD  dwStateMask;
-    WCHAR  szInfo[256];
-    union {
-        UINT  uTimeout;
-        UINT  uVersion;
-    } DUMMYUNIONNAME;
-    WCHAR  szInfoTitle[64];
-    DWORD  dwInfoFlags;
-//  GUID   guidItem;
-//  HICON hBalloonIcon;
-} NOTIFYICONDATA2W, *PNOTIFYICONDATA2W;
+typedef long	Time_t;		// size of time_t is 64bit in VS2005 or later
 
 #define SKEY_HEADER_SIZE	12
 
@@ -366,6 +258,18 @@ struct UrlObj : public TListObj {
 	char	program[MAX_PATH_U8];
 };
 
+struct UserObj : public TListObj {
+	HostSub	hostSub;
+};
+
+struct UsersObj : public TListObj {
+	TList	users;
+	~UsersObj() {
+		UserObj *obj;
+		while ((obj = (UserObj *)users.TopObj())) { users.DelObj(obj); delete obj; }
+	}
+};
+
 ULONG ResolveAddr(const char *_host);
 
 struct TBrObj : public TListObj {
@@ -416,6 +320,7 @@ inline void SetItem(UINT *columnItems, int sw, BOOL on) {
 #define CFG_CLICKURL	0x00000020
 #define CFG_PRIORITY	0x00000040
 #define CFG_FINDHIST	0x00000080
+#define CFG_LRUUSER		0x00000100
 #define CFG_HOSTINFO	0x00001000
 #define CFG_DELHOST		0x00002000
 #define CFG_DELCHLDHOST	0x00004000
@@ -437,7 +342,7 @@ struct PrivKey {
 enum KeyType { KEY_512, KEY_1024, KEY_2048, MAX_KEY };
 
 enum HistWidth {
-	HW_USER, HW_SDATE, HW_ODATE, HW_ID, MAX_HISTWIDTH
+	HW_USER, HW_ODATE, HW_SDATE, HW_ID, MAX_HISTWIDTH
 };
 
 struct Cfg {
@@ -561,7 +466,10 @@ public:
 	BOOL	DialUpCheck;
 	TList	DialUpList;
 	TBrList	brList;
-	void	*execDirV;
+	char	*execDir;
+
+	TList	lruUserList;
+	int		lruUserMax;
 
 	Cfg(ULONG _nicAddr, int _portNo);
 	~Cfg();
@@ -799,7 +707,7 @@ public:
 	virtual void	InsertBitmapByHandle(HBITMAP hBmp, int pos);
 	virtual void	InsertBitmap(BITMAPINFO	*bmi, int size, int pos);
 
-	virtual void	InsertPng(VBuf *vbuf, int pos);
+	virtual BOOL	InsertPng(VBuf *vbuf, int pos);
 	virtual VBuf	*GetPngByte(int idx, int *pos);
 	virtual int		GetImagePos(int idx);
 	virtual int		GetImageNum();
@@ -1161,13 +1069,14 @@ protected:
 	void	GetOrder(void);
 
 	void	SetQuoteStr(LPSTR str, LPCSTR quoteStr);
-	void	SelectHost(HostSub *hostSub, BOOL force=FALSE);
+	void	SelectHost(HostSub *hostSub, BOOL force=FALSE, BOOL byAddr=TRUE);
 	void	DisplayMemberCnt(void);
 	void	ReregisterEntry(void);
 	UINT	GetInsertIndexPoint(Host *host);
 	int		CompareHosts(Host *host1, Host *host2);
 	int		GroupCompare(Host *host1, Host *host2);
 	int		SubCompare(Host *host1, Host *host2);
+	void	AddLruUsers(void);
 	BOOL	SendMsg(void);
 	BOOL	SendMsgCore(void);
 	BOOL	SendMsgCoreEntry(SendEntry *entry);
@@ -1340,7 +1249,7 @@ public:
 	virtual BOOL	EvNotify(UINT ctlID, NMHDR *pNmHdr);
 
 	virtual void	Show(int mode = SW_NORMAL);
-	virtual void	InsertImages(void);
+	virtual BOOL	InsertImages(void);
 	SelfStatus		Status() { return status; }
 	void			SetStatus(SelfStatus _status) { status = _status; }
 	static int		GetCreateCnt(void) { return createCnt; }
@@ -1407,6 +1316,8 @@ public:
 struct HistObj : public THashObj {
 	HistObj	*prior;
 	HistObj	*next;
+	HistObj	*lruPrior;
+	HistObj	*lruNext;
 	char	info[MAX_LISTBUF];
 	char	user[MAX_LISTBUF];
 	char	sdate[MAX_NAMEBUF];
@@ -1414,7 +1325,7 @@ struct HistObj : public THashObj {
 	char	pktno[MAX_NAMEBUF];
 	HistObj() : THashObj() {
 		*info = *user = *sdate = *odate = *pktno = 0;
-		prior = next = NULL;
+		prior = next = lruPrior = lruNext = NULL;
 	}
 };
 
@@ -1422,6 +1333,8 @@ class HistHash : public THashTbl {
 protected:
 	HistObj	*top;
 	HistObj	*end;
+	HistObj	*lruTop;
+	HistObj	*lruEnd;
 	virtual BOOL	IsSameVal(THashObj *, const void *val);
 
 public:
@@ -1429,9 +1342,13 @@ public:
 	virtual ~HistHash();
 	virtual void Clear();
 	virtual void Register(THashObj *obj, u_int hash_id);
+	virtual void RegisterLru(HistObj *obj);
 	virtual void UnRegister(THashObj *obj);
+	virtual void UnRegisterLru(HistObj *obj);
 	virtual HistObj *Top() { return top; }
 	virtual HistObj *End() { return end; }
+	virtual HistObj *LruTop() { return lruTop; }
+	virtual HistObj *LruEnd() { return lruEnd; }
 };
 
 class THistDlg : public TDlg {
@@ -1440,8 +1357,7 @@ protected:
 	THosts		*hosts;
 	HistHash	histHash;
 	int			unOpenedNum;
-	BOOL		detailMode;
-	char		title[MAX_NAMEBUF];
+	BOOL		openedMode;
 
 	TListHeader	histListHeader;
 	TListViewEx	histListView;
@@ -1457,13 +1373,21 @@ public:
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl);
 	virtual BOOL	EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight);
 	virtual void	SendNotify(HostSub *hostSub, ULONG packetNo);
-	virtual void	OpenNotify(HostSub *hostSub, ULONG packetNo);
+	virtual void	OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify=NULL);
+	virtual void	SaveColumnInfo();
+	virtual void	SetTitle();
 	virtual void	SetFont();
 	virtual void	SetHeader();
+	virtual void	SetData(HistObj *obj);
 	virtual void	SetAllData();
 	virtual int		MakeHistInfo(HostSub *hostSub, ULONG packet_no, char *buf);
 	virtual void	Show(int mode = SW_NORMAL);
 	virtual int		UnOpenedNum() { return unOpenedNum; }
+	virtual void	SetMode(BOOL is_opened) {
+		if (is_opened == openedMode) return;
+		if (hWnd)	PostMessage(WM_COMMAND, OPENED_CHECK, 0);
+		else		openedMode = is_opened;
+	}
 };
 
 class TPasswordDlg : public TDlg {
@@ -1560,6 +1484,7 @@ protected:
 	DWORD		writeRegFlags;
 	enum TrayMode { TRAY_NORMAL, TRAY_RECV, TRAY_OPENMSG };
 	TrayMode	trayMode;
+	char		trayMsg[MAX_BUF];
 
 #define MAX_PACKETLOG	16
 	struct {
@@ -1580,7 +1505,7 @@ protected:
 	BOOL	AddAbsenceMenu(HMENU hMenu, int insertIndex);
 	void	ActiveChildWindow(BOOL hide=FALSE);
 	BOOL	TaskTray(int nimMode, HICON hSetIcon = NULL, LPCSTR tip = NULL);
-	BOOL	BalloonWindow(LPCSTR msg, LPCSTR title, TrayMode _tray_mode);
+	BOOL	BalloonWindow(TrayMode _tray_mode, LPCSTR msg=NULL, LPCSTR title=NULL, DWORD timer=0);
 	BOOL	UdpEvent(LPARAM lParam);
 	BOOL	TcpEvent(SOCKET sd, LPARAM lParam);
 

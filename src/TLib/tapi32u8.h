@@ -3,7 +3,7 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 2005-04-10(Sun)
-	Update					: 2011-03-27(Sun)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -93,13 +93,13 @@ public:
 inline int U8toA(const char *src, char *dst, int bufsize) {
 	MBCSstr	ms(src, BY_UTF8);
 	strncpyz(dst, ms, bufsize);
-	return	strlen(dst);
+	return	(int)strlen(dst);
 }
 
 inline int AtoU8(const char *src, char *dst, int bufsize) {
 	U8str	u8(src, BY_MBCS);
 	strncpyz(dst, u8, bufsize);
-	return	strlen(dst);
+	return	(int)strlen(dst);
 }
 
 BOOL IsUTF8(const char *s, BOOL *is_ascii=NULL);

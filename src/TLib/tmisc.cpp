@@ -4,7 +4,7 @@ static char *tmisc_id =
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -535,7 +535,7 @@ int strip_crlf(char *s)
 		if (c != '\r' && c != '\n') *d++ = c;
 	}
 	*d = 0;
-	return	d - sv;
+	return	(int)(d - sv);
 }
 
 /* base64 convert routne */
@@ -1236,6 +1236,22 @@ HWND ShowHelpV(HWND hOwner, void *help_dir, void *help_file, void *section)
 	}
 #endif
 	return	NULL;
+}
+
+HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const char *section)
+{
+	if (IS_WINNT_V) {
+		Wstr	dir(help_dir);
+		Wstr	file(help_file);
+		Wstr	sec(section);
+		return	ShowHelpV(hOwner, dir.Buf(), file.Buf(), sec.Buf());
+	}
+	else {
+		MBCSstr	dir(help_dir);
+		MBCSstr	file(help_file);
+		MBCSstr	sec(section);
+		return	ShowHelpV(hOwner, dir.Buf(), file.Buf(), sec.Buf());
+	}
 }
 
 #ifdef REPLACE_DEBUG_ALLOCATOR

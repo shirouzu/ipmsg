@@ -1,10 +1,10 @@
 static char *setupdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   setupdlg.cpp	Ver3.10";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   setupdlg.cpp	Ver3.20";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Setup Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-05-11(Wed)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -58,10 +58,21 @@ BOOL TSetupSheet::EvNcDestroy(void)
 	return	TRUE;
 }
 
+#define MAX_LRUUSER 30
+
 BOOL TSetupSheet::CheckData()
 {
-	if (resId == SETUP_SHEET4) {
-		char	buf[MAX_PATH_U8];
+	char	buf[MAX_PATH_U8];
+	int		val;
+
+	if (resId == SETUP_SHEET3) {
+		GetDlgItemTextU8(LRUUSER_EDIT, buf, sizeof(buf));
+		if ((val = atoi(buf)) > MAX_LRUUSER || val < 0) {
+			MessageBox(FmtStr(GetLoadStr(IDS_TOOMANYLRU), MAX_LRUUSER));
+			return	FALSE;
+		}
+	}
+	else if (resId == SETUP_SHEET4) {
 		GetDlgItemTextU8(LOG_EDIT, buf, sizeof(buf));
 		if (GetDriveType(NULL) == DRIVE_REMOTE
 				&& !SendDlgItemMessage(LOG_CHECK, BM_GETCHECK, 0, 0) && strchr(buf, '\\')) {
@@ -70,18 +81,18 @@ BOOL TSetupSheet::CheckData()
 		}
 	}
 	else if (resId == SETUP_SHEET5) {
-		char	buf[MAX_NAMEBUF], buf2[MAX_NAMEBUF], buf3[MAX_NAMEBUF];
-		GetDlgItemTextU8(OLDPASSWORD_EDIT, buf, sizeof(buf));
-		GetDlgItemTextU8(NEWPASSWORD_EDIT, buf2, sizeof(buf));
-		GetDlgItemTextU8(NEWPASSWORD_EDIT2, buf3, sizeof(buf2));
+		char	buf1[MAX_NAMEBUF], buf2[MAX_NAMEBUF], buf3[MAX_NAMEBUF];
+		GetDlgItemTextU8(OLDPASSWORD_EDIT,  buf1, sizeof(buf1));
+		GetDlgItemTextU8(NEWPASSWORD_EDIT,  buf2, sizeof(buf2));
+		GetDlgItemTextU8(NEWPASSWORD_EDIT2, buf3, sizeof(buf3));
 
 		if (strcmp(buf2, buf3) != 0) {
 			MessageBoxU8(GetLoadStrU8(IDS_NOTSAMEPASS));
 			return	FALSE;
 		}
 
-		if (!CheckPassword(cfg->PasswordStr, buf)) {
-			if (*buf || *buf2 || *buf3) {
+		if (!CheckPassword(cfg->PasswordStr, buf1)) {
+			if (*buf1 || *buf2 || *buf3) {
 				SetDlgItemTextU8(PASSWORD_EDIT, "");
 				MessageBoxU8(GetLoadStrU8(IDS_CANTAUTH));
 				return	FALSE;
@@ -121,12 +132,12 @@ BOOL TSetupSheet::SetData()
 	else if (resId == SETUP_SHEET2) {
 		CheckDlgButton(BALLOONNOTIFY_CHECK, cfg->BalloonNotify);
 
-//		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_NONE));
-//		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_BALLOON));
-//		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_DLG));
-//		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_ICON));
-//		SendDlgItemMessage(OPEN_COMBO, CB_SETCURSEL, cfg->OpenCheck, 0);
-		CheckDlgButton(OPEN_CHECK, cfg->OpenCheck);
+		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_NONE));
+		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_BALLOON));
+		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_DLG));
+		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_ICON));
+		SendDlgItemMessage(OPEN_COMBO, CB_SETCURSEL, cfg->OpenCheck, 0);
+//		CheckDlgButton(OPEN_CHECK, cfg->OpenCheck);
 
 		SetDlgItemTextU8(QUOTE_EDIT, cfg->QuoteStr);
 
@@ -151,6 +162,7 @@ BOOL TSetupSheet::SetData()
 		CheckDlgButton(QUOTE_CHECK, cfg->QuoteCheck);
 		CheckDlgButton(SECRET_CHECK, cfg->SecretCheck);
 		CheckDlgButton(ONECLICK_CHECK, cfg->OneClickPopup);
+		SetDlgItemTextU8(LRUUSER_EDIT, FmtStr("%d", cfg->lruUserMax));
 		// ControlIME ... 0:off, 1:senddlg on (finddlg:off), 2:always on
 		CheckDlgButton(CONTROLIME_CHECK, cfg->ControlIME ? 1 : 0);
 		CheckDlgButton(FINDDLGIME_CHECK, cfg->ControlIME >= 2 ? 0 : 1);
@@ -236,8 +248,8 @@ BOOL TSetupSheet::GetData()
 	}
 	else if (resId == SETUP_SHEET2) {
 		cfg->BalloonNotify = (int)SendDlgItemMessage(BALLOONNOTIFY_CHECK, BM_GETCHECK, 0, 0);
-//		cfg->OpenCheck = (int)SendDlgItemMessage(OPEN_COMBO, CB_GETCURSEL, 0, 0);
-		cfg->OpenCheck = (int)SendDlgItemMessage(OPEN_CHECK, BM_GETCHECK, 0, 0);
+		cfg->OpenCheck = (int)SendDlgItemMessage(OPEN_COMBO, CB_GETCURSEL, 0, 0);
+//		cfg->OpenCheck = (int)SendDlgItemMessage(OPEN_CHECK, BM_GETCHECK, 0, 0);
 		GetDlgItemTextU8(QUOTE_EDIT, cfg->QuoteStr, sizeof(cfg->QuoteStr));
 
 		cfg->HotKeyCheck = (int)SendDlgItemMessage(HOTKEY_CHECK, BM_GETCHECK, 0, 0);
@@ -257,7 +269,9 @@ BOOL TSetupSheet::GetData()
 		cfg->QuoteCheck = (int)SendDlgItemMessage(QUOTE_CHECK, BM_GETCHECK, 0, 0);
 		cfg->SecretCheck = (int)SendDlgItemMessage(SECRET_CHECK, BM_GETCHECK, 0, 0);
 		cfg->OneClickPopup = (int)SendDlgItemMessage(ONECLICK_CHECK, BM_GETCHECK, 0, 0);
-		// ControlIME ... 0:off, 1:senddlg on (finddlg:off), 2:always on
+		GetDlgItemTextU8(LRUUSER_EDIT, buf, sizeof(buf));
+		cfg->lruUserMax = atoi(buf);
+	// ControlIME ... 0:off, 1:senddlg on (finddlg:off), 2:always on
 		cfg->ControlIME = (int)SendDlgItemMessage(CONTROLIME_CHECK, BM_GETCHECK, 0, 0);
 		if (cfg->ControlIME && SendDlgItemMessage(FINDDLGIME_CHECK, BM_GETCHECK, 0, 0) == 0) {
 			cfg->ControlIME = 2;
@@ -270,7 +284,6 @@ BOOL TSetupSheet::GetData()
 		cfg->NoErase = (int)SendDlgItemMessage(NOERASE_CHECK, BM_GETCHECK, 0, 0);
 
 		GetDlgItemTextU8(SOUND_EDIT, cfg->SoundFile, sizeof(cfg->SoundFile));
-
 	}
 	else if (resId == SETUP_SHEET4) {
 		cfg->LogCheck = (int)SendDlgItemMessage(LOG_CHECK, BM_GETCHECK, 0, 0);

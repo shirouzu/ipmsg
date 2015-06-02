@@ -4,7 +4,7 @@ static char *tlist_id =
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: List Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2009-03-09(Mon)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -22,6 +22,7 @@ TList::TList(void)
 void TList::Init(void)
 {
 	top.prior = top.next = &top;
+	num = 0;
 }
 
 void TList::AddObj(TListObj * obj)
@@ -30,6 +31,7 @@ void TList::AddObj(TListObj * obj)
 	obj->next = &top;
 	top.prior->next = obj;
 	top.prior = obj;
+	num++;
 }
 
 void TList::DelObj(TListObj * obj)
@@ -44,6 +46,7 @@ void TList::DelObj(TListObj * obj)
 		obj->prior->next = obj->next;
 	}
 	obj->next = obj->prior = NULL;
+	num--;
 }
 
 TListObj* TList::TopObj(void)
@@ -54,9 +57,19 @@ TListObj* TList::TopObj(void)
 	return	top.next == &top ? NULL : top.next;
 }
 
+TListObj* TList::EndObj(void)
+{
+	return	top.next == &top ? NULL : top.prior;
+}
+
 TListObj* TList::NextObj(TListObj *obj)
 {
 	return	obj->next == &top ? NULL : obj->next;
+}
+
+TListObj* TList::PriorObj(TListObj *obj)
+{
+	return	obj->prior == &top ? NULL : obj->prior;
 }
 
 void TList::MoveList(TList *from_list)
@@ -72,6 +85,7 @@ void TList::MoveList(TList *from_list)
 			from_list->top.prior->next = &top;
 			top.prior = from_list->top.prior;
 		}
+		num += from_list->num;
 		from_list->Init();
 	}
 }

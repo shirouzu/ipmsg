@@ -77,7 +77,6 @@
 #define IDS_PASSWDNOTSET                184
 #define IDS_WIN32EDITION                185
 #define IDS_WIN16EDITION                186
-#define IDS_OPENFIN                     187
 #define IDS_NOTABSENCE                  188
 #define IDS_FILEEXTERR                  189
 #define IDS_CANTOPENLOG                 190
@@ -121,7 +120,6 @@
 #define IDS_OPENFILELOG                 228
 #define IDS_OPENFILELOGFLTR             229
 #define IDS_EXCEPTIONLOG                230
-#define IDS_MESSAGERECV                 231
 #define IDS_UNDO                        232
 #define IDS_CUT                         233
 #define IDS_COPY                        234
@@ -131,6 +129,10 @@
 #define IDS_DELETE                      238
 #define IDS_SELECTALL                   239
 #define IDS_IPMSGHELP                   240
+#define IDS_OPENFIN                     241
+#define IDS_DELAYOPEN                   242
+#define IDS_RECVMSG                     243
+#define IDS_LRUUSER                     244
 #define IDS_ENCRYPT                     250
 #define IDS_ENCRYPT2                    251
 #define IDS_ENCRYPT2_SIGNED             252
@@ -159,6 +161,9 @@
 #define IDS_EMPTYMSG                    277
 #define IDS_CAPTION                     278
 #define IDS_CAPTIONADD                  279
+#define IDS_TOOMANYLRU                  280
+#define IDS_OPENINFO                    281
+#define IDS_UNOPENINFO                  282
 #define IDS_SETUP_SHEET1                301
 #define IDS_SETUP_SHEET2                302
 #define IDS_SETUP_SHEET3                303
@@ -182,8 +187,8 @@
 #define SENDFONT_MENU                   521
 #define RECVFONT_MENU                   522
 #define SIZE_MENU                       523
-#define IPMSG_ACCEL                     524
-#define SENDLIST_MENU                   525
+#define SENDSIZE_MENU                   524
+#define IPMSG_ACCEL                     525
 #define ABSENCE_DIALOG                  527
 #define URL_DIALOG                      528
 #define SORT_DIALOG                     544
@@ -327,7 +332,7 @@
 #define EXTBROADCAST_COMBO              1195
 #define MENU_CHECK                      1197
 #define DETAIL_BUTTON                   1199
-#define DETAIL_CHECK                    1201
+#define OPENED_CHECK                    1201
 #define SETUP_LIST                      1202
 #define SOUNDPLAY_BUTTON                1205
 #define RECVLOGON_CHECK                 1206
@@ -337,6 +342,7 @@
 #define RECVIPADDR_CHECK                1210
 #define FINDDLGIME_CHECK                1211
 #define OPEN_COMBO                      1212
+#define LRUUSER_EDIT                    1215
 #define MENU_SETUP                      10001
 #define MENU_EXIT                       10003
 #define MENU_ABOUT                      10008
@@ -367,9 +373,11 @@
 #define MENU_PRIORITY_HIDDEN            11101
 #define MENU_PRIORITY_DISP              11103
 #define MENU_PRIORITY_START             11110
+#define MENU_LRUUSER                    12000
 #define MENU_GROUP_START                20000
 #define ALLSELECT_ACCEL                 30036
 #define MENU_HELP                       30037
+#define MENU_HELP_HISTORY               30038
 
 // Next default values for new objects
 // 
@@ -378,8 +386,8 @@
 #define _APS_NO_MFC                     1
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        596
-#define _APS_NEXT_COMMAND_VALUE         30038
-#define _APS_NEXT_CONTROL_VALUE         1214
+#define _APS_NEXT_COMMAND_VALUE         30039
+#define _APS_NEXT_CONTROL_VALUE         1216
 #define _APS_NEXT_SYMED_VALUE           2001
 #endif
 #endif

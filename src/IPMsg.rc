@@ -294,9 +294,9 @@ STYLE WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU |
 CAPTION "未開封情報"
 FONT 9, "MS UI Gothic"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,51,83,50,14
-    CONTROL         "詳細",DETAIL_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    BS_PUSHLIKE | WS_TABSTOP,122,83,25,14
+    DEFPUSHBUTTON   "OK",IDOK,51,83,47,14
+    CONTROL         "開封情報",OPENED_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,107,83,39,14
     CONTROL         "List1",HISTORY_LIST,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,2,2,145,78
     PUSHBUTTON      "履歴クリア",CLEAR_BUTTON,2,83,36,14
@@ -333,13 +333,13 @@ END
 
 SETUP_SHEET2 DIALOGEX 0, 0, 178, 159
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
-FONT 10, "ＭＳ Ｐゴシック"
+FONT 10, "ＭＳ Ｐゴシック", 0, 0, 0x1
 BEGIN
-    CONTROL         "受信通知",BALLOONNOTIFY_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,17,15,43,10
-    CONTROL         "開封通知",OPEN_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,72,15,49,9
-    EDITTEXT        QUOTE_EDIT,140,14,28,11,ES_AUTOHSCROLL
+    CONTROL         "受信通知ON",BALLOONNOTIFY_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,12,15,50,10
+    CONTROL         "開封通知",OPEN_CHECK,"Button",BS_AUTOCHECKBOX | NOT 
+                    WS_VISIBLE | WS_TABSTOP,74,14,49,9
+    EDITTEXT        QUOTE_EDIT,141,14,28,11,ES_AUTOHSCROLL
     CONTROL         "送受信ホットキー（Alt+Ctrl+S,R）",HOTKEY_CHECK,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,9,36,140,10
     CONTROL         "「送信・返信」を「発射・迎撃」に変更",ABNORMALBTN_CHECK,
@@ -352,10 +352,11 @@ BEGIN
     EDITTEXT        MAINICON_EDIT,45,113,124,12,ES_AUTOHSCROLL
     PUSHBUTTON      "不在ｱｲｺﾝ",REVICON_BUTTON,4,131,37,13
     EDITTEXT        REVICON_EDIT,45,131,124,12,ES_AUTOHSCROLL
-    GROUPBOX        "引用文字",IDC_STATIC,135,3,38,27
-    GROUPBOX        "バルーン通知 ",IDC_STATIC,5,3,124,27
+    GROUPBOX        "引用文字",IDC_STATIC,136,3,38,27
+    GROUPBOX        "バルーン通知 ",IDC_STATIC,6,3,125,27
     LTEXT           "自セグメントへの\r\n Broadcast",IDC_STATIC,7,86,56,19,0,
                     WS_EX_STATICEDGE
+    COMBOBOX        OPEN_COMBO,66,13,59,72,CBS_DROPDOWNLIST | WS_TABSTOP
 END
 
 SETUP_SHEET3 DIALOG DISCARDABLE  0, 0, 178, 159
@@ -366,11 +367,15 @@ BEGIN
                     WS_TABSTOP,9,16,59,10
     CONTROL         "封書チェックON",SECRET_CHECK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,77,16,60,10
+    PUSHBUTTON      "詳細",SENDDETAIL_BUTTON,142,12,27,15
     CONTROL         "シングルクリックで開く",ONECLICK_CHECK,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,9,31,83,10
+    LTEXT           "ユーザ履歴数",IDC_STATIC,100,32,44,8
+    EDITTEXT        LRUUSER_EDIT,146,31,20,10,ES_AUTOHSCROLL
     CONTROL         "IME自動ON",CONTROLIME_CHECK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,9,45,48,10
-    PUSHBUTTON      "詳細",SENDDETAIL_BUTTON,142,13,27,15
+    CONTROL         "ユーザ検索時にはIME OFF",FINDDLGIME_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,68,45,100,10
     CONTROL         "ノンポップアップﾟ受信",NOPOPUP_CHECK,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,9,76,79,10
     CONTROL         "受信音を出さない",NOBEEP_CHECK,"Button",BS_AUTOCHECKBOX | 
@@ -389,8 +394,6 @@ BEGIN
     PUSHBUTTON      "再生",SOUNDPLAY_BUTTON,150,133,20,14
     GROUPBOX        "送信",IDC_STATIC,4,4,169,56
     GROUPBOX        "受信",IDC_STATIC,4,64,169,91
-    CONTROL         "ユーザ検索時にはIME OFF",FINDDLGIME_CHECK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,68,45,100,10
 END
 
 SETUP_SHEET4 DIALOG DISCARDABLE  0, 0, 178, 159
@@ -624,31 +627,29 @@ END
 
 SENDFONT_MENU MENU DISCARDABLE 
 BEGIN
-    MENUITEM "List部...",                   MENU_LISTFONT
-    MENUITEM "Edit部...",                   MENU_EDITFONT
+    MENUITEM "リスト部...",                 MENU_LISTFONT
+    MENUITEM "エディット部...",             MENU_EDITFONT
     MENUITEM "標準に戻す",                  MENU_DEFAULTFONT
 END
 
 RECVFONT_MENU MENU DISCARDABLE 
 BEGIN
-    MENUITEM "Head部...",                   MENU_HEADFONT
-    MENUITEM "Edit部...",                   MENU_EDITFONT
+    MENUITEM "ヘッダ部...",                 MENU_HEADFONT
+    MENUITEM "エディット部...",             MENU_EDITFONT
     MENUITEM "標準に戻す",                  MENU_DEFAULTFONT
+END
+
+SENDSIZE_MENU MENU DISCARDABLE 
+BEGIN
+    MENUITEM "サイズ保存",                  MENU_SAVESIZE
+    MENUITEM "標準に戻す(一時）",           MENU_NORMALSIZE
+//  MENUITEM "リストヘッダ保存",            MENU_SAVECOLUMN
 END
 
 SIZE_MENU MENU DISCARDABLE 
 BEGIN
-    MENUITEM "Size保存",                    MENU_SAVESIZE
+    MENUITEM "サイズ保存",                  MENU_SAVESIZE
     MENUITEM "標準に戻す(一時）",           MENU_NORMALSIZE
-END
-
-SENDLIST_MENU MENU DISCARDABLE 
-BEGIN
-    POPUP "Floating"
-    BEGIN
-        MENUITEM "不在文取得",                  MENU_ABSENCE
-        MENUITEM "バージョン取得",              MENU_VERSION
-    END
 END
 
 
@@ -680,8 +681,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,1,0,0
- PRODUCTVERSION 3,1,0,0
+ FILEVERSION 3,2,0,0
+ PRODUCTVERSION 3,2,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -699,12 +700,12 @@ BEGIN
             VALUE "Comments", "IP Messenger for Win\0"
             VALUE "CompanyName", "H.Shirouzu\0"
             VALUE "FileDescription", "IPMsg\0"
-            VALUE "FileVersion", "3.10\0"
+            VALUE "FileVersion", "3.20\0"
             VALUE "InternalName", "チョット、いとうさん\0"
             VALUE "LegalCopyright", "Copyright (c) 1996-2011 H.Shirouzu \0"
             VALUE "OriginalFilename", "IPMsg.exe\0"
             VALUE "ProductName", "IPMsg\0"
-            VALUE "ProductVersion", "3.10\0"
+            VALUE "ProductVersion", "3.20\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -741,8 +742,8 @@ BEGIN
     IDS_KEYOPEN             "（錠前付き）"
     IDS_FILEATTBTN          "（ファイル添付）"
     IDS_INTERCEPT           "迎撃"
-    IDS_FONTSET             "Font設定"
-    IDS_SIZESET             "Size設定"
+    IDS_FONTSET             "フォント設定"
+    IDS_SIZESET             "サイズ設定"
     IDS_SAVEPOS             "位置固定"
     IDS_SAVEFILE            "ファイル名を指定して保存"
     IDS_TRANSSTOP           "転送を中断しますか？"
@@ -769,7 +770,7 @@ BEGIN
     IDS_BROADCASTHEAD       "BROADCAST"
     IDS_RETRYSEND           "に送信できませんでした。再試行しますか？"
     IDS_BROADCASTSEND       "ブロードキャスト（同報）送信します"
-    IDS_GROUPSELECT         "Group選択"
+    IDS_GROUPSELECT         "グループ選択"
     IDS_DEFAULTSET          "全員をデフォルトに戻します"
 END
 
@@ -782,7 +783,6 @@ BEGIN
     IDS_OPENFILELOG         "ログファイル指定"
     IDS_OPENFILELOGFLTR     "ログファイル(*.log)!*.log!すべてのファイル(*.*)!*.*!!"
     IDS_EXCEPTIONLOG        "異常が発生したため、例外情報を以下に保存しました。\r\n%s\r\n\n作者に送付すると、原因究明の手がかりになります。"
-    IDS_MESSAGERECV         "メッセージ着信"
     IDS_UNDO                "元に戻す(&U)"
     IDS_CUT                 "切り取り(&T)"
     IDS_COPY                "コピー(&C)"
@@ -796,6 +796,10 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_IPMSGHELP           "ipmsg.chm::/ipmsghlp.htm"
+    IDS_OPENFIN             "開封されました"
+    IDS_DELAYOPEN           "非アクティブ時に、開封通知がありました"
+    IDS_RECVMSG             "メッセージ着信"
+    IDS_LRUUSER             "ユーザ履歴(%d)"
     IDS_ENCRYPT             "(RSA)"
     IDS_ENCRYPT2            "(RSA2)"
     IDS_ENCRYPT2_SIGNED     "(RSA2/認証)"
@@ -817,8 +821,8 @@ BEGIN
     IDS_MEMBERCOUNT         "（人数 %2d / %2d）"
     IDS_MEMBERCOUNTDEF      "（人数 %2d）"
     IDS_TMPNODISPDISP       "非表示を一時表示（この画面のみ）"
-    IDS_RESETPRIORITY       "全員を ﾃﾞﾌｫﾙﾄ表示 に戻す"
-    IDS_SORTFILTER          "ソート・フィルタ"
+    IDS_RESETPRIORITY       "全員をデフォルト表示 に戻す"
+    IDS_SORTFILTER          "ユーザ表示優先度"
     IDS_FINDDLG             "ユーザ検索 (Ctrl+F)"
     IDS_FILEATTACHMENU      "ファイル添付"
     IDS_FOLDERATTACHMENU    "(フォルダ)添付"
@@ -831,7 +835,7 @@ BEGIN
     IDS_CLIPDESTROY         "貼り付け画像を表示しないまま閉じますか？"
     IDS_WITHCLIP            "(画像)"
     IDS_OPENCHECK_NONE      "開封通知なし"
-    IDS_OPENCHECK_BALLOON   "開封通知"
+    IDS_OPENCHECK_BALLOON   "開封通知ON"
     IDS_OPENCHECK_ICON      "旧式開封最小"
     IDS_OPENCHECK_DLG       "旧式開封通知"
     IDS_HISTUSER            "ユーザ情報"
@@ -852,6 +856,9 @@ BEGIN
     IDS_EMPTYMSG            "メッセージが空ですが、送信しますか？"
     IDS_CAPTION             "IPMsg (member:%d)"
     IDS_CAPTIONADD          "\r\n未開封 (%d)"
+    IDS_TOOMANYLRU          "履歴数は %d までです"
+    IDS_OPENINFO            "開封情報 (%d/%d)"
+    IDS_UNOPENINFO          "未開封情報 (%d)"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -898,7 +905,6 @@ BEGIN
     IDS_IPMSG               "IPMsg"
     IDS_PASSWDNOTSET        "パスワードが設定されていないようです。\r\n再設定してください"
     IDS_WIN32EDITION        "Win32版"
-    IDS_OPENFIN             "開封されました"
     IDS_NOTABSENCE          "Not Absence mode"
     IDS_FILEEXTERR          "拡張子への関連付けがないか、無効です"
     IDS_CANTOPENLOG         "ログを開けません"
@@ -1201,9 +1207,9 @@ STYLE WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU |
 CAPTION "Unopened Information"
 FONT 8, "Verdana"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,49,78,50,14
-    CONTROL         "Detail",DETAIL_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    BS_PUSHLIKE | WS_TABSTOP,122,79,25,13
+    DEFPUSHBUTTON   "OK",IDOK,47,78,48,14
+    CONTROL         "OpenedInfo",OPENED_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,100,79,45,13
     CONTROL         "List1",HISTORY_LIST,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,2,2,145,71
     PUSHBUTTON      "Clear",CLEAR_BUTTON,2,78,30,14
@@ -1241,13 +1247,13 @@ END
 
 SETUP_SHEET2 DIALOGEX 0, 0, 182, 159
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
-FONT 8, "Verdana"
+FONT 8, "Verdana", 0, 0, 0x1
 BEGIN
-    CONTROL         "MsgRecv",BALLOONNOTIFY_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,14,15,42,10
-    CONTROL         "MsgOpened",OPEN_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,67,15,49,9
-    EDITTEXT        QUOTE_EDIT,138,13,33,12,ES_AUTOHSCROLL
+    CONTROL         "MsgRecvON",BALLOONNOTIFY_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,11,15,50,10
+    CONTROL         "MsgOpened",OPEN_CHECK,"Button",BS_AUTOCHECKBOX | NOT 
+                    WS_VISIBLE | WS_TABSTOP,67,15,49,9
+    EDITTEXT        QUOTE_EDIT,141,13,33,12,ES_AUTOHSCROLL
     CONTROL         "Use Hotkey (Alt+Ctrl+S,R)",HOTKEY_CHECK,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,10,35,103,10
     CONTROL         "Change Send/Reply -> Fire/Intercept",ABNORMALBTN_CHECK,
@@ -1260,10 +1266,11 @@ BEGIN
     EDITTEXT        MAINICON_EDIT,41,103,134,13,ES_AUTOHSCROLL
     PUSHBUTTON      "RevIcon",REVICON_BUTTON,5,122,32,14
     EDITTEXT        REVICON_EDIT,41,122,134,13,ES_AUTOHSCROLL
-    GROUPBOX        "QuoteStr",IDC_STATIC,133,3,43,27
-    GROUPBOX        "Balloon Notificatoin",IDC_STATIC,5,3,121,27
+    GROUPBOX        "QuoteStr",IDC_STATIC,136,3,43,27
+    GROUPBOX        "Balloon Notificatoin",IDC_STATIC,5,3,128,27
     LTEXT           "Local segment broadcast",IDC_STATIC,6,83,84,10,0,
                     WS_EX_STATICEDGE
+    COMBOBOX        OPEN_COMBO,65,13,63,72,CBS_DROPDOWNLIST | WS_TABSTOP
 END
 
 SETUP_SHEET3 DIALOG DISCARDABLE  0, 0, 183, 158
@@ -1274,9 +1281,15 @@ BEGIN
                     WS_TABSTOP,10,16,59,10
     CONTROL         "Quoted check",QUOTE_CHECK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,76,16,61,10
-    CONTROL         "One click open SendDialog",ONECLICK_CHECK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,10,29,101,10
-    PUSHBUTTON      "Detail",SENDDETAIL_BUTTON,143,13,29,15
+    PUSHBUTTON      "Detail",SENDDETAIL_BUTTON,143,11,29,15
+    CONTROL         "1 Click Open SendDlg",ONECLICK_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,10,29,84,10
+    LTEXT           "UserHistoryNum",IDC_STATIC,100,30,54,8
+    EDITTEXT        LRUUSER_EDIT,156,29,14,12,ES_AUTOHSCROLL
+    CONTROL         "IME auto ON",CONTROLIME_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,10,42,56,10
+    CONTROL         "IME auto OFF in UserSearch",FINDDLGIME_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,70,42,103,10
     CONTROL         "None Popup Receive",NOPOPUP_CHECK,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,9,72,83,10
     CONTROL         "No receive sound",NOBEEP_CHECK,"Button",BS_AUTOCHECKBOX | 
@@ -1295,10 +1308,6 @@ BEGIN
     PUSHBUTTON      "Play",SOUNDPLAY_BUTTON,153,131,20,15
     GROUPBOX        "Send Window",IDC_STATIC,4,3,173,55
     GROUPBOX        "Receive Window",IDC_STATIC,4,60,173,94
-    CONTROL         "IME auto ON",CONTROLIME_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,10,42,56,10
-    CONTROL         "IME auto OFF in UserSearch",FINDDLGIME_CHECK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,70,42,103,10
 END
 
 SETUP_SHEET4 DIALOG DISCARDABLE  0, 0, 183, 158
@@ -1484,6 +1493,11 @@ BEGIN
         TOPMARGIN, 2
         BOTTOMMARGIN, 92
     END
+
+    SETUP_SHEET3, DIALOG
+    BEGIN
+        RIGHTMARGIN, 182
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -1493,19 +1507,17 @@ END
 // Menu
 //
 
+SENDSIZE_MENU MENU DISCARDABLE 
+BEGIN
+    MENUITEM "Save size as default",        MENU_SAVESIZE
+    MENUITEM "Restore default (temporary)", MENU_NORMALSIZE
+    MENUITEM "Save List Header",            MENU_SAVECOLUMN
+END
+
 SIZE_MENU MENU DISCARDABLE 
 BEGIN
     MENUITEM "Save size as default",        MENU_SAVESIZE
     MENUITEM "Restore default (temporary)", MENU_NORMALSIZE
-END
-
-SENDLIST_MENU MENU DISCARDABLE 
-BEGIN
-    POPUP "Floating"
-    BEGIN
-        MENUITEM "Get absence info",            MENU_ABSENCE
-        MENUITEM "Get version info",            MENU_VERSION
-    END
 END
 
 SENDFONT_MENU MENU DISCARDABLE 
@@ -1600,7 +1612,6 @@ BEGIN
     IDS_OPENFILELOG         "LogFile selection"
     IDS_OPENFILELOGFLTR     "LogFile(*.log)!*.log!All Files(*.*)!*.*!!"
     IDS_EXCEPTIONLOG        "Exception has occured.\r\nException info saved to \r\n%s\r\n\r\nPlease send to auther."
-    IDS_MESSAGERECV         "Message Received"
     IDS_UNDO                "Undo(&U)"
     IDS_CUT                 "Cut(&T)"
     IDS_COPY                "Copy(&C)"
@@ -1614,6 +1625,10 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_IPMSGHELP           "ipmsg.chm::/ipmsghlp_eng.htm"
+    IDS_OPENFIN             "Message was Opened"
+    IDS_DELAYOPEN           "During inactivity, Message was Opened"
+    IDS_RECVMSG             "Message Received"
+    IDS_LRUUSER             "User History(%d)"
     IDS_ENCRYPT             "(RSA)"
     IDS_ENCRYPT2            "(RSA2)"
     IDS_ENCRYPT2_SIGNED     "(RSA2/Signed)"
@@ -1636,7 +1651,7 @@ BEGIN
     IDS_MEMBERCOUNTDEF      " (Member %2d)"
     IDS_TMPNODISPDISP       "Display NoDisplayGroup as tempolary"
     IDS_RESETPRIORITY       "All Member move to Default Priority"
-    IDS_SORTFILTER          "Sort/Filter"
+    IDS_SORTFILTER          "Priority Settings"
     IDS_FINDDLG             "Search User (Ctrl+F)"
     IDS_FILEATTACHMENU      "File Transfer"
     IDS_FOLDERATTACHMENU    "(Folder) Transfer"
@@ -1648,10 +1663,10 @@ BEGIN
     IDS_TOOMANY_CLIP        "Too many images"
     IDS_CLIPDESTROY         "Do you want not to display embedded image?"
     IDS_WITHCLIP            "(image)"
-    IDS_OPENCHECK_NONE      "MsgOpen(None)"
-    IDS_OPENCHECK_BALLOON   "MsgOpen"
-    IDS_OPENCHECK_ICON      "MsgOpen(OldMini)"
-    IDS_OPENCHECK_DLG       "MsgOpen(OldStyle)"
+    IDS_OPENCHECK_NONE      "MsgOpen None"
+    IDS_OPENCHECK_BALLOON   "MsgOpen On"
+    IDS_OPENCHECK_ICON      "MsgOpen OldMin"
+    IDS_OPENCHECK_DLG       "MsgOpen Old"
     IDS_HISTUSER            "UserInfo"
     IDS_HISTODATE           "OpenDate"
     IDS_HISTID              "ID"
@@ -1670,6 +1685,9 @@ BEGIN
     IDS_EMPTYMSG            "Message is empty. Do you want to send?"
     IDS_CAPTION             "IPMsg (member:%d)"
     IDS_CAPTIONADD          "\r\nUnopened (%d)"
+    IDS_TOOMANYLRU          "Max User History is %d"
+    IDS_OPENINFO            "Opened Info (%d/%d)"
+    IDS_UNOPENINFO          "Unopened Info (%d)"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -1715,7 +1733,6 @@ BEGIN
     IDS_IPMSG               "IPMsgEng"
     IDS_PASSWDNOTSET        "Password is not set.\r\nPlease set."
     IDS_WIN32EDITION        "Win32(en)"
-    IDS_OPENFIN             "Message Opened"
     IDS_NOTABSENCE          "Not Absence mode"
     IDS_FILEEXTERR          "Invalid file extention link"
     IDS_CANTOPENLOG         "Can't open log file"

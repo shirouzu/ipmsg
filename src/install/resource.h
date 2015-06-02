@@ -3,7 +3,7 @@
 // Used by install.rc
 //
 #define IDS_SETUPCOMPLETE               11
-#define IDS_COMPLETE_UACADD             12
+#define IDS_COMPLETE_WIN7               12
 #define IDS_TERMINATE                   13
 #define IDS_CANTTERMINATE               14
 #define IDS_NOTCREATEDIR                15
@@ -14,6 +14,7 @@
 #define IDS_MKDIR                       20
 #define IDS_RMDIR                       21
 #define IDS_REQUIREADMIN                22
+#define IDS_IPMSGHELP                   23
 #define SETUP_ICON                      104
 #define MKDIR_BUTTON                    110
 #define RMDIR_BUTTON                    111

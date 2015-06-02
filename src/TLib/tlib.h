@@ -3,7 +3,7 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -80,6 +80,8 @@ extern DWORD TWinVersion;	// define in tmisc.cpp
 #define IsWinXP()		((LOBYTE(LOWORD(TWinVersion)) >= 6 || LOBYTE(LOWORD(TWinVersion)) == 5 \
 							&& HIBYTE(LOWORD(TWinVersion)) >= 1) && TWinVersion < 0x80000000)
 #define IsWinVista()	(LOBYTE(LOWORD(TWinVersion)) >= 6 && TWinVersion < 0x80000000)
+#define IsWin7()		((LOBYTE(LOWORD(TWinVersion)) >= 7 || LOBYTE(LOWORD(TWinVersion)) == 6 \
+							&& HIBYTE(LOWORD(TWinVersion)) >= 1) && TWinVersion < 0x80000000)
 
 #define IsLang(lang)	(PRIMARYLANGID(LANGIDFROMLCID(GetThreadLocale())) == lang)
 
@@ -468,6 +470,7 @@ struct TListObj {
 class TList {
 protected:
 	TListObj	top;
+	int			num;
 
 public:
 	TList(void);
@@ -475,9 +478,12 @@ public:
 	void		AddObj(TListObj *obj);
 	void		DelObj(TListObj *obj);
 	TListObj	*TopObj(void);
+	TListObj	*EndObj(void);
 	TListObj	*NextObj(TListObj *obj);
+	TListObj	*PriorObj(TListObj *obj);
 	BOOL		IsEmpty() { return	top.next == &top; }
 	void		MoveList(TList *from_list);
+	int			Num() { return num; }
 };
 
 #define FREE_LIST	0

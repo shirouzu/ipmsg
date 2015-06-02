@@ -1,9 +1,9 @@
-/* @(#)Copyright (C) H.Shirouzu 1998-2011   install.h	Ver3.00 */
+/* @(#)Copyright (C) H.Shirouzu 1998-2011   install.h	Ver3.20 */
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Main Header
 	Create					: 1998-06-14(Sun)
-	Update					: 2011-04-10(Sun)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -12,15 +12,18 @@ class TInstDlg : public TDlg
 {
 protected:
 	BOOL	runasImm;
+	HWND	runasWnd;
 
 public:
 	TInstDlg(char *cmdLine);
 	virtual ~TInstDlg();
 
 	virtual BOOL	EvCreate(LPARAM lParam);
+	virtual BOOL	EvNcDestroy(void);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	BOOL	Install(void);
+	BOOL	AppKick(void);
 	int		TerminateIPMsg(void);
 };
 
@@ -57,8 +60,9 @@ public:
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 };
 
-#define WM_IPMSG_QUIT			(WM_USER + 100)
-#define WM_IPMSG_INSTALL		(WM_USER + 101)
+#define WM_IPMSG_HIDE			(WM_USER + 100)
+#define WM_IPMSG_QUIT			(WM_USER + 101)
+#define WM_IPMSG_INSTALL		(WM_USER + 102)
 
 #define IPMSG_CLASS				"ipmsg_class"
 #define IPMSG_NAME				"IPMSG for Win32"

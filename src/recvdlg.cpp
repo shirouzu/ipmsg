@@ -1,10 +1,10 @@
 static char *recvdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   recvdlg.cpp	Ver3.10";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   recvdlg.cpp	Ver3.20";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Receive Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-05-11(Wed)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -998,8 +998,10 @@ void TRecvDlg::Show(int mode)
 	}
 }
 
-void TRecvDlg::InsertImages(void)
+BOOL TRecvDlg::InsertImages(void)
 {
+	BOOL	ret = TRUE;
+
 	for (ClipBuf *clipBuf=(ClipBuf *)clipList.TopObj(); clipBuf; ) {
 		ClipBuf *next = (ClipBuf *)clipList.NextObj(clipBuf);
 		if (clipBuf->finished) {
@@ -1009,7 +1011,7 @@ void TRecvDlg::InsertImages(void)
 				editSub.SendMessageW(EM_SETSEL, pos, pos + 1);
 				pos = -1;
 			}
-			editSub.InsertPng(&clipBuf->vbuf, pos);
+			if (!editSub.InsertPng(&clipBuf->vbuf, pos)) ret = FALSE;
 			clipList.DelObj(clipBuf);
 			delete clipBuf;
 		}
@@ -1018,7 +1020,12 @@ void TRecvDlg::InsertImages(void)
 	editSub.SendMessageW(EM_SCROLL, SB_PAGEUP, 0);
 	editSub.SendMessageW(EM_SETSEL, 0, 0);
 	editSub.SendMessageW(EM_SCROLLCARET, 0, 0);
+
 	::EnableWindow(GetDlgItem(IMAGE_BUTTON), clipList.TopObj() ? TRUE : FALSE);
+
+	if (!ret) MessageBox("Can't decode images.");
+
+	return	ret;
 }
 
 

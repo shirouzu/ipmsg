@@ -3,7 +3,7 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 2005-04-10(Sun)
-	Update					: 2011-03-27(Sun)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -141,8 +141,120 @@ DEFINE_GUID(IID_IShellLinkW, 0x000214F9, \
 
 #endif
 
+#ifndef NIN_BALLOONSHOW
+#define NIN_BALLOONSHOW      (WM_USER + 2)
+#define NIN_BALLOONHIDE      (WM_USER + 3)
+#define NIN_BALLOONTIMEOUT   (WM_USER + 4)
+#define NIN_BALLOONUSERCLICK (WM_USER + 5)
+#endif
+
+// ListView extended define for VC4
+#ifndef LVM_SETEXTENDEDLISTVIEWSTYLE
+#define LVM_SETEXTENDEDLISTVIEWSTYLE	(LVM_FIRST + 54)
+#define LVM_GETEXTENDEDLISTVIEWSTYLE	(LVM_FIRST + 55)
+#define LVM_SETCOLUMNORDERARRAY			(LVM_FIRST + 58)
+#define LVM_GETCOLUMNORDERARRAY			(LVM_FIRST + 59)
+#define LVS_EX_GRIDLINES				0x00000001
+#define LVS_EX_HEADERDRAGDROP			0x00000010
+#define LVS_EX_FULLROWSELECT			0x00000020
+#define LVS_SHOWSELALWAYS				0x0008
+#define LVM_GETHEADER					0x101F
+#define EM_AUTOURLDETECT				(WM_USER + 91)
+#endif
+
+// ListView extended define for VC4 & VC5
+#ifndef LVM_SETSELECTIONMARK
+#define LVM_SETSELECTIONMARK			(LVM_FIRST + 67)
+#define LVN_GETINFOTIPW					(LVN_FIRST-58)
+#endif
+
+#if _MSC_VER <= 1200
+#define LVN_ENDSCROLL					(LVN_FIRST-81)
+#endif
+
+#ifndef REGSTR_SHELLFOLDERS
+#define REGSTR_SHELLFOLDERS			REGSTR_PATH_EXPLORER "\\Shell Folders"
+#define REGSTR_MYDOCUMENT			"Personal"
+#endif
+
 // CryptoAPI for VC4
 #ifndef MS_DEF_PROV
+typedef unsigned long HCRYPTPROV;
+typedef unsigned long HCRYPTKEY;
+typedef unsigned long HCRYPTHASH;
+typedef unsigned int ALG_ID;
+#define ALG_TYPE_RSA			(2 << 9)
+#define ALG_TYPE_BLOCK			(3 << 9)
+#define ALG_CLASS_DATA_ENCRYPT	(3 << 13)
+#define ALG_CLASS_HASH			(4 << 13)
+#define ALG_CLASS_KEY_EXCHANGE	(5 << 13)
+#define ALG_SID_RSA_ANY			0
+#define ALG_TYPE_ANY			0
+#define ALG_SID_RC2				2
+#define ALG_SID_MD5				3
+#define CALG_RSA_KEYX			(ALG_CLASS_KEY_EXCHANGE|ALG_TYPE_RSA|ALG_SID_RSA_ANY)
+#define CALG_RC2				(ALG_CLASS_DATA_ENCRYPT|ALG_TYPE_BLOCK|ALG_SID_RC2)
+#define CALG_MD5				(ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_MD5)
+#define CRYPT_EXPORTABLE		0x00000001
+#define PROV_RSA_FULL			1
+#define MS_DEF_PROV				"Microsoft Base Cryptographic Provider v1.0"
+#define MS_ENHANCED_PROV		"Microsoft Enhanced Cryptographic Provider v1.0"
+#define CUR_BLOB_VERSION		0x02
+#define SIMPLEBLOB				0x1
+#define PUBLICKEYBLOB			0x6
+#define PRIVATEKEYBLOB          0x7
+#define CRYPT_NEWKEYSET			0x00000008
+#define CRYPT_DELETEKEYSET      0x00000010
+#define CRYPT_MACHINE_KEYSET    0x00000020
+#define AT_KEYEXCHANGE			1
+#define AT_SIGNATURE			2
+#define KP_EFFECTIVE_KEYLEN		19	// for CryptSetKeyParam
+#define NTE_BAD_KEY				0x80090003L
+#endif
+
+#ifndef NIIF_NONE
+#define NIIF_NONE					0x00000000
+#define NIIF_INFO					0x00000001
+#define NIIF_WARNING				0x00000002
+#define NIIF_ERROR					0x00000003
+#define NIIF_USER					0x00000004
+#define NIIF_ICON_MASK				0x0000000F
+#define NIIF_NOSOUND				0x00000010
+#define NIIF_LARGE_ICON				0x00000020
+
+#define NIF_MESSAGE					0x00000001
+#define NIF_ICON					0x00000002
+#define NIF_TIP						0x00000004
+#define NIF_STATE					0x00000008	// IE5
+#define NIF_INFO					0x00000010	// IE5
+#define NIF_GUID					0x00000020	// IE6
+#define NIF_REALTIME				0x00000040
+#define NIF_SHOWTIP					0x00000080
+#endif
+
+typedef struct _NOTIFYICONDATA2W { 
+    DWORD  cbSize; 
+    HWND   hWnd; 
+    UINT   uID; 
+    UINT   uFlags; 
+    UINT   uCallbackMessage; 
+    HICON  hIcon; 
+    WCHAR  szTip[128];
+    DWORD  dwState;
+    DWORD  dwStateMask;
+    WCHAR  szInfo[256];
+    union {
+        UINT  uTimeout;
+        UINT  uVersion;
+    } DUMMYUNIONNAME;
+    WCHAR  szInfoTitle[64];
+    DWORD  dwInfoFlags;
+//  GUID   guidItem;
+//  HICON hBalloonIcon;
+} NOTIFYICONDATA2W, *PNOTIFYICONDATA2W;
+
+// CryptoAPI for VC4
+#ifndef MS_DEF_DSS_PROV
 typedef unsigned long HCRYPTPROV;
 typedef unsigned long HCRYPTKEY;
 typedef unsigned long HCRYPTHASH;
@@ -159,7 +271,7 @@ typedef unsigned int ALG_ID;
 #define ALG_SID_SHA				4
 #define CALG_RSA_KEYX			(ALG_CLASS_KEY_EXCHANGE|ALG_TYPE_RSA|ALG_SID_RSA_ANY)
 #define CALG_RC2				(ALG_CLASS_DATA_ENCRYPT|ALG_TYPE_BLOCK|ALG_SID_RC2)
-#define CALG_MD5				(ALG_CLASS_HASH|ALG_TYPE_ANY|ALG_SID_MD5)
+//#define CALG_MD5				(ALG_CLASS_HASH|ALG_TYPE_ANY|ALG_SID_MD5)
 #define CALG_SHA				(ALG_CLASS_HASH|ALG_TYPE_ANY|ALG_SID_SHA)
 #define HP_ALGID 1
 #define HP_HASHVAL 2

@@ -1,10 +1,10 @@
 static char *miscdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   miscdlg.cpp	Ver3.10";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   miscdlg.cpp	Ver3.20";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc Dialog
 	Create					: 1996-12-15(Sun)
-	Update					: 2011-05-11(Wed)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -709,7 +709,7 @@ BOOL TMsgDlg::EvCreate(LPARAM lParam)
 #define MAX_HISTHASH	1001
 HistHash::HistHash() : THashTbl(MAX_HISTHASH)
 {
-	top = end = NULL;
+	top = end = lruTop = lruEnd = NULL;
 }
 
 HistHash::~HistHash()
@@ -725,7 +725,7 @@ void HistHash::Clear()
 {
 	UnInit();
 	Init(MAX_HISTHASH);
-	top = end = NULL;
+	top = end = lruTop = lruEnd = NULL;
 }
 
 void HistHash::Register(THashObj *_obj, u_int hash_id)
@@ -741,6 +741,20 @@ void HistHash::Register(THashObj *_obj, u_int hash_id)
 	else {
 		top = end = obj;
 		obj->next = obj->prior = NULL;
+	}
+}
+
+void HistHash::RegisterLru(HistObj *obj)
+{
+	if (lruTop) {
+		obj->lruNext = lruTop;
+		obj->lruPrior = NULL;
+		lruTop->lruPrior = obj;
+		lruTop = obj;
+	}
+	else {
+		lruTop = lruEnd = obj;
+		obj->lruNext = obj->lruPrior = NULL;
 	}
 }
 
@@ -762,7 +776,26 @@ void HistHash::UnRegister(THashObj *_obj)
 	}
 	obj->next = obj->prior = NULL;
 
+	UnRegisterLru(obj);
+
 	THashTbl::UnRegister(obj);
+}
+
+void HistHash::UnRegisterLru(HistObj *obj)
+{
+	if (obj->lruNext) {
+		obj->lruNext->lruPrior = obj->lruPrior;
+	}
+	if (obj == lruTop) {
+		lruTop = obj->lruNext;
+	}
+	if (obj->lruPrior) {
+		obj->lruPrior->lruNext = obj->lruNext;
+	}
+	if (obj == lruEnd) {
+		lruEnd = obj->lruPrior;
+	}
+	obj->lruNext = obj->lruPrior = NULL;
 }
 
 
@@ -775,7 +808,7 @@ THistDlg::THistDlg(Cfg *_cfg, THosts *_hosts, TWin *_parent) : TDlg(HISTORY_DIAL
 	cfg = _cfg;
 	hosts = _hosts;
 	hListFont = NULL;
-	detailMode = FALSE;
+	openedMode = FALSE;
 	unOpenedNum = 0;
 }
 
@@ -800,7 +833,7 @@ BOOL THistDlg::EvCreate(LPARAM lParam)
 	SetDlgItem(HISTORY_LIST, XY_FIT);
 	SetDlgItem(IDOK, HMID_FIT);
 	SetDlgItem(CLEAR_BUTTON, LEFT_FIT);
-	SetDlgItem(DETAIL_CHECK, RIGHT_FIT);
+	SetDlgItem(OPENED_CHECK, RIGHT_FIT);
 
 	if (rect.left == CW_USEDEFAULT)
 	{
@@ -814,15 +847,14 @@ BOOL THistDlg::EvCreate(LPARAM lParam)
 		int y = (cy - ysize)/2;
 		MoveWindow((x < 0) ? 0 : x % (cx - xsize), (y < 0) ? 0 : y % (cy - ysize),
 					xsize, ysize, FALSE);
-		GetWindowTextU8(title, sizeof(title));
 	}
 	else {
 		MoveWindow(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, FALSE);
 	}
 
 	FitDlgItems();
-	CheckDlgButton(DETAIL_CHECK, detailMode);
-	SetWindowTextU8(FmtStr(unOpenedNum ? "%s (%d)" : "%s", title, unOpenedNum));
+	CheckDlgButton(OPENED_CHECK, openedMode);
+	SetTitle();
 
 	return	TRUE;
 }
@@ -834,12 +866,19 @@ BOOL THistDlg::EvDestroy()
 	cfg->HistXdiff = (rect.right - rect.left) - (orgRect.right - orgRect.left);
 	cfg->HistYdiff = (rect.bottom - rect.top) - (orgRect.bottom - orgRect.top);
 
-	int	col_len = detailMode ? HW_ID : HW_SDATE;
-	for (int i=0; i <= col_len; i++) {
-		cfg->HistWidth[i] = histListView.GetColumnWidth(i);
-	}
+	SaveColumnInfo();
+
 	cfg->WriteRegistry(CFG_WINSIZE);
 	return	FALSE;
+}
+
+void THistDlg::SaveColumnInfo()
+{
+	int	col_num = MAX_HISTWIDTH - (openedMode ? 0 : 1);
+
+	for (int i=0; i < col_num; i++) {
+		cfg->HistWidth[i] = histListView.GetColumnWidth(i);
+	}
 }
 
 /*
@@ -860,18 +899,26 @@ BOOL THistDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 //		::PostMessage(GetMainWnd(), WM_MSGDLG_EXIT, (WPARAM)0, (LPARAM)this);
 		return	TRUE;
 
-	case DETAIL_CHECK:
-		detailMode = !detailMode;
-		histListView.DeleteAllItems();
-		SetHeader();
+	case OPENED_CHECK:
+		SaveColumnInfo();
+		openedMode = !openedMode;
 		SetAllData();
 		return	TRUE;
 
 	case CLEAR_BUTTON:
 		histListView.DeleteAllItems();
-		histHash.Clear();
-		unOpenedNum = 0;
-		SetWindowTextU8(FmtStr(unOpenedNum ? "%s (%d)" : "%s", title, unOpenedNum));
+		if (openedMode) {
+			while (histHash.LruTop()) histHash.UnRegister(histHash.LruTop()); // !UnRegisterLRU()
+		}
+		else {
+			for (HistObj *obj=histHash.Top(); obj; ) {
+				HistObj *next = obj->next;
+				if (!*obj->odate) histHash.UnRegister(obj);
+				obj = next;
+			}
+			unOpenedNum = 0;
+		}
+		SetTitle();
 		return	TRUE;
 	}
 	return	FALSE;
@@ -899,38 +946,59 @@ BOOL THistDlg::Create(HINSTANCE hI)
 
 	SetFont();
 	SetHeader(); // dummy for reflect font
-	SetHeader();
 	SetAllData();
 
 	return	TRUE;
 }
 
+void THistDlg::SetTitle()
+{
+	SetWindowTextU8(FmtStr(GetLoadStrU8(openedMode ? IDS_OPENINFO : IDS_UNOPENINFO),
+						openedMode ? (histHash.GetRegisterNum() - unOpenedNum) : unOpenedNum,
+						histHash.GetRegisterNum()));
+}
+
 void THistDlg::SetHeader()
 {
-	int	title_id[] = { IDS_HISTUSER, IDS_HISTSDATE, IDS_HISTODATE, IDS_HISTID };
-	int	col_len = detailMode ? HW_ID : HW_SDATE;
-	int	i;
+	int	title_id[] = { IDS_HISTUSER, IDS_HISTODATE, IDS_HISTSDATE, IDS_HISTID };
+	int	i, offset = 0;
+	int	col_num = MAX_HISTWIDTH - (openedMode ? 0 : 1);
 
 	for (i=0; i < MAX_HISTWIDTH; i++) {
 		histListView.DeleteColumn(0);
 	}
 
-	for (i=0; i <= col_len; i++) {
-		histListView.InsertColumn(i, GetLoadStrU8(title_id[i]), cfg->HistWidth[i]);
+	for (i=0; i < MAX_HISTWIDTH; i++) {
+		if (!openedMode && i == HW_ODATE) {
+			offset = 1;
+			continue;
+		}
+		histListView.InsertColumn(i-offset, GetLoadStrU8(title_id[i]), cfg->HistWidth[i-offset]);
 	}
+}
+
+void THistDlg::SetData(HistObj *obj)
+{
+	histListView.InsertItem(0, obj->user, (LPARAM)obj);
+	if (openedMode) histListView.SetSubItem(0, HW_ODATE, obj->odate);
+	histListView.SetSubItem(0, HW_SDATE - (openedMode ? 0 : 1), obj->sdate);
+	histListView.SetSubItem(0, HW_ID    - (openedMode ? 0 : 1), obj->pktno);
 }
 
 void THistDlg::SetAllData()
 {
-	for (HistObj *obj = histHash.End(); obj; obj = obj->prior) {
-		if (!detailMode && *obj->odate) continue;
-		histListView.InsertItem(0, obj->user, (LPARAM)obj);
-		histListView.SetSubItem(0, HW_SDATE, obj->sdate);
-		if (detailMode) {
-			histListView.SetSubItem(0, HW_ID, obj->pktno);
-			if (*obj->odate) {
-				histListView.SetSubItem(0, HW_ODATE, obj->odate);
-			}
+	histListView.DeleteAllItems();
+	SetHeader();
+	SetTitle();
+
+	if (openedMode) {
+		for (HistObj *obj = histHash.LruEnd(); obj; obj = obj->lruPrior) {
+			SetData(obj);
+		}
+	}
+	else {
+		for (HistObj *obj = histHash.End(); obj; obj = obj->prior) {
+			if (!*obj->odate) SetData(obj);
 		}
 	}
 }
@@ -945,9 +1013,7 @@ void THistDlg::SendNotify(HostSub *hostSub, ULONG packetNo)
 #define MAX_OPENHISTORY 500
 	int num = histHash.GetRegisterNum();
 	if (num >= MAX_OPENHISTORY) {
-		HistObj *obj = histHash.End();
-
-		if (obj) {
+		if (HistObj *obj = histHash.End()) {
 			if (hWnd) histListView.DeleteItem(num-1);
 			histHash.UnRegister(obj);
 			if (!*obj->odate) unOpenedNum--;
@@ -970,16 +1036,14 @@ void THistDlg::SendNotify(HostSub *hostSub, ULONG packetNo)
 	unOpenedNum++;
 
 	if (hWnd) {
-		histListView.InsertItem(0, obj->user, (LPARAM)obj);
-		histListView.SetSubItem(0, HW_SDATE, obj->sdate);
-		if (detailMode) {
-			histListView.SetSubItem(0, HW_ID, obj->pktno);
+		if (!openedMode) {
+			SetData(obj);
 		}
-		SetWindowTextU8(FmtStr("%s (%d)", title, unOpenedNum));
+		SetTitle();
 	}
 }
 
-void THistDlg::OpenNotify(HostSub *hostSub, ULONG packetNo)
+void THistDlg::OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify)
 {
 	char	buf[MAX_BUF];
 	int		len;
@@ -999,21 +1063,24 @@ void THistDlg::OpenNotify(HostSub *hostSub, ULONG packetNo)
 
 	if (*obj->odate) return;
 
+	if (notify) strncpyz(obj->sdate, notify, sizeof(obj->sdate));
+
 	SYSTEMTIME	st;
 	::GetLocalTime(&st);
 	sprintf(obj->odate, "%02d/%02d %02d:%02d", st.wMonth, st.wDay, st.wHour, st.wMinute);
 	if (--unOpenedNum < 0) unOpenedNum = 0;
+	histHash.RegisterLru(obj);
 
 	if (hWnd) {
-		if ((idx = histListView.FindItem((LPARAM)obj)) < 0) return;
-
-		if (detailMode) {
-			histListView.SetSubItem(idx, HW_ODATE, obj->odate);
+		if (openedMode) {
+			SetData(obj);
 		}
 		else {
-			histListView.DeleteItem(idx);
+			if ((idx = histListView.FindItem((LPARAM)obj)) >= 0) {
+				histListView.DeleteItem(idx);
+			}
 		}
-		SetWindowTextU8(FmtStr(unOpenedNum ? "%s (%d)" : "%s", title, unOpenedNum));
+		SetTitle();
 	}
 }
 

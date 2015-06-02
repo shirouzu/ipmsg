@@ -3,7 +3,7 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -189,6 +189,7 @@ BOOL ReadLinkV(void *src, void *dest, void *arg=NULL);
 BOOL DeleteLinkV(void *path);
 BOOL GetParentDirV(const void *srcfile, void *dir);
 HWND ShowHelpV(HWND hOwner, void *help_dir, void *help_file, void *section=NULL);
+HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const char *section=NULL);
 
 #endif
 

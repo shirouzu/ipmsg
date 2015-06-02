@@ -1,10 +1,10 @@
 static char *cfg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.10";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.20";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration
 	Create					: 1996-09-27(Sat)
-	Update					: 2011-05-11(Wed)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -28,6 +28,7 @@ static char *cfg_id =
 #define IPMSG_DEFAULT_ENCRYPTNUM	50
 #define IPMSG_DEFAULT_CLIPMODE		7
 #define IPMSG_DEFAULT_CLIPMAX		10
+#define IPMSG_DEFAULT_LRUUSERMAX	10
 
 #define IPMSG_DEFAULT_VIEWMAX		(1 * 1024 * 1024)	// 1MB
 #define IPMSG_DEFAULT_TRANSMAX		(128 * 1024)		// 128KB
@@ -44,8 +45,8 @@ static char *cfg_id =
 
 #define IPMSG_DEFAULT_HWUSER_WIDTH	100
 #define IPMSG_DEFAULT_HWODATE_WIDTH	 90
-#define IPMSG_DEFAULT_HWID_WIDTH	 70
-#define IPMSG_DEFAULT_HWSDATE_WIDTH	 90
+#define IPMSG_DEFAULT_HWSDATE_WIDTH	 10
+#define IPMSG_DEFAULT_HWID_WIDTH	 10
 
 #define LCID_KEY			"lcid"
 #define NOBEEP_STR			"NoBeep"
@@ -76,7 +77,7 @@ static char *cfg_id =
 #define SECRETCHECK_STR		"SecretCheck"
 #define IPADDRCHECK_STR		"IPAddrCheck2"
 #define RECVIPADDRCHECK_STR	"RecvIPAddrCheck"
-#define ONECLICKPOPUP_STR	"OneClickPopup"
+#define ONECLICKPOPUP_STR	"OneClickPopup2"
 #define BALLOONNOTIFY_STR	"BalloonNotify"
 #define ABNORMALBTN_STR		"AbnormalButton"
 #define DIALUPCHECK_STR		"DialUpCheck"
@@ -122,6 +123,8 @@ static char *cfg_id =
 #define REVICON_STR			"RevIcon"
 #define LASTOPEN_STR		"lastOpen"
 #define LASTSAVE_STR		"lastSave"
+#define LRUUSERMAX_STR		"lruUserMax"
+#define LRUUSERKEY_STR		"lruUser"
 
 #define WINSIZE_STR			"WindowSize"
 
@@ -151,8 +154,8 @@ static char *cfg_id =
 #define HISTYDIFF_STR		"HistYdiff"
 #define HISTUSER_STR		"HistUser"
 #define HISTODATE_STR		"HistODate"
-#define HISTID_STR			"HistId"
-#define HISTSDATE_STR		"HistSDate"
+#define HISTID_STR			"HistId2"
+#define HISTSDATE_STR		"HistSDate2"
 
 
 #define FONT_STR			"Fonts"
@@ -224,11 +227,11 @@ Cfg::Cfg(ULONG _nicAddr, int _portNo)
 		DefaultAbsenceHead[i] = GetLoadStrU8(absh_ids[i]);
 	}
 
-	WCHAR	buf[MAX_PATH], path[MAX_PATH], *fname = NULL;
-	GetModuleFileNameV(NULL, buf, MAX_PATH);
-	GetFullPathNameV(buf, MAX_PATH, path, (void **)&fname);
+	char	buf[MAX_PATH_U8], path[MAX_PATH_U8], *fname = NULL;
+	GetModuleFileNameU8(NULL, buf, MAX_PATH_U8);
+	GetFullPathNameU8(buf, MAX_PATH, path, &fname);
 	fname[-1] = 0; // remove '\\'
-	execDirV = strdupV(path);
+	execDir = strdup(path);
 
 	memset(pub, 0, sizeof(pub));
 	memset(priv, 0, sizeof(priv));
@@ -242,7 +245,7 @@ Cfg::~Cfg()
 	delete [] FindStr;
 	delete [] AbsenceHead;
 	delete [] AbsenceStr;
-	free(execDirV);
+	free(execDir);
 }
 
 BOOL Cfg::ReadRegistry(void)
@@ -290,7 +293,7 @@ BOOL Cfg::ReadRegistry(void)
 	RecvLogonDisp = FALSE;
 	IPAddrCheck = TRUE;
 	RecvIPAddr = TRUE;
-	OneClickPopup = FALSE;
+	OneClickPopup = TRUE;
 	BalloonNotify = TRUE;
 	AbnormalButton = FALSE;
 	DialUpCheck = FALSE;
@@ -319,6 +322,7 @@ BOOL Cfg::ReadRegistry(void)
 	TcpbufMax = IPMSG_DEFAULT_TCPBUFMAX;
 	IoBufMax = IPMSG_DEFAULT_IOBUFMAX;
 	LumpCheck = FALSE;
+	lruUserMax = IPMSG_DEFAULT_LRUUSERMAX;
 
 	// CryptProtectData is available only Win2K/XP
 	for (i=0; i < MAX_KEY; i++) {
@@ -355,10 +359,10 @@ BOOL Cfg::ReadRegistry(void)
 	RecvXpos		= 0;
 	RecvYpos		= 0;
 
-	HistWidth[HW_USER] = IPMSG_DEFAULT_HWUSER_WIDTH;
+	HistWidth[HW_USER]  = IPMSG_DEFAULT_HWUSER_WIDTH;
 	HistWidth[HW_ODATE] = IPMSG_DEFAULT_HWODATE_WIDTH;
-	HistWidth[HW_ID] = IPMSG_DEFAULT_HWID_WIDTH;
 	HistWidth[HW_SDATE] = IPMSG_DEFAULT_HWSDATE_WIDTH;
+	HistWidth[HW_ID]    = IPMSG_DEFAULT_HWID_WIDTH;
 	HistXdiff		= 0;
 	HistYdiff		= 0;
 
@@ -458,6 +462,28 @@ BOOL Cfg::ReadRegistry(void)
 	else {
 		FindStr = new MaxFind[FindMax];
 		memset(FindStr, 0, MAX_NAMEBUF * FindMax);
+	}
+
+	reg.GetInt(LRUUSERMAX_STR, &lruUserMax);
+	if (reg.OpenKey(LRUUSERKEY_STR)) {
+		for (i=0; ; i++) {
+			wsprintf(buf, "%d", i);
+			if (!reg.OpenKey(buf)) break;
+			UsersObj *obj = new UsersObj;
+			for (int j=0; ; j++) {
+				wsprintf(buf, "%d", j);
+				if (!reg.OpenKey(buf)) break;
+				UserObj *u = new UserObj;
+				if (reg.GetStr(USERNAME_STR, u->hostSub.userName, sizeof(u->hostSub.userName)) &&
+					reg.GetStr(HOSTNAME_STR, u->hostSub.hostName, sizeof(u->hostSub.userName))) {
+					obj->users.AddObj(u);
+				}
+				reg.CloseKey();
+			}
+			reg.CloseKey();
+			lruUserList.AddObj(obj);
+		}
+		reg.CloseKey();
 	}
 
 	*PasswordStr = 0;
@@ -560,8 +586,8 @@ BOOL Cfg::ReadRegistry(void)
 		reg.GetInt(HISTYDIFF_STR, &HistYdiff);
 		reg.GetInt(HISTUSER_STR, &HistWidth[HW_USER]);
 		reg.GetInt(HISTODATE_STR, &HistWidth[HW_ODATE]);
-		reg.GetInt(HISTID_STR, &HistWidth[HW_ID]);
 		reg.GetInt(HISTSDATE_STR, &HistWidth[HW_SDATE]);
+		reg.GetInt(HISTID_STR, &HistWidth[HW_ID]);
 
 		reg.CloseKey();
 	}
@@ -863,6 +889,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetStr(REVICON_STR, RevIconFile);
 		reg.SetStr(LASTOPEN_STR, lastOpenDir);
 		reg.SetStr(LASTSAVE_STR, lastSaveDir);
+		reg.SetInt(LRUUSERMAX_STR, lruUserMax);
 	}
 
 	if ((ctl_flg & CFG_WINSIZE) && reg.CreateKey(WINSIZE_STR))
@@ -901,9 +928,9 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(HISTXDIFF_STR, HistXdiff);
 		reg.SetInt(HISTYDIFF_STR, HistYdiff);
 		reg.SetInt(HISTUSER_STR, HistWidth[HW_USER]);
-		reg.SetInt(HISTODATE_STR, HistWidth[HW_SDATE]);
-		reg.SetInt(HISTID_STR, HistWidth[HW_ID]);
+		reg.SetInt(HISTODATE_STR, HistWidth[HW_ODATE]);
 		reg.SetInt(HISTSDATE_STR, HistWidth[HW_SDATE]);
+		reg.SetInt(HISTID_STR, HistWidth[HW_ID]);
 
 		reg.CloseKey();
 	}
@@ -1023,6 +1050,29 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 			reg.SetStr(key, FindStr[i]);
 		}
 		reg.CloseKey();
+	}
+
+	if (ctl_flg & CFG_LRUUSER) {
+		reg.DeleteChildTree(LRUUSERKEY_STR);
+		if (reg.CreateKey(LRUUSERKEY_STR)) {
+			UsersObj *obj=(UsersObj *)lruUserList.TopObj();
+			for (i=0; obj; i++) {
+				wsprintf(buf, "%d", i);
+				if (!reg.CreateKey(buf)) break;
+				UserObj *u = (UserObj *)obj->users.TopObj();
+				for (int j=0; u; j++) {
+					wsprintf(buf, "%d", j);
+					if (!reg.CreateKey(buf)) break;
+					reg.SetStr(USERNAME_STR, u->hostSub.userName);
+					reg.SetStr(HOSTNAME_STR, u->hostSub.hostName);
+					reg.CloseKey();
+					u = (UserObj *)obj->users.NextObj(u);
+				}
+				reg.CloseKey();
+				obj = (UsersObj *)lruUserList.NextObj(obj);
+			}
+			reg.CloseKey();
+		}
 	}
 
 // private/public key

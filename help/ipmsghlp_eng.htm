@@ -70,11 +70,11 @@
 
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.10</h1>
+<h1 class="help_head1">IP Messenger v3.20</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2011/05/11 H.Shirouzu</div>
+<div align="right">2011/05/23 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -185,7 +185,7 @@
 <div class="help_section">
 
 <h3 class="help_head3">Task tray icon</h3>
-   Left double click on the icon opens a Send Message window.<br>
+   Left Single(or double) click on the icon opens a Send Message window.<br>
    Right single click on the icon opens IPMsg menu such as setting,
    absence mode, etc.
 
@@ -228,7 +228,7 @@
 	<br><br>
 
    Right click on the window and select from the menu: Sort/Filter, 
-   Group Select, Search User Ctl+F, File Transfer, (Folder)Transfer, 
+   Group Select, Search User Ctrl+F, File Transfer, (Folder)Transfer, 
    Save List Header, Font Setting, Size Setting, Fix Position, Disp Setting.
 	<br><br>
 
@@ -289,15 +289,14 @@ Protocol specification comes with source.(Japanese)
 Broadcast messaging happens only at [Start/End], [Absencemode],
 [Refresh], [Change 'UserName' or 'GroupName'].
 <br><br>
-Compiled by Visual C++4.1(J)
-<br><br>
 
 Tips.
 <div>
-   1. CTL+D ... boss is coming.(toggle of hide/show windows)<br>
-   2. CTL+RefreshButton ... remain existing members, and refresh<br>
-   3. ALT+CTL+'S'/'R' ... Send/Recv Hotkey (need detail settings)<br>
-   4. CTL+F ... open search user box in send window
+1. Ctrl+D ... boss is coming.(toggle of hide/show windows)<br>
+2. Ctrl+RefreshButton ... remain existing members, and refresh<br>
+3. ALT+Ctrl+'S'/'R'/ ... Send/Recv Hotkey (need detail settings)<br>
+4. ALT+Ctrl+'D' ... Close old-style message-open notification window<br>
+5. Ctrl+F ... open search user box in send window<br>
 </div>
 </div>
 
@@ -390,6 +389,14 @@ zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
+<tr><td>v3.20</td><td>
+Support select users by user(sended) history.<br>
+Support old-style message-open notification.<br>
+Support delayed message-open notification, if desktop window is not activated(ex. screen saver).<br>
+Improve unopened message monitor.<br>
+Change default behavior to open Send Window by single click.<br>
+Misc refine.<br>
+</td></tr>
 <tr><td>v3.10</td><td>
 Support icremental search for userlist (Ctrl+F).<br>
 Change recv/log header format.<br>

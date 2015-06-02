@@ -1,10 +1,10 @@
 static char *richedit_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   richedit.cpp	Ver3.01";
+	"@(#)Copyright (C) H.Shirouzu 2011   richedit.cpp	Ver3.20";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Rich Edit Control and PNG-BMP convert
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-05-03(Tue)
+	Update					: 2011-05-23(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -32,7 +32,10 @@ void png_vbuf_wfunc(png_struct *png, png_byte *buf, png_size_t size)
 		int	grow_size = size - vbuf->RemainSize();
 		if (!vbuf->Grow(grow_size)) return;
 	}
+
+	// 圧縮中にも、わずかにメッセージループを回して、フリーズっぽい状態を避ける
 	TApp::Idle(100);
+
 	memcpy(vbuf->Buf() + vbuf->UsedSize(), buf, size);
 	vbuf->AddUsedSize(size);
 }
@@ -1037,14 +1040,15 @@ void TEditSub::InsertBitmap(BITMAPINFO	*bmi, int size, int pos)
 	}
 }
 
-void TEditSub::InsertPng(VBuf *vbuf, int pos)
+BOOL TEditSub::InsertPng(VBuf *vbuf, int pos)
 {
 	HBITMAP	hBmp = PngByteToBmpHandle(vbuf);
 
-	if (hBmp) {
-		InsertBitmapByHandle(hBmp, pos);
-		DeleteObject(hBmp);
-	}
+	if (!hBmp) return FALSE;
+
+	InsertBitmapByHandle(hBmp, pos);
+	DeleteObject(hBmp);
+	return	TRUE;
 }
 
 VBuf *TEditSub::GetPngByte(int idx, int *pos)
