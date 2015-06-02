@@ -21,7 +21,7 @@ public:
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvNcDestroy(void);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
-	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	BOOL	Install(void);
 	BOOL	AppKick(void);
 	int		TerminateIPMsg(void);
@@ -60,9 +60,9 @@ public:
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 };
 
-#define WM_IPMSG_HIDE			(WM_USER + 100)
-#define WM_IPMSG_QUIT			(WM_USER + 101)
-#define WM_IPMSG_INSTALL		(WM_USER + 102)
+#define WM_IPMSG_HIDE			(WM_APP + 100)
+#define WM_IPMSG_QUIT			(WM_APP + 101)
+#define WM_IPMSG_INSTALL		(WM_APP + 102)
 
 #define IPMSG_CLASS				"ipmsg_class"
 #define IPMSG_NAME				"IPMSG for Win32"

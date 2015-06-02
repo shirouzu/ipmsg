@@ -340,6 +340,7 @@
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				PrecompiledHeaderFile=".\Obj\x64/Release/IPMsg.pch"
+				AssemblerOutput="2"
 				AssemblerListingLocation=".\Obj\x64/Release/"
 				ObjectFile=".\Obj\x64/Release/"
 				ProgramDataBaseFileName=".\Obj\x64/Release/"
@@ -509,6 +510,14 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\histdlg.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\image.cpp"
+				>
 			</File>
 			<File
 				RelativePath="src\ipmsg.cpp"

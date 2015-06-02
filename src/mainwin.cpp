@@ -1,10 +1,10 @@
 static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   mainwin.cpp	Ver3.21";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   mainwin.cpp	Ver3.30";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-06-27(Mon)
+	Update					: 2011-07-31(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -163,7 +163,7 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 	}
 	else
 		Show(SW_MINIMIZE);
-	TaskBarCreateMsg= ::RegisterWindowMessage("TaskbarCreated");
+	TaskBarCreateMsg = ::RegisterWindowMessage("TaskbarCreated");
 
 	SetIcon(cfg->AbsenceCheck ? hRevIcon : hMainIcon);
 	SetCaption();
@@ -255,7 +255,7 @@ BOOL TMainWin::EvTimer(WPARAM timerID, TIMERPROC proc)
 		if (::GetForegroundWindow()) {
 			::KillTimer(hWnd, timerID);
 			if (BalloonWindow(TRAY_OPENMSG, trayMsg, GetLoadStrU8(IDS_DELAYOPEN),
-								IPMSG_DELAYMSG_TIME)) {
+								cfg->OpenMsgTime + IPMSG_DELAYMSG_OFFSETTIME)) {
 				*trayMsg = 0;
 			}
 		}
@@ -517,9 +517,9 @@ BOOL TMainWin::AddAbsenceMenu(HMENU hTargetMenu, int insertOffset)
 }
 
 /*
-	User定義 Event CallBack
+	App定義 Event CallBack
 */
-BOOL TMainWin::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
+BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
@@ -640,14 +640,17 @@ BOOL TMainWin::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			BroadcastEntry(IPMSG_BR_ABSENCE); 
 		}
 		return	TRUE;
+	}
+	return	FALSE;
+}
 
-	default:
-		if (uMsg == TaskBarCreateMsg)
-		{
-			TaskTray(NIM_ADD, hMainIcon, IP_MSG);
-			SetCaption();
-			return	TRUE;
-		}
+BOOL TMainWin::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (uMsg == TaskBarCreateMsg)
+	{
+		TaskTray(NIM_ADD, hMainIcon, IP_MSG);
+		SetCaption();
+		return	TRUE;
 	}
 	return	FALSE;
 }
@@ -1603,8 +1606,9 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 	case IPMSG_READMSG:
 		histDlg->OpenNotify(&msg->hostSub, packet_no);
 		SetCaption();
+		if (cfg->BalloonNoInfo) strcpy(title, " ");
 		if (cfg->OpenCheck == 1) {
-			BalloonWindow(TRAY_OPENMSG, title, GetLoadStrU8(IDS_OPENFIN), IPMSG_OPENMSG_TIME);
+			BalloonWindow(TRAY_OPENMSG, title, GetLoadStrU8(IDS_OPENFIN), cfg->OpenMsgTime);
 			return;
 		}
 		else if (cfg->OpenCheck == 0) {
@@ -1790,10 +1794,12 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg)
 			else {
 				MakeListString(cfg, &(msg->hostSub), &hosts, buf1);
 			}
+			if (cfg->BalloonNoInfo) strcpy(buf1, " ");
+
 			SYSTEMTIME rt = recvDlg->GetRecvTime();
 			wsprintf(buf2, "at %s", Ctime(&rt));
-			wsprintf(buf3, "%s\n%s", buf1, buf2);
-			BalloonWindow(TRAY_RECV, buf3, GetLoadStrU8(IDS_RECVMSG), IPMSG_RECVMSG_TIME);
+			wsprintf(buf3, "%s%s%s", buf1, cfg->BalloonNoInfo ? "" : "\n", buf2);
+			BalloonWindow(TRAY_RECV, buf3, GetLoadStrU8(IDS_RECVMSG), cfg->RecvMsgTime);
 		}
 		if (reverseTimerStatus == 0)
 		{
@@ -1884,8 +1890,9 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 		U8toW(msg,   tn.szInfo,      sizeof(tn.szInfo) / sizeof(WCHAR));
 		U8toW(title, tn.szInfoTitle, sizeof(tn.szInfoTitle) / sizeof(WCHAR));
 	}
-	tn.uTimeout     = 10000;
-	tn.dwInfoFlags  = (_tray_mode == TRAY_RECV ? NIIF_USER : NIIF_INFO) | NIIF_NOSOUND;
+
+	tn.uTimeout		= timer;
+	tn.dwInfoFlags	= (_tray_mode == TRAY_RECV ? NIIF_USER : NIIF_INFO) | NIIF_NOSOUND;
 
 	if (msg) {
 		if (trayMode != _tray_mode && trayMode != TRAY_NORMAL) {
@@ -1899,7 +1906,7 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 		else {
 			if (!::GetForegroundWindow()) {
 				::SetTimer(hWnd, IPMSG_BALLOON_DELAY_TIMER, 1000, NULL);
-				if (timer != IPMSG_DELAYMSG_TIME) {
+				if (msg != trayMsg) {
 					int	len = strlen(trayMsg);
 					int	msg_len = strlen(msg);
 					int	msg_cnt = strcharcount(msg, '\n');
@@ -1911,11 +1918,24 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 				}
 				return	FALSE;
 			}
-			if (timer) ::SetTimer(hWnd, IPMSG_BALLOON_OPEN_TIMER, timer, NULL);
+			::SetTimer(hWnd, IPMSG_BALLOON_OPEN_TIMER, timer, NULL);
 		}
 	}
 	else {
 		trayMode = TRAY_NORMAL;
+	}
+
+	if (IsWinVista()) {	// Vista以降では uTimeout ではなく SPI_SETMESSAGEDURATION が使われる。
+		DWORD	val = 5;
+		::SystemParametersInfo(SPI_GETMESSAGEDURATION, 0, (void *)&val, 0);
+		if (timer + 4000 > val * 1000) {
+			::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)((timer + 4999) / 1000), 0);
+		}
+		BOOL	ret = ::Shell_NotifyIconW(NIM_MODIFY, (NOTIFYICONDATAW *)&tn);
+		if (timer + 4000 > val * 1000) {
+			::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)val, 0);
+		}
+		return	ret;
 	}
 
 	return	::Shell_NotifyIconW(NIM_MODIFY, (NOTIFYICONDATAW *)&tn);
@@ -2572,7 +2592,7 @@ void TMainWin::MakeBrListEx()
 	for (obj=cfg->brList.Top(); obj; obj=cfg->brList.Next(obj)) {
 		if (obj->addr == 0) {
 //			if (obj->Addr(TRUE) == 0) {
-//				MessageBox(FmtStr("Can't resolve <%s> in broadcast list", obj->host), "IPMsg");
+//				MessageBox(Fmt("Can't resolve <%s> in broadcast list", obj->host), "IPMsg");
 				continue;
 //			}
 		}

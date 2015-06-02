@@ -121,6 +121,10 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		EvSize((UINT)wParam, LOWORD(lParam), HIWORD(lParam));
 		return	0;
 
+	case WM_MOVE:
+		EvMove(LOWORD(lParam), HIWORD(lParam));
+		return	0;
+
 	case WM_SHOWWINDOW:
 		EvShowWindow((BOOL)wParam, (int)lParam);
 		return	0;
@@ -167,18 +171,32 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		SetWindowLong(DWL_MSGRESULT, result);
 		return	result;
 
+	case WM_ACTIVATEAPP:
+		EvActivateApp((BOOL)wParam, (DWORD)lParam);
+		break;
+
+	case WM_ACTIVATE:
+		EvActivate(LOWORD(wParam), HIWORD(wParam), (HWND)lParam);
+		break;
+
+	case WM_DROPFILES:
+		EvDropFiles((HDROP)wParam);
+		return	0;
+
 	case WM_CHAR:
 		EvChar((WCHAR)wParam, lParam);
 		SetWindowLong(DWL_MSGRESULT, 0);
 		return	0;
 
-	case WM_ACTIVATEAPP:
-		EventActivateApp((BOOL)wParam, (DWORD)lParam);
-		break;
+	case WM_WINDOWPOSCHANGING:
+		EvWindowPosChanging((WINDOWPOS *)lParam);
+		SetWindowLong(DWL_MSGRESULT, 0);
+		return	0;
 
-	case WM_ACTIVATE:
-		EventActivate(LOWORD(wParam), HIWORD(wParam), (HWND)lParam);
-		break;
+	case WM_WINDOWPOSCHANGED:
+		EvWindowPosChanged((WINDOWPOS *)lParam);
+		SetWindowLong(DWL_MSGRESULT, 0);
+		return	0;
 
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -205,6 +223,11 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		EventScroll(uMsg, LOWORD(wParam), HIWORD(wParam), (HWND)lParam);
 		return	0;
 
+	case WM_ENTERMENULOOP:
+	case WM_EXITMENULOOP:
+		EventMenuLoop(uMsg, (BOOL)wParam);
+		break;
+
 	case WM_INITMENU:
 	case WM_INITMENUPOPUP:
 		EventInitMenu(uMsg, (HMENU)wParam, LOWORD(lParam), (BOOL)HIWORD(lParam));
@@ -212,10 +235,6 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_MENUSELECT:
 		EvMenuSelect(LOWORD(wParam), (BOOL)HIWORD(wParam), (HMENU)lParam);
-		return	0;
-
-	case WM_DROPFILES:
-		EvDropFiles((HDROP)wParam);
 		return	0;
 
 	case WM_CTLCOLORBTN:
@@ -235,10 +254,15 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return	0;
 
 	default:
-		if (uMsg >= WM_USER && uMsg <= 0x7FFF || uMsg >= 0xC000 && uMsg <= 0xFFFF)
+		if (uMsg >= WM_APP && uMsg <= 0xBFFF) {
+			result = EventApp(uMsg, wParam, lParam);
+		}
+		else if (uMsg >= WM_USER && uMsg < WM_APP || uMsg >= 0xC000 && uMsg <= 0xFFFF) {
 			result = EventUser(uMsg, wParam, lParam);
-		else
+		}
+		else {
 			result = EventSystem(uMsg, wParam, lParam);
+		}
 		SetWindowLong(DWL_MSGRESULT, result);
 		return	result;
 	}

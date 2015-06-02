@@ -652,7 +652,7 @@ void DebugU8(char *fmt,...)
 	delete [] wbuf;
 }
 
-const char *FmtStr(char *fmt,...)
+const char *Fmt(char *fmt,...)
 {
 	static char buf[8192];
 
@@ -664,7 +664,7 @@ const char *FmtStr(char *fmt,...)
 	return	buf;
 }
 
-const WCHAR *FmtStrW(WCHAR *fmt,...)
+const WCHAR *FmtW(WCHAR *fmt,...)
 {
 	static WCHAR buf[8192];
 

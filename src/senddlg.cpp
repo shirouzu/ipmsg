@@ -1,10 +1,10 @@
 static char *senddlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   senddlg.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   senddlg.cpp	Ver3.30";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-07-31(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -16,8 +16,10 @@ static char *senddlg_id =
 /*
 	SendDialog ‚Ì‰Šú‰»
 */
-TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_cfg, LogMng *_logmng, HWND _hRecvWnd, MsgBuf *_msg)
-	: TListDlg(SEND_DIALOG), editSub(_cfg, this), separateSub(this), hostListView(this), hostListHeader(&hostListView)
+TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_cfg,
+					LogMng *_logmng, HWND _hRecvWnd, MsgBuf *_msg)
+	: TListDlg(SEND_DIALOG), editSub(_cfg, this), separateSub(this), hostListView(this),
+		hostListHeader(&hostListView), imageWin(_cfg, this)
 {
 	hRecvWnd		= _hRecvWnd;
 	msgMng			= _msgmng;
@@ -43,11 +45,12 @@ TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_c
 	*selectGroup	= 0;
 	currentMidYdiff	= cfg->SendMidYdiff;
 	memset(&orgFont, 0, sizeof(orgFont));
-	maxItems = 0;
+	maxItems		= 0;
 	lvStateEnable	= FALSE;
-	sortItem = -1;
-	sortRev = FALSE;
-	findDlg = NULL;
+	sortItem		= -1;
+	sortRev			= FALSE;
+	findDlg			= NULL;
+//	hCurMenu		= NULL;
 
 	msg.Init(_msg);
 
@@ -450,6 +453,19 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		}
 		return	TRUE;
 
+	case MENU_IMAGERECT:
+		{
+			BOOL	is_ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) ? TRUE : FALSE;
+			if (is_ctrl ^ cfg->CaptureMinimize) {
+				Show(SW_MINIMIZE);
+				::SetTimer(hWnd, IPMSG_IMAGERECT_TIMER, cfg->CaptureDelayEx, 0);
+			}
+			else {
+				::SetTimer(hWnd, IPMSG_IMAGERECT_TIMER, cfg->CaptureDelay, 0);
+			}
+			return	TRUE;
+		}
+
 	default:
 		if (wID >= MENU_PRIORITY_RESET && wID < MENU_LRUUSER)
 		{
@@ -563,6 +579,15 @@ BOOL TSendDlg::EvSysCommand(WPARAM uCmdType, POINTS pos)
 	return	FALSE;
 }
 
+BOOL TSendDlg::EventMenuLoop(UINT uMsg, BOOL fIsTrackPopupMenu)
+{
+//	if (uMsg == WM_EXITMENULOOP) {
+//		hCurMenu = NULL;
+//		::KillTimer(hWnd, IPMSG_KEYCHECK_TIMER);
+//	}
+	return	FALSE;
+}
+
 /*
 	MenuInit Event CallBack
 */
@@ -572,9 +597,12 @@ BOOL TSendDlg::EventInitMenu(UINT uMsg, HMENU hMenu, UINT uPos, BOOL fSystemMenu
 	{
 	case WM_INITMENU:
 		{
-			ModifyMenuU8(hMenu, MENU_SAVEPOS, MF_BYCOMMAND|(cfg->SendSavePos ? MF_CHECKED :  0), MENU_SAVEPOS, GetLoadStrU8(IDS_SAVEPOS));
+			ModifyMenuU8(hMenu, MENU_SAVEPOS, MF_BYCOMMAND|(cfg->SendSavePos ? MF_CHECKED :  0),
+						MENU_SAVEPOS, GetLoadStrU8(IDS_SAVEPOS));
 		}
-		return	TRUE;
+//		hCurMenu = hMenu;
+//		::SetTimer(hWnd, IPMSG_KEYCHECK_TIMER, 200, 0);
+//		return	TRUE;
 	}
 	return	FALSE;
 }
@@ -718,7 +746,7 @@ BOOL TSendDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 			case WM_LBUTTONDOWN:
 //				Debug("EN_LINK (%d %d)\n", el->chrg.cpMin, el->chrg.cpMax);
 				editSub.SendMessageV(EM_EXSETSEL, 0, (LPARAM)&el->chrg);
-//				editSub.EventUser(WM_EDIT_DBLCLK, 0, 0);
+//				editSub.EventApp(WM_EDIT_DBLCLK, 0, 0);
 				break;
 
 			case WM_RBUTTONUP:
@@ -884,9 +912,9 @@ BOOL TSendDlg::EvDrawItem(UINT ctlID, DRAWITEMSTRUCT *lpDis)
 }
 
 /*
-	User’è‹` Event CallBack
+	App’è‹` Event CallBack
 */
-BOOL TSendDlg::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
+BOOL TSendDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
@@ -917,6 +945,24 @@ BOOL TSendDlg::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 */
 BOOL TSendDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 {
+	if (_timerID == IPMSG_IMAGERECT_TIMER) {
+		::KillTimer(hWnd, IPMSG_IMAGERECT_TIMER);
+		imageWin.Create();
+		return	TRUE;
+	}
+//	else if (_timerID == IPMSG_KEYCHECK_TIMER) {
+//		if (hCurMenu) {
+//			BOOL is_ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+//			ModifyMenuU8(hCurMenu, MENU_IMAGERECT, MF_BYCOMMAND|MF_STRING, MENU_IMAGERECT,
+//							Fmt("%s%s", GetLoadStrU8(IDS_IMAGERECTMENU),
+//								is_ctrl ? "(ex)" : ""));
+//		}
+//		else {
+//			::KillTimer(hWnd, IPMSG_KEYCHECK_TIMER);
+//		}
+//		return	TRUE;
+//	}
+
 	if (IsSendFinish())
 	{
 		::KillTimer(hWnd, IPMSG_SEND_TIMER);
@@ -2169,6 +2215,8 @@ void TSendDlg::SetMainMenu(HMENU hMenu)
 {
 	AppendMenuU8(hMenu, MF_STRING, MENU_FILEADD, GetLoadStrU8(IDS_FILEATTACHMENU));
 	AppendMenuU8(hMenu, MF_STRING, MENU_FOLDERADD, GetLoadStrU8(IDS_FOLDERATTACHMENU));
+	AppendMenuU8(hMenu, MF_STRING|((cfg->ClipMode & CLIP_ENABLE) ? 0 : MF_DISABLED|MF_GRAYED),
+						MENU_IMAGERECT, GetLoadStrU8(IDS_IMAGERECTMENU));
 	AppendMenuU8(hMenu, MF_STRING|
 						(!(cfg->ClipMode & CLIP_ENABLE) || !IsImageInClipboard(hWnd) ?
 							MF_DISABLED|MF_GRAYED : 0),
@@ -2207,7 +2255,7 @@ void TSendDlg::SetMainMenu(HMENU hMenu)
 							MENU_LRUUSER + i++, buf);
 		}
 		i = min(cfg->lruUserList.Num(), cfg->lruUserMax);
-		AppendMenuU8(hMenu, MF_POPUP, (UINT)hLruMenu, FmtStr(GetLoadStrU8(IDS_LRUUSER), i));
+		AppendMenuU8(hMenu, MF_POPUP, (UINT)hLruMenu, Fmt(GetLoadStrU8(IDS_LRUUSER), i));
 	}
 	AppendMenuU8(hMenu, MF_STRING, MENU_FINDDLG, GetLoadStrU8(IDS_FINDDLG));
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);

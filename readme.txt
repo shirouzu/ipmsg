@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 3.21
-			H.Shirouzu June 27, 2011
+	Source code of IP Messenger for Win version 3.30
+			H.Shirouzu Jul 31, 2011
 
 		Copyright (C) 1996-2011 SHIROUZU Hiroaki
 			All Rights Reserved.

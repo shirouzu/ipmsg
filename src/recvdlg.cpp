@@ -1,10 +1,10 @@
 static char *recvdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   recvdlg.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   recvdlg.cpp	Ver3.30";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Receive Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-07-31(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -608,9 +608,9 @@ BOOL TRecvDlg::EvSysCommand(WPARAM uCmdType, POINTS pos)
 }
 
 /*
-	User’è‹` Event CallBack
+	App’è‹` Event CallBack
 */
-BOOL TRecvDlg::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
+BOOL TRecvDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
@@ -775,7 +775,7 @@ BOOL TRecvDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 			case WM_LBUTTONDOWN:
 //				Debug("EN_LINK (%d %d)\n", el->chrg.cpMin, el->chrg.cpMax);
 				editSub.SendMessageW(EM_EXSETSEL, 0, (LPARAM)&el->chrg);
-//				editSub.EventUser(WM_EDIT_DBLCLK, 0, 0);
+//				editSub.EventApp(WM_EDIT_DBLCLK, 0, 0);
 				break;
 
 			case WM_RBUTTONUP:

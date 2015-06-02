@@ -83,7 +83,7 @@ RECEIVE_DIALOG DIALOGEX 0, 0, 173, 119
 STYLE WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_DISABLED | WS_CAPTION | 
     WS_SYSMENU | WS_THICKFRAME
 CAPTION "Receive Message"
-FONT 11, "ＭＳ ゴシック"
+FONT 11, "ＭＳ ゴシック", 0, 0, 0x1
 BEGIN
     PUSHBUTTON      "開封",OPEN_BUTTON,6,36,159,62,BS_CENTER | BS_VCENTER
     DEFPUSHBUTTON   "返信",IDOK,93,103,43,14
@@ -101,15 +101,15 @@ BEGIN
     PUSHBUTTON      "画像",IMAGE_BUTTON,4,104,24,13,0,WS_EX_CLIENTEDGE
 END
 
-SETUP_DIALOG DIALOG DISCARDABLE  0, 0, 251, 165
+SETUP_DIALOG DIALOG DISCARDABLE  0, 0, 257, 165
 STYLE DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "IP Messenger設定"
 FONT 10, "ＭＳ Ｐゴシック"
 BEGIN
-    DEFPUSHBUTTON   "設定",IDOK,7,106,54,14
-    PUSHBUTTON      "適用",APPLY_BUTTON,7,124,53,15
-    PUSHBUTTON      "キャンセル",IDCANCEL,7,142,53,15
-    LISTBOX         SETUP_LIST,5,10,58,78,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
+    DEFPUSHBUTTON   "設定",IDOK,9,105,54,14
+    PUSHBUTTON      "適用",APPLY_BUTTON,9,123,53,15
+    PUSHBUTTON      "キャンセル",IDCANCEL,9,141,53,15
+    LISTBOX         SETUP_LIST,5,10,60,78,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
                     WS_TABSTOP
 END
 
@@ -304,59 +304,61 @@ END
 
 SETUP_SHEET1 DIALOGEX 0, 0, 178, 159
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
-FONT 10, "ＭＳ ゴシック", 0, 0, 0x1
+FONT 10, "ＭＳ ゴシック"
 BEGIN
     EDITTEXT        NICKNAME_EDIT,9,12,62,12,ES_AUTOHSCROLL
     COMBOBOX        GROUP_COMBO,90,12,79,66,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
                     CBS_SORT | CBS_DISABLENOSCROLL | WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "メッセージへの埋め込み画像",-1,3,48,170,41
-    CONTROL         "有効にする",CLIPMODE_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,13,72,52,11
-    CONTROL         "受信表示はボタン経由",CLIPCONFIRM_CHECK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,76,72,91,11
-    LTEXT           "（送信画面 CTRL-V で Clipboard 貼付）",-1,14,59,149,10
-    EDITTEXT        BROADCAST_EDIT,10,121,67,13,ES_AUTOHSCROLL
-    PUSHBUTTON      ">>",ADD_BUTTON,79,112,14,11
-    PUSHBUTTON      "<<",DEL_BUTTON,79,127,14,11
-    LISTBOX         BROADCAST_LIST,95,104,74,42,LBS_SORT | 
+    EDITTEXT        BROADCAST_EDIT,10,85,67,13,ES_AUTOHSCROLL
+    PUSHBUTTON      ">>",ADD_BUTTON,79,76,14,11
+    PUSHBUTTON      "<<",DEL_BUTTON,79,90,14,11
+    LISTBOX         BROADCAST_LIST,95,68,74,42,LBS_SORT | 
                     LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | 
                     LBS_DISABLENOSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        EXTBROADCAST_COMBO,66,124,108,69,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
     CONTROL         "DialUp接続",DIALUP_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,16,137,55,10
-    GROUPBOX        "ユーザ名設定",-1,4,1,73,29,BS_CENTER
-    GROUPBOX        "グループ名設定",-1,85,1,88,29,BS_CENTER
-    GROUPBOX        "Local Network以外へのBroadcast設定",-1,3,92,171,60
-    LTEXT           "例:192.168.1.255\r\n   (or FQDN)",-1,8,103,67,16
-    CTEXT           "送受信画面→右クリックで表示＆ソート設定",-1,5,33,168,
-                    11,0,WS_EX_STATICEDGE
+                    WS_TABSTOP,16,101,55,10
+    GROUPBOX        "ユーザ名設定",IDC_STATIC,4,1,73,29,BS_CENTER
+    GROUPBOX        "グループ名設定",IDC_STATIC,85,1,88,29,BS_CENTER
+    GROUPBOX        "自セグメント以外へのBroadcast設定",IDC_STATIC,3,56,171,
+                    60
+    LTEXT           "例:192.168.1.255\r\n   (or FQDN)",IDC_STATIC,8,66,67,16
+    CTEXT           "送受信画面→右クリックで表示＆ソート設定",IDC_STATIC,5,
+                    33,168,11,0,WS_EX_STATICEDGE
+    LTEXT           "自セグメント\r\nへのBroadcast",IDC_STATIC,5,122,56,20,0,
+                    WS_EX_STATICEDGE
 END
 
-SETUP_SHEET2 DIALOGEX 0, 0, 178, 159
+SETUP_SHEET2 DIALOG DISCARDABLE  0, 0, 178, 159
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
-FONT 10, "ＭＳ Ｐゴシック", 0, 0, 0x1
+FONT 10, "ＭＳ Ｐゴシック"
 BEGIN
     CONTROL         "受信通知ON",BALLOONNOTIFY_CHECK,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,12,15,50,10
+    COMBOBOX        OPEN_COMBO,68,13,59,72,CBS_DROPDOWNLIST | WS_TABSTOP
     CONTROL         "開封通知",OPEN_CHECK,"Button",BS_AUTOCHECKBOX | NOT 
-                    WS_VISIBLE | WS_TABSTOP,74,14,49,9
+                    WS_VISIBLE | WS_TABSTOP,76,14,49,9
+    EDITTEXT        RECVTIME_EDIT,21,29,16,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        OPENTIME_EDIT,69,29,17,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "ユーザ情報を表示しない",BALLOONNOINFO_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,13,46,92,10
     EDITTEXT        QUOTE_EDIT,141,14,28,11,ES_AUTOHSCROLL
     CONTROL         "送受信ホットキー（Alt+Ctrl+S,R）",HOTKEY_CHECK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,9,36,140,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,9,70,140,10
     CONTROL         "「送信・返信」を「発射・迎撃」に変更",ABNORMALBTN_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,9,50,131,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,9,84,131,10
     CONTROL         "英語UI（次回起動後）",LCID_CHECK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,9,64,89,10
-    COMBOBOX        EXTBROADCAST_COMBO,68,88,94,69,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "アイコン",MAINICON_BUTTON,4,113,37,13
-    EDITTEXT        MAINICON_EDIT,45,113,124,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "不在ｱｲｺﾝ",REVICON_BUTTON,4,131,37,13
-    EDITTEXT        REVICON_EDIT,45,131,124,12,ES_AUTOHSCROLL
+                    BS_AUTOCHECKBOX | WS_TABSTOP,9,98,89,10
+    PUSHBUTTON      "アイコン",MAINICON_BUTTON,4,121,37,13
+    EDITTEXT        MAINICON_EDIT,45,121,124,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "不在ｱｲｺﾝ",REVICON_BUTTON,4,139,37,13
+    EDITTEXT        REVICON_EDIT,45,139,124,12,ES_AUTOHSCROLL
     GROUPBOX        "引用文字",IDC_STATIC,136,3,38,27
-    GROUPBOX        "バルーン通知 ",IDC_STATIC,6,3,125,27
-    LTEXT           "自セグメントへの\r\n Broadcast",IDC_STATIC,7,86,56,19,0,
-                    WS_EX_STATICEDGE
-    COMBOBOX        OPEN_COMBO,66,13,59,72,CBS_DROPDOWNLIST | WS_TABSTOP
+    GROUPBOX        "バルーン通知 ",IDC_STATIC,6,3,125,58
+    LTEXT           "秒",IDC_STATIC,39,32,8,8
+    LTEXT           "秒",IDC_STATIC,88,32,8,8
+    LTEXT           "(Max:30)",IDC_STATIC,101,32,28,8
 END
 
 SETUP_SHEET3 DIALOG DISCARDABLE  0, 0, 178, 159
@@ -398,6 +400,34 @@ END
 
 SETUP_SHEET4 DIALOG DISCARDABLE  0, 0, 178, 159
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
+FONT 10, "ＭＳ ゴシック"
+BEGIN
+    CONTROL         "有効にする",CLIPMODE_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,13,28,52,11
+    CONTROL         "受信表示はボタン経由",CLIPCONFIRM_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,76,28,91,11
+    CONTROL         "キャプチャ開始時に送信画面を最小化",MINIMIZE_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,64,154,11
+    CONTROL         "ClipboardチェックをデフォルトON",CLIPBORAD_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,11,91,154,11
+    CONTROL         "保存チェックをデフォルトON",SAVE_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,11,106,154,11
+    EDITTEXT        DELAYEX_EDIT,48,131,30,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        DELAY_EDIT,129,131,30,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "（Ctrl + キャプチャ開始で反対動作）",IDC_STATIC,16,77,
+                    146,9
+    LTEXT           "（送信画面 CTRL-V で Clipboard 貼付）",IDC_STATIC,14,15,
+                    149,10
+    GROUPBOX        "メッセージへの埋め込み画像",IDC_STATIC,3,4,170,41
+    GROUPBOX        "画面（範囲指定）キャプチャ",IDC_STATIC,3,51,170,103
+    GROUPBOX        "キャプチャ動作までの遅延時間 (msec)",IDC_STATIC,9,121,
+                    155,27
+    LTEXT           "最小化時",IDC_STATIC,13,133,33,8
+    LTEXT           "非最小化時",IDC_STATIC,87,133,41,8
+END
+
+SETUP_SHEET5 DIALOG DISCARDABLE  0, 0, 178, 159
+STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
 FONT 10, "ＭＳ Ｐゴシック"
 BEGIN
     CONTROL         "ログを記録する",LOG_CHECK,"Button",BS_AUTOCHECKBOX | 
@@ -416,7 +446,7 @@ BEGIN
     EDITTEXT        LOG_EDIT,13,112,154,12,ES_AUTOHSCROLL
 END
 
-SETUP_SHEET5 DIALOGEX 0, 0, 179, 159
+SETUP_SHEET6 DIALOGEX 0, 0, 179, 159
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
 FONT 10, "ＭＳ ゴシック", 0, 0, 0x1
 BEGIN
@@ -434,7 +464,7 @@ BEGIN
     GROUPBOX        "受信パスワード設定",IDC_STATIC,5,32,166,63
 END
 
-SETUP_SHEET6 DIALOG DISCARDABLE  0, 0, 194, 156
+SETUP_SHEET7 DIALOG DISCARDABLE  0, 0, 194, 156
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
 FONT 9, "ＭＳ ゴシック"
 BEGIN
@@ -450,6 +480,20 @@ BEGIN
     GROUPBOX        "クリッカブルURL－プロトコル別設定",IDC_STATIC,3,24,183,
                     72
     LTEXT           "起動プログラム名",IDC_STATIC,71,60,71,9
+END
+
+AREACONFIRM_DIALOG DIALOGEX 0, 0, 75, 34
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "範囲確認"
+FONT 9, "ＭＳ Ｐゴシック"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,2,3,39,14
+    PUSHBUTTON      "やり直し",IDRETRY,44,3,29,14
+    CONTROL         "Clipboard",CLIP_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,3,21,41,11
+    CONTROL         "保存",SAVE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    47,21,26,12
 END
 
 
@@ -479,7 +523,7 @@ BEGIN
 
     SETUP_DIALOG, DIALOG
     BEGIN
-        RIGHTMARGIN, 250
+        RIGHTMARGIN, 256
         BOTTOMMARGIN, 163
     END
 
@@ -582,11 +626,6 @@ BEGIN
     BEGIN
         RIGHTMARGIN, 174
     END
-
-    SETUP_SHEET5, DIALOG
-    BEGIN
-        RIGHTMARGIN, 178
-    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -680,8 +719,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,2,1,0
- PRODUCTVERSION 3,2,1,0
+ FILEVERSION 3,3,0,0
+ PRODUCTVERSION 3,3,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -699,12 +738,15 @@ BEGIN
             VALUE "Comments", "IP Messenger for Win\0"
             VALUE "CompanyName", "H.Shirouzu\0"
             VALUE "FileDescription", "IPMsg\0"
-            VALUE "FileVersion", "3.21\0"
+            VALUE "FileVersion", "3.30\0"
             VALUE "InternalName", "チョット、いとうさん\0"
             VALUE "LegalCopyright", "Copyright (c) 1996-2011 H.Shirouzu \0"
+            VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "IPMsg.exe\0"
+            VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "IPMsg\0"
-            VALUE "ProductVersion", "3.21\0"
+            VALUE "ProductVersion", "3.30\0"
+            VALUE "SpecialBuild", "\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -858,20 +900,22 @@ BEGIN
     IDS_TOOMANYLRU          "履歴数は %d までです"
     IDS_OPENINFO            "開封情報 (%d/%d)"
     IDS_UNOPENINFO          "未開封情報 (%d)"
+    IDS_IMAGERECTMENU       "画面キャプチャ"
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_SETUP_SHEET1        "基本設定"
+    IDS_SETUP_SHEET1        "基本＆LAN設定"
     IDS_SETUP_SHEET2        "詳細設定"
     IDS_SETUP_SHEET3        "送受信画面"
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_SETUP_SHEET4        "ログ設定"
-    IDS_SETUP_SHEET5        "パスワード"
-    IDS_SETUP_SHEET6        "URLクリック"
+    IDS_SETUP_SHEET4        "画像/キャプチャ"
+    IDS_SETUP_SHEET5        "ログ設定"
+    IDS_SETUP_SHEET6        "パスワード"
+    IDS_SETUP_SHEET7        "URLクリック"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -1059,16 +1103,16 @@ BEGIN
                     WS_BORDER | WS_TABSTOP,7,7,251,71,WS_EX_CLIENTEDGE
 END
 
-SETUP_DIALOG DIALOG DISCARDABLE  0, 0, 251, 165
+SETUP_DIALOG DIALOG DISCARDABLE  0, 0, 259, 165
 STYLE DS_MODALFRAME | DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "IP Messenger Settings"
 FONT 8, "Verdana"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,7,107,54,14
-    PUSHBUTTON      "Apply",APPLY_BUTTON,7,125,53,15
-    PUSHBUTTON      "Cancel",IDCANCEL,7,143,53,15
-    LISTBOX         SETUP_LIST,5,10,57,85,LBS_NOINTEGRALHEIGHT | WS_VSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,8,107,57,14
+    PUSHBUTTON      "Apply",APPLY_BUTTON,8,125,57,15
+    PUSHBUTTON      "Cancel",IDCANCEL,8,143,57,15
+    LISTBOX         SETUP_LIST,4,10,66,85,LBS_NOINTEGRALHEIGHT | WS_VSCROLL
 END
 
 PASSWORD_DIALOG DIALOG DISCARDABLE  0, 0, 84, 22
@@ -1182,7 +1226,7 @@ RECEIVE_DIALOG DIALOGEX 0, 0, 173, 119
 STYLE WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_DISABLED | WS_CAPTION | 
     WS_SYSMENU | WS_THICKFRAME
 CAPTION "Receive Message"
-FONT 9, "Verdana"
+FONT 9, "Verdana", 0, 0, 0x1
 BEGIN
     PUSHBUTTON      "Open",OPEN_BUTTON,6,36,159,62,BS_CENTER | BS_VCENTER
     DEFPUSHBUTTON   "Reply",IDOK,91,103,43,14
@@ -1216,60 +1260,62 @@ END
 
 SETUP_SHEET1 DIALOGEX 0, 0, 183, 158
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
-FONT 8, "Verdana", 0, 0, 0x1
+FONT 8, "Verdana"
 BEGIN
     EDITTEXT        NICKNAME_EDIT,7,13,68,12,ES_AUTOHSCROLL
     COMBOBOX        GROUP_COMBO,92,13,77,66,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
                     CBS_SORT | CBS_DISABLENOSCROLL | WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "Embedded image in message",-1,3,49,173,41
-    CONTROL         "Activate",CLIPMODE_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,11,73,43,11
-    CONTROL         "Confirm to show at receive",CLIPCONFIRM_CHECK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,67,73,105,11
-    LTEXT           "To insert image, CTRL-V in SendMessage Dialog",-1,7,60,
-                    163,10
-    EDITTEXT        BROADCAST_EDIT,7,123,71,13,ES_AUTOHSCROLL
-    PUSHBUTTON      ">>",ADD_BUTTON,80,115,14,11
-    PUSHBUTTON      "<<",DEL_BUTTON,80,128,14,11
-    LISTBOX         BROADCAST_LIST,97,104,75,42,LBS_SORT | 
+    EDITTEXT        BROADCAST_EDIT,7,86,71,13,ES_AUTOHSCROLL
+    PUSHBUTTON      ">>",ADD_BUTTON,80,78,14,11
+    PUSHBUTTON      "<<",DEL_BUTTON,80,91,14,11
+    LISTBOX         BROADCAST_LIST,97,67,75,42,LBS_SORT | 
                     LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | 
                     LBS_DISABLENOSCROLL | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Dial-up check",DIALUP_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,15,138,58,10
-    GROUPBOX        "User name",-1,2,2,80,29,BS_CENTER
-    GROUPBOX        "Group name",-1,86,2,89,29,BS_CENTER
-    GROUPBOX        "Broadcast Setup for Wide Area Network",-1,3,94,174,59
-    LTEXT           "Ex) 192.168.10.255\r\n      (or FQDN)",-1,7,103,69,18
-    LTEXT           "Sort/Filter settings is Right click on Send/RecvDlg",-1,
-                    5,35,169,12,0,WS_EX_STATICEDGE
+                    WS_TABSTOP,15,101,58,10
+    COMBOBOX        EXTBROADCAST_COMBO,65,127,111,64,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "User name",IDC_STATIC,2,2,80,29,BS_CENTER
+    GROUPBOX        "Group name",IDC_STATIC,86,2,89,29,BS_CENTER
+    GROUPBOX        "Broadcast Setup for different segment",IDC_STATIC,3,57,
+                    174,60
+    LTEXT           "Ex) 192.168.10.255\r\n      (or FQDN)",IDC_STATIC,7,66,
+                    69,18
+    LTEXT           "Sort/Filter settings is Right click on Send/RecvDlg",
+                    IDC_STATIC,5,35,169,12,0,WS_EX_STATICEDGE
+    LTEXT           "Local segment\r\n broadcast",IDC_STATIC,5,123,54,20,0,
+                    WS_EX_STATICEDGE
 END
 
-SETUP_SHEET2 DIALOGEX 0, 0, 182, 159
+SETUP_SHEET2 DIALOG DISCARDABLE  0, 0, 182, 159
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
-FONT 8, "Verdana", 0, 0, 0x1
+FONT 8, "Verdana"
 BEGIN
     CONTROL         "MsgRecvON",BALLOONNOTIFY_CHECK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,11,15,50,10
+                    WS_TABSTOP,10,15,50,10
     CONTROL         "MsgOpened",OPEN_CHECK,"Button",BS_AUTOCHECKBOX | NOT 
-                    WS_VISIBLE | WS_TABSTOP,67,15,49,9
-    EDITTEXT        QUOTE_EDIT,141,13,33,12,ES_AUTOHSCROLL
+                    WS_VISIBLE | WS_TABSTOP,66,15,49,9
+    COMBOBOX        OPEN_COMBO,64,13,63,72,CBS_DROPDOWNLIST | WS_TABSTOP
+    EDITTEXT        RECVTIME_EDIT,15,30,16,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        OPENTIME_EDIT,67,30,16,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Do not display user information",BALLOONNOINFO_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,48,119,10
+    EDITTEXT        QUOTE_EDIT,142,13,33,12,ES_AUTOHSCROLL
     CONTROL         "Use Hotkey (Alt+Ctrl+S,R)",HOTKEY_CHECK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,10,35,103,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,10,69,103,10
     CONTROL         "Change Send/Reply -> Fire/Intercept",ABNORMALBTN_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,49,138,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,83,138,10
     CONTROL         "EnglishUI (next time)",LCID_CHECK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,10,64,85,10
-    COMBOBOX        EXTBROADCAST_COMBO,93,82,84,64,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Icon",MAINICON_BUTTON,5,103,32,14
-    EDITTEXT        MAINICON_EDIT,41,103,134,13,ES_AUTOHSCROLL
-    PUSHBUTTON      "RevIcon",REVICON_BUTTON,5,122,32,14
-    EDITTEXT        REVICON_EDIT,41,122,134,13,ES_AUTOHSCROLL
-    GROUPBOX        "QuoteStr",IDC_STATIC,136,3,43,27
-    GROUPBOX        "Balloon Notificatoin",IDC_STATIC,5,3,128,27
-    LTEXT           "Local segment broadcast",IDC_STATIC,6,83,84,10,0,
-                    WS_EX_STATICEDGE
-    COMBOBOX        OPEN_COMBO,65,13,63,72,CBS_DROPDOWNLIST | WS_TABSTOP
+                    BS_AUTOCHECKBOX | WS_TABSTOP,10,98,85,10
+    PUSHBUTTON      "Icon",MAINICON_BUTTON,5,115,32,14
+    EDITTEXT        MAINICON_EDIT,41,115,134,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "RevIcon",REVICON_BUTTON,5,134,32,14
+    EDITTEXT        REVICON_EDIT,41,134,134,13,ES_AUTOHSCROLL
+    GROUPBOX        "QuoteStr",IDC_STATIC,137,3,43,27
+    GROUPBOX        "Balloon Notificatoin",IDC_STATIC,5,3,128,60
+    LTEXT           "sec",IDC_STATIC,33,32,12,8
+    LTEXT           "sec",IDC_STATIC,85,32,12,8
+    LTEXT           "(Max:30)",IDC_STATIC,99,32,31,8
 END
 
 SETUP_SHEET3 DIALOG DISCARDABLE  0, 0, 183, 158
@@ -1313,6 +1359,35 @@ SETUP_SHEET4 DIALOG DISCARDABLE  0, 0, 183, 158
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
 FONT 8, "Verdana"
 BEGIN
+    CONTROL         "Activate",CLIPMODE_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,11,27,43,11
+    CONTROL         "Confirm to show at receive",CLIPCONFIRM_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,67,27,105,11
+    CONTROL         "Minimize Send Message Dialog as default",MINIMIZE_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,62,154,11
+    CONTROL         "Clipboard check as default",CLIPBORAD_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,10,89,154,11
+    CONTROL         "Save check as default",SAVE_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,10,104,154,11
+    EDITTEXT        DELAYEX_EDIT,48,129,30,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        DELAY_EDIT,135,129,30,12,ES_AUTOHSCROLL | ES_NUMBER
+    GROUPBOX        "Embedded image in message",IDC_STATIC,3,3,173,41
+    LTEXT           "To insert image, CTRL-V in SendMessage Dialog",
+                    IDC_STATIC,7,14,163,10
+    LTEXT           "(Ctrl + start catpure, behavior is inverted)",
+                    IDC_STATIC,17,75,140,8
+    GROUPBOX        "Display (area specified) Capture",IDC_STATIC,3,48,173,
+                    104
+    GROUPBOX        "Delay for staring capture (msec)",IDC_STATIC,8,119,162,
+                    27
+    LTEXT           "Minimized",IDC_STATIC,12,131,33,8
+    LTEXT           "NonMinimized",IDC_STATIC,86,131,46,8
+END
+
+SETUP_SHEET5 DIALOG DISCARDABLE  0, 0, 183, 158
+STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
+FONT 8, "Verdana"
+BEGIN
     CONTROL         "Logging available",LOG_CHECK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,6,7,110,10
     CONTROL         "LogonName",LOGONLOG_CHECK,"Button",BS_AUTOCHECKBOX | 
@@ -1330,7 +1405,7 @@ BEGIN
     EDITTEXT        LOG_EDIT,20,117,153,13,ES_AUTOHSCROLL
 END
 
-SETUP_SHEET5 DIALOGEX 0, 0, 183, 158
+SETUP_SHEET6 DIALOGEX 0, 0, 183, 158
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
 FONT 8, "Verdana", 0, 0, 0x1
 BEGIN
@@ -1348,7 +1423,7 @@ BEGIN
     GROUPBOX        "Password settings",IDC_STATIC,9,27,159,65
 END
 
-SETUP_SHEET6 DIALOG DISCARDABLE  0, 0, 183, 158
+SETUP_SHEET7 DIALOG DISCARDABLE  0, 0, 183, 158
 STYLE DS_3DLOOK | WS_CHILD | WS_TABSTOP
 FONT 8, "Verdana"
 BEGIN
@@ -1365,6 +1440,20 @@ BEGIN
     GROUPBOX        "Clickable URL -- Protocol Settings",IDC_STATIC,6,25,168,
                     69
     LTEXT           "Execute program",IDC_STATIC,77,61,57,8
+END
+
+AREACONFIRM_DIALOG DIALOGEX 0, 0, 79, 33
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Confirm Area"
+FONT 8, "Verdana"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,2,3,43,14
+    PUSHBUTTON      "Retry",IDRETRY,49,3,28,14
+    CONTROL         "Clipboard",CLIP_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,3,20,44,11
+    CONTROL         "Save",SAVE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    48,20,26,11
 END
 
 
@@ -1420,7 +1509,7 @@ BEGIN
 
     SETUP_DIALOG, DIALOG
     BEGIN
-        RIGHTMARGIN, 246
+        RIGHTMARGIN, 254
         BOTTOMMARGIN, 161
     END
 
@@ -1496,6 +1585,12 @@ BEGIN
     SETUP_SHEET3, DIALOG
     BEGIN
         RIGHTMARGIN, 182
+    END
+
+    AREACONFIRM_DIALOG, DIALOG
+    BEGIN
+        TOPMARGIN, 3
+        BOTTOMMARGIN, 31
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -1687,20 +1782,22 @@ BEGIN
     IDS_TOOMANYLRU          "Max User History is %d"
     IDS_OPENINFO            "Opened Info (%d/%d)"
     IDS_UNOPENINFO          "Unopened Info (%d)"
+    IDS_IMAGERECTMENU       "Display Capture"
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_SETUP_SHEET1        "Basic Settings"
+    IDS_SETUP_SHEET1        "Basic/LAN Settings"
     IDS_SETUP_SHEET2        "Detail Settings"
     IDS_SETUP_SHEET3        "Send/Recv Wnd"
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_SETUP_SHEET4        "Log Settings"
-    IDS_SETUP_SHEET5        "Password"
-    IDS_SETUP_SHEET6        "URL Click"
+    IDS_SETUP_SHEET4        "Image/Capture"
+    IDS_SETUP_SHEET5        "Log Settings"
+    IDS_SETUP_SHEET6        "Password"
+    IDS_SETUP_SHEET7        "URL Click"
 END
 
 STRINGTABLE DISCARDABLE 

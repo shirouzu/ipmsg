@@ -1,10 +1,10 @@
 static char *setupdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   setupdlg.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   setupdlg.cpp	Ver3.30";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Setup Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-07-31(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -23,7 +23,7 @@ BOOL TSetupSheet::Create(int _resId, Cfg *_cfg, THosts *_hosts, TWin *_parent)
 	hosts	= _hosts;
 	resId	= _resId;
 	parent	= _parent;
-	curIdx	= -1;
+	curUrl	= NULL;
 	return	TDlg::Create();
 }
 
@@ -54,6 +54,7 @@ BOOL TSetupSheet::EvNcDestroy(void)
 			tmpUrlList.DelObj(urlObj);
 			delete urlObj;
 		}
+		curUrl	= NULL;
 	}
 	return	TRUE;
 }
@@ -68,14 +69,14 @@ BOOL TSetupSheet::CheckData()
 	if (resId == SETUP_SHEET3) {
 		GetDlgItemTextU8(LRUUSER_EDIT, buf, sizeof(buf));
 		if ((val = atoi(buf)) > MAX_LRUUSER || val < 0) {
-			MessageBox(FmtStr(GetLoadStr(IDS_TOOMANYLRU), MAX_LRUUSER));
+			MessageBox(Fmt(GetLoadStr(IDS_TOOMANYLRU), MAX_LRUUSER));
 			return	FALSE;
 		}
 	}
 	else if (resId == SETUP_SHEET4) {
 		GetDlgItemTextU8(LOG_EDIT, buf, sizeof(buf));
 		if (GetDriveType(NULL) == DRIVE_REMOTE
-				&& !SendDlgItemMessage(LOG_CHECK, BM_GETCHECK, 0, 0) && strchr(buf, '\\')) {
+				&& !IsDlgButtonChecked(LOG_CHECK) && strchr(buf, '\\')) {
 			MessageBox(GetLoadStr(IDS_LOGALERT));
 			return	FALSE;
 		}
@@ -109,9 +110,6 @@ BOOL TSetupSheet::SetData()
 		SetDlgItemTextU8(GROUP_COMBO, cfg->GroupNameStr);
 		SetDlgItemTextU8(NICKNAME_EDIT, cfg->NickNameStr);
 
-		CheckDlgButton(CLIPMODE_CHECK, (cfg->ClipMode & CLIP_ENABLE));
-		CheckDlgButton(CLIPCONFIRM_CHECK, (cfg->ClipMode & CLIP_CONFIRM) ? 1 : 0);
-
 		for (TBrObj *obj=cfg->brList.Top(); obj; obj=cfg->brList.Next(obj))
 			SendDlgItemMessage(BROADCAST_LIST, LB_ADDSTRING, 0, (LPARAM)obj->Host());
 
@@ -128,6 +126,11 @@ BOOL TSetupSheet::SetData()
 			}
 		}
 		CheckDlgButton(DIALUP_CHECK, cfg->DialUpCheck);
+
+		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_LIMITED));
+		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_DIRECTED));
+		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_BOTH));
+		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_SETCURSEL, cfg->ExtendBroadcast, 0);
 	}
 	else if (resId == SETUP_SHEET2) {
 		CheckDlgButton(BALLOONNOTIFY_CHECK, cfg->BalloonNotify);
@@ -138,6 +141,9 @@ BOOL TSetupSheet::SetData()
 		SendDlgItemMessage(OPEN_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_OPENCHECK_ICON));
 		SendDlgItemMessage(OPEN_COMBO, CB_SETCURSEL, cfg->OpenCheck, 0);
 //		CheckDlgButton(OPEN_CHECK, cfg->OpenCheck);
+		SetDlgItemInt(OPENTIME_EDIT, cfg->OpenMsgTime / 1000);
+		SetDlgItemInt(RECVTIME_EDIT, cfg->RecvMsgTime / 1000);
+		CheckDlgButton(BALLOONNOINFO_CHECK, cfg->BalloonNoInfo);
 
 		SetDlgItemTextU8(QUOTE_EDIT, cfg->QuoteStr);
 
@@ -150,11 +156,6 @@ BOOL TSetupSheet::SetData()
 			CheckDlgButton(LCID_CHECK, cfg->lcid == -1 || cfg->lcid == 0x411 ? FALSE : TRUE);
 		}
 
-		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_LIMITED));
-		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_DIRECTED));
-		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_BOTH));
-		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_SETCURSEL, cfg->ExtendBroadcast, 0);
-
 		SetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile);
 		SetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile);
 	}
@@ -162,7 +163,7 @@ BOOL TSetupSheet::SetData()
 		CheckDlgButton(QUOTE_CHECK, cfg->QuoteCheck);
 		CheckDlgButton(SECRET_CHECK, cfg->SecretCheck);
 		CheckDlgButton(ONECLICK_CHECK, cfg->OneClickPopup);
-		SetDlgItemTextU8(LRUUSER_EDIT, FmtStr("%d", cfg->lruUserMax));
+		SetDlgItemTextU8(LRUUSER_EDIT, Fmt("%d", cfg->lruUserMax));
 		// ControlIME ... 0:off, 1:senddlg on (finddlg:off), 2:always on
 		CheckDlgButton(CONTROLIME_CHECK, cfg->ControlIME ? 1 : 0);
 		CheckDlgButton(FINDDLGIME_CHECK, cfg->ControlIME >= 2 ? 0 : 1);
@@ -177,6 +178,15 @@ BOOL TSetupSheet::SetData()
 		SetDlgItemTextU8(SOUND_EDIT, cfg->SoundFile);
 	}
 	else if (resId == SETUP_SHEET4) {
+		CheckDlgButton(CLIPMODE_CHECK, (cfg->ClipMode & CLIP_ENABLE));
+		CheckDlgButton(CLIPCONFIRM_CHECK, (cfg->ClipMode & CLIP_CONFIRM) ? 1 : 0);
+		CheckDlgButton(MINIMIZE_CHECK, cfg->CaptureMinimize);
+		CheckDlgButton(CLIPBORAD_CHECK, cfg->CaptureClip);
+		CheckDlgButton(SAVE_CHECK, cfg->CaptureSave);
+		SetDlgItemInt(DELAY_EDIT, cfg->CaptureDelay);
+		SetDlgItemInt(DELAYEX_EDIT, cfg->CaptureDelayEx);
+	}
+	else if (resId == SETUP_SHEET5) {
 		CheckDlgButton(LOG_CHECK, cfg->LogCheck);
 		CheckDlgButton(LOGONLOG_CHECK, cfg->LogonLog);
 		CheckDlgButton(IPADDR_CHECK, cfg->IPAddrCheck);
@@ -185,11 +195,11 @@ BOOL TSetupSheet::SetData()
 		CheckDlgButton(PASSWDLOG_CHECK, cfg->PasswdLogCheck);
 		SetDlgItemTextU8(LOG_EDIT, cfg->LogFile);
 	}
-	else if (resId == SETUP_SHEET5) {
+	else if (resId == SETUP_SHEET6) {
 		if (*cfg->PasswordStr == 0)
 			::EnableWindow(GetDlgItem(OLDPASSWORD_EDIT), FALSE);
 	}
-	else if (resId == SETUP_SHEET6) {
+	else if (resId == SETUP_SHEET7) {
 		CheckDlgButton(DEFAULTURL_CHECK, cfg->DefaultUrl);
 
 		for (UrlObj *obj = (UrlObj *)cfg->urlList.TopObj(); obj;
@@ -200,8 +210,11 @@ BOOL TSetupSheet::SetData()
 			tmpUrlList.AddObj(tmp_obj);
 			SendDlgItemMessage(URL_LIST, LB_INSERTSTRING, (WPARAM)-1, (LPARAM)obj->protocol);
 		}
+		if ((curUrl = (UrlObj *)tmpUrlList.TopObj())) {
+			SetDlgItemTextU8(URL_EDIT, curUrl->program);
+		}
 		CheckDlgButton(SHELLEXEC_CHECK, cfg->ShellExec);
-		SendDlgItemMessage(URL_LIST, LB_SETCURSEL, curIdx >= 0 ? curIdx : 0, 0);
+		SendDlgItemMessage(URL_LIST, LB_SETCURSEL, 0, 0);
 		PostMessage(WM_COMMAND, URL_LIST, 0);
 	}
 	return	TRUE;
@@ -229,36 +242,31 @@ BOOL TSetupSheet::GetData()
 			::PostMessage(GetMainWnd(), WM_IPMSG_BRNOTIFY, 0, IPMSG_DEFAULT_PORT);
 		}
 
-		if (SendDlgItemMessage(CLIPMODE_CHECK, BM_GETCHECK, 0, 0)) {
-			cfg->ClipMode |=  CLIP_ENABLE;
-		} else {
-			cfg->ClipMode &= ~CLIP_ENABLE;
-		}
-		if (SendDlgItemMessage(CLIPCONFIRM_CHECK, BM_GETCHECK, 0, 0)) {
-			cfg->ClipMode |=  CLIP_CONFIRM;
-		} else {
-			cfg->ClipMode &= ~CLIP_CONFIRM;
-		}
 		cfg->brList.Reset();
 
 		for (i=0; SendDlgItemMessage(BROADCAST_LIST, LB_GETTEXT, i, (LPARAM)buf) != LB_ERR; i++)
 			cfg->brList.SetHostRaw(buf, ResolveAddr(buf));
 
-		cfg->DialUpCheck = (int)SendDlgItemMessage(DIALUP_CHECK, BM_GETCHECK, 0, 0);
+		cfg->DialUpCheck = IsDlgButtonChecked(DIALUP_CHECK);
+
+		cfg->ExtendBroadcast = (int)SendDlgItemMessage(EXTBROADCAST_COMBO, CB_GETCURSEL, 0, 0);
 	}
 	else if (resId == SETUP_SHEET2) {
-		cfg->BalloonNotify = (int)SendDlgItemMessage(BALLOONNOTIFY_CHECK, BM_GETCHECK, 0, 0);
+		cfg->BalloonNotify = IsDlgButtonChecked(BALLOONNOTIFY_CHECK);
 		cfg->OpenCheck = (int)SendDlgItemMessage(OPEN_COMBO, CB_GETCURSEL, 0, 0);
-//		cfg->OpenCheck = (int)SendDlgItemMessage(OPEN_CHECK, BM_GETCHECK, 0, 0);
+//		cfg->OpenCheck = IsDlgButtonChecked(OPEN_CHECK);
+		cfg->OpenMsgTime = GetDlgItemInt(OPENTIME_EDIT) * 1000;
+		cfg->RecvMsgTime = GetDlgItemInt(RECVTIME_EDIT) * 1000;
+		cfg->BalloonNoInfo = IsDlgButtonChecked(BALLOONNOINFO_CHECK);
+
 		GetDlgItemTextU8(QUOTE_EDIT, cfg->QuoteStr, sizeof(cfg->QuoteStr));
 
-		cfg->HotKeyCheck = (int)SendDlgItemMessage(HOTKEY_CHECK, BM_GETCHECK, 0, 0);
-		cfg->AbnormalButton = (int)SendDlgItemMessage(ABNORMALBTN_CHECK, BM_GETCHECK, 0, 0);
+		cfg->HotKeyCheck = IsDlgButtonChecked(HOTKEY_CHECK);
+		cfg->AbnormalButton = IsDlgButtonChecked(ABNORMALBTN_CHECK);
 		if (::IsWindowEnabled(GetDlgItem(LCID_CHECK))) {
 			cfg->lcid = IsDlgButtonChecked(LCID_CHECK) ? 0x409 : -1;
 		}
 
-		cfg->ExtendBroadcast = (int)SendDlgItemMessage(EXTBROADCAST_COMBO, CB_GETCURSEL, 0, 0);
 		GetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile, sizeof(cfg->IconFile));
 		GetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile, sizeof(cfg->RevIconFile));
 		::SendMessage(GetMainWnd(), WM_IPMSG_INITICON, 0, 0);
@@ -266,42 +274,59 @@ BOOL TSetupSheet::GetData()
 		SetHotKey(cfg);
 	}
 	else if (resId == SETUP_SHEET3) {
-		cfg->QuoteCheck = (int)SendDlgItemMessage(QUOTE_CHECK, BM_GETCHECK, 0, 0);
-		cfg->SecretCheck = (int)SendDlgItemMessage(SECRET_CHECK, BM_GETCHECK, 0, 0);
-		cfg->OneClickPopup = (int)SendDlgItemMessage(ONECLICK_CHECK, BM_GETCHECK, 0, 0);
+		cfg->QuoteCheck = IsDlgButtonChecked(QUOTE_CHECK);
+		cfg->SecretCheck = IsDlgButtonChecked(SECRET_CHECK);
+		cfg->OneClickPopup = IsDlgButtonChecked(ONECLICK_CHECK);
 		GetDlgItemTextU8(LRUUSER_EDIT, buf, sizeof(buf));
 		cfg->lruUserMax = atoi(buf);
 	// ControlIME ... 0:off, 1:senddlg on (finddlg:off), 2:always on
-		cfg->ControlIME = (int)SendDlgItemMessage(CONTROLIME_CHECK, BM_GETCHECK, 0, 0);
-		if (cfg->ControlIME && SendDlgItemMessage(FINDDLGIME_CHECK, BM_GETCHECK, 0, 0) == 0) {
+		cfg->ControlIME = IsDlgButtonChecked(CONTROLIME_CHECK);
+		if (cfg->ControlIME && !IsDlgButtonChecked(FINDDLGIME_CHECK)) {
 			cfg->ControlIME = 2;
 		}
-		cfg->NoPopupCheck = (int)SendDlgItemMessage(NOPOPUP_CHECK, BM_GETCHECK, 0, 0);
-		cfg->NoBeep = (int)SendDlgItemMessage(NOBEEP_CHECK, BM_GETCHECK, 0, 0);
-		cfg->AbsenceNonPopup = (int)SendDlgItemMessage(ABSENCENONPOPUP_CHECK, BM_GETCHECK, 0, 0);
-		cfg->RecvLogonDisp = (int)SendDlgItemMessage(RECVLOGON_CHECK, BM_GETCHECK, 0, 0);
-		cfg->RecvIPAddr = (int)SendDlgItemMessage(RECVIPADDR_CHECK, BM_GETCHECK, 0, 0);
-		cfg->NoErase = (int)SendDlgItemMessage(NOERASE_CHECK, BM_GETCHECK, 0, 0);
+		cfg->NoPopupCheck = IsDlgButtonChecked(NOPOPUP_CHECK);
+		cfg->NoBeep = IsDlgButtonChecked(NOBEEP_CHECK);
+		cfg->AbsenceNonPopup = IsDlgButtonChecked(ABSENCENONPOPUP_CHECK);
+		cfg->RecvLogonDisp = IsDlgButtonChecked(RECVLOGON_CHECK);
+		cfg->RecvIPAddr = IsDlgButtonChecked(RECVIPADDR_CHECK);
+		cfg->NoErase = IsDlgButtonChecked(NOERASE_CHECK);
 
 		GetDlgItemTextU8(SOUND_EDIT, cfg->SoundFile, sizeof(cfg->SoundFile));
 	}
 	else if (resId == SETUP_SHEET4) {
-		cfg->LogCheck = (int)SendDlgItemMessage(LOG_CHECK, BM_GETCHECK, 0, 0);
-		cfg->LogonLog = (int)SendDlgItemMessage(LOGONLOG_CHECK, BM_GETCHECK, 0, 0);
-		cfg->IPAddrCheck = (int)SendDlgItemMessage(IPADDR_CHECK, BM_GETCHECK, 0, 0);
+		if (IsDlgButtonChecked(CLIPMODE_CHECK)) {
+			cfg->ClipMode |=  CLIP_ENABLE;
+		} else {
+			cfg->ClipMode &= ~CLIP_ENABLE;
+		}
+		if (IsDlgButtonChecked(CLIPCONFIRM_CHECK)) {
+			cfg->ClipMode |=  CLIP_CONFIRM;
+		} else {
+			cfg->ClipMode &= ~CLIP_CONFIRM;
+		}
+		cfg->CaptureMinimize = IsDlgButtonChecked(MINIMIZE_CHECK);
+		cfg->CaptureClip = IsDlgButtonChecked(CLIPBORAD_CHECK);
+		cfg->CaptureSave = IsDlgButtonChecked(SAVE_CHECK);
+		cfg->CaptureDelay = GetDlgItemInt(DELAY_EDIT);
+		cfg->CaptureDelayEx = GetDlgItemInt(DELAYEX_EDIT);
+	}
+	else if (resId == SETUP_SHEET5) {
+		cfg->LogCheck = IsDlgButtonChecked(LOG_CHECK);
+		cfg->LogonLog = IsDlgButtonChecked(LOGONLOG_CHECK);
+		cfg->IPAddrCheck = IsDlgButtonChecked(IPADDR_CHECK);
 
-		if (SendDlgItemMessage(IMAGESAVE_CHECK, BM_GETCHECK, 0, 0)) {
+		if (IsDlgButtonChecked(IMAGESAVE_CHECK)) {
 			cfg->ClipMode |=  2;
 		} else {
 			cfg->ClipMode &= ~2;
 		}
-		cfg->LogUTF8 = (int)SendDlgItemMessage(LOGUTF8_CHECK, BM_GETCHECK, 0, 0);
-		cfg->PasswdLogCheck = (int)SendDlgItemMessage(PASSWDLOG_CHECK, BM_GETCHECK, 0, 0);
+		cfg->LogUTF8 = IsDlgButtonChecked(LOGUTF8_CHECK);
+		cfg->PasswdLogCheck = IsDlgButtonChecked(PASSWDLOG_CHECK);
 
 		GetDlgItemTextU8(LOG_EDIT, cfg->LogFile, sizeof(cfg->LogFile));
 		if (cfg->LogCheck) LogMng::StrictLogFile(cfg->LogFile);
 	}
-	else if (resId == SETUP_SHEET5) {
+	else if (resId == SETUP_SHEET6) {
 		char	buf[MAX_NAMEBUF];
 		GetDlgItemTextU8(OLDPASSWORD_EDIT, buf, sizeof(buf));
 		if (CheckPassword(cfg->PasswordStr, buf)) {
@@ -309,8 +334,10 @@ BOOL TSetupSheet::GetData()
 			MakePassword(buf, cfg->PasswordStr);
 		}
 	}
-	else if (resId == SETUP_SHEET6) {
-		cfg->DefaultUrl = (int)SendDlgItemMessage(DEFAULTURL_CHECK, BM_GETCHECK, 0, 0);
+	else if (resId == SETUP_SHEET7) {
+		cfg->DefaultUrl = IsDlgButtonChecked(DEFAULTURL_CHECK);
+		if (curUrl) GetDlgItemTextU8(URL_EDIT, curUrl->program, sizeof(curUrl->program));
+
 		for (UrlObj *tmp_obj = (UrlObj *)tmpUrlList.TopObj(); tmp_obj;
 			tmp_obj = (UrlObj *)tmpUrlList.NextObj(tmp_obj)) {
 			UrlObj *obj = SearchUrlObj(&cfg->urlList, tmp_obj->protocol);
@@ -322,7 +349,7 @@ BOOL TSetupSheet::GetData()
 			}
 			strcpy(obj->program, tmp_obj->program);
 		}
-		cfg->ShellExec = (int)SendDlgItemMessage(SHELLEXEC_CHECK, BM_GETCHECK, 0, 0);
+		cfg->ShellExec = IsDlgButtonChecked(SHELLEXEC_CHECK);
 	}
 
 	return	TRUE;
@@ -412,10 +439,17 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			return	TRUE;
 
 		case URL_LIST:
-			if ((i = (int)SendDlgItemMessage(URL_LIST, LB_GETCURSEL, 0, 0)) != LB_ERR &&
-				SendDlgItemMessage(URL_LIST, LB_GETTEXT, (WPARAM)i, (LPARAM)protocol) != LB_ERR &&
-				(obj = SearchUrlObj(&tmpUrlList, protocol))) {
-				SetDlgItemTextU8(URL_EDIT, obj->program);
+			if ((i = (int)SendDlgItemMessage(URL_LIST, LB_GETCURSEL, 0, 0)) != LB_ERR) {
+				if (curUrl) {
+					GetDlgItemTextU8(URL_EDIT, curUrl->program, sizeof(curUrl->program));
+					curUrl = NULL;
+				}
+				if (SendDlgItemMessage(URL_LIST, LB_GETTEXT, i, (LPARAM)protocol) != LB_ERR &&
+					(obj = SearchUrlObj(&tmpUrlList, protocol))) {
+					curUrl = obj;
+					SetDlgItemTextU8(URL_EDIT, obj->program);
+				}
+				
 			}
 			return	TRUE;
 		}
@@ -451,12 +485,12 @@ BOOL TSetupDlg::EvCreate(LPARAM lParam)
 	{
 		GetWindowRect(&rect);
 		int xsize = rect.right - rect.left, ysize = rect.bottom - rect.top;
-		int	cx = ::GetSystemMetrics(SM_CXFULLSCREEN), cy = ::GetSystemMetrics(SM_CYFULLSCREEN);
+		int	cx = ::GetSystemMetrics(SM_CXFULLSCREEN);
+		int	cy = ::GetSystemMetrics(SM_CYFULLSCREEN);
 		int	x = (cx - xsize)/2;
 		int y = (cy - ysize)/2;
 
-		MoveWindow((x < 0) ? 0 : x % (cx - xsize), (y < 0) ? 0 : y % (cy - ysize),
-			xsize, ysize, FALSE);
+		MoveWindow((x < 0) ? 0 : x, (y < 0) ? 0 : y, xsize, ysize, FALSE);
 	}
 	else
 		MoveWindow(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, FALSE);

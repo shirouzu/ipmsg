@@ -41,7 +41,7 @@ public:
 	virtual BOOL	EvCreate(LPARAM lParam);
 //	virtual BOOL	EvNcDestroy(void);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
-//	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+//	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 #endif

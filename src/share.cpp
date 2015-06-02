@@ -400,11 +400,12 @@ BOOL TShareDlg::EvCreate(LPARAM lParam)
 	{
 		GetWindowRect(&rect);
 		int xsize = rect.right - rect.left, ysize = rect.bottom - rect.top;
-		int	cx = ::GetSystemMetrics(SM_CXFULLSCREEN), cy = ::GetSystemMetrics(SM_CYFULLSCREEN);
+		int	cx = ::GetSystemMetrics(SM_CXFULLSCREEN);
+		int	cy = ::GetSystemMetrics(SM_CYFULLSCREEN);
 		int	x = (cx - xsize)/2;
 		int y = (cy - ysize)/2;
 
-		MoveWindow((x < 0) ? 0 : x % (cx - xsize), (y < 0) ? 0 : y % (cy - ysize), xsize, ysize, FALSE);
+		MoveWindow((x < 0) ? 0 : x, (y < 0) ? 0 : y, xsize, ysize, FALSE);
 	}
 	else
 		MoveWindow(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, FALSE);
@@ -547,10 +548,11 @@ BOOL TShareStatDlg::EvCreate(LPARAM lParam)
 	{
 		GetWindowRect(&rect);
 		int xsize = rect.right - rect.left, ysize = rect.bottom - rect.top;
-		int	cx = ::GetSystemMetrics(SM_CXFULLSCREEN), cy = ::GetSystemMetrics(SM_CYFULLSCREEN);
+		int	cx = ::GetSystemMetrics(SM_CXFULLSCREEN);
+		int	cy = ::GetSystemMetrics(SM_CYFULLSCREEN);
 		int	x = (cx - xsize)/2;
 		int y = (cy - ysize)/2;
-		MoveWindow((x < 0) ? 0 : x % (cx - xsize), (y < 0) ? 0 : y % (cy - ysize), xsize, ysize, FALSE);
+		MoveWindow((x < 0) ? 0 : x, (y < 0) ? 0 : y, xsize, ysize, FALSE);
 	}
 	else
 		MoveWindow(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, FALSE);
@@ -845,7 +847,7 @@ BOOL TSaveCommonDlg::LumpCheck()
 	return	TRUE;
 }
 
-BOOL TSaveCommonDlg::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
+BOOL TSaveCommonDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	return	FALSE;
 }

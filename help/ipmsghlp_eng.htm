@@ -70,11 +70,11 @@
 
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.21</h1>
+<h1 class="help_head1">IP Messenger v3.30</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2011/06/27 H.Shirouzu</div>
+<div align="right">2011/07/31 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -202,6 +202,11 @@
 	<strong>To embed clipboard image</strong> (v3.0 or later), push CTRL-V in editbox.(Max.10 image)<br>
 	  If logging setting is enabled, send/receive images are saved in ipmsg_img sub-folder of logfile folder.<br>
 	(Because embedded image mechanism use ipmsg file transfer, it requires to open 2425/tcp port)
+	<br><br>
+
+	<strong>To capture display</strong> (v3.3 or later), select in the menu that under "refresh" button.<br>
+	  Area specified desktop image can be pasted to Send Message Window and it can be saved to PNG file.<br>
+	  Send Message Window is minimized at stating capture, but this behavior can be changed by settings.
 	<br><br>
 
    <strong>To transfer File/Folder</strong> (v2.0 or later), Drag & Drop File/Folder to Send Window.
@@ -393,10 +398,17 @@ zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
+<tr><td>v3.30</td><td>
+Support display (area specified) capture.<br>
+Support detail settings of balloon notifications.<br>
+Update libpng (1.5.2 -> 1.5.4) for VU#819894<br>
+Misc refine.
+</td></tr>
 <tr><td>v3.21</td><td>
 Prevent to lost focus in active window when embedded image messsage is received.<br>
 Release 64bit version.
 </td></tr>
+<tr><td>v3.20</td><td>
 Support select users by user(sended) history.<br>
 Support old-style message-open notification.<br>
 Support delayed message-open notification, if desktop window is not activated(ex. screen saver).<br>

@@ -53,6 +53,7 @@ void TMsgApp::InitWindow(void)
 			else if (stricmp(tok, "/MSG") == 0) {	// コマンドラインモード
 				MsgMng	msgMng(nicAddr, port_no);
 				ULONG	command = IPMSG_SENDMSG|IPMSG_NOADDLISTOPT|IPMSG_NOLOGOPT, destAddr;
+				status  = ST_EXIT;
 
 				while ((tok = separate_token(NULL, ' ', &p)) && *tok == '/') {
 					if (stricmp(tok, "/LOG") == 0)

@@ -46,9 +46,9 @@ BOOL TWin::CreateV(const void *className, const void *title, DWORD style, DWORD 
 
 	TApp::GetApp()->AddWin(this);
 
-	if ((hWnd = ::CreateWindowExV(exStyle, className, title, style, rect.left, rect.top,
-				rect.right, rect.bottom, parent ? parent->hWnd : NULL, hMenu,
-				TApp::GetInstance(), NULL)) == NULL)
+	if ((hWnd = ::CreateWindowExV(exStyle, className, title, style,
+				rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+				parent ? parent->hWnd : NULL, hMenu, TApp::GetInstance(), NULL)) == NULL)
 		return	TApp::GetApp()->DelWin(this), FALSE;
 	else
 		return	TRUE;
@@ -136,6 +136,10 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		done = EvSize((UINT)wParam, LOWORD(lParam), HIWORD(lParam));
 		break;
 
+	case WM_MOVE:
+		done = EvMove(LOWORD(lParam), HIWORD(lParam));
+		break;
+
 	case WM_SHOWWINDOW:
 		done = EvShowWindow((BOOL)wParam, (int)lParam);
 		break;
@@ -176,8 +180,28 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		result = done = EvHotKey((int)wParam);
 		break;
 
+	case WM_ACTIVATEAPP:
+		done = EvActivateApp((BOOL)wParam, (DWORD)lParam);
+		break;
+
+	case WM_ACTIVATE:
+		EvActivate(LOWORD(wParam), HIWORD(wParam), (HWND)lParam);
+		break;
+
+	case WM_DROPFILES:
+		done = EvDropFiles((HDROP)wParam);
+		break;
+
 	case WM_CHAR:
 		done = EvChar((WCHAR)wParam, lParam);
+		break;
+
+	case WM_WINDOWPOSCHANGING:
+		done = EvWindowPosChanging((WINDOWPOS *)lParam);
+		break;
+
+	case WM_WINDOWPOSCHANGED:
+		done = EvWindowPosChanged((WINDOWPOS *)lParam);
 		break;
 
 	case WM_LBUTTONUP:
@@ -200,17 +224,14 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		done = EventKey(uMsg, (int)wParam, (LONG)lParam);
 		break;
 
-	case WM_ACTIVATEAPP:
-		done = EventActivateApp((BOOL)wParam, (DWORD)lParam);
-		break;
-
-	case WM_ACTIVATE:
-		EventActivate(LOWORD(wParam), HIWORD(wParam), (HWND)lParam);
-		break;
-
 	case WM_HSCROLL:
 	case WM_VSCROLL:
 		done = EventScroll(uMsg, LOWORD(wParam), HIWORD(wParam), (HWND)lParam);
+		break;
+
+	case WM_ENTERMENULOOP:
+	case WM_EXITMENULOOP:
+		done = EventMenuLoop(uMsg, (BOOL)wParam);
 		break;
 
 	case WM_INITMENU:
@@ -220,10 +241,6 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_MENUSELECT:
 		done = EvMenuSelect(LOWORD(wParam), HIWORD(wParam), (HMENU)lParam);
-		break;
-
-	case WM_DROPFILES:
-		done = EvDropFiles((HDROP)wParam);
 		break;
 
 	case WM_CTLCOLORBTN:
@@ -242,10 +259,15 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	default:
-		if (uMsg >= WM_USER && uMsg < 0x7FFF || uMsg >= 0xC000 && uMsg <= 0xFFFF)
+		if (uMsg >= WM_APP && uMsg <= 0xBFFF) {
+			result = done = EventApp(uMsg, wParam, lParam);
+		}
+		else if (uMsg >= WM_USER && uMsg < WM_APP || uMsg >= 0xC000 && uMsg <= 0xFFFF) {
 			result = done = EventUser(uMsg, wParam, lParam);
-		else
+		}
+		else {
 			result = done = EventSystem(uMsg, wParam, lParam);
+		}
 		break;
 	}
 
@@ -369,6 +391,11 @@ BOOL TWin::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	return	FALSE;
 }
 
+BOOL TWin::EvMove(int xpos, int ypos)
+{
+	return	FALSE;
+}
+
 BOOL TWin::EvShowWindow(BOOL fShow, int fnStatus)
 {
 	return	FALSE;
@@ -409,17 +436,27 @@ BOOL TWin::EvHotKey(int hotKey)
 	return	FALSE;
 }
 
+BOOL TWin::EvActivateApp(BOOL fActivate, DWORD dwThreadID)
+{
+	return	FALSE;
+}
+
+BOOL TWin::EvActivate(BOOL fActivate, DWORD fMinimized, HWND hActiveWnd)
+{
+	return	FALSE;
+}
+
+BOOL TWin::EvWindowPosChanging(WINDOWPOS *pos)
+{
+	return	FALSE;
+}
+
+BOOL TWin::EvWindowPosChanged(WINDOWPOS *pos)
+{
+	return	FALSE;
+}
+
 BOOL TWin::EvChar(WCHAR code, LPARAM keyData)
-{
-	return	FALSE;
-}
-
-BOOL TWin::EventActivateApp(BOOL fActivate, DWORD dwThreadID)
-{
-	return	FALSE;
-}
-
-BOOL TWin::EventActivate(BOOL fActivate, DWORD fMinimized, HWND hActiveWnd)
 {
 	return	FALSE;
 }
@@ -435,6 +472,11 @@ BOOL TWin::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 }
 
 BOOL TWin::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
+{
+	return	FALSE;
+}
+
+BOOL TWin::EventMenuLoop(UINT uMsg, BOOL fIsTrackPopupMenu)
 {
 	return	FALSE;
 }
@@ -460,6 +502,11 @@ BOOL TWin::EventCtlColor(UINT uMsg, HDC hDcCtl, HWND hWndCtl, HBRUSH *result)
 }
 
 BOOL TWin::EventFocus(UINT uMsg, HWND hFocusWnd)
+{
+	return	FALSE;
+}
+
+BOOL TWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	return	FALSE;
 }
@@ -611,10 +658,6 @@ BOOL TWin::SetForegroundWindow(void)
 
 BOOL TWin::SetForceForegroundWindow(void)
 {
-#ifndef SPI_GETFOREGROUNDLOCKTIMEOUT
-#define SPI_GETFOREGROUNDLOCKTIMEOUT 0x2000
-#define SPI_SETFOREGROUNDLOCKTIMEOUT 0x2001
-#endif
 	DWORD	foreId, targId, svTmOut;
 
 	if (IsWinVista()) {
@@ -688,6 +731,26 @@ WORD TWin::GetWindowWord(int index)
 BOOL TWin::MoveWindow(int x, int y, int cx, int cy, int bRepaint)
 {
 	return	::MoveWindow(hWnd, x, y, cx, cy, bRepaint);
+}
+
+BOOL TWin::FitMoveWindow(int x, int y)
+{
+	RECT	rc;
+	GetWindowRect(&rc);
+	int		cx = rc.right - rc.left;
+	int		cy = rc.bottom - rc.top;
+
+	int	start_x = ::GetSystemMetrics(SM_XVIRTUALSCREEN);
+	int	start_y = ::GetSystemMetrics(SM_YVIRTUALSCREEN);
+	int	end_x = start_x + ::GetSystemMetrics(SM_CXVIRTUALSCREEN);
+	int	end_y = start_y + ::GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+	if (x + cx > end_x) x = end_x - cx;
+	if (x < start_x)    x = start_x;
+	if (y + cy > end_y) y = end_y - cy;
+	if (y < start_y)    y = start_y;
+
+	return	SetWindowPos(NULL, x, y, 0, 0, SWP_NOSIZE|SWP_NOREDRAW|SWP_NOZORDER);
 }
 
 BOOL TWin::Idle(void)
@@ -765,6 +828,11 @@ int TWin::GetWindowTextLengthU8(void)
 	if (::GetWindowTextW(hWnd, wbuf.Buf(), len + 1) <= 0) return 0;
 
 	return	WtoU8(wbuf, NULL, 0);
+}
+
+BOOL TWin::InvalidateRect(const RECT *rc, BOOL fErase)
+{
+	return	::InvalidateRect(hWnd, rc, fErase);
 }
 
 

@@ -104,6 +104,14 @@ SOURCE=.\src\cfg.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\histdlg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\image.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\ipmsg.cpp
 # End Source File
 # Begin Source File

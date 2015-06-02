@@ -152,6 +152,22 @@ extern DWORD TWinVersion;	// define in tmisc.cpp
 #define PROCESS_MODE_BACKGROUND_END   0x00200000
 #endif
 
+#ifndef SM_XVIRTUALSCREEN
+#define SM_XVIRTUALSCREEN	76
+#define SM_YVIRTUALSCREEN	77
+#define SM_CXVIRTUALSCREEN	78
+#define SM_CYVIRTUALSCREEN	79
+#endif
+
+#ifndef SPI_GETFOREGROUNDLOCKTIMEOUT
+#define SPI_GETFOREGROUNDLOCKTIMEOUT 0x2000
+#define SPI_SETFOREGROUNDLOCKTIMEOUT 0x2001
+#endif
+
+#ifndef SPI_GETMESSAGEDURATION
+#define SPI_GETMESSAGEDURATION	0x2016
+#define SPI_SETMESSAGEDURATION	0x2017
+#endif
 
 #ifdef _WIN64
 #define SetClassLongA	SetClassLongPtrA
@@ -270,6 +286,7 @@ public:
 	virtual BOOL	EvPaint(void);
 	virtual BOOL	EvNcPaint(HRGN hRgn);
 	virtual BOOL	EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight);
+	virtual BOOL	EvMove(int xpos, int ypos);
 	virtual BOOL	EvShowWindow(BOOL fShow, int fnStatus);
 	virtual BOOL	EvGetMinMaxInfo(MINMAXINFO *info);
 	virtual BOOL	EvTimer(WPARAM timerID, TIMERPROC proc);
@@ -283,19 +300,24 @@ public:
 	virtual BOOL	EvNotify(UINT ctlID, NMHDR *pNmHdr);
 	virtual BOOL	EvContextMenu(HWND childWnd, POINTS pos);
 	virtual BOOL	EvHotKey(int hotKey);
+	virtual BOOL	EvActivateApp(BOOL fActivate, DWORD dwThreadID);
+	virtual BOOL	EvActivate(BOOL fActivate, DWORD fMinimized, HWND hActiveWnd);
 	virtual BOOL	EvChar(WCHAR code, LPARAM keyData);
+	virtual BOOL	EvWindowPosChanged(WINDOWPOS *pos);
+	virtual BOOL	EvWindowPosChanging(WINDOWPOS *pos);
 
-	virtual BOOL	EventActivateApp(BOOL fActivate, DWORD dwThreadID);
-	virtual BOOL	EventActivate(BOOL fActivate, DWORD fMinimized, HWND hActiveWnd);
 	virtual BOOL	EventScroll(UINT uMsg, int nCode, int nPos, HWND scrollBar);
 
 	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
 	virtual BOOL	EventKey(UINT uMsg, int nVirtKey, LONG lKeyData);
+	virtual BOOL	EventMenuLoop(UINT uMsg, BOOL fIsTrackPopupMenu);
 	virtual BOOL	EventInitMenu(UINT uMsg, HMENU hMenu, UINT uPos, BOOL fSystemMenu);
 	virtual BOOL	EventCtlColor(UINT uMsg, HDC hDcCtl, HWND hWndCtl, HBRUSH *result);
 	virtual BOOL	EventFocus(UINT uMsg, HWND focusWnd);
-	virtual BOOL	EventSystem(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventSystem(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	virtual UINT	GetDlgItemText(int ctlId, LPSTR buf, int len);
 	virtual UINT	GetDlgItemTextV(int ctlId, void *buf, int len);
@@ -338,6 +360,7 @@ public:
 	virtual BOOL	SetWindowTextU8(const char *text);
 	virtual int		GetWindowTextLengthV(void);
 	virtual int		GetWindowTextLengthU8(void);
+	virtual BOOL	InvalidateRect(const RECT *rc, BOOL fErase);
 
 	virtual LONG_PTR SetWindowLong(int index, LONG_PTR val);
 	virtual WORD	SetWindowWord(int index, WORD val);
@@ -346,6 +369,7 @@ public:
 	virtual TWin	*GetParent(void) { return parent; };
 	virtual void	SetParent(TWin *_parent) { parent = _parent; };
 	virtual BOOL	MoveWindow(int x, int y, int cx, int cy, int bRepaint);
+	virtual BOOL	FitMoveWindow(int x, int y);
 	virtual BOOL	Sleep(UINT mSec);
 	virtual BOOL	Idle(void);
 	virtual RECT	*Rect() { return &rect; }

@@ -1,310 +1,22 @@
 static char *richedit_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   richedit.cpp	Ver3.21";
+	"@(#)Copyright (C) H.Shirouzu 2011   richedit.cpp	Ver3.30";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Rich Edit Control and PNG-BMP convert
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-06-27(Mon)
+	Update					: 2011-07-31(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
 #include "resource.h"
 #include "ipmsg.h"
-#include "blowfish.h"
-#include "../external/libpng/pnginfo.h"
 
 #include <objidl.h>
 #include <ole2.h>
 #include <commctrl.h>
 #include <richedit.h>
 #include <oledlg.h>
-
-#define PNG_SIG_SIZE 8
-
-void png_vbuf_wfunc(png_struct *png, png_byte *buf, png_size_t size)
-{
-	VBuf	*vbuf = (VBuf *)png_get_io_ptr(png);
-
-	if (!vbuf) return;
-
-	if (vbuf->RemainSize() < (int)size) {
-		int	grow_size = size - vbuf->RemainSize();
-		if (!vbuf->Grow(grow_size)) return;
-	}
-
-	// 圧縮中にも、わずかにメッセージループを回して、フリーズっぽい状態を避ける
-	TApp::Idle(100);
-
-	memcpy(vbuf->Buf() + vbuf->UsedSize(), buf, size);
-	vbuf->AddUsedSize(size);
-}
-
-void png_vbuf_wflush(png_struct *png)
-{
-}
-
-VBuf *BmpHandleToPngByte(HBITMAP hBmp)
-{
-	BITMAP		bmp;
-	BITMAPINFO	*bmi = NULL;
-	int			palette, total_size, header_size, data_size, line_size;
-	HWND		hWnd = GetDesktopWindow();
-	HDC			hDc = NULL;
-	VBuf		bmpVbuf;
-	png_struct	*png  = NULL;
-	png_info	*info = NULL;
-	png_color_8	sbit;
-	png_byte	**lines = NULL;
-	VBuf		*vbuf = NULL, *ret = NULL;
-
-	if (!GetObject(hBmp, sizeof(bmp), &bmp)) return NULL;
-
-	//if (bmp.bmBitsPixel < 24)
-	bmp.bmBitsPixel = 24;
-
-	line_size   = bmp.bmWidth * ALIGN_SIZE(bmp.bmBitsPixel, 8) / 8;
-	line_size   = ALIGN_SIZE(line_size, 4);
-	data_size   = line_size * bmp.bmHeight;
-	palette     = bmp.bmBitsPixel <= 8 ? 1 << bmp.bmBitsPixel : 0;
-	header_size = sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * palette;
-	total_size	= header_size + data_size;
-
-	if (!bmpVbuf.AllocBuf(total_size)) return	NULL;
-	bmi = (BITMAPINFO *)bmpVbuf.Buf();
-
-	bmi->bmiHeader.biSize         = sizeof(BITMAPINFOHEADER);
-	bmi->bmiHeader.biWidth        = bmp.bmWidth;
-	bmi->bmiHeader.biHeight       = bmp.bmHeight;
-	bmi->bmiHeader.biPlanes       = 1;
-	bmi->bmiHeader.biBitCount     = bmp.bmBitsPixel;
-	bmi->bmiHeader.biCompression  = BI_RGB;
-	bmi->bmiHeader.biClrUsed      = palette;
-	bmi->bmiHeader.biClrImportant = palette;
-
-	if (!(hDc = GetDC(hWnd)) ||
-		!GetDIBits(hDc, hBmp, 0, bmp.bmHeight, (char *)bmi + header_size, bmi, DIB_RGB_COLORS)) {
-		goto END;
-	}
-
-	if (!(png = png_create_write_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0))) return NULL;
-	if (!(info = png_create_info_struct(png))) goto END;
-	if (!(vbuf = new VBuf(0, total_size))) goto END;
-
-	png_set_write_fn(png, (void *)vbuf, (png_rw_ptr)png_vbuf_wfunc,
-					(png_flush_ptr)png_vbuf_wflush);
-
-	if (palette) {
-		png_color	png_palette[256];
-		for (int i=0; i < palette; i++) {
-			png_palette[i].red		= bmi->bmiColors[i].rgbRed;
-			png_palette[i].green	= bmi->bmiColors[i].rgbGreen;
-			png_palette[i].blue		= bmi->bmiColors[i].rgbBlue;
-		}
-		png_set_IHDR(png, info, bmp.bmWidth, bmp.bmHeight, bmp.bmBitsPixel,
-					PNG_COLOR_TYPE_PALETTE,
-					PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-		png_set_PLTE(png, info, png_palette, palette);
-	}
-	else {
-		png_set_IHDR(png, info, bmp.bmWidth, bmp.bmHeight, 8,
-					bmp.bmBitsPixel > 24 ? PNG_COLOR_TYPE_RGB_ALPHA  : PNG_COLOR_TYPE_RGB,
-					PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-	}
-	sbit.red = sbit.green = sbit.blue = 8;
-	sbit.alpha = bmp.bmBitsPixel > 24 ? 8 : 0;
-	png_set_sBIT(png, info, &sbit);
-
-	if (setjmp(png_jmpbuf(png))) {
-		goto END;
-	}
-	else {
-		png_write_info(png, info);
-		png_set_bgr(png);
-
-		lines = (png_byte **)malloc(sizeof(png_bytep *) * bmp.bmHeight);
-
-		for (int i = 0; i < bmp.bmHeight; i++) {
-			lines[i] = bmpVbuf.Buf() + header_size + line_size * (bmp.bmHeight - i - 1);
-		}
-		png_write_image(png, lines);
-		png_write_end(png, info);
-		ret = vbuf;
-	}
-
-END:
-	if (png) png_destroy_write_struct(&png, &info);
-	if (hDc) ReleaseDC(hWnd, hDc);
-	if (lines) free(lines);
-	if (!ret && vbuf) delete vbuf;
-	return	ret;
-}
-
-void png_vbuf_rfunc(png_struct *png, png_byte *buf, png_size_t size)
-{
-	VBuf	*vbuf = (VBuf *)png_get_io_ptr(png);
-
-	if (!vbuf) return;
-
-	u_int remain = vbuf->Size() - vbuf->UsedSize();
-
-	if (remain < size) size = remain;
-	memcpy(buf, vbuf->Buf() + vbuf->UsedSize(), size);
-	vbuf->AddUsedSize(size);
-}
-
-HBITMAP PngByteToBmpHandle(VBuf *vbuf)
-{
-	png_struct	*png  = NULL;
-	png_info	*info = NULL;
-	HBITMAP		hBmp  = NULL;
-	BITMAPINFO	*bmi  = NULL;
-	png_byte	**row = NULL;
-	BYTE		*data = NULL;
-	HWND		hWnd = GetDesktopWindow();
-	HDC			hDc   = NULL;
-	int			line_size, aligned_line_size, header_size;
-	VBuf		bmpVbuf;
-
-	if (vbuf->Size() < PNG_SIG_SIZE || !png_check_sig(vbuf->Buf(), PNG_SIG_SIZE)) return NULL;
-
-	if (!(png = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0))) return NULL;
-	if (!(info = png_create_info_struct(png))) goto END;
-
-	if (setjmp(png_jmpbuf(png))) goto END;
-
-	png_set_user_limits(png, 15000, 10000); // 15,000 * 10,000 pix
-	png_set_read_fn(png, (void *)vbuf, (png_rw_ptr)png_vbuf_rfunc);
-	png_read_png(png, info, PNG_TRANSFORM_BGR, NULL);
-
-	if (info->bit_depth > 8) goto END; // not support
-
-	line_size = info->width * info->channels * ALIGN_SIZE(info->bit_depth, 8) / 8;
-	aligned_line_size = ALIGN_SIZE(line_size, 4);
-	header_size = sizeof(BITMAPV5HEADER) + sizeof(RGBQUAD) * info->num_palette;
-
-	if (!bmpVbuf.AllocBuf(header_size + aligned_line_size * info->height)) goto END;
-	bmi = (BITMAPINFO *)bmpVbuf.Buf();
-
-	bmi->bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-	bmi->bmiHeader.biSizeImage   = aligned_line_size * info->height;
-	bmi->bmiHeader.biWidth       = info->width;
-	bmi->bmiHeader.biHeight      = -(int)info->height;
-	bmi->bmiHeader.biPlanes      = 1;
-	bmi->bmiHeader.biCompression = BI_RGB;
-
-	if (info->color_type == PNG_COLOR_TYPE_PALETTE) {
-		bmi->bmiHeader.biBitCount = info->bit_depth;
-		bmi->bmiHeader.biClrUsed = info->num_palette;
-		for (int i=0; i < info->num_palette; i++) {
-			bmi->bmiColors[i].rgbRed	= info->palette[i].red;
-			bmi->bmiColors[i].rgbGreen	= info->palette[i].green;
-			bmi->bmiColors[i].rgbBlue	= info->palette[i].blue;
-		}
-	}
-	else  {
-		bmi->bmiHeader.biBitCount = info->bit_depth * info->channels;
-		if (info->channels == 4) {
-			bmi->bmiHeader.biSize	= sizeof(BITMAPV5HEADER);
-			BITMAPV5HEADER *bm5		= (BITMAPV5HEADER*)bmi;
-			bm5->bV5Compression		= BI_BITFIELDS;
-			bm5->bV5RedMask			= 0x00FF0000;
-			bm5->bV5GreenMask		= 0x0000FF00;
-			bm5->bV5BlueMask		= 0x000000FF;
-			bm5->bV5AlphaMask		= 0xFF000000;
-		}
-	}
-
-	if (!(row = png_get_rows(png, info))) goto END;
-
-	data = bmpVbuf.Buf() + header_size;
-	u_int i;
-	for (i=0; i < info->height; i++) {
-		memcpy(data + aligned_line_size * i, row[i], line_size);
-	}
-
-	if (!(hDc = GetDC(hWnd))) goto END;
-	hBmp = CreateDIBitmap(hDc, (BITMAPINFOHEADER *)bmi, CBM_INIT, data, bmi, DIB_RGB_COLORS);
-	if (hDc) ReleaseDC(hWnd, hDc);
-
-END:
-	png_destroy_read_struct(&png, &info, 0);
-	return	hBmp;
-}
-
-BITMAPINFO *BmpHandleToInfo(HBITMAP hBmp, int *size)
-{
-	BITMAP		bmp;
-	BITMAPINFO	*bmi;
-	int			palette, header_size, data_size;
-	HWND		hWnd = GetDesktopWindow();
-	HDC			hDc;
-
-	if (!GetObject(hBmp, sizeof(bmp), &bmp)) return NULL;
-
-	data_size   = (bmp.bmWidth * ALIGN_SIZE(bmp.bmBitsPixel, 8) / 8) * bmp.bmHeight;
-	palette     = bmp.bmBitsPixel <= 8 ? 1 << bmp.bmBitsPixel : 0;
-	header_size = sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * palette;
-	*size		= header_size + data_size;
-
-	if (!(bmi = (BITMAPINFO *)malloc(*size))) return NULL;
-
-	memset(bmi, 0, sizeof(BITMAPINFO));
-	bmi->bmiHeader.biSize         = sizeof(BITMAPINFOHEADER);
-	bmi->bmiHeader.biWidth        = bmp.bmWidth;
-	bmi->bmiHeader.biHeight       = bmp.bmHeight;
-	bmi->bmiHeader.biPlanes       = 1;
-	bmi->bmiHeader.biBitCount     = bmp.bmBitsPixel;
-	bmi->bmiHeader.biCompression  = BI_RGB;
-	bmi->bmiHeader.biClrUsed      = palette;
-	bmi->bmiHeader.biClrImportant = palette;
-
-	if (!(hDc = GetDC(hWnd)) ||
-		!GetDIBits(hDc, hBmp, 0, bmp.bmHeight, (char *)bmi + header_size, bmi, DIB_RGB_COLORS)) {
-		free(bmi);
-		bmi = NULL;
-	}
-	if (hDc) ReleaseDC(hWnd, hDc);
-
-#if 0
-	static int counter = 0;
-	BITMAPFILEHEADER	bfh;
-	bfh.bfType = 0x4d42;
-	bfh.bfReserved1 = 0;
-	bfh.bfReserved2 = 0;
-
-	bfh.bfOffBits = sizeof(BITMAPFILEHEADER) + header_size;
-	bfh.bfSize    = data_size + bfh.bfOffBits;
-
-	FILE *fp = fopen(FmtStr("c:\\temp\\a%d.bmp", counter++), "wb");
-	fwrite((void *)&bfh, 1, sizeof(bfh), fp);
-	fwrite((void *)bmi, 1, *size, fp);
-	fclose(fp);
-#endif
-
-	return	bmi;
-}
-
-HBITMAP BmpInfoToHandle(BITMAPINFO *bmi, int size)
-{
-	HBITMAP		hBmp;
-	HWND		hWnd = GetDesktopWindow();
-	HDC			hDc;
-	int			header_size;
-
-	if (size < sizeof(BITMAPINFOHEADER)) return NULL;
-
-	if (!(hDc = GetDC(hWnd))) return NULL;
-
-	header_size = bmi->bmiHeader.biSize + (bmi->bmiHeader.biClrUsed * sizeof(RGBQUAD));
-	hBmp = CreateDIBitmap(hDc, (BITMAPINFOHEADER *)bmi, CBM_INIT,
-								(char *)bmi + header_size, bmi, DIB_RGB_COLORS);
-
-	if (hDc) ReleaseDC(hWnd, hDc);
-
-	return	hBmp;
-}
-
 
 class TDataObject : IDataObject {
 private:
@@ -564,7 +276,7 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 	if (FAILED(dataObj->EnumFormatEtc(DATADIR_GET, &enum_fe))) return S_FALSE;
 
 	while (SUCCEEDED(enum_fe->Next(num=1, &fe, &num)) && num == 1) {
-//		editWnd->MessageBoxU8(FmtStr("cf=%d",fe.cfFormat));
+//		editWnd->MessageBoxU8(Fmt("cf=%d",fe.cfFormat));
 		switch (fe.cfFormat) {
 		case CF_TEXT:
 			if (idx < 2 && enabled[idx] == 0 && (idx == 0 || enabled[0] != CF_TEXT)) {
@@ -704,6 +416,7 @@ BOOL TEditSub::AttachWnd(HWND _hWnd)
 	DWORD	evMask = SendMessage(EM_GETEVENTMASK, 0, 0) | ENM_LINK;
 	SendMessage(EM_SETEVENTMASK, 0, evMask); 
 	dblClicked = FALSE;
+	selStart = selEnd = 0;
 	return	TRUE;
 }
 
@@ -787,6 +500,12 @@ BOOL TEditSub::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 
 BOOL TEditSub::EventFocus(UINT uMsg, HWND hFocusWnd)
 {
+	if (uMsg == WM_SETFOCUS) {
+		SendMessageW(EM_SETSEL, (WPARAM)selStart, (LPARAM)selEnd);
+	}
+	else if (uMsg == WM_KILLFOCUS) {
+		SendMessageW(EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+	}
 	return	FALSE;
 }
 
@@ -800,7 +519,7 @@ BOOL TEditSub::EvContextMenu(HWND childWnd, POINTS pos)
 	return	TRUE;
 }
 
-BOOL TEditSub::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
+BOOL TEditSub::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{

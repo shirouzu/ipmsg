@@ -112,7 +112,7 @@ BOOL TUninstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 	return	FALSE;
 }
 
-BOOL TUninstDlg::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
+BOOL TUninstDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (uMsg == IPMSG_QUIT_MESSAGE) {
 		PostQuitMessage(0);

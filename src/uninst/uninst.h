@@ -19,7 +19,7 @@ public:
 
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
-	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	BOOL	UnInstall(void);
 	int		TerminateIPMsg(void);
 };
@@ -33,7 +33,7 @@ public:
 	void InitWindow(void);
 };
 
-#define IPMSG_QUIT_MESSAGE		(WM_USER + 100)
+#define IPMSG_QUIT_MESSAGE		(WM_APP + 100)
 
 #define IPMSG_CLASS				"ipmsg_class"
 #define IPMSG_NAME				"IPMSG for Win32"

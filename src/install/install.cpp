@@ -159,6 +159,7 @@ BOOL TInstDlg::EvNcDestroy(void)
 		::PostMessage(runasWnd, WM_IPMSG_QUIT, 0, 0);
 		runasWnd = NULL;
 	}
+	PostQuitMessage(0);
 	return	FALSE;
 }
 
@@ -186,7 +187,7 @@ BOOL TInstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		return	TRUE;
 
 	case IDCANCEL:
-		::PostQuitMessage(0);
+		EndDialog(FALSE);
 		return	TRUE;
 
 	case RUNAS_BUTTON:
@@ -205,7 +206,7 @@ BOOL TInstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 	return	FALSE;
 }
 
-BOOL TInstDlg::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
+BOOL TInstDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) {
 	case WM_IPMSG_HIDE:
@@ -282,7 +283,7 @@ BOOL TInstDlg::Install(void)
 			return	FALSE;
 		}
 		else if (cs == CS_ACCESS) {
-			const char *msg = FmtStr("%s\r\n%s", GetLoadStrU8(IDS_NOTCREATEFILE), installPath);
+			const char *msg = Fmt("%s\r\n%s", GetLoadStrU8(IDS_NOTCREATEFILE), installPath);
 			MessageBoxU8(msg, INSTALL_STR);
 			return	FALSE;
 		}
@@ -341,11 +342,11 @@ BOOL TInstDlg::Install(void)
 	int			flg = MB_OKCANCEL|MB_ICONINFORMATION;
 
 //	if (IsWinVista() && TIsUserAnAdmin() && TIsEnableUAC()) {
-//		msg = FmtStr("%s%s", msg, GetLoadStr(IDS_COMPLETE_UACADD));
+//		msg = Fmt("%s%s", msg, GetLoadStr(IDS_COMPLETE_UACADD));
 //		flg |= MB_DEFBUTTON2;
 //	}
 	if (IsWin7()) {
-		msg = FmtStr("%s%s", msg, GetLoadStr(IDS_COMPLETE_WIN7));
+		msg = Fmt("%s%s", msg, GetLoadStr(IDS_COMPLETE_WIN7));
 	}
 	if (MessageBox(msg, INSTALL_STR, flg) == IDOK) {
 		if (runasWnd) {

@@ -1,10 +1,10 @@
 static char *cfg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.20";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.30";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration
 	Create					: 1996-09-27(Sat)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-07-31(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -29,6 +29,8 @@ static char *cfg_id =
 #define IPMSG_DEFAULT_CLIPMODE		7
 #define IPMSG_DEFAULT_CLIPMAX		10
 #define IPMSG_DEFAULT_LRUUSERMAX	10
+#define IPMSG_DEFAULT_OPENMSGTIME	3000
+#define IPMSG_DEFAULT_RECVMSGTIME	10000
 
 #define IPMSG_DEFAULT_VIEWMAX		(1 * 1024 * 1024)	// 1MB
 #define IPMSG_DEFAULT_TRANSMAX		(128 * 1024)		// 128KB
@@ -108,6 +110,14 @@ static char *cfg_id =
 #define ENCRYPTNUM_STR		"EncryptNum2"
 #define CLIPMODE_STR		"ClipMode"
 #define CLIPMAX_STR			"ClipMax"
+#define CAPTUREDELAY_STR	"CaptureDelay"
+#define CAPTUREDELAYEX_STR	"CaptureDelayEx"
+#define CAPTUREMINIMIZE_STR	"CaptureMinimize"
+#define CAPTURECLIP_STR		"CaptureClip"
+#define CAPTURESAVE_STR		"CaptureSave"
+#define OPENMSGTIME_STR		"OpenMsgTime"
+#define RECVMSGTIME_STR		"RecvMsgTime"
+#define BALLOONNOINFO_STR	"BalloonNoInfo"
 
 #define VIEWMAX_STR			"ViewMax2"
 #define TRANSMAX_STR		"TransMax"
@@ -317,6 +327,15 @@ BOOL Cfg::ReadRegistry(void)
 	EncryptNum = IPMSG_DEFAULT_ENCRYPTNUM;
 	ClipMode = IPMSG_DEFAULT_CLIPMODE;
 	ClipMax = IPMSG_DEFAULT_CLIPMAX;
+	CaptureDelay   = 300;
+	CaptureDelayEx = 500;
+	CaptureMinimize = TRUE;
+	CaptureClip = TRUE;
+	CaptureSave = FALSE;
+	OpenMsgTime = IPMSG_DEFAULT_OPENMSGTIME;
+	RecvMsgTime = IPMSG_DEFAULT_RECVMSGTIME;
+	BalloonNoInfo = FALSE;
+
 	ViewMax = IPMSG_DEFAULT_VIEWMAX;
 	TransMax = IPMSG_DEFAULT_TRANSMAX;
 	TcpbufMax = IPMSG_DEFAULT_TCPBUFMAX;
@@ -399,6 +418,14 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(ENCRYPTNUM_STR, &EncryptNum);
 	reg.GetInt(CLIPMODE_STR, &ClipMode);
 	reg.GetInt(CLIPMAX_STR, &ClipMax);
+	reg.GetInt(CAPTUREDELAY_STR, &CaptureDelay);
+	reg.GetInt(CAPTUREDELAYEX_STR, &CaptureDelayEx);
+	reg.GetInt(CAPTUREMINIMIZE_STR, &CaptureMinimize);
+	reg.GetInt(CAPTURECLIP_STR, &CaptureClip);
+	reg.GetInt(CAPTURESAVE_STR, &CaptureSave);
+	reg.GetInt(OPENMSGTIME_STR, &OpenMsgTime);
+	reg.GetInt(RECVMSGTIME_STR, &RecvMsgTime);
+	reg.GetInt(BALLOONNOINFO_STR, &BalloonNoInfo);
 
 // for File Transfer
 	reg.GetInt(VIEWMAX_STR, &ViewMax);
@@ -819,6 +846,15 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 //		reg.SetInt(ENCRYPTNUM_STR, EncryptNum);
 		reg.SetInt(CLIPMODE_STR, ClipMode);
 //		reg.SetInt(CLIPMAX_STR, ClipMax);
+//		reg.SetInt(CAPTUREDELAY_STR, CaptureDelay);
+//		reg.SetInt(CAPTUREDELAYEX_STR, CaptureDelayEx);
+		reg.SetInt(CAPTUREMINIMIZE_STR, CaptureMinimize);
+		reg.SetInt(CAPTURECLIP_STR, CaptureClip);
+		reg.SetInt(CAPTURESAVE_STR, CaptureSave);
+		reg.SetInt(OPENMSGTIME_STR, OpenMsgTime);
+		reg.SetInt(RECVMSGTIME_STR, RecvMsgTime);
+		reg.SetInt(BALLOONNOINFO_STR, BalloonNoInfo);
+
 //		reg.SetInt(VIEWMAX_STR, ViewMax);
 //		reg.SetInt(TRANSMAX_STR, TransMax);
 //		reg.SetInt(TCPBUFMAX_STR, TcpbufMax);

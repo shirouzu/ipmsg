@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2011   ipmsgcmn.h	Ver3.20 */
+/*	@(#)Copyright (C) H.Shirouzu 2011   ipmsgcmn.h	Ver3.30 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Common Header
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-05-23(Mon)
+	Update					: 2011-07-31(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -24,9 +24,7 @@
 #define IPMSG_TIMERINTERVAL			500
 #define IPMSG_ENTRYMINSEC			5
 #define IPMSG_GETLIST_FINISH		0
-#define IPMSG_OPENMSG_TIME			3000
-#define IPMSG_DELAYMSG_TIME			5000
-#define IPMSG_RECVMSG_TIME			10000
+#define IPMSG_DELAYMSG_OFFSETTIME	2000
 
 #define IPMSG_BROADCAST_TIMER		0x0101
 #define IPMSG_SEND_TIMER			0x0102
@@ -40,6 +38,8 @@
 #define IPMSG_BALLOON_RECV_TIMER	0x010b
 #define IPMSG_BALLOON_OPEN_TIMER	0x010c
 #define IPMSG_BALLOON_DELAY_TIMER	0x010d
+#define IPMSG_IMAGERECT_TIMER		0x010e
+#define IPMSG_KEYCHECK_TIMER		0x010f
 
 
 #define IPMSG_NICKNAME			1
@@ -56,39 +56,40 @@
 #define IPMSG_SUBREVSORTOPT		0x00002000
 
 
-#define WM_NOTIFY_TRAY			(WM_USER + 101)
-#define WM_NOTIFY_RECV			(WM_USER + 102)
-#define WM_NOTIFY_OPENCHECK		(WM_USER + 103)
-#define WM_IPMSG_INITICON		(WM_USER + 104)
-#define WM_IPMSG_BRRESET		(WM_USER + 105)
-#define WM_RECVDLG_OPEN			(WM_USER + 110)
-#define WM_RECVDLG_EXIT			(WM_USER + 111)
-#define WM_RECVDLG_FILEBUTTON	(WM_USER + 112)
-#define WM_SENDDLG_OPEN			(WM_USER + 121)
-#define WM_SENDDLG_CREATE		(WM_USER + 122)
-#define WM_SENDDLG_EXIT			(WM_USER + 123)
-#define WM_SENDDLG_HIDE			(WM_USER + 124)
-#define WM_SENDDLG_RESIZE		(WM_USER + 125)
-#define WM_SENDDLG_FONTCHANGED	(WM_USER + 126)
-#define WM_UDPEVENT				(WM_USER + 130)
-#define WM_TCPEVENT				(WM_USER + 131)
-#define WM_REFRESH_HOST			(WM_USER + 140)
-#define WM_MSGDLG_EXIT			(WM_USER + 150)
-#define WM_DELMISCDLG			(WM_USER + 151)
-#define WM_HIDE_CHILDWIN		(WM_USER + 160)
-#define WM_EDIT_DBLCLK			(WM_USER + 170)
-#define WM_DELAYSETTEXT			(WM_USER + 180)
-#define WM_DELAY_BITMAP			(WM_USER + 182)
-#define WM_DELAY_PASTE			(WM_USER + 183)
-#define WM_PASTE_REV			(WM_USER + 184)
-#define WM_PASTE_IMAGE			(WM_USER + 185)
-#define WM_HISTDLG_OPEN			(WM_USER + 190)
-#define WM_HISTDLG_HIDE			(WM_USER + 191)
-#define WM_HISTDLG_NOTIFY		(WM_USER + 192)
-#define WM_FORCE_TERMINATE		(WM_USER + 193)
-#define WM_FINDDLG_DELAY		(WM_USER + 194)
-#define WM_IPMSG_IMECTRL		(WM_USER + 200)
-#define WM_IPMSG_BRNOTIFY		(WM_USER + 201)
+#define WM_NOTIFY_TRAY			(WM_APP + 101)
+#define WM_NOTIFY_RECV			(WM_APP + 102)
+#define WM_NOTIFY_OPENCHECK		(WM_APP + 103)
+#define WM_IPMSG_INITICON		(WM_APP + 104)
+#define WM_IPMSG_BRRESET		(WM_APP + 105)
+#define WM_RECVDLG_OPEN			(WM_APP + 110)
+#define WM_RECVDLG_EXIT			(WM_APP + 111)
+#define WM_RECVDLG_FILEBUTTON	(WM_APP + 112)
+#define WM_SENDDLG_OPEN			(WM_APP + 121)
+#define WM_SENDDLG_CREATE		(WM_APP + 122)
+#define WM_SENDDLG_EXIT			(WM_APP + 123)
+#define WM_SENDDLG_HIDE			(WM_APP + 124)
+#define WM_SENDDLG_RESIZE		(WM_APP + 125)
+#define WM_SENDDLG_FONTCHANGED	(WM_APP + 126)
+#define WM_UDPEVENT				(WM_APP + 130)
+#define WM_TCPEVENT				(WM_APP + 131)
+#define WM_REFRESH_HOST			(WM_APP + 140)
+#define WM_MSGDLG_EXIT			(WM_APP + 150)
+#define WM_DELMISCDLG			(WM_APP + 151)
+#define WM_HIDE_CHILDWIN		(WM_APP + 160)
+#define WM_EDIT_DBLCLK			(WM_APP + 170)
+#define WM_DELAYSETTEXT			(WM_APP + 180)
+#define WM_DELAY_BITMAP			(WM_APP + 182)
+#define WM_DELAY_PASTE			(WM_APP + 183)
+#define WM_PASTE_REV			(WM_APP + 184)
+#define WM_PASTE_IMAGE			(WM_APP + 185)
+#define WM_PASTE_TEXT			(WM_APP + 186)
+#define WM_HISTDLG_OPEN			(WM_APP + 190)
+#define WM_HISTDLG_HIDE			(WM_APP + 191)
+#define WM_HISTDLG_NOTIFY		(WM_APP + 192)
+#define WM_FORCE_TERMINATE		(WM_APP + 193)
+#define WM_FINDDLG_DELAY		(WM_APP + 194)
+#define WM_IPMSG_IMECTRL		(WM_APP + 200)
+#define WM_IPMSG_BRNOTIFY		(WM_APP + 201)
 
 typedef long	Time_t;		// size of time_t is 64bit in VS2005 or later
 
@@ -405,6 +406,14 @@ public:
 	int		EncryptNum;
 	int		ClipMode;
 	int		ClipMax;
+	int		CaptureDelay;
+	int		CaptureDelayEx;
+	BOOL	CaptureMinimize;
+	BOOL	CaptureClip;
+	BOOL	CaptureSave;
+	int		OpenMsgTime;
+	int		RecvMsgTime;
+	BOOL	BalloonNoInfo;
 
 	int		ViewMax;
 	int		TransMax;
@@ -630,7 +639,7 @@ public:
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvNcDestroy(void);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
-	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 class TSortDlg : public TDlg {
@@ -661,7 +670,7 @@ public:
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvDestroy();
-	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual int		FilterHost();
 };
 
@@ -695,6 +704,8 @@ protected:
 	BOOL					dblClicked;
 	TRichEditOleCallback	*cb;
 	IRichEditOle			*richOle;
+	DWORD					selStart;
+	DWORD					selEnd;
 
 public:
 	TEditSub(Cfg *_cfg, TWin *_parent);
@@ -721,7 +732,7 @@ public:
 
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl);
 	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
-	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual BOOL	EventFocus(UINT uMsg, HWND hFocusWnd);
 	virtual BOOL	EvContextMenu(HWND childWnd, POINTS pos);
 };
@@ -884,7 +895,6 @@ BOOL FreeDecodeShareMsg(ShareInfo *info);
 BOOL FreeDecodeShareMsgFile(ShareInfo *info, int index);
 BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info);
 
-
 struct AcceptFileInfo {
 	FileInfo	*fileInfo;
 	Host		*host;
@@ -972,7 +982,7 @@ public:
 	virtual int		Exec(void);
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
-	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void	EndDialog(int) {}	// –³Ž‹‚³‚¹‚é
 };
 
@@ -1004,6 +1014,49 @@ static void StrictLogFile(char *path);
 
 enum {	STI_NONE=0, STI_ENC, STI_SIGN, STI_FILE, STI_CLIP, STI_ENC_FILE, STI_ENC_CLIP,
 		STI_SIGN_FILE, STI_SIGN_CLIP, STI_MAX };
+
+
+#define IPMSG_CAPTURE_CLASS "ipmsg_capture"
+
+#define IS_SAME_PTS(pts1, pts2) (pts1.x == pts2.x && pts1.y == pts2.y)
+
+class TImageWin : public TWin {
+protected:
+	HDC			hSelfDc;
+	HBITMAP		hSelfBmp;
+	POINTS		area_pts[2];
+	POINTS		last_pts;
+	Cfg			*cfg;
+	TSendDlg	*parentWnd;
+	enum { INIT, START, END } status;
+
+public:
+	TImageWin(Cfg *_cfg, TSendDlg *_parent);
+	virtual ~TImageWin();
+	virtual BOOL	Create();
+	virtual BOOL	EvCreate(LPARAM lParam);
+	virtual BOOL	EvNcDestroy();
+	virtual BOOL	EvChar(WCHAR code, LPARAM keyData);
+	virtual BOOL	EvPaint();
+	virtual BOOL	EvMouseMove(UINT fwKeys, POINTS pos);
+	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
+	virtual BOOL	EvTimer(WPARAM _timerID, TIMERPROC proc);
+	virtual BOOL	DrawLines(POINTS *pts=NULL);
+	virtual BOOL	CutImage(BOOL use_clip=TRUE, BOOL with_save=FALSE);
+};
+
+class TAreaConfirmDlg : public TDlg {
+protected:
+	TImageWin	*parentWin;
+	BOOL		*useClip;
+	BOOL		*withSave;
+
+public:
+	TAreaConfirmDlg(BOOL *_useClip, BOOL *_withSave, TImageWin *_parentWin);
+	virtual BOOL	EvCreate(LPARAM lParam);
+	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
+};
+
 
 class TSendDlg : public TListDlg {
 protected:
@@ -1061,6 +1114,8 @@ protected:
 	TListHeader		hostListHeader;
 	TListViewEx		hostListView;
 	TSeparateSub	separateSub;
+	TImageWin		imageWin;	// Image Area Selection for capture
+//	HMENU			hCurMenu;
 
 	void	SetFont(void);
 	void	SetSize(void);
@@ -1101,6 +1156,9 @@ public:
 	BOOL	SendPubKeyNotify(HostSub *hostSub, BYTE *pubkey, int len, int e, int capa);
 	BOOL	FindHost(char *findStr);
 	int		FilterHost(char *findStr);
+	void	InsertBitmapByHandle(HBITMAP hBitmap, int pos=-1) {
+				editSub.InsertBitmapByHandle(hBitmap, pos);
+			}
 
 	virtual BOOL	PreProcMsg(MSG *msg);
 	virtual BOOL	EvCreate(LPARAM lParam);
@@ -1118,10 +1176,11 @@ public:
 	virtual BOOL	EvNotify(UINT ctlID, NMHDR *pNmHdr);
 	virtual BOOL	EvDropFiles(HDROP hDrop);
 	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
+	virtual BOOL	EventMenuLoop(UINT uMsg, BOOL fIsTrackPopupMenu);
 	virtual BOOL	EventInitMenu(UINT uMsg, HMENU hMenu, UINT uPos, BOOL fSystemMenu);
 	virtual BOOL	EventCtlColor(UINT uMsg, HDC hDcCtl, HWND hWndCtl, HBRUSH *result);
-	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 	virtual void	Show(int mode = SW_SHOWDEFAULT);
 };
 
@@ -1244,7 +1303,7 @@ public:
 	virtual BOOL	EvTimer(WPARAM timerID, TIMERPROC proc);
 	virtual BOOL	EvContextMenu(HWND childWnd, POINTS pos);
 	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
-	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual BOOL	EventInitMenu(UINT uMsg, HMENU hMenu, UINT uPos, BOOL fSystemMenu);
 	virtual BOOL	EventCtlColor(UINT uMsg, HDC hDcCtl, HWND hWndCtl, HBRUSH *result);
 	virtual BOOL	EvNotify(UINT ctlID, NMHDR *pNmHdr);
@@ -1264,7 +1323,7 @@ protected:
 	Cfg		*cfg;
 	THosts	*hosts;
 	TList	tmpUrlList;	// for sheet6
-	int		curIdx;		// for sheet6 
+	UrlObj	*curUrl;	// for sheet6 
 
 public:
 	TSetupSheet() { cfg = NULL; hosts = NULL; }
@@ -1277,7 +1336,7 @@ public:
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl);
 };
 
-#define MAX_SETUP_SHEET	6
+#define MAX_SETUP_SHEET	7
 class TSetupDlg : public TDlg {
 	Cfg			*cfg;
 	THosts		*hosts;
@@ -1590,6 +1649,7 @@ public:
 	virtual BOOL	EvHotKey(int hotKey);
 	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
 	virtual BOOL	EventInitMenu(UINT uMsg, HMENU hMenu, UINT uPos, BOOL fSystemMenu);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	static	HICON	GetIPMsgIcon(void);
@@ -1611,13 +1671,16 @@ protected:
 	TWin			*parent;
 	LPOFNHOOKPROC	hook;
 	Mode			mode;
+	DWORD			flags;
 
 public:
-	OpenFileDlg(TWin *_parent, Mode _mode=OPEN, LPOFNHOOKPROC _hook=NULL) {
-		parent = _parent; hook = _hook; mode = _mode;
+	OpenFileDlg(TWin *_parent, Mode _mode=OPEN, LPOFNHOOKPROC _hook=NULL, DWORD _flags=0) {
+		parent = _parent; hook = _hook; mode = _mode; flags = _flags;
 	}
-	BOOL Exec(char *target, char *title=NULL, char *filter=NULL, char *defaultDir=NULL);
-	BOOL Exec(UINT editCtl, char *title=NULL, char *filter=NULL, char *defaultDir=NULL);
+	BOOL Exec(char *target, char *title=NULL, char *filter=NULL, char *defaultDir=NULL,
+				char *defaultExt=NULL);
+	BOOL Exec(UINT editCtl, char *title=NULL, char *filter=NULL, char *defaultDir=NULL,
+				char *defaultExt=NULL);
 };
 
 #define		KEY_REBUILD		0x0001
@@ -1684,12 +1747,8 @@ BOOL VerifyHash(const BYTE *data, int len, const char *orgHash);
 
 BITMAPINFO *BmpHandleToInfo(HBITMAP hBmp, int *size);
 HBITMAP BmpInfoToHandle(BITMAPINFO *bmi, int size);
-HANDLE PngByteToBmpHandle(BYTE *data, int size);
-BYTE *BmpHandleToPngByte(HBITMAP hBmp, int *size);
-BYTE *PngStructToByte(png_struct *png, int *size);
-png_struct *PngByteToStruct(BYTE *data, int size);
-BITMAPINFO *PngToBmpInfo(png_struct *png, int *size);
-png_struct *BmpInfoToPng(BITMAPINFO *bmi);
+HBITMAP PngByteToBmpHandle(VBuf *vbuf);
+VBuf *BmpHandleToPngByte(HBITMAP hBmp);
 int GetColorDepth();
 
 BOOL PrepareBmp(int cx, int cy, int *_aligned_line_size, VBuf *vbuf);

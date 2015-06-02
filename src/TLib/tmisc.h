@@ -181,8 +181,8 @@ BOOL InstallExceptionFilter(char *title, char *info);
 void Debug(char *fmt,...);
 void DebugW(WCHAR *fmt,...);
 void DebugU8(char *fmt,...);
-const char *FmtStr(char *fmt,...);
-const WCHAR *FmtStrW(WCHAR *fmt,...);
+const char *Fmt(char *fmt,...);
+const WCHAR *FmtW(WCHAR *fmt,...);
 
 BOOL SymLinkV(void *src, void *dest, void *arg=L"");
 BOOL ReadLinkV(void *src, void *dest, void *arg=NULL);
