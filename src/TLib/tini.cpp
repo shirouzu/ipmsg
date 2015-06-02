@@ -1,10 +1,10 @@
 ﻿static char *tini_id = 
-	"@(#)Copyright (C) 1996-2010 H.Shirouzu		tini.cpp	Ver0.97";
+	"@(#)Copyright (C) 1996-2014 H.Shirouzu		tini.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Registry Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2010-05-09(Sun)
+	Update					: 2014-04-14(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -171,7 +171,7 @@ void TInifile::Init(const char *_ini_file)
 
 void TInifile::UnInit()
 {
-	for (TIniSection *sec; (sec = (TIniSection *)TopObj()); ) {
+	for (TIniSection *sec; (sec = TopObj()); ) {
 		DelObj(sec);
 		delete sec;
 	}
@@ -186,8 +186,8 @@ BOOL TInifile::WriteIni()
 	FILE	*fp = fopen(ini_file, "w");
 
 	if (fp) {
-		for (TIniSection *sec = (TIniSection *)TopObj(); sec; sec = (TIniSection *)NextObj(sec)) {
-			TIniKey *key = (TIniKey *)sec->TopObj();
+		for (TIniSection *sec = TopObj(); sec; sec = NextObj(sec)) {
+			TIniKey *key = sec->TopObj();
 			if (key) {
 				if (sec->Name()) {
 					if (fprintf(fp, "[%s]\n", sec->Name()) < 0) goto END;
@@ -199,7 +199,7 @@ BOOL TInifile::WriteIni()
 					else {
 						if (fprintf(fp, "%s", key->Val()) < 0) goto END;
 					}
-					key = (TIniKey *)sec->NextObj(key);
+					key = sec->NextObj(key);
 				}
 			}
 		}
@@ -231,7 +231,9 @@ BOOL TInifile::EndUpdate()
 
 TIniSection *TInifile::SearchSection(const char *section)
 {
-	for (TIniSection *sec = root_sec; sec; sec = (TIniSection *)NextObj(sec)) {
+	if (!section || !*section) return root_sec;
+
+	for (TIniSection *sec = root_sec; sec; sec = NextObj(sec)) {
 		if (sec->Name() && strcmpi(sec->Name(), section) == 0) return sec;
 	}
 	return	NULL;
@@ -249,6 +251,12 @@ void TInifile::SetSection(const char *section)
 		cur_sec->Set(section);
 		AddObj(cur_sec);
 	}
+}
+
+BOOL TInifile::CurSection(char *section)
+{
+	strcpy(section, cur_sec && cur_sec->Name() ? cur_sec->Name() : "");
+	return	TRUE;
 }
 
 BOOL TInifile::DelSection(const char *section)
@@ -274,10 +282,17 @@ BOOL TInifile::SetStr(const char *key, const char *val)
 	return	cur_sec ? cur_sec->AddKey(key, val) : FALSE;
 }
 
-DWORD TInifile::GetStr(const char *key_name, char *val, int max_size, const char *default_val)
+DWORD TInifile::GetStr(const char *key_name, char *val, int max_size, const char *default_val, BOOL *use_default)
 {
 	TIniKey *key = cur_sec ? cur_sec->SearchKey(key_name) : NULL;
+	if (use_default) *use_default = !key;
 	return	sprintf(val, "%.*s", max_size, key ? key->Val() : default_val);
+}
+
+const char *TInifile::GetRawVal(const char *key_name)
+{
+	TIniKey *key = cur_sec ? cur_sec->SearchKey(key_name) : NULL;
+	return	key ? key->Val() : NULL;
 }
 
 BOOL TInifile::SetInt(const char *key, int val)
@@ -292,5 +307,12 @@ int TInifile::GetInt(const char *key, int default_val)
 	char	buf[100];
 	if (GetStr(key, buf, sizeof(buf), "") <= 0) return default_val;
 	return	atoi(buf);
+}
+
+int64 TInifile::GetInt64(const char *key, int64 default_val)
+{
+	char	buf[100];
+	if (GetStr(key, buf, sizeof(buf), "") <= 0) return default_val;
+	return	_atoi64(buf);
 }
 

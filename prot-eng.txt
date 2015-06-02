@@ -2,12 +2,13 @@ Original ipmsg protocol specification is written in Japanese.
 This document was translated by Mr.Kanazawa.
 This document is not verified yet. (too old...)
 
-----------------------------------------------------------------------
-        IP Messenger communication protocol (Draft-9)    1996/02/21
-                                                Modified 2003/01/14
+---------------------------------------------------------------------
+       IP Messenger communication protocol (Draft-10)     1996/02/21
+                                                 Modified 2014/11/08
 
-                                                       H.Shirouzu
-----------------------------------------------------------------------
+                                                          H.Shirouzu
+                                                    http://ipmsg.org
+---------------------------------------------------------------------
 
 About IP Messenger
 	This is a Send/Receive message service using the TCP/UDP Port.
@@ -69,14 +70,18 @@ Function description
 	IPMSG_BROADCASTOPT	Broadcast message
 	IPMSG_MULTICASTOPT	Multi-cast(Multiple casts selection)
 	IPMSG_NEWMUTIOPT	New version multi-cast(reserved)
-	IPMSG_AUTORETOPT	Automatic response(Ping-pong protection)
 	IPMSG_NOLOGOPT		No log files
 	IPMSG_NOADDLISTOPT	Notice to the members outside of BR_ENTRY
+	IPMSG_AUTORETOPT	Automatic response(Ping-pong protection)
 
 	IPMSG_FILEATTACHOPT	File attachment
 	IPMSG_ENCRYPTOPT	Code
+	IPMSG_ENCEXTMSGOPT	Encrypt file attach information
 
-	IPMSG_NOPOPUPOPT	(No longer valid)
+	IPMSG_CAPUTF8OPT	UTF-8 Capability
+	IPMSG_UTF8OPT		Using UTF-8
+	IPMSG_CLIPBOARDOPT	Clipboard image Capability
+
 	IPMSG_RETRYOPT		Re-send flag(Use when acquiring HOSTLIST)
 
      3) Extended code flag (hex format combination)
@@ -88,8 +93,10 @@ Function description
 	IPMSG_RC2_128
 	IPMSG_RC2_256
 	IPMSG_BLOWFISH_128
-	IPMSG_BLOWFISH_256
-	IPMSG_SIGN_MD5
+	IPMSG_AES_256
+	IPMSG_PACKETNO_IV	Using PacketNo as AES Initial Vector
+	IPMSG_ENCODE_BASE64
+	IPMSG_SIGN_SHA1
 
      4) Extended files for attachment (fileattr low 8 bits)
 
@@ -130,7 +137,6 @@ Function description
 
 	IPMSG_FILE_ACL
 	IPMSG_FILE_ALIASFNAME
-	IPMSG_FILE_UNICODEFNAME
 
 
   2.Command format(Use all character strings)
@@ -221,7 +227,7 @@ Function description
 	part of extension  
 
 	In addition, In IPMSG_ANSPUBKEY, public key written as EE-NNNNNN
-	E=Exponent, N=method)devide by ':'. and Input the Fdelimiter '-' 
+	E=Exponent, N=Modulus)devide by ':'. and Input the delimiter '-' 
 	between E and N.
 
 	This sequence can be skipped after the 2nd Send/Receive process by 
@@ -244,6 +250,39 @@ Function description
 
 	Also, The Packet related to Entry manifestation the capability of 
 	ecryption support using  IPMSG_ENCRYPTOPT
+
+	(Message with Electric Signature) IPMSG_SIGN_SHA1 is used in
+	IPMSG_SENDMSG. format is "encoded-message:RSA-sign(SHA-1(message))"
+
+	(Username extension with pubkey-fingerprint)
+	Support IPMSG_RSA_2048 and IPMSG_SIGN_SHA1, username format must use
+	with pubkey-fingerprint. This extension prevent to impersonation and
+	uniqueness.
+	To generate finger print, it requires in the following 5 steps.
+	   1. generate SHA-1(RSA-pubkey-Modulus) 160bit digeset.
+	   2. separate 3parts of 64bit.
+	       |        160bit             |
+	       |   64bit  |   64bit  |32bit| + |32bit 0 value padding|
+	       |   64bit  |   64bit  |   64bit  |
+	   3. calcurate 64bit value of XOR 3 parts of 64bit. (finger print value)
+	   4. encode 16 characters of hex.
+	   5. add to username ... user-<64bit finger print as hex string>
+
+	Recommend to check the signature from using this extension.
+
+	(Inline image extension)
+	inline image using file attach mechanism. but it requires to use
+	IPMSG_FILE_CLIPBOARD option. it normaly PNG file.
+	the insert position of a image, using IPMSG_FILE_CLIPBOARDPOS=pos
+	that is extend-attr=val (see Extension with file attachment).
+	If inserting multiple images, position value must add the number
+	of previous images.
+	 ex) message:  "abc[image1]cdef[image2]g..."
+	     position:  012   3    4567   8    9...
+
+	 To indicate a capability of inline image, use IPMSG_CLIPBOARDOPT in
+	 IPMSG_BR_ENTRY/IPMSG_ANS_ENTRY/IPMSG_BR_ABSENCE command.
+
 
      4) Extension with file attachment(Available from version-9)
 
@@ -293,7 +332,20 @@ Function description
 	Add an IPMSG_FILEATTACHOPT flag for an Entry packet to support the 
 	attachment file.
 
-     5) Other commands
+	 5) UTF-8 extension
+
+	 To indicate a capability of UTF-8 message, use IPMSG_CAPUTF8OPT in
+	 IPMSG_BR_ENTRY/IPMSG_ANS_ENTRY/IPMSG_BR_ABSENCE command.
+	 Using UTF-8 message, use IPMSG_UTF8OPT in IPMSG_SENDMSG or etc.
+	 But IPMSG_BR_ENTRY/IPMSG_BR_EXIT/IPMSG_BR_ABSENCE must not use
+	 IPMSG_UTF8OPT, for backword compatibility (old clients).
+	 So, add those entry after \0\n, (if belonging no group, using \0\0\n)
+	   UN: username(utf-8)\n
+	   HN: hostname(utf-8)\n
+	   NN: nickname(utf-8)\n
+	   GN: groupname(utf-8)\n
+
+     6) Other commands
 
 	When acquiring different versions, send an IPMSG_GETINFO command.
 	Receiving side sends the version information character string to
@@ -303,7 +355,7 @@ Function description
 	Receiving side sends an IPMSG_SENDABSENCEINFO back if the status is absence mode.
 	If the status is not absence mode, a character string "Not absence mode" will be sent back.
 
-     6) Confirmation/Retry
+     7) Confirmation/Retry
 
 	If a confirmation packet for IPMSG_SENDMSG or IPMSG_RECVMSG is not delivered
 	within a specified time, then it will be sent again. 
@@ -327,9 +379,9 @@ Function description
 	escape sequence. 
 	
 
-     3) Kanji codes
+     3) Character codes
 
-	CP932
+	If using IPMSG_UTF8OPT, using UTF-8, otherwise, using CP932.
 
 
   5. Contact

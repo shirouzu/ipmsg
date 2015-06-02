@@ -101,7 +101,7 @@ BOOL TPluginDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	{
 	case IDOK:
 	case IDCANCEL:
-		EndDialog(TRUE);
+		EndDialog(wID);
 		return	TRUE;
 	}
 	return	FALSE;

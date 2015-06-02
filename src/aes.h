@@ -9,6 +9,7 @@
 typedef unsigned char	u8;	
 typedef unsigned short	u16;	
 typedef unsigned int	u32;
+typedef unsigned _int64 u64;
 
 #ifndef ALIGN_SIZE
 #define ALIGN_SIZE(size, align_size) ((((size) + (align_size) -1) / (align_size)) * (align_size))
@@ -22,22 +23,25 @@ typedef struct {
 
 class AES {
 public:
-	enum CypherMode { ECB, CBC };
-	enum PaddingMode { NONE, PKCS5 };
+	enum PaddingMode { NOPAD, PKCS5 };
 
 private:
 	aes_state	as;
-	CypherMode	cm;
-	PaddingMode	pm;
-	u8			iv[AES_BLOCK_SIZE];
+	u8			iv[AES_BLOCK_SIZE];		// nonce in CTR mode
+	u8			xor[AES_BLOCK_SIZE];	// used CTR mode only
+	u64			offset;					// used CTR mode only
 
 public:
-	AES(void) {}
-	AES(u8 *key, int key_len, PaddingMode _pm=PKCS5, CypherMode _cm=CBC);
-	void Init(u8 *key, int key_len, PaddingMode _pm=PKCS5, CypherMode _cm=CBC);
-	int Encrypt(u8 *in, u8 *out, int size, u8 *_iv=NULL);
-	int Decrypt(u8 *in, u8 *out, int size, u8 *_iv=NULL);
-	int GetLength(int len);
+	AES(void) { as.rounds = 0; }
+	AES(const u8 *key, int key_len, const u8 *_iv=NULL);
+	void Init(const u8 *key, int key_len, const u8 *_iv=NULL);
+	void InitIv(const u8 *_iv=NULL);
+	int EncryptCBC(const u8 *in, u8 *out, int size, PaddingMode _pm=PKCS5);
+	int EncryptCTR(const u8 *in, u8 *out, int size);
+	int DecryptCBC(const u8 *in, u8 *out, int size, PaddingMode _pm=PKCS5);
+	int DecryptCTR(const u8 *in, u8 *out, int size);
+	int GetCBCLength(int len, PaddingMode pm);
+	bool IsKeySet() { return as.rounds != 0; }
 };
 
 #endif

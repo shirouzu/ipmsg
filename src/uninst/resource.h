@@ -1,5 +1,5 @@
-﻿//{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+//{{NO_DEPENDENCIES}}
+// Microsoft Visual C++ generated include file.
 // Used by uninst.rc
 //
 #define IDS_UNINSTCOMPLETE              12

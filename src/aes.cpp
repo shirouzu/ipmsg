@@ -732,7 +732,7 @@ static const u32 rcon[] = {
  */
 
 static int rijndaelKeySetupEnc(u32 rk[/*4*(Nr + 1)*/], const u8 cipherKey[], int keyBits) {
-   	int i = 0;
+	int i = 0;
 	u32 temp;
 
 	rk[0] = GETU32(cipherKey     );
@@ -873,50 +873,50 @@ static void rijndaelEncrypt(u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 pt[16], u8 
 	s3 = GETU32(pt + 12) ^ rk[3];
 #ifdef FULL_UNROLL
 	/* round 1: */
-   	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[ 4];
-   	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[ 5];
-   	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[ 6];
-   	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[ 7];
-   	/* round 2: */
-   	s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[ 8];
-   	s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[ 9];
-   	s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[10];
-   	s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[11];
+	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[ 4];
+	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[ 5];
+	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[ 6];
+	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[ 7];
+	/* round 2: */
+	s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[ 8];
+	s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[ 9];
+	s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[10];
+	s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[11];
 	/* round 3: */
-   	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[12];
-   	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[13];
-   	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[14];
-   	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[15];
-   	/* round 4: */
-   	s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[16];
-   	s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[17];
-   	s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[18];
-   	s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[19];
+	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[12];
+	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[13];
+	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[14];
+	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[15];
+	/* round 4: */
+	s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[16];
+	s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[17];
+	s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[18];
+	s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[19];
 	/* round 5: */
-   	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[20];
-   	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[21];
-   	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[22];
-   	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[23];
-   	/* round 6: */
-   	s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[24];
-   	s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[25];
-   	s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[26];
-   	s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[27];
+	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[20];
+	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[21];
+	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[22];
+	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[23];
+	/* round 6: */
+	s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[24];
+	s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[25];
+	s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[26];
+	s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[27];
 	/* round 7: */
-   	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[28];
-   	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[29];
-   	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[30];
-   	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[31];
-   	/* round 8: */
-   	s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[32];
-   	s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[33];
-   	s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[34];
-   	s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[35];
+	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[28];
+	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[29];
+	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[30];
+	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[31];
+	/* round 8: */
+	s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[32];
+	s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[33];
+	s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[34];
+	s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[35];
 	/* round 9: */
-   	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[36];
-   	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[37];
-   	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[38];
-   	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[39];
+	t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[36];
+	t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[37];
+	t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[38];
+	t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[39];
 	if (Nr > 10) {
 		/* round 10: */
 		s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[40];
@@ -1219,7 +1219,7 @@ static void rijndaelDecrypt(u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 ct[16], u8 
 	PUTU32(pt + 12, s3);
 }
 
-static void block_init(aes_state *state, unsigned char *key, int keylen)
+static void block_init(aes_state *state, const unsigned char *key, int keylen)
 {
 	int Nr = 0;
 
@@ -1236,18 +1236,18 @@ static void block_init(aes_state *state, unsigned char *key, int keylen)
 	rijndaelKeySetupDec(state->dk, key, keylen*8);
 }
 
-static void block_encrypt(aes_state *self, u8 *in, u8 *out)
+static void block_encrypt(aes_state *self, const u8 *in, u8 *out)
 {
 	rijndaelEncrypt(self->ek, self->rounds, in, out);
 }
 
-static void block_decrypt(aes_state *self, u8 *in, u8 *out)
+static void block_decrypt(aes_state *self, const u8 *in, u8 *out)
 {
 	rijndaelDecrypt(self->dk, self->rounds, in, out);
 }
 
 /* append by H.Shirouzu */
-static void block_xor(u8 *in1, u8 *in2, u8 *out)
+static void block_xor(const u8 *in1, const u8 *in2, u8 *out)
 {
 	u32 *i1 = (u32 *)in1;
 	u32 *i2 = (u32 *)in2;
@@ -1259,87 +1259,147 @@ static void block_xor(u8 *in1, u8 *in2, u8 *out)
 	*o++ = *i1++ ^ *i2++;
 }
 
-AES::AES(u8 *key, int key_len, PaddingMode _pm, CypherMode _cm)
+static void byte_xor(const u8 *in1, const u8 *in2, u8 *out, int len)
 {
-	Init(key, key_len, _pm, _cm);
+	while (len-- > 0) {
+		*out++ = *in1++ ^ *in2++;
+	}
 }
 
-void AES::Init(u8 *key, int key_len, PaddingMode _pm, CypherMode _cm)
+AES::AES(const u8 *key, int key_len, const u8 *_iv)
+{
+	as.rounds = 0;
+	Init(key, key_len, _iv);
+}
+
+void AES::Init(const u8 *key, int key_len, const u8 *_iv)
 {
 	block_init(&as, key, key_len);
-	pm = _pm;
-	cm = _cm;
+
+	InitIv(_iv);
 }
 
-int AES::Encrypt(u8 *in, u8 *out, int size, u8 *_iv)
+void AES::InitIv(const u8 *_iv)
 {
-	int		i;
-	u8		buf[AES_BLOCK_SIZE];
-	u8		*cur_iv;
-	int		len = GetLength(size);
-
 	if (_iv) memcpy(iv, _iv, sizeof(iv));
-	else     memset(iv, 0, sizeof(iv));
-
-	if (cm == AES::CBC) {
-		int	align_len = len - (pm == AES::PKCS5 ? AES_BLOCK_SIZE : 0);
-		cur_iv = iv;
-		for (i=0; i < align_len; i += AES_BLOCK_SIZE) {
-			block_xor(in, cur_iv, buf);
-			rijndaelEncrypt(as.ek, as.rounds, buf, out);
-			cur_iv = out;
-			in  += AES_BLOCK_SIZE;
-			out += AES_BLOCK_SIZE;
-		}
-		if (pm == AES::PKCS5) {
-			int	val = len - size;
-			memset(buf + AES_BLOCK_SIZE - val, val, val);
-			memcpy(buf, in, size - align_len);
-			block_xor(buf, cur_iv, buf);
-			rijndaelEncrypt(as.ek, as.rounds, buf, out);
-		}
-	}
-	return	len;
+	else	 memset(iv, 0, sizeof(iv));
+	offset = 0;
 }
 
-int AES::Decrypt(u8 *in, u8 *out, int size, u8 *_iv)
+int AES::EncryptCBC(const u8 *in, u8 *out, int size, PaddingMode pm)
 {
-	int		i;
-	u8		buf[AES_BLOCK_SIZE];
-	u8		next_iv[AES_BLOCK_SIZE];
-	u8		*out_org = out;
-	int		len = ALIGN_SIZE(size, AES_BLOCK_SIZE);
+	u8			buf[AES_BLOCK_SIZE];
+	int			enc_len   = GetCBCLength(size, pm);
+	int			align_len = enc_len - ((pm == AES::PKCS5) ? AES_BLOCK_SIZE : 0);
+	const u8	*end      = in + align_len;
+	u8			*cur_iv   = iv;
 
-	if (_iv) memcpy(iv, _iv, sizeof(iv));
-	else     memset(iv, 0, sizeof(iv));
-
-	if (cm == AES::CBC) {
-		int	align_len = len - (pm == AES::PKCS5 ? AES_BLOCK_SIZE : 0);
-		for (i=0; i < align_len; i += AES_BLOCK_SIZE) {
-			memcpy(next_iv, in, AES_BLOCK_SIZE);
-			rijndaelDecrypt(as.dk, as.rounds, in, buf);
-			block_xor(buf, iv, out);
-			memcpy(iv, next_iv, AES_BLOCK_SIZE);
-			in  += AES_BLOCK_SIZE;
-			out += AES_BLOCK_SIZE;
-		}
-		if (pm == AES::PKCS5) {
-			rijndaelDecrypt(as.dk, as.rounds, in, buf);
-			block_xor(buf, iv, buf);
-			int	remain = AES_BLOCK_SIZE - buf[AES_BLOCK_SIZE-1];
-			if (remain > 0 && remain < AES_BLOCK_SIZE) {
-				memcpy(out, buf, remain);
-				align_len += remain;
-			}
-		}
-		len = align_len;
+	while (in < end) {
+		block_xor(in, cur_iv, buf);
+		rijndaelEncrypt(as.ek, as.rounds, buf, out);
+		cur_iv = out;
+		in  += AES_BLOCK_SIZE;
+		out += AES_BLOCK_SIZE;
 	}
-	return	len;
+	if (pm == AES::PKCS5) {
+		int	val = enc_len - size;
+		memset(buf + AES_BLOCK_SIZE - val, val, val);
+		memcpy(buf, in, size - align_len);
+		block_xor(buf, cur_iv, buf);
+		rijndaelEncrypt(as.ek, as.rounds, buf, out);
+	}
+	else {	// save iv for next call
+		if (iv != cur_iv) memcpy(iv, cur_iv, AES_BLOCK_SIZE);
+	}
+	return	enc_len;
 }
 
-int AES::GetLength(int size)
+int AES::EncryptCTR(const u8 *in, u8 *out, int size)
 {
-	if (pm == AES::PKCS5) size++;
+	int		remain     = size;
+	int		mod_offset = (int)(offset % AES_BLOCK_SIZE);
+
+	if (mod_offset) {
+		int	mod_size  = AES_BLOCK_SIZE - mod_offset;
+		if (mod_size > remain) mod_size = remain;
+		byte_xor(xor + mod_offset, in, out, mod_size);
+		remain -= mod_size;
+		in     += mod_size;
+		out    += mod_size;
+	}
+	if (remain > 0) {
+		const u8	*end = in + remain;
+		while (in < end) {
+			rijndaelEncrypt(as.ek, as.rounds, iv, xor);
+			for (int i=16; i >= 0; i--) if (++iv[i]) break; // countup nonce
+
+			if (remain < AES_BLOCK_SIZE) break;
+			block_xor(in, xor, out);
+			in     += AES_BLOCK_SIZE;
+			out    += AES_BLOCK_SIZE;
+			remain -= AES_BLOCK_SIZE;
+		}
+		if (remain) byte_xor(in, xor, out, remain);
+	}
+	offset += size;
+	return	size;
+}
+
+int AES::DecryptCBC(const u8 *in, u8 *out, int size, PaddingMode pm)
+{
+	u8			buf[AES_BLOCK_SIZE];
+	u8			next_iv[AES_BLOCK_SIZE];
+	const u8	*end = in + size;
+
+	while (in < end) {
+		memcpy(next_iv, in, AES_BLOCK_SIZE);
+		rijndaelDecrypt(as.dk, as.rounds, in, buf);
+		block_xor(buf, iv, out);
+		memcpy(iv, next_iv, AES_BLOCK_SIZE);
+		in  += AES_BLOCK_SIZE;
+		out += AES_BLOCK_SIZE;
+	}
+	if (pm == AES::PKCS5) {
+		u32	val = out[-1];
+		if (val >= 1 && val <= AES_BLOCK_SIZE) size -= val;
+	}
+	return	size;
+}
+
+int AES::DecryptCTR(const u8 *in, u8 *out, int size)
+{
+	int		remain     = size;
+	int		mod_offset = (int)(offset % AES_BLOCK_SIZE);
+
+	if (mod_offset) {
+		int	mod_size  = AES_BLOCK_SIZE - mod_offset;
+		if (mod_size > remain) mod_size = remain;
+		byte_xor(xor + mod_offset, in, out, mod_size);
+		remain -= mod_size;
+		in     += mod_size;
+		out    += mod_size;
+	}
+	if (remain > 0) {
+		const u8	*end = in + remain;
+		while (in < end) {
+			rijndaelEncrypt(as.ek, as.rounds, iv, xor);
+			for (int i=16; i >= 0; i--) if (++iv[i]) break; // countup nonce
+
+			if (remain < AES_BLOCK_SIZE) break;
+			block_xor(in, xor, out);
+			in     += AES_BLOCK_SIZE;
+			out    += AES_BLOCK_SIZE;
+			remain -= AES_BLOCK_SIZE;
+		}
+		if (remain) byte_xor(in, xor, out, remain);
+	}
+	offset += size;
+	return	size;
+}
+
+int AES::GetCBCLength(int size, PaddingMode pm)
+{
+	if (pm == PKCS5) size++;
 	return	ALIGN_SIZE(size, AES_BLOCK_SIZE);
 }
 

@@ -1,17 +1,16 @@
 ﻿static char *cfg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   cfg.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   cfg.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration
 	Create					: 1996-09-27(Sat)
-	Update					: 2012-04-02(Mon)
+	Update					: 2015-05-03(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
-#include <stdio.h>
-#include "resource.h"
 #include "ipmsg.h"
+#include "resource.h"
 #include "blowfish.h"
 
 #define IPMSG_DEFAULT_LISTGETMSEC	3000
@@ -25,13 +24,13 @@
 #define IPMSG_DEFAULT_UPDATETIME	10
 #define IPMSG_DEFAULT_KEEPHOSTTIME	(3600 * 24 * 180)	// 180日間
 #define IPMSG_DEFAULT_QUOTE			">"
-#define IPMSG_DEFAULT_ENCRYPTNUM	50
 #define IPMSG_DEFAULT_CLIPMODE		(CLIP_ENABLE|CLIP_SAVE)
 #define IPMSG_DEFAULT_CLIPMAX		10
 #define IPMSG_DEFAULT_LRUUSERMAX	10
 #define IPMSG_DEFAULT_OPENMSGTIME	3000
 #define IPMSG_DEFAULT_RECVMSGTIME	10000
-#define IPMSG_DEFAULT_MARKER_THICK	4
+#define IPMSG_DEFAULT_MARKER_THICK	3
+#define IPMSG_DEFAULT_REMOTEGRACE	15 // 15sec
 
 #define IPMSG_DEFAULT_VIEWMAX		(1 * 1024 * 1024)	// 1MB
 #define IPMSG_DEFAULT_TRANSMAX		(128 * 1024)		// 128KB
@@ -53,6 +52,7 @@
 
 #define LCID_KEY			"lcid"
 #define NOBEEP_STR			"NoBeep"
+#define NOTCP_STR			"NoTcp"
 #define LISTGET_STR			"ListGet"
 #define LISTGETMSEC_STR		"ListGetMSec"
 #define RETRYMSEC_STR		"RetryMSec2"
@@ -97,6 +97,7 @@
 #define SHELLEXEC_STR		"ShellExec"
 #define EXTENDENTRY_STR		"ExtendEntry"
 #define EXTENDBROADCAST_STR	"ExtendBroadcast"
+#define MULTICASTMODE_STR	"MulticastMode"
 #define QUOTESTR_STR		"QuoteStr"
 #define CONTROLIME_STR		"ControlIME2"
 #define HOTKEY_STR			"HotKey"
@@ -108,7 +109,14 @@
 #define ALLOWSENDLIST_STR	"AllowSendList"
 #define FILETRANSOPT_STR	"FileTransOpt"
 #define RESOLVEOPT_STR		"ResolveOpt"
-#define ENCRYPTNUM_STR		"EncryptNum2"
+#define LETTERKEY_STR		"LetterKey"
+
+#define REMOTEGRACE_STR		"RemoteGraceSec"
+#define REBOOT_STR			"RemoteReboot"
+#define REBOOTMODE_STR		"RemoteRebootMode"
+#define EXIT_STR			"RemoteExit"
+#define EXITMODE_STR		"RemoteExitMode"
+
 #define CLIPMODE_STR		"ClipMode"
 #define CLIPMAX_STR			"ClipMax"
 #define CAPTUREDELAY_STR	"CaptureDelay"
@@ -122,11 +130,15 @@
 #define TASKBARUI_STR		"TaskbarUI"
 #define MARKERTHICK_STR		"MarkerThick"
 
+#define IPV6MODE_STR		"IPv6Mode"
+#define IPV6MULITCAST		"IPv6MultiCast"
+
 #define VIEWMAX_STR			"ViewMax2"
 #define TRANSMAX_STR		"TransMax"
 #define TCPBUFMAX_STR		"TcpbufMax"
 #define IOBUFMAX_STR		"IoBufMax"
 #define LUMPCHECK_STR		"LumpCheck"
+#define ENCTRANSCHECK_STR	"EncTransCheck"
 
 #define LOGCHECK_STR		"LogCheck"
 #define LOGUTF8_STR			"LogUTF8"
@@ -176,6 +188,7 @@
 #define SENDLISTFONT_STR	"SendListView"
 #define RECVHEADFONT_STR	"RecvHead"
 #define RECVEDITFONT_STR	"RecvEdit"
+#define LOGVIEWFONT_STR		"LogView"
 
 #define HEIGHT_STR			"Height"
 #define WIDTH_STR			"Width"
@@ -220,23 +233,22 @@ char	*DefaultUrlProtocol[] = { "HTTP", "HTTPS", "FTP", "FILE", "TELNET", NULL };
 char	*DefaultAbsence[IPMSG_DEFAULT_ABSENCEMAX];
 char	*DefaultAbsenceHead[IPMSG_DEFAULT_ABSENCEMAX];
 
-Cfg::Cfg(ULONG _nicAddr, int _portNo)
+Cfg::Cfg(Addr _nicAddr, int _portNo)
 {
 	nicAddr = _nicAddr;
 	portNo = _portNo;
+
 	AbsenceHead = NULL;
 	AbsenceStr = NULL;
 	FindStr = NULL;
 
-	int	i;
-
 	int	abs_ids[]  = { IDS_DEFABSENCE1, IDS_DEFABSENCE2, IDS_DEFABSENCE3, IDS_DEFABSENCE4, IDS_DEFABSENCE5, IDS_DEFABSENCE6, IDS_DEFABSENCE7, IDS_DEFABSENCE8, 0 };
-	for (i=0; abs_ids[i] && i < sizeof(DefaultAbsence) / sizeof(char *); i++) {
+	for (int i=0; abs_ids[i] && i < sizeof(DefaultAbsence) / sizeof(char *); i++) {
 		DefaultAbsence[i] = GetLoadStrU8(abs_ids[i]);
 	}
 
 	int	absh_ids[] = { IDS_DEFABSENCEHEAD1, IDS_DEFABSENCEHEAD2, IDS_DEFABSENCEHEAD3, IDS_DEFABSENCEHEAD4, IDS_DEFABSENCEHEAD5, IDS_DEFABSENCEHEAD6, IDS_DEFABSENCEHEAD7, IDS_DEFABSENCEHEAD8, 0 };
-	for (i=0; absh_ids[i] && i < sizeof(DefaultAbsenceHead) / sizeof(char *); i++) {
+	for (int i=0; absh_ids[i] && i < sizeof(DefaultAbsenceHead) / sizeof(char *); i++) {
 		DefaultAbsenceHead[i] = GetLoadStrU8(absh_ids[i]);
 	}
 
@@ -245,16 +257,10 @@ Cfg::Cfg(ULONG _nicAddr, int _portNo)
 	GetFullPathNameU8(buf, MAX_PATH_U8, path, &fname);
 	fname[-1] = 0; // remove '\\'
 	execDir = strdup(path);
-
-	memset(pub, 0, sizeof(pub));
-	memset(priv, 0, sizeof(priv));
 }
 
 Cfg::~Cfg()
 {
-	for (int i=KEY_1024; i < MAX_KEY; i++) {
-		delete [] priv[i].blob;
-	}
 	delete [] FindStr;
 	delete [] AbsenceHead;
 	delete [] AbsenceStr;
@@ -279,8 +285,9 @@ BOOL Cfg::ReadRegistry(void)
 
 	lcid = -1;
 	NoBeep = FALSE;
+	NoTcp = FALSE;
 	ListGet = FALSE;
-	HotKeyCheck = FALSE;
+	HotKeyCheck = TRUE;
 	HotKeyModify = MOD_ALT|MOD_CONTROL;
 	HotKeySend = 'S';
 	HotKeyRecv = 'R';
@@ -306,7 +313,7 @@ BOOL Cfg::ReadRegistry(void)
 	RecvLogonDisp = FALSE;
 	IPAddrCheck = TRUE;
 	RecvIPAddr = TRUE;
-	OneClickPopup = TRUE;
+	OneClickPopup = FALSE;
 	BalloonNotify = TRUE;
 	AbnormalButton = FALSE;
 	DialUpCheck = FALSE;
@@ -320,6 +327,8 @@ BOOL Cfg::ReadRegistry(void)
 	ShellExec = FALSE;
 	ExtendEntry = TRUE;
 	ExtendBroadcast = 1;
+	MulticastMode = 0;
+
 	ControlIME = 1;
 	GridLineCheck = TRUE;
 	PriorityMax = DEFAULT_PRIORITYMAX;
@@ -327,7 +336,14 @@ BOOL Cfg::ReadRegistry(void)
 	AllowSendList = TRUE;
 	fileTransOpt = 0;
 	ResolveOpt = 0;
-	EncryptNum = IPMSG_DEFAULT_ENCRYPTNUM;
+	LetterKey = IsLang(LANG_JAPANESE) ? FALSE : TRUE;
+
+	RemoteGraceSec = IPMSG_DEFAULT_REMOTEGRACE;
+	RemoteRebootMode = 0;
+	*RemoteReboot = 0;
+	RemoteExitMode = 0;
+	*RemoteExit = 0;
+
 	ClipMode = IPMSG_DEFAULT_CLIPMODE;
 	ClipMax = IPMSG_DEFAULT_CLIPMAX;
 	CaptureDelay   = 300;
@@ -340,12 +356,15 @@ BOOL Cfg::ReadRegistry(void)
 	BalloonNoInfo = FALSE;
 	TaskbarUI = /*IsWin7() ? TRUE :*/ FALSE;
 	MarkerThick = IPMSG_DEFAULT_MARKER_THICK;
+	IPv6Mode = IPv6ModeNext = 0;
+	strcpy(IPv6Multicast, IPMSG_DEFAULT_MULTICAST_ADDR6); // in ipmsg.h
 
 	ViewMax = IPMSG_DEFAULT_VIEWMAX;
 	TransMax = IPMSG_DEFAULT_TRANSMAX;
 	TcpbufMax = IPMSG_DEFAULT_TCPBUFMAX;
 	IoBufMax = IPMSG_DEFAULT_IOBUFMAX;
 	LumpCheck = FALSE;
+	EncTransCheck = TRUE;
 	lruUserMax = IPMSG_DEFAULT_LRUUSERMAX;
 
 	// CryptProtectData is available only Win2K/XP
@@ -391,7 +410,7 @@ BOOL Cfg::ReadRegistry(void)
 	HistXdiff		= 0;
 	HistYdiff		= 0;
 
-	LogCheck = FALSE;
+	LogCheck = TRUE;
 	LogUTF8 = TRUE;
 	PasswdLogCheck = FALSE;
 	*SoundFile = 0;
@@ -402,9 +421,11 @@ BOOL Cfg::ReadRegistry(void)
 	memset(&SendListFont, 0, sizeof(SendListFont));
 	memset(&RecvHeadFont, 0, sizeof(RecvHeadFont));
 	memset(&RecvEditFont, 0, sizeof(RecvEditFont));
+	memset(&LogViewFont, 0, sizeof(LogViewFont));
 
 	reg.GetInt(LCID_KEY, &lcid);
 	reg.GetInt(NOBEEP_STR, &NoBeep);
+	reg.GetInt(NOTCP_STR, &NoTcp);
 	reg.GetInt(LISTGET_STR, &ListGet);
 	reg.GetInt(LISTGETMSEC_STR, (int *)&ListGetMSec);
 	reg.GetInt(RETRYMSEC_STR, (int *)&RetryMSec);
@@ -421,7 +442,14 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(ALLOWSENDLIST_STR, &AllowSendList);
 	reg.GetInt(FILETRANSOPT_STR, &fileTransOpt);
 	reg.GetInt(RESOLVEOPT_STR, &ResolveOpt);
-	reg.GetInt(ENCRYPTNUM_STR, &EncryptNum);
+	reg.GetInt(LETTERKEY_STR, &LetterKey);
+
+	reg.GetInt(REMOTEGRACE_STR, &RemoteGraceSec);
+	reg.GetStr(REBOOT_STR, RemoteReboot, sizeof(RemoteReboot));
+	reg.GetInt(REBOOTMODE_STR, &RemoteRebootMode);
+	reg.GetStr(EXIT_STR, RemoteExit, sizeof(RemoteExit));
+	reg.GetInt(EXITMODE_STR, &RemoteExitMode);
+
 	reg.GetInt(CLIPMODE_STR, &ClipMode);
 	ClipMode |= CLIP_ENABLE;
 	reg.GetInt(CLIPMAX_STR, &ClipMax);
@@ -435,6 +463,17 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(BALLOONNOINFO_STR, &BalloonNoInfo);
 	reg.GetInt(TASKBARUI_STR, &TaskbarUI);
 	reg.GetInt(MARKERTHICK_STR, &MarkerThick);
+
+	reg.GetStr(IPV6MULITCAST, IPv6Multicast, sizeof(IPv6Multicast));
+	if (IsWinVista()) {
+		reg.GetInt(IPV6MODE_STR, &IPv6Mode);
+		if (nicAddr.size == 16 && !IPv6Mode) IPv6Mode = 2;
+		reg.GetStr(IPV6MULITCAST, IPv6Multicast, sizeof(IPv6Multicast));
+		if (!*IPv6Multicast) {
+			strcpy(IPv6Multicast, IPMSG_DEFAULT_MULTICAST_ADDR6); // in ipmsg.h
+		}
+	}
+	IPv6ModeNext = IPv6Mode;
 
 // for File Transfer
 	reg.GetInt(VIEWMAX_STR, &ViewMax);
@@ -451,6 +490,7 @@ BOOL Cfg::ReadRegistry(void)
 		IoBufMax = TransMax;
 
 	reg.GetInt(LUMPCHECK_STR, &LumpCheck);
+	reg.GetInt(ENCTRANSCHECK_STR, &EncTransCheck);
 
 // for Absence Message
 	typedef char MaxBuf[MAX_PATH_U8];
@@ -548,6 +588,9 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(SHELLEXEC_STR, &ShellExec);
 	reg.GetInt(EXTENDENTRY_STR, &ExtendEntry);
 	reg.GetInt(EXTENDBROADCAST_STR, &ExtendBroadcast);
+
+	reg.GetInt(MULTICASTMODE_STR, &MulticastMode);
+
 	reg.GetInt(CONTROLIME_STR, &ControlIME);
 	reg.GetInt(GRIDLINE_STR, &GridLineCheck);
 	reg.GetInt(COLUMNITEMS_STR, (int *)&ColumnItems);
@@ -637,6 +680,7 @@ BOOL Cfg::ReadRegistry(void)
 		ReadFontRegistry(&reg, SENDLISTFONT_STR, &SendListFont);
 		ReadFontRegistry(&reg, RECVHEADFONT_STR, &RecvHeadFont);
 		ReadFontRegistry(&reg, RECVEDITFONT_STR, &RecvEditFont);
+		ReadFontRegistry(&reg, LOGVIEWFONT_STR, &LogViewFont);
 		reg.CloseKey();
 	}
 
@@ -668,7 +712,7 @@ BOOL Cfg::ReadRegistry(void)
 		for (i = 0; reg.EnumValue(i, buf, sizeof(buf)) || reg.EnumKey(i, buf, sizeof(buf)); i++)
 		{
 			UrlObj *obj;
-			for (obj = (UrlObj *)urlList.TopObj(); obj; obj = (UrlObj *)urlList.NextObj(obj))
+			for (obj = urlList.TopObj(); obj; obj = urlList.NextObj(obj))
 				if (stricmp(obj->protocol, buf) == 0)
 					break;
 
@@ -771,18 +815,14 @@ BOOL Cfg::ReadRegistry(void)
 		if (reg.CreateKey(key))
 		{
 			BYTE	key[MAX_BUF_EX];
-			priv[i].encryptSeedLen = priv[i].blobLen = sizeof(key);
+			int		blen = sizeof(key);
+			int		slen = sizeof(key);
 
-			if (reg.GetByte(PRIVBLOB_STR, key, &priv[i].blobLen)
-				&& priv[i].blobLen > need_blob_size)
-			{
-				priv[i].blob = new BYTE [priv[i].blobLen];
-				memcpy(priv[i].blob, key, priv[i].blobLen);
+			if (reg.GetByte(PRIVBLOB_STR, key, &blen) && blen > need_blob_size) {
+				priv[i].SetBlob(key, blen);
 			}
-			if (reg.GetByte(PRIVSEED_STR, key, &priv[i].encryptSeedLen))
-			{
-				priv[i].encryptSeed = new BYTE [priv[i].encryptSeedLen];
-				memcpy(priv[i].encryptSeed, key, priv[i].encryptSeedLen);
+			if (reg.GetByte(PRIVSEED_STR, key, &slen)) {
+				priv[i].SetSeed(key, slen);
 			}
 			reg.GetInt(PRIVTYPE_STR, &priv[i].encryptType);
 			reg.CloseKey();
@@ -842,6 +882,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetStr(NULL, GetVersionStr());
 		reg.SetInt(LCID_KEY, lcid);
 		reg.SetInt(NOBEEP_STR, NoBeep);
+		reg.SetInt(NOTCP_STR, NoTcp);
 		reg.SetInt(LISTGET_STR, ListGet);
 		reg.SetInt(LISTGETMSEC_STR, (int)ListGetMSec);
 		reg.SetInt(RETRYMSEC_STR, (int)RetryMSec);
@@ -854,7 +895,14 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(ALLOWSENDLIST_STR, AllowSendList);
 		reg.SetInt(FILETRANSOPT_STR, fileTransOpt);
 		reg.SetInt(RESOLVEOPT_STR, ResolveOpt);
-//		reg.SetInt(ENCRYPTNUM_STR, EncryptNum);
+//		reg.SetInt(LETTERKEY_STR, LetterKey);
+
+//		reg.SetInt(REMOTEGRACE_STR, RemoteGraceSec);
+		reg.SetStr(REBOOT_STR, RemoteReboot);
+		reg.SetInt(REBOOTMODE_STR, RemoteRebootMode);
+		reg.SetStr(EXIT_STR, RemoteExit);
+		reg.SetInt(EXITMODE_STR, RemoteExitMode);
+
 		reg.SetInt(CLIPMODE_STR, ClipMode);
 //		reg.SetInt(CLIPMAX_STR, ClipMax);
 //		reg.SetInt(CAPTUREDELAY_STR, CaptureDelay);
@@ -868,11 +916,15 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 //		reg.SetInt(TASKBARUI_STR, TaskbarUI);
 //		reg.SetInt(MARKERTHICK_STR, MarkerThick);
 
+		if (IsWinVista()) reg.SetInt(IPV6MODE_STR, IPv6ModeNext);
+//		if (IsWinVista()) reg.SetStr(IPV6MULITCAST, IPv6Multicast);
+
 //		reg.SetInt(VIEWMAX_STR, ViewMax);
 //		reg.SetInt(TRANSMAX_STR, TransMax);
 //		reg.SetInt(TCPBUFMAX_STR, TcpbufMax);
 //		reg.SetInt(IOBUFMAX_STR, IoBufMax);
 		reg.SetInt(LUMPCHECK_STR, LumpCheck);
+		reg.SetInt(ENCTRANSCHECK_STR, EncTransCheck);
 	}
 
 	if (ctl_flg & CFG_ABSENCE)
@@ -917,6 +969,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(KEEPHOSTTIME_STR, KeepHostTime);
 		reg.SetInt(EXTENDENTRY_STR, ExtendEntry);
 		reg.SetInt(EXTENDBROADCAST_STR, ExtendBroadcast);
+		reg.SetInt(MULTICASTMODE_STR, MulticastMode);
 		reg.SetInt(CONTROLIME_STR, ControlIME);
 		reg.SetInt(GRIDLINE_STR, GridLineCheck);
 		reg.SetInt(COLUMNITEMS_STR, ColumnItems);
@@ -990,13 +1043,14 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		WriteFontRegistry(&reg, SENDLISTFONT_STR, &SendListFont);
 		WriteFontRegistry(&reg, RECVHEADFONT_STR, &RecvHeadFont);
 		WriteFontRegistry(&reg, RECVEDITFONT_STR, &RecvEditFont);
+		WriteFontRegistry(&reg, LOGVIEWFONT_STR, &LogViewFont);
 		reg.CloseKey();
 	}
 
 	if ((ctl_flg & CFG_BROADCAST) && reg.CreateKey(BROADCAST_STR))
 	{
 		i = 0;
-		for (TBrObj *obj=brList.Top(); obj; obj=brList.Next(obj))
+		for (TBrObj *obj=brList.TopObj(); obj; obj=brList.NextObj(obj))
 		{
 			wsprintf(buf, "%d", i++);
 			reg.SetStr(buf, obj->Host());
@@ -1019,7 +1073,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		if (reg.CreateKey(CLICKABLEURL_STR))
 		{
 
-			for (UrlObj *obj = (UrlObj *)urlList.TopObj(); obj; obj = (UrlObj *)urlList.NextObj(obj))
+			for (UrlObj *obj = urlList.TopObj(); obj; obj = urlList.NextObj(obj))
 				reg.SetStr(obj->protocol, obj->program);
 			reg.CloseKey();
 		}
@@ -1069,7 +1123,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 			{
 				reg.SetStr(USERNAME_STR, host->hostSub.userName);
 				reg.SetStr(HOSTNAME_STR, host->hostSub.hostName);
-				reg.SetLong(IPADDR_STR, host->hostSub.addr);
+				reg.SetLong(IPADDR_STR, host->hostSub.addr.V4Addr());
 				reg.SetInt(PORTNO_STR, host->hostSub.portNo);
 				reg.SetStr(NICKNAME_STR, host->nickName);
 				reg.SetStr(GROUPNAME_STR, host->groupName);
@@ -1104,21 +1158,21 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 	if (ctl_flg & CFG_LRUUSER) {
 		reg.DeleteChildTree(LRUUSERKEY_STR);
 		if (reg.CreateKey(LRUUSERKEY_STR)) {
-			UsersObj *obj=(UsersObj *)lruUserList.TopObj();
+			UsersObj *obj=lruUserList.TopObj();
 			for (i=0; obj; i++) {
 				wsprintf(buf, "%d", i);
 				if (!reg.CreateKey(buf)) break;
-				UserObj *u = (UserObj *)obj->users.TopObj();
+				UserObj *u = obj->users.TopObj();
 				for (int j=0; u; j++) {
 					wsprintf(buf, "%d", j);
 					if (!reg.CreateKey(buf)) break;
 					reg.SetStr(USERNAME_STR, u->hostSub.userName);
 					reg.SetStr(HOSTNAME_STR, u->hostSub.hostName);
 					reg.CloseKey();
-					u = (UserObj *)obj->users.NextObj(u);
+					u = obj->users.NextObj(u);
 				}
 				reg.CloseKey();
-				obj = (UsersObj *)lruUserList.NextObj(obj);
+				obj = lruUserList.NextObj(obj);
 			}
 			reg.CloseKey();
 		}
@@ -1166,13 +1220,16 @@ BOOL Cfg::WriteFontRegistry(TRegistry *reg, char *key, LOGFONT *font)
 	return	TRUE;
 }
 
-void Cfg::GetRegName(char *buf, ULONG nic_addr, int port_no)
+void Cfg::GetRegName(char *buf, Addr nic_addr, int port_no)
 {
 	buf += wsprintf(buf, "%s", GetLoadStr(IDS_IPMSG));
-	if (port_no != IPMSG_DEFAULT_PORT)
+	if (port_no != IPMSG_DEFAULT_PORT) {
 		buf += wsprintf(buf, "%d", port_no);
-	if (nic_addr)
-		buf += wsprintf(buf, "_%s", Tinet_ntoa(*(in_addr *)&nic_addr));
+	}
+	if (nic_addr.IsEnabled()) {
+		*buf++ = '_';
+		nic_addr.ToStr(buf);
+	}
 }
 
 void Cfg::GetSelfRegName(char *buf)

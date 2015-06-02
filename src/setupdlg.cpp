@@ -1,16 +1,14 @@
 ﻿static char *setupdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   setupdlg.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   setupdlg.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Setup Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-02(Mon)
+	Update					: 2015-05-03(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
-#include <stdio.h>
-#include "resource.h"
 #include "ipmsg.h"
 #include "plugin.h"
 
@@ -29,6 +27,9 @@ BOOL TSetupSheet::Create(int _resId, Cfg *_cfg, THosts *_hosts, TWin *_parent)
 
 BOOL TSetupSheet::EvCreate(LPARAM lParam)
 {
+	SendDlgItemMessage(REBOOT_EDIT, EM_SETWORDBREAKPROC, 0, (LPARAM)EditNoWordBreakProc);
+	SendDlgItemMessage(EXIT_EDIT, EM_SETWORDBREAKPROC, 0, (LPARAM)EditNoWordBreakProc);
+
 	SetData();
 
 	RECT	rc;
@@ -36,7 +37,7 @@ BOOL TSetupSheet::EvCreate(LPARAM lParam)
 	::GetWindowRect(parent->GetDlgItem(SETUP_LIST), &rc);
 	pt.x = rc.right;
 	pt.y = rc.top;
-	ScreenToClient(parent->hWnd, &pt);
+	::ScreenToClient(parent->hWnd, &pt);
 	SetWindowPos(0, pt.x + 10, pt.y - 10, 0, 0, SWP_NOSIZE|SWP_NOZORDER);
 
 	SetWindowLong(GWL_EXSTYLE, GetWindowLong(GWL_EXSTYLE)|WS_EX_CONTROLPARENT);
@@ -54,7 +55,7 @@ BOOL TSetupSheet::EvNcDestroy(void)
 	if (resId == URL_SHEET) {
 		UrlObj *urlObj;
 
-		while ((urlObj = (UrlObj *)tmpUrlList.TopObj())) {
+		while ((urlObj = tmpUrlList.TopObj())) {
 			tmpUrlList.DelObj(urlObj);
 			delete urlObj;
 		}
@@ -117,10 +118,31 @@ BOOL TSetupSheet::CheckData()
 	}
 	else if (resId == URL_SHEET) {
 	}
+	else if (resId == REMOTE_SHEET) {
+	}
 	else if (resId == BACKUP_SHEET) {
 	}
 
 	return	TRUE;
+}
+
+void TSetupSheet::ReflectDisp()
+{
+	static const char	*HotKeyOrg = NULL;
+	char				buf[MAX_PATH_U8] = "";
+
+	if (!HotKeyOrg) {
+		GetDlgItemTextU8(HOTKEY_CHECK, buf, sizeof(buf));
+		HotKeyOrg = strdup(buf);
+	}
+	if (HotKeyOrg) {
+		sprintf(buf, "%s (", HotKeyOrg);
+		if (cfg->HotKeyModify & MOD_CONTROL) strcat(buf, "Ctrl+");
+		if (cfg->HotKeyModify & MOD_ALT)     strcat(buf, "Alt+");
+		if (cfg->HotKeyModify & MOD_SHIFT)   strcat(buf, "Shift+");
+		sprintf(buf + strlen(buf), "%c/%c)", cfg->HotKeySend, cfg->HotKeyRecv);
+		SetDlgItemTextU8(HOTKEY_CHECK, buf);
+	}
 }
 
 BOOL TSetupSheet::SetData()
@@ -129,7 +151,7 @@ BOOL TSetupSheet::SetData()
 		SetDlgItemTextU8(GROUP_COMBO, cfg->GroupNameStr);
 		SetDlgItemTextU8(NICKNAME_EDIT, cfg->NickNameStr);
 
-		for (TBrObj *obj=cfg->brList.Top(); obj; obj=cfg->brList.Next(obj))
+		for (TBrObj *obj=cfg->brList.TopObj(); obj; obj=cfg->brList.NextObj(obj))
 			SendDlgItemMessage(BROADCAST_LIST, LB_ADDSTRING, 0, (LPARAM)obj->Host());
 
 		for (int i=0; i < hosts->HostCnt(); i++) {
@@ -146,10 +168,25 @@ BOOL TSetupSheet::SetData()
 		}
 		CheckDlgButton(DIALUP_CHECK, cfg->DialUpCheck);
 
+		::ShowWindow(GetDlgItem(BROADCAST_STATIC), cfg->IPv6ModeNext != 1 ? SW_SHOW : SW_HIDE);
+		::ShowWindow(GetDlgItem(EXTBROADCAST_COMBO), cfg->IPv6ModeNext != 1 ? SW_SHOW : SW_HIDE);
+		::ShowWindow(GetDlgItem(MULTICAST_STATIC), cfg->IPv6ModeNext ? SW_SHOW : SW_HIDE);
+		::ShowWindow(GetDlgItem(MULTICAST_COMBO), cfg->IPv6ModeNext ? SW_SHOW : SW_HIDE);
+
 		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_LIMITED));
 		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_DIRECTED));
 		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_ADDSTRING, 0, (LPARAM)GetLoadStr(IDS_BOTH));
 		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_SETCURSEL, cfg->ExtendBroadcast, 0);
+
+		SendDlgItemMessage(IPV6_COMBO, CB_ADDSTRING, 0, (LPARAM)"IPv4 mode");
+		SendDlgItemMessage(IPV6_COMBO, CB_ADDSTRING, 0, (LPARAM)"IPv6 mode");
+		SendDlgItemMessage(IPV6_COMBO, CB_ADDSTRING, 0, (LPARAM)"IPv4/IPv6");
+		SendDlgItemMessage(IPV6_COMBO, CB_SETCURSEL, cfg->IPv6ModeNext, 0);
+
+		SendDlgItemMessage(MULTICAST_COMBO, CB_ADDSTRING, 0, (LPARAM)"Site/LinkLocal dual");
+		SendDlgItemMessage(MULTICAST_COMBO, CB_ADDSTRING, 0, (LPARAM)"LinkLocal only");
+		SendDlgItemMessage(MULTICAST_COMBO, CB_ADDSTRING, 0, (LPARAM)"SiteLocal only");
+		SendDlgItemMessage(MULTICAST_COMBO, CB_SETCURSEL, cfg->MulticastMode, 0);
 	}
 	else if (resId == DETAIL_SHEET) {
 		CheckDlgButton(BALLOONNOTIFY_CHECK, cfg->BalloonNotify);
@@ -167,6 +204,27 @@ BOOL TSetupSheet::SetData()
 		SetDlgItemTextU8(QUOTE_EDIT, cfg->QuoteStr);
 
 		CheckDlgButton(HOTKEY_CHECK, cfg->HotKeyCheck);
+
+		CheckDlgButton(CTRL_CHECK,  cfg->HotKeyModify & MOD_CONTROL);
+		CheckDlgButton(ALT_CHECK,   cfg->HotKeyModify & MOD_ALT);
+		CheckDlgButton(SHIFT_CHECK, cfg->HotKeyModify & MOD_SHIFT);
+
+		for (char c[2]="A"; *c <= 'Z'; (*c)++) {
+			SendDlgItemMessage(SEND_COMBO, CB_ADDSTRING, 0, (LPARAM)c);
+			SendDlgItemMessage(RECV_COMBO, CB_ADDSTRING, 0, (LPARAM)c);
+		}
+		SendDlgItemMessage(SEND_COMBO, CB_SETCURSEL, cfg->HotKeySend - 'A', 0);
+		SendDlgItemMessage(RECV_COMBO, CB_SETCURSEL, cfg->HotKeyRecv - 'A', 0);
+
+		::EnableWindow(GetDlgItem(CTRL_CHECK),  cfg->HotKeyCheck);
+		::EnableWindow(GetDlgItem(ALT_CHECK),   cfg->HotKeyCheck);
+		::EnableWindow(GetDlgItem(SHIFT_CHECK), cfg->HotKeyCheck);
+		::EnableWindow(GetDlgItem(CTRL_CHECK),  cfg->HotKeyCheck);
+		::EnableWindow(GetDlgItem(SEND_COMBO),  cfg->HotKeyCheck);
+		::EnableWindow(GetDlgItem(RECV_COMBO),  cfg->HotKeyCheck);
+
+		ReflectDisp();
+
 		CheckDlgButton(ABNORMALBTN_CHECK, cfg->AbnormalButton);
 
 		if (cfg->lcid != -1 || GetSystemDefaultLCID() == 0x411) {
@@ -229,20 +287,37 @@ BOOL TSetupSheet::SetData()
 	else if (resId == URL_SHEET) {
 		CheckDlgButton(DEFAULTURL_CHECK, cfg->DefaultUrl);
 
-		for (UrlObj *obj = (UrlObj *)cfg->urlList.TopObj(); obj;
-					 obj = (UrlObj *)cfg->urlList.NextObj(obj)) {
+		for (UrlObj *obj = cfg->urlList.TopObj(); obj; obj = cfg->urlList.NextObj(obj)) {
 			UrlObj *tmp_obj = new UrlObj;
 			strcpy(tmp_obj->protocol, obj->protocol);
 			strcpy(tmp_obj->program, obj->program);
 			tmpUrlList.AddObj(tmp_obj);
 			SendDlgItemMessage(URL_LIST, LB_INSERTSTRING, (WPARAM)-1, (LPARAM)obj->protocol);
 		}
-		if ((curUrl = (UrlObj *)tmpUrlList.TopObj())) {
+		if ((curUrl = tmpUrlList.TopObj())) {
 			SetDlgItemTextU8(URL_EDIT, curUrl->program);
 		}
 		CheckDlgButton(SHELLEXEC_CHECK, cfg->ShellExec);
 		SendDlgItemMessage(URL_LIST, LB_SETCURSEL, 0, 0);
 		PostMessage(WM_COMMAND, URL_LIST, 0);
+	}
+	else if (resId == REMOTE_SHEET) {
+		char	buf[MAX_BUF];
+
+		if (!*cfg->RemoteReboot)   GenRemoteKey(cfg->RemoteReboot);
+		if (!*cfg->RemoteExit) GenRemoteKey(cfg->RemoteExit);
+
+		::EnableWindow(GetDlgItem(REBOOT_EDIT), cfg->RemoteRebootMode ? TRUE : FALSE);
+		::EnableWindow(GetDlgItem(REBOOT_BUTTON), cfg->RemoteRebootMode ? TRUE : FALSE);
+		CheckDlgButton(REBOOT_CHECK, cfg->RemoteRebootMode ? TRUE : FALSE);
+		sprintf(buf, REMOTE_FMT, cfg->RemoteReboot);
+		SetDlgItemTextU8(REBOOT_EDIT, buf);
+
+		::EnableWindow(GetDlgItem(EXIT_EDIT), cfg->RemoteExitMode ? TRUE : FALSE);
+		::EnableWindow(GetDlgItem(EXIT_BUTTON), cfg->RemoteExitMode ? TRUE : FALSE);
+		CheckDlgButton(EXIT_CHECK, cfg->RemoteExitMode ? TRUE : FALSE);
+		sprintf(buf, REMOTE_FMT, cfg->RemoteExit);
+		SetDlgItemTextU8(EXIT_EDIT, buf);
 	}
 	return	TRUE;
 }
@@ -277,6 +352,18 @@ BOOL TSetupSheet::GetData()
 		cfg->DialUpCheck = IsDlgButtonChecked(DIALUP_CHECK);
 
 		cfg->ExtendBroadcast = (int)SendDlgItemMessage(EXTBROADCAST_COMBO, CB_GETCURSEL, 0, 0);
+		cfg->IPv6ModeNext = (int)SendDlgItemMessage(IPV6_COMBO, CB_GETCURSEL, 0, 0);
+
+		if (cfg->IPv6ModeNext) {
+			LRESULT	mode = SendDlgItemMessage(MULTICAST_COMBO, CB_GETCURSEL, 0, 0);
+			if (cfg->IPv6Mode) {
+				if (cfg->MulticastMode != mode) {
+					::SendMessage(GetMainWnd(), WM_IPMSG_CHANGE_MCAST, mode, 0);
+				}
+			} else {
+				cfg->MulticastMode = (int)mode;
+			}
+		}
 	}
 	else if (resId == DETAIL_SHEET) {
 		cfg->BalloonNotify = IsDlgButtonChecked(BALLOONNOTIFY_CHECK);
@@ -288,7 +375,17 @@ BOOL TSetupSheet::GetData()
 
 		GetDlgItemTextU8(QUOTE_EDIT, cfg->QuoteStr, sizeof(cfg->QuoteStr));
 
-		cfg->HotKeyCheck = IsDlgButtonChecked(HOTKEY_CHECK);
+		cfg->HotKeyCheck = IsDlgButtonChecked(HOTKEY_CHECK) ?
+								(cfg->HotKeyCheck ? cfg->HotKeyCheck : 1) : 0;
+		if (cfg->HotKeyCheck) {
+			cfg->HotKeyModify = 0;
+			cfg->HotKeyModify |= IsDlgButtonChecked(CTRL_CHECK)  ? MOD_CONTROL : 0;
+			cfg->HotKeyModify |= IsDlgButtonChecked(ALT_CHECK)   ? MOD_ALT     : 0;
+			cfg->HotKeyModify |= IsDlgButtonChecked(SHIFT_CHECK) ? MOD_SHIFT   : 0;
+			cfg->HotKeySend = (int)SendDlgItemMessage(SEND_COMBO, CB_GETCURSEL, 0, 0) + 'A';
+			cfg->HotKeyRecv = (int)SendDlgItemMessage(RECV_COMBO, CB_GETCURSEL, 0, 0) + 'A';
+		}
+
 		cfg->AbnormalButton = IsDlgButtonChecked(ABNORMALBTN_CHECK);
 		if (::IsWindowEnabled(GetDlgItem(LCID_CHECK))) {
 			cfg->lcid = IsDlgButtonChecked(LCID_CHECK) ? 0x409 : -1;
@@ -298,6 +395,7 @@ BOOL TSetupSheet::GetData()
 		GetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile, sizeof(cfg->RevIconFile));
 		::SendMessage(GetMainWnd(), WM_IPMSG_INITICON, 0, 0);
 		SetDlgIcon(hWnd);
+		ReflectDisp();
 		SetHotKey(cfg);
 	}
 	else if (resId == SENDRECV_SHEET) {
@@ -365,8 +463,7 @@ BOOL TSetupSheet::GetData()
 		cfg->DefaultUrl = IsDlgButtonChecked(DEFAULTURL_CHECK);
 		if (curUrl) GetDlgItemTextU8(URL_EDIT, curUrl->program, sizeof(curUrl->program));
 
-		for (UrlObj *tmp_obj = (UrlObj *)tmpUrlList.TopObj(); tmp_obj;
-			tmp_obj = (UrlObj *)tmpUrlList.NextObj(tmp_obj)) {
+		for (UrlObj *tmp_obj = tmpUrlList.TopObj(); tmp_obj; tmp_obj = tmpUrlList.NextObj(tmp_obj)) {
 			UrlObj *obj = SearchUrlObj(&cfg->urlList, tmp_obj->protocol);
 
 			if (!obj) {
@@ -378,6 +475,19 @@ BOOL TSetupSheet::GetData()
 		}
 		cfg->ShellExec = IsDlgButtonChecked(SHELLEXEC_CHECK);
 	}
+	else if (resId == REMOTE_SHEET) {
+		char	buf[MAX_BUF];
+
+		if (GetDlgItemTextU8(REBOOT_EDIT, buf, sizeof(buf)) > REMOTE_HEADERLEN) {
+			strcpy(cfg->RemoteReboot, buf + REMOTE_HEADERLEN);
+		}
+		cfg->RemoteRebootMode = IsDlgButtonChecked(REBOOT_CHECK);
+
+		if (GetDlgItemTextU8(EXIT_EDIT, buf, sizeof(buf)) > REMOTE_HEADERLEN) {
+			strcpy(cfg->RemoteExit, buf + REMOTE_HEADERLEN);
+		}
+		cfg->RemoteExitMode = IsDlgButtonChecked(EXIT_CHECK);
+	}
 
 	return	TRUE;
 }
@@ -385,14 +495,16 @@ BOOL TSetupSheet::GetData()
 BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 {
 	char	buf[MAX_PATH_U8] = "", buf2[MAX_PATH_U8] = "", protocol[MAX_LISTBUF] = "";
-	int		i;
+	int		i = 0, ret = 0;
 	UrlObj	*obj;
 
 	if (resId == MAIN_SHEET) {
 		switch (wID) {
 		case ADD_BUTTON:
 			if (GetDlgItemText(BROADCAST_EDIT, buf, sizeof(buf)) <= 0) return TRUE;
-			if (ResolveAddr(buf) == 0) return MessageBox(GetLoadStr(IDS_CANTRESOLVE)), TRUE;
+			if (!ResolveAddr(buf).IsEnabled()) {
+				return MessageBox(GetLoadStr(IDS_CANTRESOLVE)), TRUE;
+			}
 			for (i=0;
 				SendDlgItemMessage(BROADCAST_LIST, LB_GETTEXT, i, (LPARAM)buf2) != LB_ERR; i++) {
 				if (stricmp(buf, buf2) == 0) return	TRUE;
@@ -412,6 +524,16 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 										(WPARAM)i, (LPARAM)buf) == LB_ERR) break;
 			}
 			return	TRUE;
+
+		case IPV6_COMBO:
+			{
+				LRESULT ipv6_mode = SendDlgItemMessage(IPV6_COMBO, CB_GETCURSEL, 0, 0);
+				::ShowWindow(GetDlgItem(BROADCAST_STATIC),     ipv6_mode != 1 ? SW_SHOW : SW_HIDE);
+				::ShowWindow(GetDlgItem(EXTBROADCAST_COMBO),   ipv6_mode != 1 ? SW_SHOW : SW_HIDE);
+				::ShowWindow(GetDlgItem(MULTICAST_STATIC),     ipv6_mode ? SW_SHOW : SW_HIDE);
+				::ShowWindow(GetDlgItem(MULTICAST_COMBO),      ipv6_mode ? SW_SHOW : SW_HIDE);
+			}
+			return	TRUE;
 		}
 	}
 	else if (resId == DETAIL_SHEET) {
@@ -419,6 +541,16 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		case MAINICON_BUTTON: case REVICON_BUTTON:
 			OpenFileDlg(this).Exec(wID == MAINICON_BUTTON ? MAINICON_EDIT : REVICON_EDIT,
 					GetLoadStrU8(IDS_OPENFILEICON), GetLoadStrAsFilterU8(IDS_OPENFILEICONFLTR));
+			return	TRUE;
+
+		case HOTKEY_CHECK:
+			ret = IsDlgButtonChecked(HOTKEY_CHECK);
+			::EnableWindow(GetDlgItem(CTRL_CHECK),  ret);
+			::EnableWindow(GetDlgItem(ALT_CHECK),   ret);
+			::EnableWindow(GetDlgItem(SHIFT_CHECK), ret);
+			::EnableWindow(GetDlgItem(CTRL_CHECK),  ret);
+			::EnableWindow(GetDlgItem(SEND_COMBO),  ret);
+			::EnableWindow(GetDlgItem(RECV_COMBO),  ret);
 			return	TRUE;
 		}
 	}
@@ -483,6 +615,34 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 				
 			}
 			return	TRUE;
+		}
+	}
+	else if (resId == REMOTE_SHEET) {
+		char	buf[MAX_BUF], buf2[MAX_BUF];
+		int		ret;
+
+		switch (wID) {
+		case REBOOT_CHECK:
+			ret = IsDlgButtonChecked(REBOOT_CHECK);
+			::EnableWindow(GetDlgItem(REBOOT_EDIT), ret);
+			::EnableWindow(GetDlgItem(REBOOT_BUTTON), ret);
+			break;
+
+		case EXIT_CHECK:
+			ret = IsDlgButtonChecked(EXIT_CHECK);
+			::EnableWindow(GetDlgItem(EXIT_EDIT), ret);
+			::EnableWindow(GetDlgItem(EXIT_BUTTON), ret);
+			break;
+
+		case REBOOT_BUTTON: case EXIT_BUTTON:
+			GenRemoteKey(buf);
+			sprintf(buf2, REMOTE_FMT, buf);
+			SetDlgItemTextU8(wID == REBOOT_BUTTON ? REBOOT_EDIT : EXIT_EDIT, buf2);
+			break;
+
+		case REBOOT_EDIT: case EXIT_EDIT:
+			SendDlgItemMessage(wID, EM_SETSEL, (WPARAM)0, (LPARAM)-1);
+			break;
 		}
 	}
 	else if (resId == BACKUP_SHEET) {

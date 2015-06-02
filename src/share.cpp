@@ -1,10 +1,10 @@
 ﻿static char *share_id = 
-	"@(#)Copyright (C) H.Shirouzu 2002-2012   share.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 2002-2015   share.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: File Share
 	Create					: 2002-04-14(Sun)
-	Update					: 2012-04-02(Mon)
+	Update					: 2015-05-03(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -18,11 +18,10 @@
 /*
 	公開ファイル管理
 */
-ShareMng::ShareMng(Cfg *_cfg)
+ShareMng::ShareMng(Cfg *_cfg, MsgMng *_msgMng)
 {
-	top = (ShareInfo *)&_top;	// 番兵
-	top->prior = top->next = top;
-	cfg = _cfg;
+	cfg     = _cfg;
+	msgMng  = _msgMng;
 	statDlg = NULL;
 }
 
@@ -32,7 +31,7 @@ ShareInfo *ShareMng::CreateShare(int packetNo)
 		return	FALSE;
 
 	ShareInfo *info = new ShareInfo(packetNo);
-	info->LinkList(top);
+	AddObj(info);
 
 	return	info;
 }
@@ -120,7 +119,7 @@ BOOL ShareMng::AddHostShare(ShareInfo *info, SendEntry *entry, int entryNum)
 
 	for (int i=0; i < entryNum; i++)
 	{
-		info->host[i] = (Host *)cfg->fileHosts.GetHostByNameAddr(&entry[i].Host()->hostSub);
+		info->host[i] = cfg->fileHosts.GetHostByNameAddr(&entry[i].Host()->hostSub);
 		if (info->host[i] == NULL)
 		{
 			info->host[i] = new Host;
@@ -164,7 +163,8 @@ BOOL ShareMng::EndHostShare(int packetNo, HostSub *hostSub, FileInfo *fileInfo, 
 		{
 			if (fileInfo)
 			{
-				info->transStat[info->fileCnt * i + GetFileInfoNo(info, fileInfo)] = done ? TRANS_DONE : TRANS_INIT;
+				info->transStat[info->fileCnt * i + GetFileInfoNo(info, fileInfo)] =
+														done ? TRANS_DONE : TRANS_INIT;
 				if (!done)
 					return	statDlg->Refresh(), TRUE;
 				for (int j=0; j < info->fileCnt; j++)
@@ -188,8 +188,8 @@ BOOL ShareMng::EndHostShare(int packetNo, HostSub *hostSub, FileInfo *fileInfo, 
 
 void ShareMng::DestroyShare(ShareInfo *info)
 {
-	info->next->prior = info->prior;
-	info->prior->next = info->next;
+	info->next->prev = info->prev;
+	info->prev->next = info->next;
 
 	while (info->hostCnt-- > 0)
 	{
@@ -210,7 +210,7 @@ void ShareMng::DestroyShare(ShareInfo *info)
 
 ShareInfo *ShareMng::Search(int packetNo)
 {
-	for (ShareInfo *info=Top(); info; info=Next(info))
+	for (ShareInfo *info=TopObj(); info; info=NextObj(info))
 		if (info->packetNo == packetNo)
 			return	info;
 	return	NULL;
@@ -221,7 +221,7 @@ BOOL ShareMng::GetShareCntInfo(ShareCntInfo *cntInfo, ShareInfo *shareInfo)
 
 	memset(cntInfo, 0, sizeof(ShareCntInfo));
 
-	for (ShareInfo *info = shareInfo ? shareInfo : Top(); info; info=Next(info))
+	for (ShareInfo *info = shareInfo ? shareInfo : TopObj(); info; info=NextObj(info))
 	{
 		if (info->hostCnt)
 		{
@@ -251,42 +251,30 @@ BOOL ShareMng::GetShareCntInfo(ShareCntInfo *cntInfo, ShareInfo *shareInfo)
 }
 
 
-BOOL ShareMng::GetAcceptableFileInfo(ConnectInfo *info, char *buf, AcceptFileInfo *fileInfo)
+BOOL ShareMng::GetAcceptableFileInfo(ConnectInfo *info, char *buf, int size,
+	AcceptFileInfo *fileInfo)
 {
-	// 本当はこんなところでデコードせず、msgmng にやらせるべきだが...
-	char		*tok, *p, *user_name, *host_name;
+	MsgBuf	msg;
+	UINT	&logOpt   = fileInfo->logOpt;
+	UINT	cryptCapa = 0;
+
+	logOpt = 0;
+
+	if (!msgMng->ResolveMsg(buf, size, &msg)) return FALSE;
+
+	if (msg.command & IPMSG_ENCRYPTOPT) {
+		if (!msgMng->DecryptMsg(&msg, &cryptCapa, &logOpt)) return FALSE;
+	}
+
+	char		*tok, *p;
 	int			targetID;
 	ShareInfo	*shareInfo;
-	HostSub		hostSub = { "", "", info->addr, info->port };
 
-	if ((tok = separate_token(buf, ':', &p)) == NULL || atoi(tok) != IPMSG_VERSION)
+	if ((tok = separate_token(msg.msgBuf, ':', &p)) == NULL)
 		return	FALSE;
-
-	if ((tok = separate_token(NULL, ':', &p)) == NULL)	// packet no
-		return	FALSE;
-
-	if ((user_name = separate_token(NULL, ':', &p)) == NULL)
-		return	FALSE;
-
-	if ((host_name = separate_token(NULL, ':', &p)) == NULL)
-		return	FALSE;
-
-	if ((tok = separate_token(NULL, ':', &p)) == NULL)	// command
-		return	FALSE;
-	fileInfo->command = atoi(tok);
-
-	if (fileInfo->command & IPMSG_UTF8OPT) {
-		strncpyz(hostSub.userName, user_name, MAX_NAMEBUF);
-		strncpyz(hostSub.hostName, host_name, MAX_NAMEBUF);
-	}
-	else {
-		strncpyz(hostSub.userName, AtoU8(user_name), MAX_NAMEBUF);
-		strncpyz(hostSub.hostName, AtoU8(host_name), MAX_NAMEBUF);
-	}
-
-	if ((tok = separate_token(NULL, ':', &p)) == NULL)
-		return	FALSE;
-	fileInfo->packetNo = strtol(tok, 0, 16);
+	fileInfo->packetNo   = strtol(tok, 0, 16);
+	fileInfo->ivPacketNo = msg.packetNo;
+	fileInfo->command    = msg.command;
 
 	if ((tok = separate_token(NULL, ':', &p)) == NULL)
 		return	FALSE;
@@ -309,10 +297,25 @@ BOOL ShareMng::GetAcceptableFileInfo(ConnectInfo *info, char *buf, AcceptFileInf
 
 	for (host_cnt=0; host_cnt < shareInfo->hostCnt; host_cnt++)
 	{
-		if (IsSameHostEx(&shareInfo->host[host_cnt]->hostSub, &hostSub))
+		if (IsSameHost(&shareInfo->host[host_cnt]->hostSub, &msg.hostSub))
 		{
-			fileInfo->host = shareInfo->host[host_cnt];
-			break;
+			if ((logOpt & LOG_SIGN_OK) || shareInfo->host[host_cnt]->hostSub.addr == info->addr) {
+				fileInfo->host = shareInfo->host[host_cnt];
+
+				if ((logOpt & LOG_SIGN_OK) && (GET_OPT(fileInfo->command) & IPMSG_ENCFILEOPT)) {
+					int		len = 0;
+					int		cap = 0;
+
+					if ((tok = separate_token(NULL, ':', &p)) == NULL) return FALSE;
+					cap = strtol(tok, 0, 16);
+					if (cap != (IPMSG_AES_256|IPMSG_PACKETNO_IV)) return FALSE;
+
+					if ((tok = separate_token(NULL, ':', &p)) == NULL) return FALSE;
+					hexstr2bin(tok, fileInfo->aesKey, 32, &len);
+					if (len != 32) return FALSE;
+				}
+				break;
+			}
 		}
 	}
 	if (host_cnt == shareInfo->hostCnt)
@@ -325,8 +328,12 @@ BOOL ShareMng::GetAcceptableFileInfo(ConnectInfo *info, char *buf, AcceptFileInf
 			fileInfo->fileInfo = shareInfo->fileInfo[file_cnt];
 			if (shareInfo->transStat[shareInfo->fileCnt * host_cnt + file_cnt] != TRANS_INIT)
 				return	FALSE;	// download 済み（or 最中）
-			if (GET_MODE(fileInfo->command) != IPMSG_GETDIRFILES && GET_MODE(fileInfo->fileInfo->Attr()) == IPMSG_FILE_DIR)		// dir に対して IPMSG_GETDIRFILES 以外は認めない
-				return	FALSE;
+
+			// dir に対しては IPMSG_GETDIRFILES 以外は認めない
+			if (GET_MODE(fileInfo->command) != IPMSG_GETDIRFILES &&
+				GET_MODE(fileInfo->fileInfo->Attr()) == IPMSG_FILE_DIR)
+				return	FALSE;	
+
 			fileInfo->attachTime = shareInfo->attachTime;
 			shareInfo->transStat[shareInfo->fileCnt * host_cnt + file_cnt] = TRANS_BUSY;
 			statDlg->Refresh();
@@ -339,12 +346,13 @@ BOOL ShareMng::GetAcceptableFileInfo(ConnectInfo *info, char *buf, AcceptFileInf
 void ShareMng::Cleanup()
 {
 	int			i, j;
-	Time_t		cur_time = Time();
+	Time_t		cur_time = 0;
 	ShareInfo	*info, *next;
 
-	for (info=Top(); info; info=next) {
-		next = Next(info);
+	for (info=TopObj(); info; info=next) {
+		next = NextObj(info);
 		if (!*(_int64 *)&info->attachTime) continue;
+		if (!cur_time) cur_time = Time();
 
 		int	clip_host = 0;
 		for (i=0; i < info->fileCnt; i++) {
@@ -454,8 +462,8 @@ BOOL TShareDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 {
 	switch (wID)
 	{
-	case IDOK:		EndDialog(TRUE); break;
-	case IDCANCEL:	EndDialog(FALSE); break;
+	case IDOK:		EndDialog(wID); break;
+	case IDCANCEL:	EndDialog(wID); break;
 
 	case FILE_BUTTON:
 		{
@@ -586,13 +594,13 @@ BOOL TShareStatDlg::SetAllList(void)
 	int		i=0, j=0, len=0;
 	char	buf[MAX_BUF_EX];
 
-	for (ShareInfo *info=shareMng->Top(); info; info=shareMng->Next(info))
+	for (ShareInfo *info=shareMng->TopObj(); info; info=shareMng->NextObj(info))
 	{
 		if (info->hostCnt == 0)
 			continue;
 
 		sprintf(buf, "%d", i);
-		shareListView.InsertItem(i, buf);
+		shareListView.InsertItem(i, buf, (LPARAM)info);
 
 		len = 0;
 		*buf = 0;
@@ -616,9 +624,9 @@ BOOL TShareStatDlg::SetAllList(void)
 
 		len = 0;
 		*buf = 0;
-		for (j=0; j < info->hostCnt && len + 30 < sizeof(buf); j++) {
+		for (j=0; j < info->hostCnt && len + 100 < sizeof(buf); j++) {
 			Host *host = info->host[j];
-			len += _snprintf(buf + len, sizeof(buf)-len-1, "%.14s(%.10s) ",
+			len += _snprintf(buf + len, sizeof(buf)-len-1, "%s(%s) ",
 							*host->nickName ? host->nickName : host->hostSub.userName,
 							host->hostSub.hostName);
 		}
@@ -649,8 +657,8 @@ BOOL TShareStatDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 {
 	switch (wID)
 	{
-	case IDOK:		EndDialog(TRUE); break;
-	case IDCANCEL:	EndDialog(FALSE); break;
+	case IDOK:		EndDialog(wID); break;
+	case IDCANCEL:	EndDialog(wID); break;
 	case DEL_BUTTON:
 		{
 			for (int i=shareListView.GetItemCount()-1; i >= 0; i--)
@@ -662,7 +670,11 @@ BOOL TShareStatDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		}
 		break;
 	case MODIFY_CHECK:
-		cfg->fileTransOpt = SendDlgItemMessage(MODIFY_CHECK, BM_GETCHECK, 0, 0) ? FT_STRICTDATE : 0;
+		if (SendDlgItemMessage(MODIFY_CHECK, BM_GETCHECK, 0, 0)) {
+			cfg->fileTransOpt &= ~FT_STRICTDATE;
+		} else {
+			cfg->fileTransOpt |= FT_STRICTDATE;
+		}
 		cfg->WriteRegistry(CFG_GENERAL);
 		break;
 	default: break;
@@ -674,16 +686,20 @@ BOOL TShareStatDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 #define NEXT_BUTTON		2001
 #define LUMP_CHECK		2002
 #define RESULT_STATIC	2003
+#define ENCTRANS_CHECK	2004
 
-TSaveCommonDlg::TSaveCommonDlg(ShareInfo *_shareInfo, Cfg *_cfg, TWin *_parentWin) : TDlg((UINT)0, _parentWin)
+TSaveCommonDlg::TSaveCommonDlg(ShareInfo *_shareInfo, Cfg *_cfg, ULONG _hostStatus,
+	TWin *_parentWin) : TDlg((UINT)0, _parentWin)
 {
-	parentWin = _parentWin;
-	shareInfo = _shareInfo;
-	cfg = _cfg;
-	offset = 0;
+	parentWin	= _parentWin;
+	shareInfo	= _shareInfo;
+	cfg			= _cfg;
+	offset		= 0;
+	hostStatus	= _hostStatus;
 
-	for (int i=0; i < shareInfo->fileCnt; i++)
+	for (int i=0; i < shareInfo->fileCnt; i++) {
 		shareInfo->fileInfo[i]->SetSelected(FALSE);
+	}
 }
 
 BOOL GetParentDir(const char *srcfile, char *dir)
@@ -801,14 +817,23 @@ BOOL TSaveCommonDlg::EvCreate(LPARAM lParam)
 	GetWindowRect(&rect);
 
 	int		cx = 20, cy = ok_ysize;
+	int		lump_size = ok_xsize + 30;
 
 	CreateWindowU8(STATIC_CLASS, "", WS_CHILD|WS_VISIBLE|SS_LEFT, cx, 0, rect.right, ok_ysize, hWnd, (HMENU)RESULT_STATIC, TApp::GetInstance(), NULL);
 
 	DWORD	flg = (shareInfo->fileCnt == 1 ? WS_DISABLED : 0)|WS_CHILD|WS_VISIBLE;
-	CreateWindowU8(BUTTON_CLASS, GetLoadStrU8(IDS_PREVBUTTON), flg | BS_PUSHBUTTON, cx, cy, ok_xsize, ok_ysize, hWnd, (HMENU)PRIOR_BUTTON, TApp::GetInstance(), NULL);
-	CreateWindowU8(BUTTON_CLASS, GetLoadStrU8(IDS_NEXTBUTTON), flg | BS_PUSHBUTTON, cx+=ok_xsize+20, cy, ok_xsize, ok_ysize, hWnd, (HMENU)NEXT_BUTTON, TApp::GetInstance(), NULL);
+	CreateWindowU8(BUTTON_CLASS, GetLoadStrU8(IDS_PREVBUTTON), flg | BS_PUSHBUTTON,
+		cx, cy, ok_xsize, ok_ysize, hWnd, (HMENU)PRIOR_BUTTON, TApp::GetInstance(), NULL);
+	CreateWindowU8(BUTTON_CLASS, GetLoadStrU8(IDS_NEXTBUTTON), flg | BS_PUSHBUTTON,
+		cx+=ok_xsize+20, cy, ok_xsize, ok_ysize, hWnd, (HMENU)NEXT_BUTTON, TApp::GetInstance(), NULL);
+	CreateWindowU8(BUTTON_CLASS, "", WS_CHILD|WS_VISIBLE|BS_CHECKBOX|BS_AUTOCHECKBOX,
+		cx+=ok_xsize+20, cy, lump_size, ok_ysize, hWnd, (HMENU)LUMP_CHECK, TApp::GetInstance(), NULL);
 
-	CreateWindowU8(BUTTON_CLASS, "", WS_CHILD|WS_VISIBLE|BS_CHECKBOX, cx+=ok_xsize+20, cy, ok_xsize * 2, ok_ysize, hWnd, (HMENU)LUMP_CHECK, TApp::GetInstance(), NULL);
+	if (hostStatus & IPMSG_CAPFILEENCOPT) {
+		CreateWindowU8(BUTTON_CLASS, GetLoadStrU8(IDS_ENCTRANS),
+			WS_CHILD|WS_VISIBLE|BS_CHECKBOX|BS_AUTOCHECKBOX, cx+=lump_size+20, cy, ok_xsize,
+			ok_ysize, hWnd, (HMENU)ENCTRANS_CHECK, TApp::GetInstance(), NULL);
+	}
 
 	HFONT	hDlgFont = (HFONT)::SendDlgItemMessage(pWnd, IDOK, WM_GETFONT, 0, 0L);
 	if (hDlgFont)
@@ -817,10 +842,18 @@ BOOL TSaveCommonDlg::EvCreate(LPARAM lParam)
 		SendDlgItemMessage(PRIOR_BUTTON, WM_SETFONT, (UINT)hDlgFont, 0L);
 		SendDlgItemMessage(NEXT_BUTTON, WM_SETFONT, (UINT)hDlgFont, 0L);
 		SendDlgItemMessage(LUMP_CHECK, WM_SETFONT, (UINT)hDlgFont, 0L);
+		if (hostStatus & IPMSG_CAPFILEENCOPT) {
+			SendDlgItemMessage(ENCTRANS_CHECK, WM_SETFONT, (UINT)hDlgFont, 0L);
+		}
 	}
 	SetInfo();
-	if (cfg->LumpCheck)
-		LumpCheck();
+
+	CheckDlgButton(LUMP_CHECK, cfg->LumpCheck);
+	if (cfg->LumpCheck) LumpCheck();
+
+	if (hostStatus & IPMSG_CAPFILEENCOPT) {
+		CheckDlgButton(ENCTRANS_CHECK, cfg->EncTransCheck);
+	}
 
 	return	TRUE;
 }
@@ -843,16 +876,29 @@ BOOL TSaveCommonDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 	case LUMP_CHECK:
 		LumpCheck();
 		return	TRUE;
+
+	case ENCTRANS_CHECK:
+		EncTransCheck();
+		return	TRUE;
 	}
 	return	FALSE;
 }
 
 BOOL TSaveCommonDlg::LumpCheck()
 {
-	cfg->LumpCheck = SendDlgItemMessage(LUMP_CHECK, BM_GETCHECK, 0, 0) == 0;
-	CheckDlgButton(LUMP_CHECK, cfg->LumpCheck);
-	for (int i=0; i < shareInfo->fileCnt; i++)
+	cfg->LumpCheck = (int)SendDlgItemMessage(LUMP_CHECK, BM_GETCHECK, 0, 0);
+
+	for (int i=0; i < shareInfo->fileCnt; i++) {
 		shareInfo->fileInfo[i]->SetSelected(cfg->LumpCheck);
+	}
+	return	TRUE;
+}
+
+BOOL TSaveCommonDlg::EncTransCheck()
+{
+	if (hostStatus & IPMSG_CAPFILEENCOPT) {
+		cfg->EncTransCheck = (int)SendDlgItemMessage(ENCTRANS_CHECK, BM_GETCHECK, 0, 0);
+	}
 	return	TRUE;
 }
 
@@ -891,40 +937,6 @@ BOOL TSaveCommonDlg::SetInfo(void)
 
 
 /*
-	ファイル共有（添付）情報をエンコード
-*/
-BOOL EncodeShareMsg(ShareInfo *info, char *buf, int bufsize, BOOL incMem)
-{
-	int		offset=0;
-	char	fname[MAX_PATH_U8];
-	int		id_base = 0;
-
-	TGenRandom(&id_base, sizeof(id_base));
-	id_base &= 0x3fffffff; // 負数になるのを防ぐ
-
-	*buf = 0;
-	for (int i=0; i < info->fileCnt; i++)
-	{
-		char	addition[100] = "";
-		if (GET_MODE(info->fileInfo[i]->Attr()) == IPMSG_FILE_CLIPBOARD) {
-			if (!incMem) continue;
-			sprintf(addition, ":%x=%x", IPMSG_FILE_CLIPBOARDPOS, info->fileInfo[i]->Pos());
-		}
-		ForcePathToFname(info->fileInfo[i]->Fname(), fname);
-		info->fileInfo[i]->SetId(id_base + i);
-
-		offset += sprintf(buf + offset, "%d:%s:%I64x:%x:%x%s:%c",
-					info->fileInfo[i]->Id(), fname, info->fileInfo[i]->Size(),
-					info->fileInfo[i]->Mtime(), info->fileInfo[i]->Attr(),
-					addition, FILELIST_SEPARATOR);
-
-		if (offset + MAX_BUF > bufsize)
-			break;
-	}
-	return	TRUE;
-}
-
-/*
 	ファイル名に ':' を含む場合、"::" とエスケープされているが、
 	Windows では使えないので、';' に置き換える
 */
@@ -940,21 +952,22 @@ void ConvertShareMsgEscape(char *str)
 
 /*
 	ファイル共有（添付）情報をデコード
-	注意：破壊読出し。使用が終わり次第 FreeDecodeShareMsg を呼び出すこと。
+	注意：破壊読出し。使用が終わり次第 delete を呼び出すこと。
 */
-ShareInfo *DecodeShareMsg(char *buf, BOOL enable_clip)
+ShareInfo::ShareInfo(char *msg, BOOL enable_clip)
 {
-	ShareInfo	*shareInfo = new ShareInfo;
-	FileInfo	*fileInfo = NULL;
+	FileInfo	*info = NULL;
 	char		*tok, *p, *p2, *p3;
-	char		*file = separate_token(buf, FILELIST_SEPARATOR, &p);
+	char		*file = separate_token(msg, FILELIST_SEPARATOR, &p);
+
+	Init();
 
 	for (int i=0; file; i++, file=separate_token(NULL, FILELIST_SEPARATOR, &p))
 	{
 		ConvertShareMsgEscape(file);	// "::" -> ';'
 		if ((tok = separate_token(file, ':', &p2)) == NULL)
 			break;
-		fileInfo = new FileInfo(atoi(tok));
+		info = new FileInfo(atoi(tok));
 
 		if ((tok = separate_token(NULL, ':', &p2)) == NULL || strlen(tok) > MAX_FILENAME_U8)
 			break;
@@ -962,26 +975,26 @@ ShareInfo *DecodeShareMsg(char *buf, BOOL enable_clip)
 			*p3 = '_';
 		if (!IsValidFileName(tok))
 			break;
-		fileInfo->SetFname(tok);
+		info->SetFname(tok);
 
 		if ((tok = separate_token(NULL, ':', &p2)) == NULL)
 			break;
-		fileInfo->SetSize(hex2ll(tok));
+		info->SetSize(hex2ll(tok));
 
 		if ((tok = separate_token(NULL, ':', &p2)) == NULL)
 			break;
-		fileInfo->SetMtime(strtoul(tok, 0, 16));
+		info->SetMtime(strtoul(tok, 0, 16));
 
 		if ((tok = separate_token(NULL, ':', &p2)))
 		{
-			fileInfo->SetAttr(strtoul(tok, 0, 16));
-			u_int	attr_type = GET_MODE(fileInfo->Attr());
+			info->SetAttr(strtoul(tok, 0, 16));
+			u_int	attr_type = GET_MODE(info->Attr());
 			if (attr_type != IPMSG_FILE_DIR &&
 				attr_type != IPMSG_FILE_REGULAR &&
 				(!enable_clip || attr_type != IPMSG_FILE_CLIPBOARD))
 			{
-				delete fileInfo;
-				fileInfo = NULL;
+				delete info;
+				info = NULL;
 				continue;
 			}
 			if (attr_type == IPMSG_FILE_CLIPBOARD) {
@@ -989,70 +1002,55 @@ ShareInfo *DecodeShareMsg(char *buf, BOOL enable_clip)
 					if (strtoul(tok, 0, 16) == IPMSG_FILE_CLIPBOARDPOS) {
 						if (separate_token(tok, '=', &p3) &&
 							(tok = separate_token(NULL, '=', &p3))) {
-							fileInfo->SetPos(strtoul(tok, 0, 16));
+							info->SetPos(strtoul(tok, 0, 16));
 						}
 					}
 				}
 			}
 		}
-		else fileInfo->SetAttr(IPMSG_FILE_REGULAR);
+		else info->SetAttr(IPMSG_FILE_REGULAR);
 
-		if ((shareInfo->fileCnt % BIG_ALLOC) == 0)
-			shareInfo->fileInfo = (FileInfo **)realloc(shareInfo->fileInfo, (shareInfo->fileCnt + BIG_ALLOC) * sizeof(FileInfo *));
+		if ((fileCnt % BIG_ALLOC) == 0)
+			fileInfo = (FileInfo **)realloc(fileInfo, (fileCnt + BIG_ALLOC) * sizeof(FileInfo *));
 
-		shareInfo->fileInfo[shareInfo->fileCnt++] = fileInfo;
-		fileInfo = NULL;
+		fileInfo[fileCnt++] = info;
+		info = NULL;
 	}
-	if (fileInfo)	// デコード中に抜けた
-		delete fileInfo;
+	if (info)	// デコード中に抜けた
+		delete info;
+}
 
-	if (shareInfo->fileCnt <= 0)
+/*
+	ファイル共有（添付）情報をエンコード
+*/
+BOOL ShareInfo::EncodeMsg(char *buf, int bufsize, BOOL incMem)
+{
+	int		offset=0;
+	char	fname[MAX_PATH_U8];
+	int		id_base = 0;
+
+	TGenRandom(&id_base, sizeof(id_base));
+	id_base &= 0x3fffffff; // 負数になるのを防ぐ
+
+	*buf = 0;
+	for (int i=0; i < fileCnt; i++)
 	{
-		delete shareInfo;
-		return	NULL;
+		char	addition[100] = "";
+		if (GET_MODE(fileInfo[i]->Attr()) == IPMSG_FILE_CLIPBOARD) {
+			if (!incMem) continue;
+			sprintf(addition, ":%x=%x", IPMSG_FILE_CLIPBOARDPOS, fileInfo[i]->Pos());
+		}
+		ForcePathToFname(fileInfo[i]->Fname(), fname);
+		fileInfo[i]->SetId(id_base + i);
+
+		offset += sprintf(buf + offset, "%d:%s:%I64x:%x:%x%s:%c",
+					fileInfo[i]->Id(), fname, fileInfo[i]->Size(),
+					fileInfo[i]->Mtime(), fileInfo[i]->Attr(),
+					addition, FILELIST_SEPARATOR);
+
+		if (offset + MAX_BUF > bufsize)
+			break;
 	}
-	return	shareInfo;
-}
-
-/*
-	デコード情報の開放
-*/
-BOOL FreeDecodeShareMsg(ShareInfo *info)
-{
-	while (info->fileCnt-- > 0)
-		delete info->fileInfo[info->fileCnt];
-	free(info->fileInfo);
-	delete info;
 	return	TRUE;
-}
-
-/*
-	デコード情報内のファイル情報削除
-*/
-BOOL FreeDecodeShareMsgFile(ShareInfo *info, int index)
-{
-	if (index >= info->fileCnt)
-		return	FALSE;
-	delete info->fileInfo[index];
-	memmove(info->fileInfo + index, info->fileInfo + index +1, sizeof(FileInfo *) * (--info->fileCnt - index));
-	return	TRUE;
-}
-
-ShareInfo::ShareInfo(int _packetNo)
-{
-	packetNo = _packetNo;
-	host = NULL;
-	transStat = NULL;
-	fileInfo = NULL;
-	hostCnt = fileCnt = 0;
-	memset(&attachTime, 0, sizeof(attachTime));
-}
-
-void ShareInfo::LinkList(ShareInfo *top)
-{
-	prior = top->prior;
-	next = top;
-	top->prior->next = this;
-	top->prior = this;
 }
 

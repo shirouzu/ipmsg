@@ -1,10 +1,10 @@
 ﻿static char *install_id = 
-	"@(#)Copyright (C) H.Shirouzu 1998-2012   install.cpp	Ver3.41";
+	"@(#)Copyright (C) H.Shirouzu 1998-2015   install.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Installer Application Class
 	Create					: 1998-06-14(Sun)
-	Update					: 2012-04-03(Tue)
+	Update					: 2015-06-02(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -47,6 +47,7 @@ TInstApp::~TInstApp()
 void TInstApp::InitWindow(void)
 {
 	InitCommonControls();
+
 	TDlg *maindlg = new TInstDlg(cmdLine);
 	mainWnd = maindlg;
 	maindlg->Create();
@@ -84,7 +85,7 @@ BOOL TInstDlg::EvCreate(LPARAM lParam)
 	MoveWindow((cx - xsize)/2, (cy - ysize)/2, xsize, ysize, TRUE);
 	Show();
 
-	if (IsWinVista() && !TIsUserAnAdmin() && TIsEnableUAC()) {
+	if (IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
 		HWND	hRunas = GetDlgItem(RUNAS_BUTTON);
 		::SetWindowLong(hRunas, GWL_STYLE, ::GetWindowLong(hRunas, GWL_STYLE)|WS_VISIBLE);
 		::SendMessage(hRunas, BCM_SETSHIELD, 0, 1);
@@ -142,7 +143,7 @@ BOOL TInstDlg::EvCreate(LPARAM lParam)
 
 		WCHAR	wbuf[MAX_PATH] = L"";
 		::SendDlgItemMessageW(runasWnd, FILE_EDIT, WM_GETTEXT, MAX_PATH, (LPARAM)wbuf);
-		SetDlgItemTextU8(FILE_EDIT, WtoU8(wbuf));
+		SetDlgItemTextU8(FILE_EDIT, WtoU8s(wbuf));
 
 		::SendMessage(runasWnd, WM_IPMSG_HIDE, 0, 0);
 		if (runasImm) {
@@ -168,7 +169,7 @@ BOOL RunAsAdmin(HWND hWnd, BOOL imm)
 	WCHAR	path[MAX_PATH], buf[MAX_BUF];
 
 	::GetModuleFileNameW(::GetModuleHandle(NULL), path, sizeof(path));
-	swprintf(buf, L"/runas=%x,imm=%d", hWnd, imm);
+	swprintf(buf, L"/runas=%p,imm=%d", hWnd, imm);
 	ShellExecuteW(hWnd, L"runas", path, buf, NULL, SW_SHOW);
 
 	return TRUE;
@@ -187,7 +188,7 @@ BOOL TInstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		return	TRUE;
 
 	case IDCANCEL:
-		EndDialog(FALSE);
+		EndDialog(wID);
 		return	TRUE;
 
 	case RUNAS_BUTTON:
@@ -229,13 +230,13 @@ BOOL TInstDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 BOOL TInstDlg::AppKick()
 {
-	char	setupDir[MAX_PATH_U8], setupPath[MAX_PATH_U8];
+	WCHAR	setupDir[MAX_PATH], setupPath[MAX_PATH];
 
-	GetDlgItemTextU8(FILE_EDIT, setupDir, sizeof(setupDir));
-	SetCurrentDirectoryU8(setupDir);
+	GetDlgItemTextW(FILE_EDIT, setupDir, wsizeof(setupDir));
+	SetCurrentDirectoryW(setupDir);
 
-	MakePath(setupPath, setupDir, IPMSG_EXENAME);
-	return	(int)ShellExecuteU8(NULL, NULL, setupPath, "/SHOW_HISTORY", 0, SW_SHOW) > 32;
+	MakePathW(setupPath, setupDir, IPMSG_EXENAME_W);
+	return	(int)ShellExecuteW(NULL, NULL, setupPath, L"/SHOW_HISTORY", 0, SW_SHOW) > 32;
 }
 
 BOOL TInstDlg::Install(void)
@@ -251,8 +252,8 @@ BOOL TInstDlg::Install(void)
 // インストールパス設定
 	GetDlgItemTextU8(FILE_EDIT, setupDir, sizeof(setupDir));
 
-	if (IsWinVista() && !TIsUserAnAdmin() && TIsEnableUAC()
-			&& TIsVirtualizedDirV(U8toW(setupDir))) {
+	if (IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()
+			&& TIsVirtualizedDirW(U8toWs(setupDir))) {
 		if (MessageBox(GetLoadStr(IDS_REQUIREADMIN), INSTALL_STR,
 				MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) return	FALSE;
 		return	RunAsAdmin(hWnd, TRUE);
@@ -291,7 +292,7 @@ BOOL TInstDlg::Install(void)
 
 // 展開のみ
 	if (extract_only) {
-		ShellExecuteU8(NULL, NULL, setupDir, 0, 0, SW_SHOW);
+		ShellExecuteW(NULL, NULL, U8toWs(setupDir), 0, 0, SW_SHOW);
 		return TRUE;
 	}
 
@@ -341,7 +342,7 @@ BOOL TInstDlg::Install(void)
 	const char *msg = GetLoadStr(IDS_SETUPCOMPLETE);
 	int			flg = MB_OKCANCEL|MB_ICONINFORMATION;
 
-//	if (IsWinVista() && TIsUserAnAdmin() && TIsEnableUAC()) {
+//	if (IsWinVista() && ::IsUserAnAdmin() && TIsEnableUAC()) {
 //		msg = Fmt("%s%s", msg, GetLoadStr(IDS_COMPLETE_UACADD));
 //		flg |= MB_DEFBUTTON2;
 //	}
@@ -492,9 +493,9 @@ void BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title)
 	brInfo.iImage = 0;
 
 	do {
-		if ((pidlBrowse = ::SHBrowseForFolderV((BROWSEINFO *)&brInfo))) {
-			if (::SHGetPathFromIDListV(pidlBrowse, wbuf))
-				::SetDlgItemTextV(parentWin->hWnd, editCtl, wbuf);
+		if ((pidlBrowse = ::SHBrowseForFolderW(&brInfo))) {
+			if (::SHGetPathFromIDListW(pidlBrowse, wbuf))
+				::SetDlgItemTextW(parentWin->hWnd, editCtl, wbuf);
 			iMalloc->Free(pidlBrowse);
 			break;
 		}
@@ -534,7 +535,7 @@ BOOL TBrowseDirDlg::AttachWnd(HWND _hWnd)
 	DWORD	attr = GetFileAttributesU8(fileBuf);
 	if (attr == 0xffffffff || (attr & FILE_ATTRIBUTE_DIRECTORY) == 0)
 		GetParentDirU8(fileBuf, fileBuf);
-	SendMessageW(BFFM_SETSELECTIONW, TRUE, (LPARAM)U8toW(fileBuf));
+	SendMessageW(BFFM_SETSELECTIONW, TRUE, (LPARAM)U8toWs(fileBuf));
 	SetWindowText(IPMSG_FULLNAME);
 
 // ボタン作成
@@ -567,7 +568,7 @@ BOOL TBrowseDirDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		{
 			char		dirBuf[MAX_PATH_U8], path[MAX_PATH_U8];
 			TInputDlg	dlg(dirBuf, this);
-			if (!dlg.Exec())
+			if (dlg.Exec() != IDOK)
 				return	TRUE;
 			MakePath(path, fileBuf, dirBuf);
 			if (CreateDirectoryU8(path, NULL))
@@ -594,7 +595,7 @@ BOOL TBrowseDirDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 BOOL TBrowseDirDlg::SetFileBuf(LPARAM list)
 {
 	Wstr	wbuf(MAX_PATH);
-	BOOL	ret = ::SHGetPathFromIDListV((LPITEMIDLIST)list, wbuf.Buf());
+	BOOL	ret = ::SHGetPathFromIDListW((LPITEMIDLIST)list, wbuf.Buf());
 	if (ret) {
 		WtoU8(wbuf, fileBuf, MAX_PATH_U8);
 	}
@@ -610,11 +611,11 @@ BOOL TInputDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 	{
 	case IDOK:
 		GetDlgItemTextU8(INPUT_EDIT, dirBuf, MAX_PATH_U8);
-		EndDialog(TRUE);
+		EndDialog(wID);
 		return	TRUE;
 
 	case IDCANCEL:
-		EndDialog(FALSE);
+		EndDialog(wID);
 		return	TRUE;
 	}
 	return	FALSE;
@@ -655,13 +656,13 @@ BOOL SymLink(LPCSTR src, LPSTR dest, LPCSTR arg)
 		shellLink->SetPath((char *)wsrc.Buf());
 		shellLink->SetArguments((char *)warg.Buf());
 		GetParentDirU8(src, buf);
-		shellLink->SetWorkingDirectory((char *)U8toW(buf));
+		shellLink->SetWorkingDirectory((char *)U8toWs(buf));
 
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
 			if (SUCCEEDED(persistFile->Save(wdest, TRUE))) {
 				ret = TRUE;
 				GetParentDirU8(WtoU8(wdest), buf);
-				::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH|SHCNF_FLUSH, U8toA(buf), NULL);
+				::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH|SHCNF_FLUSH, U8toAs(buf), NULL);
 			}
 			persistFile->Release();
 		}
@@ -681,7 +682,7 @@ BOOL DeleteLink(LPCSTR path)
 		return	FALSE;
 
 	GetParentDirU8(path, dir);
-	::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH|SHCNF_FLUSH, U8toA(dir), NULL);
+	::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH|SHCNF_FLUSH, U8toAs(dir), NULL);
 
 	return	TRUE;
 }
@@ -689,11 +690,11 @@ BOOL DeleteLink(LPCSTR path)
 BOOL DeflateData(BYTE *buf, DWORD size, VBuf *vbuf)
 {
 	BOOL	ret = FALSE;
-	z_stream z = {0};
+	z_stream z = {};
 
 	if (inflateInit(&z) != Z_OK) return FALSE;
 	z.next_out = vbuf->Buf();
-	z.avail_out = vbuf->Size();
+	z.avail_out = (uInt)vbuf->Size();
 	z.next_in = buf;
 	z.avail_in = size;
 	if (inflate(&z, Z_NO_FLUSH) == Z_STREAM_END) {
@@ -735,7 +736,7 @@ BYTE *FindSeparatedData(BYTE *buf, DWORD buf_size, char *fname, DWORD *size)
 	return	NULL;
 }
 
-#define FILESIZE_MAX	(1024 * 1024)
+#define FILESIZE_MAX	(2 * 1024 * 1024)
 CreateStatus CreateFileBySelf(char *path, char *fname)
 {
 	HANDLE	hSelfFile = INVALID_HANDLE_VALUE;
@@ -762,7 +763,7 @@ CreateStatus CreateFileBySelf(char *path, char *fname)
 			HANDLE	hDestFile = ::CreateFile(path, GENERIC_WRITE, 0, 0,
 									CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 			if (hDestFile != INVALID_HANDLE_VALUE) {
-				if (::WriteFile(hDestFile, vbuf.Buf(), vbuf.UsedSize(), &size, 0)) {
+				if (::WriteFile(hDestFile, vbuf.Buf(), (DWORD)vbuf.UsedSize(), &size, 0)) {
 					ret = CS_OK;
 				}
 				::CloseHandle(hDestFile);
@@ -797,27 +798,30 @@ BOOL TLaunchDlg::EvCreate(LPARAM lParam)
 {
 	SetDlgItemText(MESSAGE_STATIC, msg);
 	if (IsWin7()) {
-		::ShowWindow(GetDlgItem(LAUNCH_BUTTON), SW_SHOW);
+		::ShowWindow(GetDlgItem(NOTIFYAREA_CHECK), SW_SHOW);
 	}
+	HBITMAP	hBmp = ::LoadBitmap(TApp::GetInstance(), (LPCSTR)PAYPAL_BITMAP);
 
 	Show();
 	return	TRUE;
 }
 
-#define NOTIFY_SETTINGS	"shell32.dll,Options_RunDLL 5"
+#define NOTIFY_SETTINGS	L"shell32.dll,Options_RunDLL 5"
 
 BOOL TLaunchDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 {
 	switch (wID)
 	{
-	case IDOK: case IDCANCEL:
+	case IDCANCEL:
 		EndDialog(wID);
 		return	TRUE;
 
-	case LAUNCH_BUTTON:
-		//ShellExecuteU8(NULL, NULL, GetLoadStr(IDS_TRAYURL), 0, 0, SW_SHOW);
-		ShellExecuteU8(NULL, "open", "rundll32.exe", NOTIFY_SETTINGS, 0, SW_SHOW);
-		EndDialog(IDOK);
+	case IDOK:
+		if (IsDlgButtonChecked(NOTIFYAREA_CHECK)) {
+			ShellExecuteW(NULL, L"open", L"rundll32.exe", NOTIFY_SETTINGS, 0, SW_SHOW);
+			//ShellExecuteU8(NULL, NULL, GetLoadStr(IDS_TRAYURL), 0, 0, SW_SHOW);
+		}
+		EndDialog(wID);
 		return	TRUE;
 	}
 	return	FALSE;

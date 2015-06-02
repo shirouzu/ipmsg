@@ -1,10 +1,10 @@
 ﻿static char *miscfunc_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   miscfunc.cpp	Ver3.31";
+	"@(#)Copyright (C) H.Shirouzu 2011-2015   miscfunc.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc functions
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-08-21(Sun)
+	Update					: 2015-05-03(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -16,9 +16,9 @@
 /*
 	URL検索ルーチン
 */
-UrlObj *SearchUrlObj(TList *list, char *protocol)
+UrlObj *SearchUrlObj(TListEx<UrlObj> *list, char *protocol)
 {
-	for (UrlObj *obj = (UrlObj *)list->TopObj(); obj; obj = (UrlObj *)list->NextObj(obj))
+	for (UrlObj *obj = list->TopObj(); obj; obj = list->NextObj(obj))
 		if (stricmp(obj->protocol, protocol) == 0)
 			return	obj;
 
@@ -74,7 +74,9 @@ void MakeListString(Cfg *cfg, Host *host, char *buf, BOOL is_log)
 	buf += wsprintf(buf, "(%s%s%s", host->groupName,
 					*host->groupName ? "/" : "", host->hostSub.hostName);
 
-	if (ipaddr) buf += wsprintf(buf, "/%s", ::Tinet_ntoa(*(LPIN_ADDR)&host->hostSub.addr));
+	if (ipaddr) {
+		buf += sprintf(buf, "/%s", host->hostSub.addr.ToStr());
+	}
 	if (logon)  buf += wsprintf(buf, "/%s", host->hostSub.userName);
 
 	strcpy(buf, ")");
@@ -116,16 +118,17 @@ BOOL GetImeOpenStatus(HWND hWnd)
 */
 BOOL SetHotKey(Cfg *cfg)
 {
+	UnregisterHotKey(GetMainWnd(), WM_SENDDLG_OPEN);
+	UnregisterHotKey(GetMainWnd(), WM_RECVDLG_OPEN);
+	UnregisterHotKey(GetMainWnd(), WM_DELMISCDLG);
+
 	if (cfg->HotKeyCheck)
 	{
 		RegisterHotKey(GetMainWnd(), WM_SENDDLG_OPEN, cfg->HotKeyModify, cfg->HotKeySend);
 		RegisterHotKey(GetMainWnd(), WM_RECVDLG_OPEN, cfg->HotKeyModify, cfg->HotKeyRecv);
-		RegisterHotKey(GetMainWnd(), WM_DELMISCDLG, cfg->HotKeyModify, cfg->HotKeyMisc);
-	}
-	else {
-		UnregisterHotKey(GetMainWnd(), WM_SENDDLG_OPEN);
-		UnregisterHotKey(GetMainWnd(), WM_RECVDLG_OPEN);
-		UnregisterHotKey(GetMainWnd(), WM_DELMISCDLG);
+		if (cfg->OpenCheck >= 2 || cfg->HotKeyCheck >= 2) {
+			RegisterHotKey(GetMainWnd(), WM_DELMISCDLG, cfg->HotKeyModify, cfg->HotKeyMisc);
+		}
 	}
 	return	TRUE;
 }
@@ -310,7 +313,7 @@ BOOL GetLastErrorMsg(char *msg, TWin *win)
 BOOL GetSockErrorMsg(char *msg, TWin *win)
 {
 	char	buf[MAX_BUF];
-	wsprintf(buf, "%s error = %d", msg ? msg : "", TWSAGetLastError());
+	wsprintf(buf, "%s error = %d", msg ? msg : "", ::WSAGetLastError());
 	return	MessageBox(win ? win->hWnd : NULL, buf, IP_MSG, MB_OK);
 }
 
@@ -510,17 +513,25 @@ BOOL VerifyHash(const BYTE *data, int len, const char *orgHash)
 	return	stricmp(hash, orgHash);
 }
 
-ULONG ResolveAddr(const char *_host)
+Addr ResolveAddr(const char *_host)
 {
-	if (_host == NULL)
-		return 0;
+	Addr	addr(_host);
+	if (addr.size <= 0) {
+		addrinfo hints={}, *res=NULL;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_family   = AF_INET;
 
-	ULONG	addr = ::Tinet_addr(_host);
-
-	if (addr == 0xffffffff)
-	{
-		hostent	*ent = ::Tgethostbyname(_host);
-		addr = ent ? *(ULONG *)ent->h_addr_list[0] : 0;
+		if (getaddrinfo(_host, NULL, &hints, &res) == 0) {
+			addr.Set(&((struct sockaddr_in *)res->ai_addr)->sin_addr, 4);
+			freeaddrinfo(res);
+		}
+		else {
+			hints.ai_family  = AF_INET6;
+			if (getaddrinfo(_host, NULL, &hints, &res) == 0) {
+				addr.Set(&((struct sockaddr_in6 *)res->ai_addr)->sin6_addr, 16);
+				freeaddrinfo(res);
+			}
+		}
 	}
 
 	return	addr;
@@ -530,7 +541,7 @@ void TBrList::Reset()
 {
 	TBrObj	*obj;
 
-	while ((obj = Top()))
+	while ((obj = TopObj()))
 	{
 		DelObj(obj);
 		delete obj;
@@ -540,7 +551,7 @@ void TBrList::Reset()
 #if 0
 BOOL TBrList::SetHost(const char *host)
 {
-	ULONG	addr = ResolveAddr(host);
+	Addr	addr = ResolveAddr(host);
 
 	if (addr == 0 || IsExistHost(host))
 		return	FALSE;
@@ -579,30 +590,16 @@ BOOL GetCurrentScreenSize(RECT *rect, HWND hRefWnd)
 	rect->right = ::GetSystemMetrics(SM_CXFULLSCREEN);
 	rect->bottom = ::GetSystemMetrics(SM_CYFULLSCREEN);
 
-	static BOOL (WINAPI *GetMonitorInfoV)(HMONITOR hMonitor, MONITORINFO *lpmi);
-	static HMONITOR (WINAPI *MonitorFromPointV)(POINT pt, DWORD dwFlags);
-	static HMONITOR (WINAPI *MonitorFromWindowV)(HWND hWnd, DWORD dwFlags);
-	static HMODULE hUser32;
+	POINT	pt;
+	::GetCursorPos(&pt);
 
-	if (!hUser32) {
-		hUser32 = ::GetModuleHandle("user32.dll");
-		GetMonitorInfoV = (BOOL (WINAPI *)(HMONITOR, MONITORINFO *))::GetProcAddress(hUser32, "GetMonitorInfoW");
-		MonitorFromPointV = (HMONITOR (WINAPI *)(POINT, DWORD))::GetProcAddress(hUser32, "MonitorFromPoint");
-		MonitorFromWindowV = (HMONITOR (WINAPI *)(HWND, DWORD))::GetProcAddress(hUser32, "MonitorFromWindow");
-	}
+	HMONITOR	hMon = hRefWnd ? ::MonitorFromWindow(hRefWnd, MONITOR_DEFAULTTONEAREST) : ::MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
 
-	if (MonitorFromPointV && GetMonitorInfoV && MonitorFromWindowV) {
-		POINT	pt;
-		::GetCursorPos(&pt);
+	if (hMon) {
+		MONITORINFO	info = { sizeof(MONITORINFO) };
 
-		HMONITOR	hMon = hRefWnd ? MonitorFromWindowV(hRefWnd, MONITOR_DEFAULTTONEAREST) : MonitorFromPointV(pt, MONITOR_DEFAULTTONEAREST);
-
-		if (hMon) {
-			MONITORINFO	info = { sizeof(MONITORINFO) };
-
-			if (GetMonitorInfoV(hMon, &info))
-				*rect = info.rcMonitor;
-		}
+		if (::GetMonitorInfo(hMon, &info))
+			*rect = info.rcMonitor;
 	}
 
 	return	TRUE;
@@ -617,7 +614,7 @@ void MakeClipFileName(int id, int pos, BOOL is_send, char *buf)
 	sprintf(buf, IPMSG_CLIPBOARD_PSEUDOFILE, is_send ? "s" : "r", id, pos);
 }
 
-BOOL MakeImageFolder(Cfg *cfg, char *dir)
+BOOL MakeImageFolderName(Cfg *cfg, char *dir)
 {
 	char	*fname = NULL;
 
@@ -632,7 +629,7 @@ BOOL SaveImageFile(Cfg *cfg, const char *fname, VBuf *buf)
 	DWORD	size;
 	HANDLE	hFile;
 
-	if (!MakeImageFolder(cfg, path)) return FALSE;
+	if (!MakeImageFolderName(cfg, path)) return FALSE;
 	CreateDirectoryU8(path, 0);
 	strcat(path, "\\");
 	strcat(path, fname);
@@ -640,10 +637,40 @@ BOOL SaveImageFile(Cfg *cfg, const char *fname, VBuf *buf)
 	if ((hFile = CreateFileU8(path, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL,
 				CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)) == INVALID_HANDLE_VALUE) return FALSE;
 
-	WriteFile(hFile, buf->Buf(), buf->Size(), &size, 0);
+	WriteFile(hFile, buf->Buf(), (DWORD)buf->Size(), &size, 0);
 	CloseHandle(hFile);
 
 	return	TRUE;
+}
+
+VBuf *LoadImageFile(Cfg *cfg, const char *fname)
+{
+	char	path[MAX_PATH_U8] = "";
+	HANDLE	hFile = INVALID_HANDLE_VALUE;
+	DWORD	size, high;
+	VBuf	*vbuf = NULL;
+
+	if (cfg) {
+		if (!MakeImageFolderName(cfg, path)) return FALSE;
+		strcat(path, "\\");
+	}
+	strcat(path, fname);
+
+	if ((hFile = CreateFileU8(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+		/*FILE_FLAG_NO_BUFFERING|*/FILE_FLAG_SEQUENTIAL_SCAN, 0)) == INVALID_HANDLE_VALUE)
+		return NULL;
+
+	if ((size = ::GetFileSize(hFile, &high)) <= 0 || high > 0) goto END; // I don't know over 2GB.
+
+	vbuf = new VBuf(size);
+	if (!vbuf || !vbuf->Buf() || !ReadFile(hFile, vbuf->Buf(), size, &size, 0)) {
+		delete vbuf;
+		vbuf = NULL;
+	}
+
+END:
+	CloseHandle(hFile);
+	return	vbuf;
 }
 
 int GetColorDepth()
@@ -814,8 +841,9 @@ HBITMAP FinishBmp(VBuf *vbuf)
 
 BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info)
 {
-	char	buf[MAX_BUF] = "", fname[MAX_PATH_U8];
+	char	buf[MAX_BUF] = "", fname[MAX_PATH_U8] = "";
 	int		offset = 0;
+
 	for (int cnt=0; cnt < info->fileCnt; cnt++)
 	{
 		if (dlg->ResId() == SEND_DIALOG)
@@ -848,5 +876,26 @@ BOOL IsImageInClipboard(HWND hWnd)
 
 	CloseClipboard();
 	return	ret;
+}
+
+int CALLBACK EditNoWordBreakProc(LPTSTR str, int cur, int len, int action)
+{
+	switch (action) {
+	case WB_LEFT:
+		return	cur + 1;
+	case WB_RIGHT:
+		return	cur - 1;
+	case WB_ISDELIMITER:
+		return	TRUE;
+	}
+	return	0;
+}
+
+void GenRemoteKey(char *key)
+{
+	BYTE	buf[REMOTE_KEYLEN];
+
+	TGenRandom(buf, REMOTE_KEYLEN);
+	bin2urlstr(buf, REMOTE_KEYLEN, key);
 }
 

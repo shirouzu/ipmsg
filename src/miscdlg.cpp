@@ -1,10 +1,10 @@
 ﻿static char *miscdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   miscdlg.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 1996-2014   miscdlg.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc Dialog
 	Create					: 1996-12-15(Sun)
-	Update					: 2012-04-02(Mon)
+	Update					: 2014-08-20(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -21,7 +21,8 @@ int TMsgDlg::createCnt = 0;
 #define INVALID_INDEX	-1
 TListViewEx::TListViewEx(TWin *_parent) : TSubClassCtl(_parent)
 {
-	focus_index = INVALID_INDEX;
+	focusIndex = INVALID_INDEX;
+	letterKey  = TRUE; // select item by first letter key
 }
 
 BOOL TListViewEx::AttachWnd(HWND targetWnd, DWORD addStyle)
@@ -56,20 +57,40 @@ BOOL TListViewEx::EventFocus(UINT uMsg, HWND hFocusWnd)
 	{
 		if (itemNo == maxItem) {
 			lvi.state = LVIS_FOCUSED;
-			if (focus_index == INVALID_INDEX)
-				focus_index = 0;
-			SendMessage(LVM_SETITEMSTATE, focus_index, (LPARAM)&lvi);
-			SendMessage(LVM_SETSELECTIONMARK, 0, focus_index);
+			if (focusIndex == INVALID_INDEX)
+				focusIndex = 0;
+			SendMessage(LVM_SETITEMSTATE, focusIndex, (LPARAM)&lvi);
+			SendMessage(LVM_SETSELECTIONMARK, 0, focusIndex);
 		}
 		return	FALSE;
 	}
 	else {	// WM_KILLFOCUS
 		if (itemNo != maxItem) {
 			SendMessage(LVM_SETITEMSTATE, itemNo, (LPARAM)&lvi);
-			focus_index = itemNo;
+			focusIndex = itemNo;
 		}
 		return	TRUE;	// WM_KILLFOCUS は伝えない
 	}
+}
+
+BOOL TListViewEx::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
+{
+	return	FALSE;
+}
+
+BOOL TListViewEx::EvChar(WCHAR code, LPARAM keyData)
+{
+	if (!letterKey) {
+		if (code >= 'A' && code <= 'Z' ||
+			code >= 'a' && code <= 'z' ||
+			code >= '0' && code <= '9') {
+			if (!(GetKeyState(VK_CONTROL) & 0x8000) &&
+				!(GetKeyState(VK_MENU)    & 0x8000)) {
+				return TRUE;
+			}
+		}
+	}
+	return	FALSE;
 }
 
 BOOL TListViewEx::EventButton(UINT uMsg, int nHitTest, POINTS pos)
@@ -87,22 +108,22 @@ BOOL TListViewEx::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 
 BOOL TListViewEx::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (focus_index == INVALID_INDEX)
+	if (focusIndex == INVALID_INDEX)
 		return	FALSE;
 
 	switch (uMsg) {
 	case LVM_INSERTITEM:
-		if (((LV_ITEM *)lParam)->iItem <= focus_index)
-			focus_index++;
+		if (((LV_ITEM *)lParam)->iItem <= focusIndex)
+			focusIndex++;
 		break;
 	case LVM_DELETEITEM:
-		if ((int)wParam == focus_index)
-			focus_index = INVALID_INDEX;
-		else if ((int)wParam < focus_index)
-			focus_index--;
+		if ((int)wParam == focusIndex)
+			focusIndex = INVALID_INDEX;
+		else if ((int)wParam < focusIndex)
+			focusIndex--;
 		break;
 	case LVM_DELETEALLITEMS:
-		focus_index = INVALID_INDEX;
+		focusIndex = INVALID_INDEX;
 		break;
 	}
 	return	FALSE;
@@ -114,7 +135,7 @@ int TListViewEx::InsertColumn(int idx, char *title, int width, int fmt)
 	memset(&lvC, 0, sizeof(lvC));
 	lvC.fmt      = fmt;
 	lvC.mask     = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
-	lvC.pszText  = U8toW(title);
+	lvC.pszText  = U8toWs(title);
 	lvC.cx       = width;
 	lvC.iSubItem = idx;
 	return	(int)SendMessage(LVM_INSERTCOLUMNW, idx, (LPARAM)&lvC);
@@ -142,21 +163,21 @@ BOOL TListViewEx::DeleteItem(int idx)
 
 int TListViewEx::InsertItem(int idx, char *str, LPARAM lParam)
 {
-	LV_ITEMW		lvi = {0};
+	LV_ITEMW		lvi = {};
 	lvi.mask		= LVIF_TEXT|LVIF_PARAM;
 	lvi.iItem		= idx;
-	lvi.pszText		= U8toW(str);
+	lvi.pszText		= U8toWs(str);
 	lvi.lParam		= lParam;
 	return	(int)SendMessage(LVM_INSERTITEMW, 0, (LPARAM)&lvi);
 }
 
 int TListViewEx::SetSubItem(int idx, int subIdx, char *str)
 {
-	LV_ITEMW		lvi = {0};
+	LV_ITEMW		lvi = {};
 	lvi.mask		= LVIF_TEXT;
 	lvi.iItem		= idx;
 	lvi.iSubItem	= subIdx;
-	lvi.pszText		= U8toW(str);
+	lvi.pszText		= U8toWs(str);
 	return	(int)SendMessage(LVM_SETITEMW, 0, (LPARAM)&lvi);
 }
 
@@ -180,7 +201,7 @@ int TListViewEx::GetSelectedItemCount()
 
 LPARAM TListViewEx::GetItemParam(int idx)
 {
-	LV_ITEMW	lvi = {0};
+	LV_ITEMW	lvi = {};
 	lvi.iItem	= idx;
 	lvi.mask	= LVIF_PARAM;
 
@@ -306,7 +327,7 @@ BOOL TAbsenceDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		cfg->WriteRegistry(CFG_ABSENCE);
 		cfg->AbsenceCheck = FALSE;
 		::PostMessage(GetMainWnd(), WM_COMMAND, MENU_ABSENCE, 0);
-		EndDialog(TRUE);
+		EndDialog(wID);
 		return	TRUE;
 
 	case SET_BUTTON:
@@ -317,11 +338,11 @@ BOOL TAbsenceDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			cfg->AbsenceCheck = FALSE;
 			::PostMessage(GetMainWnd(), WM_COMMAND, MENU_ABSENCE, 0);
 		}
-		EndDialog(FALSE);
+		EndDialog(wID);
 		return	TRUE;
 
 	case IDCANCEL:
-		EndDialog(FALSE);
+		EndDialog(wID);
 		return	TRUE;
 
 	case ABSENCEINIT_BUTTON:
@@ -442,11 +463,11 @@ BOOL TSortDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		GetData();
 		cfg->WriteRegistry(CFG_GENERAL);
 		if (wID == IDOK)
-			EndDialog(TRUE), exclusiveWnd = NULL;
+			EndDialog(wID), exclusiveWnd = NULL;
 		return	TRUE;
 
 	case IDCANCEL:
-		EndDialog(FALSE);
+		EndDialog(wID);
 		exclusiveWnd = NULL;
 		return	TRUE;
 	}
@@ -546,16 +567,16 @@ BOOL TPasswordDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			if (cfg)
 			{
 				if (CheckPassword(cfg->PasswordStr, buf))
-					EndDialog(TRUE);
+					EndDialog(wID);
 				else
 					SetDlgItemTextU8(PASSWORD_EDIT, ""), MessageBoxU8(GetLoadStrU8(IDS_CANTAUTH));
 			}
-			else EndDialog(TRUE);
+			else EndDialog(wID);
 		}
 		return	TRUE;
 
 	case IDCANCEL:
-		EndDialog(FALSE);
+		EndDialog(wID);
 		return	TRUE;
 	}
 	return	FALSE;
@@ -643,8 +664,8 @@ BOOL TMsgDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 	case IDOK:
 	case IDCANCEL:
-		EndDialog(FALSE);
-		::PostMessage(GetMainWnd(), WM_MSGDLG_EXIT, (WPARAM)0, (LPARAM)this);
+		EndDialog(wID);
+		::PostMessage(GetMainWnd(), WM_MSGDLG_EXIT, 0, twinId);
 		return	TRUE;
 	}
 	return	FALSE;
@@ -717,7 +738,7 @@ BOOL TAboutDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	{
 	case IDOK:
 	case IDCANCEL:
-		EndDialog(TRUE);
+		EndDialog(wID);
 		return	TRUE;
 
 	case IPMSG_ICON: case IPMSGWEB_BUTTON:
@@ -769,7 +790,7 @@ BOOL TFindDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 	case IDCANCEL: case CLOSE_BUTTON:
 		sendDlg->FilterHost("");
-		EndDialog(FALSE);
+		EndDialog(wID);
 		return	TRUE;
 
 	case FIND_COMBO:
@@ -954,9 +975,9 @@ BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, ch
 	brInfo.lParam = (LPARAM)defaultDir_w.Buf();
 	brInfo.iImage = 0;
 
-	if ((pidlBrowse = SHBrowseForFolderV((BROWSEINFO *)&brInfo)))
+	if ((pidlBrowse = SHBrowseForFolderW(&brInfo)))
 	{
-		ret = SHGetPathFromIDListV(pidlBrowse, buf_w.Buf());
+		ret = SHGetPathFromIDListW(pidlBrowse, buf_w.Buf());
 		iMalloc->Free(pidlBrowse);
 		if (ret) {
 			WtoU8(buf_w, buf, MAX_PATH_U8);
@@ -965,5 +986,43 @@ BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, ch
 
 	iMalloc->Release();
 	return	ret;
+}
+
+TInputDlg::TInputDlg(TWin *_parent) : TDlg(INPUT_DIALOG, _parent)
+{
+}
+
+int TInputDlg::Exec(POINT _pt, char *_buf, int _max_buf)
+{
+	pt		= _pt;
+	buf     = _buf;
+	max_buf = _max_buf;
+	return	TDlg::Exec();
+}
+
+BOOL TInputDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
+{
+	switch (wID)
+	{
+	case IDOK:
+		GetDlgItemTextU8(INPUT_EDIT, buf, max_buf);
+		EndDialog(IDOK);
+		return	TRUE;
+
+	case IDCANCEL:
+		EndDialog(IDCANCEL);
+		return	TRUE;
+	}
+
+	return	FALSE;
+}
+
+BOOL TInputDlg::EvCreate(LPARAM lParam)
+{
+	if (*buf) {
+		SetDlgItemTextU8(INPUT_EDIT, buf);
+	}
+	MoveWindow(pt.x, pt.y, orgRect.cx(), orgRect.cy(), FALSE);
+	return	TRUE;
 }
 

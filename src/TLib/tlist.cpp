@@ -21,55 +21,32 @@ TList::TList(void)
 
 void TList::Init(void)
 {
-	top.prior = top.next = &top;
+	top.prev = top.next = &top;
 	num = 0;
 }
 
 void TList::AddObj(TListObj * obj)
 {
-	obj->prior = top.prior;
+	obj->prev = top.prev;
 	obj->next = &top;
-	top.prior->next = obj;
-	top.prior = obj;
+	top.prev->next = obj;
+	top.prev = obj;
 	num++;
 }
 
 void TList::DelObj(TListObj * obj)
 {
-//	if (!obj->next || !obj->prior || obj->next != &top && obj->prior != &top) {
-//		Debug("DelObj(%p) (%p/%p)\n", obj, obj->next, obj->prior);
+//	if (!obj->next || !obj->prev || obj->next != &top && obj->prev != &top) {
+//		Debug("DelObj(%p) (%p/%p)\n", obj, obj->next, obj->prev);
 //	}
 	if (obj->next) {
-		obj->next->prior = obj->prior;
+		obj->next->prev = obj->prev;
 	}
-	if (obj->prior) {
-		obj->prior->next = obj->next;
+	if (obj->prev) {
+		obj->prev->next = obj->next;
 	}
-	obj->next = obj->prior = NULL;
+	obj->next = obj->prev = NULL;
 	num--;
-}
-
-TListObj* TList::TopObj(void)
-{
-//	if (top.next != &top && top.next->next != &top && top.next->prior != &top) {
-//		Debug("TopObj(%p) \n", top.next);
-//	}
-	return	top.next == &top ? NULL : top.next;
-}
-
-TListObj* TList::EndObj(void)
-{
-	return	top.next == &top ? NULL : top.prior;
-}
-
-TListObj* TList::NextObj(TListObj *obj)
-{
-	return	obj->next == &top ? NULL : obj->next;
-}
-
-TListObj* TList::PriorObj(TListObj *obj)
-{
-	return	obj->prior == &top ? NULL : obj->prior;
 }
 
 void TList::MoveList(TList *from_list)
@@ -77,13 +54,13 @@ void TList::MoveList(TList *from_list)
 	if (from_list->top.next != &from_list->top) {	// from_list is not empty
 		if (top.next == &top) {	// empty
 			top = from_list->top;
-			top.next->prior = top.prior->next = &top;
+			top.next->prev = top.prev->next = &top;
 		}
 		else {
-			top.prior->next = from_list->top.next;
-			from_list->top.next->prior = top.prior;
-			from_list->top.prior->next = &top;
-			top.prior = from_list->top.prior;
+			top.prev->next = from_list->top.next;
+			from_list->top.next->prev = top.prev;
+			from_list->top.prev->next = &top;
+			top.prev = from_list->top.prev;
 		}
 		num += from_list->num;
 		from_list->Init();

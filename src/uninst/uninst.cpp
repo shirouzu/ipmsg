@@ -1,10 +1,10 @@
 static char *uninst_id = 
-	"@(#)Copyright (C) H.Shirouzu 1998-2011   uninst.cpp	Ver3.10";
+	"@(#)Copyright (C) H.Shirouzu 1998-2015   uninst.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Installer Application Class
 	Create					: 1998-06-14(Sun)
-	Update					: 2011-04-10(Sun)
+	Update					: 2015-06-02(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -52,7 +52,7 @@ TUninstDlg::TUninstDlg(char *cmdLine) : TDlg(UNINSTALL_DIALOG)
 
 	char	*p = strstr(cmdLine, "runas=");
 	if (p) {
-		runasWnd = (HWND)strtoul(p+6, 0, 16);
+		runasWnd = (HWND)strtoull(p + 6, 0, 16);
 		if (!runasWnd) PostQuitMessage(0);
 	}
 }
@@ -123,33 +123,11 @@ BOOL TUninstDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 BOOL DeleteKeySet(const char *csp_name, const char *cont_name, DWORD flag)
 {
-// åˆäJåÆÇÃçÌèú
-#ifndef MS_DEF_PROV
-typedef unsigned long HCRYPTPROV;
-#define MS_DEF_PROV				"Microsoft Base Cryptographic Provider v1.0"
-#define MS_ENHANCED_PROV		"Microsoft Enhanced Cryptographic Provider v1.0"
-#define CRYPT_DELETEKEYSET      0x00000010
-#define CRYPT_MACHINE_KEYSET    0x00000020
-#define PROV_RSA_FULL			1
-#endif
-	static HINSTANCE	advdll;
-	static BOOL (WINAPI *pCryptAcquireContext)(HCRYPTPROV *, LPCSTR, LPCSTR, DWORD, DWORD);
-	static BOOL (WINAPI *pCryptReleaseContext)(HCRYPTPROV, DWORD);
-
-	if (!advdll) {
-		advdll = ::LoadLibrary("advapi32.dll");
-		pCryptAcquireContext = (BOOL (WINAPI *)(HCRYPTPROV *, LPCSTR, LPCSTR, DWORD, DWORD))
-					 			::GetProcAddress(advdll, "CryptAcquireContextA");
-		pCryptReleaseContext = (BOOL (WINAPI *)(HCRYPTPROV, DWORD))
-					 			::GetProcAddress(advdll, "CryptReleaseContext");
-	}
-	if (!pCryptAcquireContext || !pCryptReleaseContext) return TRUE;
-
 	HCRYPTPROV	hCsp = NULL;
 
-	if (!pCryptAcquireContext(&hCsp, cont_name, csp_name, PROV_RSA_FULL, flag|CRYPT_DELETEKEYSET)) {
-		if (pCryptAcquireContext(&hCsp, cont_name, csp_name, PROV_RSA_FULL, flag)) {
-			pCryptReleaseContext(hCsp, 0);
+	if (!::CryptAcquireContext(&hCsp, cont_name, csp_name, PROV_RSA_FULL, flag|CRYPT_DELETEKEYSET)) {
+		if (::CryptAcquireContext(&hCsp, cont_name, csp_name, PROV_RSA_FULL, flag)) {
+			::CryptReleaseContext(hCsp, 0);
 			return	FALSE;
 		}
 	}
@@ -160,7 +138,7 @@ BOOL RunAsAdmin(HWND hWnd)
 {
 	char	path[MAX_PATH], buf[MAX_BUF];
 	::GetModuleFileName(::GetModuleHandle(NULL), path, sizeof(path));
-	sprintf(buf, "/runas=%x\n", hWnd);
+	sprintf(buf, "/runas=%p\n", hWnd);
 	ShellExecute(hWnd, "runas", path, buf, NULL, SW_SHOW);
 	return TRUE;
 }
@@ -172,7 +150,7 @@ BOOL TUninstDlg::UnInstall(void)
 
 	if (st == 1) return FALSE;
 	if (st == 2) {
-		if (!IsWinVista() || TIsUserAnAdmin() || !TIsEnableUAC()) {
+		if (!IsWinVista() || ::IsUserAnAdmin() || !TIsEnableUAC()) {
 			MessageBox(GetLoadStr(IDS_CANTTERMINATE), UNINSTALL_STR);
 			return FALSE;
 		}
@@ -204,7 +182,7 @@ BOOL TUninstDlg::UnInstall(void)
 			!DeleteKeySet(MS_DEF_PROV, contName, 0)) need_admin = TRUE;
 
 		if (need_admin) {
-			if (IsWinVista() && !TIsUserAnAdmin() && TIsEnableUAC()) {
+			if (IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
 				if (MessageBox(GetLoadStr(IDS_REQUIREADMIN_PUBKEY), "",
 					MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) return FALSE;
 				return	RunAsAdmin(hWnd);
@@ -395,7 +373,7 @@ BOOL DeleteLink(LPCSTR path)
 		return	FALSE;
 
 	GetParentDirU8(path, dir);
-	::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH|SHCNF_FLUSH, U8toA(dir), NULL);
+	::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH|SHCNF_FLUSH, U8toAs(dir), NULL);
 
 	return	TRUE;
 }

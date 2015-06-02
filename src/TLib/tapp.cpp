@@ -22,12 +22,12 @@ TApp::TApp(HINSTANCE _hI, LPSTR _cmdLine, int _nCmdShow)
 	nCmdShow		= _nCmdShow;
 	mainWnd			= NULL;
 	defaultClass	= "tapp";
-	defaultClassV	= IS_WINNT_V ? (void *)L"tapp" : (void *)"tapp";
+	defaultClassW	= L"tapp";
 	tapp			= this;
 	hash			= new TWinHashTbl(MAX_TAPPWIN_HASH);
+	twinId			= 1;
 
 	InitInstanceForLoadStr(hI);
-	TLibInit_Win32V();
 
 #if ENGLISH_TEST
 	TSetDefaultLCID(0x409); // for English Dialog Test
@@ -108,11 +108,11 @@ BOOL TApp::InitApp(void)	// reference kwc
 	wc.hCursor			= LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground	= NULL;
 	wc.lpszMenuName		= NULL;
-	wc.lpszClassName	= (LPCWSTR)defaultClassV;
+	wc.lpszClassName	= defaultClassW;
 
-	if (::FindWindowV(defaultClassV, NULL) == NULL)
+	if (::FindWindowW(defaultClassW, NULL) == NULL)
 	{
-		if (::RegisterClassV(&wc) == 0)
+		if (::RegisterClassW(&wc) == 0)
 			return FALSE;
 	}
 
@@ -155,8 +155,8 @@ BOOL TRegisterClass(LPCSTR class_name, UINT style, HICON hIcon, HCURSOR hCursor,
 	return	::RegisterClass(&wc);
 }
 
-BOOL TRegisterClassV(const void *class_name, UINT style, HICON hIcon, HCURSOR hCursor,
-	HBRUSH hbrBackground, int classExtra, int wndExtra, const void *menu_str)
+BOOL TRegisterClassW(const WCHAR *class_name, UINT style, HICON hIcon, HCURSOR hCursor,
+	HBRUSH hbrBackground, int classExtra, int wndExtra, const WCHAR *menu_str)
 {
 	WNDCLASSW	wc;
 
@@ -172,7 +172,7 @@ BOOL TRegisterClassV(const void *class_name, UINT style, HICON hIcon, HCURSOR hC
 	wc.lpszMenuName		= (LPCWSTR)menu_str;
 	wc.lpszClassName	= (LPCWSTR)class_name;
 
-	return	::RegisterClassV(&wc);
+	return	::RegisterClassW(&wc);
 }
 
 BOOL TRegisterClassU8(LPCSTR class_name, UINT style, HICON hIcon, HCURSOR hCursor,
@@ -181,7 +181,7 @@ BOOL TRegisterClassU8(LPCSTR class_name, UINT style, HICON hIcon, HCURSOR hCurso
 	Wstr	class_name_w(class_name, BY_UTF8);
 	Wstr	menu_str_w(menu_str, BY_UTF8);
 
-	return	TRegisterClassV(class_name_w, style, hIcon, hCursor, hbrBackground, classExtra,
+	return	TRegisterClassW(class_name_w, style, hIcon, hCursor, hbrBackground, classExtra,
 			wndExtra, menu_str_w);
 }
 

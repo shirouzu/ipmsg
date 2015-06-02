@@ -1,10 +1,10 @@
 ﻿static char *tmisc_id = 
-	"@(#)Copyright (C) 1996-2012 H.Shirouzu		tmisc.cpp	Ver0.99";
+	"@(#)Copyright (C) 1996-2015 H.Shirouzu		tmisc.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-02(Mon)
+	Update					: 2015-04-06(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -22,22 +22,22 @@ HINSTANCE defaultStrInstance;
 
 BOOL THashObj::LinkHash(THashObj *top)
 {
-	if (priorHash)
+	if (prevHash)
 		return FALSE;
 	this->nextHash = top->nextHash;
-	this->priorHash = top;
-	top->nextHash->priorHash = this;
+	this->prevHash = top;
+	top->nextHash->prevHash = this;
 	top->nextHash = this;
 	return TRUE;
 }
 
 BOOL THashObj::UnlinkHash()
 {
-	if (!priorHash)
+	if (!prevHash)
 		return FALSE;
-	priorHash->nextHash = nextHash;
-	nextHash->priorHash = priorHash;
-	priorHash = nextHash = NULL;
+	prevHash->nextHash = nextHash;
+	nextHash->prevHash = prevHash;
+	prevHash = nextHash = NULL;
 	return TRUE;
 }
 
@@ -66,7 +66,7 @@ BOOL THashTbl::Init(int _hashNum)
 
 	for (int i=0; i < hashNum; i++) {
 		THashObj	*obj = hashTbl + i;
-		obj->priorHash = obj->nextHash = obj;
+		obj->prevHash = obj->nextHash = obj;
 	}
 	registerNum = 0;
 	return	TRUE;
@@ -210,7 +210,7 @@ void Condition::Notify(void)	// 現状では、眠っているスレッド全員
   説  明 ： 
   注  意 ： 
 =========================================================================*/
-VBuf::VBuf(int _size, int _max_size, VBuf *_borrowBuf)
+VBuf::VBuf(size_t _size, size_t _max_size, VBuf *_borrowBuf)
 {
 	Init();
 
@@ -230,7 +230,7 @@ void VBuf::Init(void)
 	size = usedSize = maxSize = 0;
 }
 
-BOOL VBuf::AllocBuf(int _size, int _max_size, VBuf *_borrowBuf)
+BOOL VBuf::AllocBuf(size_t _size, size_t _max_size, VBuf *_borrowBuf)
 {
 	if (_max_size == 0)
 		_max_size = _size;
@@ -271,7 +271,7 @@ void VBuf::FreeBuf(void)
 	Init();
 }
 
-BOOL VBuf::Grow(int grow_size)
+BOOL VBuf::Grow(size_t grow_size)
 {
 	if (size + grow_size > maxSize)
 		return	FALSE;
@@ -350,9 +350,9 @@ HMODULE TLoadLibrary(LPSTR dllname)
 	return	hModule;
 }
 
-HMODULE TLoadLibraryV(void *dllname)
+HMODULE TLoadLibraryW(WCHAR *dllname)
 {
-	HMODULE	hModule = LoadLibraryV(dllname);
+	HMODULE	hModule = LoadLibraryW(dllname);
 
 	if (defaultLCID) {
 		TSetThreadLocale(defaultLCID);
@@ -397,56 +397,9 @@ int MakePathW(WCHAR *dest, const WCHAR *dir, const WCHAR *file)
 	if ((len = wcslen(dir)) == 0)
 		return	wsprintfW(dest, L"%s", file);
 
-	return	wsprintfW(dest, L"%s%s%s", dir, dir[len -1] == L'\\' ? L"" : L"\\" , file);
+	return	wsprintfW(dest, L"%s%s%s", dir, dir[len -1] == '\\' ? L"" : L"\\" , file);
 }
 
-WCHAR lGetCharIncW(const WCHAR **str)
-{
-	return	*(*str)++;
-}
-
-WCHAR lGetCharIncA(const char **str)
-{
-	WCHAR	ch = *(*str)++;
-
-	if (IsDBCSLeadByte((BYTE)ch)) {
-		ch <<= BITS_OF_BYTE;
-		ch |= *(*str)++;	// null 判定は手抜き
-	}
-	return	ch;
-}
-
-WCHAR lGetCharW(const WCHAR *str, int offset)
-{
-	return	str[offset];
-}
-
-WCHAR lGetCharA(const char *str, int offset)
-{
-	while (offset-- > 0)
-		lGetCharIncA(&str);
-
-	return	lGetCharIncA(&str);
-}
-
-void lSetCharW(WCHAR *str, int offset, WCHAR ch)
-{
-	str[offset] = ch;
-}
-
-void lSetCharA(char *str, int offset, WCHAR ch)
-{
-	while (offset-- > 0) {
-		if (IsDBCSLeadByte(*str++))
-			*str++;
-	}
-
-	BYTE	high_ch = ch >> BITS_OF_BYTE;
-
-	if (high_ch)
-		*str++ = high_ch;
-	*str = (BYTE)ch;
-}
 
 /*=========================================================================
 	bin <-> hex
@@ -525,10 +478,9 @@ BOOL hexstr2bin_revendian(const char *buf, BYTE *bindata, int maxlen, int *len)
 	return	TRUE;
 }
 
-int strip_crlf(char *s)
+int strip_crlf(const char *s, char *d)
 {
-	char	*d = s;
-	char	*sv = s;
+	char	*sv = d;
 
 	while (*s) {
 		char	c = *s++;
@@ -538,20 +490,25 @@ int strip_crlf(char *s)
 	return	(int)(d - sv);
 }
 
-/* base64 convert routne */
+/* base64 convert routine */
 BOOL b64str2bin(const char *buf, BYTE *bindata, int maxlen, int *len)
 {
 	*len = maxlen;
-	return	pCryptStringToBinary(buf, 0, CRYPT_STRING_BASE64, bindata, (DWORD *)len, 0, 0);
+	return	::CryptStringToBinary(buf, 0, CRYPT_STRING_BASE64, bindata, (DWORD *)len, 0, 0);
 }
 
-int bin2b64str(const BYTE *bindata, int len, char *buf)
+int bin2b64str(const BYTE *bindata, int len, char *str)
 {
-	int	size = len * 2 + 5;
-	if (!pCryptBinaryToString(bindata, len, CRYPT_STRING_BASE64, buf, (DWORD *)&size)) {
+	int		size = len * 2 + 5;
+	char	*b64 = new char [size];
+
+	if (!::CryptBinaryToString(bindata, len, CRYPT_STRING_BASE64, b64, (DWORD *)&size)) {
 		return 0;
 	}
-	return	strip_crlf(buf);
+	size = strip_crlf(b64, str);
+
+	delete [] b64;
+	return	size;
 }
 
 BOOL b64str2bin_revendian(const char *buf, BYTE *bindata, int maxlen, int *len)
@@ -574,12 +531,59 @@ int bin2b64str_revendian(const BYTE *bindata, int len, char *buf)
 	return	ret;
 }
 
+int bin2urlstr(const BYTE *bindata, int len, char *str)
+{
+	int ret = bin2b64str(bindata, len, str);
+
+	for (char *s=str; *s; s++) {
+		switch (*s) {
+		case '+': *s = '-'; break;
+		case '/': *s = '_'; break;
+
+		case '\r':
+		case '\n':
+		case '=': *s = 0;   break;
+		}
+	}
+	return	ret;
+}
+
+/*
+0: 0
+1: 2+2
+2: 3+1
+3: 4
+4  6+2
+*/
+
+BOOL urlstr2bin(const char *str, BYTE *bindata, int maxlen, int *len)
+{
+	size_t	size = strlen(str);
+	char	*b64 = new char [size + 4];
+
+	strcpy(b64, str);
+	for (char *s=b64; *s; s++) {
+		switch (*s) {
+		case '-': *s = '+'; break;
+		case '_': *s = '/'; break;
+		}
+	}
+	if (b64[size-1] != '\n' && (size % 4) && b64[size-1] != '=') {
+		sprintf(b64 + size -1, "%.*s", 4 - (size % 4), "===");
+	}
+
+	b64str2bin(b64, bindata, maxlen, len);
+
+	free(b64);
+	return	TRUE;
+}
+
 /*
 	16進 -> long long
 */
-_int64 hex2ll(char *buf)
+int64 hex2ll(char *buf)
 {
-	_int64	ret = 0;
+	int64	ret = 0;
 
 	for ( ; *buf; buf++)
 	{
@@ -647,7 +651,7 @@ void DebugU8(char *fmt,...)
 	_vsnprintf(buf, sizeof(buf), fmt, ap);
 	va_end(ap);
 
-	WCHAR *wbuf = U8toW(buf, TRUE);
+	WCHAR *wbuf = U8toWs(buf);
 	::OutputDebugStringW(wbuf);
 	delete [] wbuf;
 }
@@ -704,7 +708,7 @@ LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 #ifdef _WIN64
 		"------ %s -----\r\n"
 		" Date        : %d/%02d/%02d %02d:%02d:%02d\r\n"
-		" Code/Addr   : %p / %p\r\n"
+		" Code/Addr   : %x / %p\r\n"
 		" AX/BX/CX/DX : %p / %p / %p / %p\r\n"
 		" SI/DI/BP/SP : %p / %p / %p / %p\r\n"
 		" 08/09/10/11 : %p / %p / %p / %p\r\n"
@@ -760,15 +764,19 @@ LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 	return	EXCEPTION_EXECUTE_HANDLER;
 }
 
-BOOL InstallExceptionFilter(char *title, char *info)
+BOOL InstallExceptionFilter(const char *title, const char *info, const char *fname)
 {
 	char	buf[MAX_PATH];
 
-	::GetModuleFileName(NULL, buf, sizeof(buf));
-	strcpy(strrchr(buf, '.'), "_exception.log");
+	if (fname && *fname) {
+		strcpy(buf, fname);
+	} else {
+		::GetModuleFileName(NULL, buf, sizeof(buf));
+		strcpy(strrchr(buf, '.'), "_exception.log");
+	}
 	ExceptionLogFile = strdup(buf);
 	ExceptionTitle = strdup(title);
-	ExceptionLogInfo = info;
+	ExceptionLogInfo = strdup(info);
 
 	::SetUnhandledExceptionFilter(&Local_UnhandledExceptionFilter);
 	return	TRUE;
@@ -815,42 +823,21 @@ int strncmpi(const char *str1, const char *str2, size_t num)
 	return	0;
 }
 
-
-/*=========================================================================
-	UCS2(W) - ANSI(A) 相互変換
-=========================================================================*/
-WCHAR *AtoW(const char *src, BOOL noStatic) {
-	static	WCHAR	*_wbuf = NULL;
-
-	WCHAR	*wtmp = NULL;
-	WCHAR	*&wbuf = noStatic ? wtmp : _wbuf;
-
-	if (wbuf) {
-		delete [] wbuf;
-		wbuf = NULL;
-	}
-
-	int		len;
-	if ((len = AtoW(src, NULL, 0)) > 0) {
-		wbuf = new WCHAR [len + 1];
-		AtoW(src, wbuf, len);
-	}
-	return	wbuf;
-}
-
-char *strdupNew(const char *_s)
+char *strdupNew(const char *_s, int max_len)
 {
-	int		len = (int)strlen(_s) + 1;
-	char	*s = new char [len];
+	int		len = int((max_len == -1) ? strlen(_s) : strnlen(_s, max_len));
+	char	*s = new char [len + 1];
 	memcpy(s, _s, len);
+	s[len] = 0;
 	return	s;
 }
 
-WCHAR *wcsdupNew(const WCHAR *_s)
+WCHAR *wcsdupNew(const WCHAR *_s, int max_len)
 {
-	int		len = (int)wcslen(_s) + 1;
-	WCHAR	*s = new WCHAR [len];
+	int		len = int((max_len == -1) ? wcslen(_s) : wcsnlen(_s, max_len));
+	WCHAR	*s = new WCHAR [len + 1];
 	memcpy(s, _s, len * sizeof(WCHAR));
+	s[len] = 0;
 	return	s;
 }
 
@@ -961,23 +948,6 @@ BOOL TWow64RevertWow64FsRedirection(void *oldval)
 	return	pWow64RevertWow64FsRedirection ? pWow64RevertWow64FsRedirection(oldval) : FALSE;
 }
 
-BOOL TIsUserAnAdmin()
-{
-	static BOOL	once = FALSE;
-	static BOOL	(WINAPI *pIsUserAnAdmin)(void);
-	static BOOL	ret = FALSE;
-
-	if (!once) {
-		pIsUserAnAdmin = (BOOL (WINAPI *)(void))
-			GetProcAddress(::GetModuleHandle("shell32"), "IsUserAnAdmin");
-		if (pIsUserAnAdmin) {
-			ret = pIsUserAnAdmin();
-		}
-		once = TRUE;
-	}
-	return	ret;
-}
-
 BOOL TIsEnableUAC()
 {
 	static BOOL once = FALSE;
@@ -999,20 +969,7 @@ BOOL TIsEnableUAC()
 	return	ret;
 }
 
-BOOL TSHGetSpecialFolderPathV(HWND hWnd, void *str, int flg, BOOL is_create)
-{
-	static BOOL (WINAPI *pSHGetSpecialFolderPath)(HWND, void *, int, BOOL);
-
-	if (!pSHGetSpecialFolderPath) {
-		pSHGetSpecialFolderPath = (BOOL (WINAPI *)(HWND, void *, int, BOOL))
-			::GetProcAddress(::GetModuleHandle("shell32"),
-				IS_WINNT_V ? "SHGetSpecialFolderPathW" : "SHGetSpecialFolderPathA");
-	}
-
-	return	pSHGetSpecialFolderPath ? pSHGetSpecialFolderPath(hWnd, str, flg, is_create) : FALSE;
-}
-
-BOOL TIsVirtualizedDirV(void *path)
+BOOL TIsVirtualizedDirW(WCHAR *path)
 {
 	if (!IsWinVista()) return FALSE;
 
@@ -1021,37 +978,32 @@ BOOL TIsVirtualizedDirV(void *path)
 						CSIDL_COMMON_APPDATA, 0xffffffff };
 
 	for (int i=0; csidl[i] != 0xffffffff; i++) {
-		if (TSHGetSpecialFolderPathV(NULL, buf, csidl[i], FALSE)) {
-			int	len = strlenV(buf);
-			if (strnicmpV(buf, path, len) == 0) {
-				WCHAR	ch = GetChar(path, len);
+		if (SHGetSpecialFolderPathW(NULL, buf, csidl[i], FALSE)) {
+			size_t	len = wcslen(buf);
+			if (wcsnicmp(buf, path, len) == 0) {
+				WCHAR	ch = path[len];
 				if (ch == 0 || ch == '\\' || ch == '/') {
 					return	TRUE;
 				}
 			}
-//			if (i == 0 && GetChar(buf, 1) == ':') { /* check system root directory */
-//				if (strnicmpV(path, buf, 3) == 0 && strchrV(MakeAddr(path, 4), '\\') == NULL) {
-//					return	TRUE;
-//				}
-//			}
 		}
 	}
 
 	return	FALSE;
 }
 
-BOOL TMakeVirtualStorePathV(void *org_path, void *buf)
+BOOL TMakeVirtualStorePathW(WCHAR *org_path, WCHAR *buf)
 {
 	if (!IsWinVista()) return FALSE;
 
-	if (!TIsVirtualizedDirV(org_path)
-	|| !TSHGetSpecialFolderPathV(NULL, buf, CSIDL_LOCAL_APPDATA, FALSE)
-	||	GetChar(org_path, 1) != ':' || GetChar(org_path, 2) != '\\') {
-		strcpyV(buf, org_path);
+	if (!TIsVirtualizedDirW(org_path)
+	|| !SHGetSpecialFolderPathW(NULL, buf, CSIDL_LOCAL_APPDATA, FALSE)
+	||	org_path[1] != ':' || org_path[2] != '\\') {
+		wcscpy(buf, org_path);
 		return	FALSE;
 	}
 
-	sprintfV(MakeAddr(buf, strlenV(buf)), L"\\VirtualStore%s", MakeAddr(org_path, 2));
+	swprintf(buf + wcslen(buf), L"\\VirtualStore%s", org_path + 2);
 	return	TRUE;
 }
 
@@ -1142,29 +1094,25 @@ void TSwitchToThisWindow(HWND hWnd, BOOL flg)
 	src  ... old_path
 	dest ... new_path
 */
-BOOL SymLinkV(void *src, void *dest, void *arg)
+BOOL SymLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg)
 {
-	IShellLink		*shellLink;
+	IShellLinkW		*shellLink;
 	IPersistFile	*persistFile;
-	WCHAR			wbuf[MAX_PATH], *ps_dest = (WCHAR *)dest;
+	WCHAR			*ps_dest = dest;
 	BOOL			ret = FALSE;
 	WCHAR			buf[MAX_PATH];
 
-	if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkV,
+	if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW,
 			(void **)&shellLink))) {
-		shellLink->SetPath((char *)src);
-		shellLink->SetArguments((char *)arg);
-		GetParentDirV(src, buf);
-		shellLink->SetWorkingDirectory((char *)buf);
+		shellLink->SetPath(src);
+		shellLink->SetArguments(arg);
+		GetParentDirW(src, buf);
+		shellLink->SetWorkingDirectory(buf);
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
-			if (!IS_WINNT_V) {
-				AtoW((char *)dest, wbuf, MAX_PATH);
-				ps_dest = wbuf;
-			}
 			if (SUCCEEDED(persistFile->Save(ps_dest, TRUE))) {
 				ret = TRUE;
-				GetParentDirV(dest, buf);
-				::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATHV|SHCNF_FLUSH, buf, NULL);
+				GetParentDirW(dest, buf);
+				::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATHW|SHCNF_FLUSH, buf, NULL);
 			}
 			persistFile->Release();
 		}
@@ -1173,24 +1121,19 @@ BOOL SymLinkV(void *src, void *dest, void *arg)
 	return	ret;
 }
 
-BOOL ReadLinkV(void *src, void *dest, void *arg)
+BOOL ReadLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg)
 {
-	IShellLink		*shellLink;		// 実際は IShellLinkA or IShellLinkW
+	IShellLinkW		*shellLink;		// 実際は IShellLinkA or IShellLinkW
 	IPersistFile	*persistFile;
-	WCHAR			wbuf[MAX_PATH];
 	BOOL			ret = FALSE;
 
-	if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkV,
+	if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW,
 			(void **)&shellLink))) {
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
-			if (!IS_WINNT_V) {
-				AtoW((char *)src, wbuf, MAX_PATH);
-				src = wbuf;
-			}
 			if (SUCCEEDED(persistFile->Load((WCHAR *)src, STGM_READ))) {
-				if (SUCCEEDED(shellLink->GetPath((char *)dest, MAX_PATH, NULL, 0))) {
+				if (SUCCEEDED(shellLink->GetPath(dest, MAX_PATH, NULL, 0))) {
 					if (arg) {
-						shellLink->GetArguments((char *)arg, MAX_PATH);
+						shellLink->GetArguments(arg, MAX_PATH);
 					}
 					ret = TRUE;
 				}
@@ -1205,15 +1148,15 @@ BOOL ReadLinkV(void *src, void *dest, void *arg)
 /*
 	リンクファイル削除
 */
-BOOL DeleteLinkV(void *path)
+BOOL DeleteLinkW(WCHAR *path)
 {
 	WCHAR	dir[MAX_PATH];
 
-	if (!DeleteFileV(path))
+	if (!DeleteFileW(path))
 		return	FALSE;
 
-	GetParentDirV(path, dir);
-	::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATHV|SHCNF_FLUSH, dir, NULL);
+	GetParentDirW(path, dir);
+	::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATHW|SHCNF_FLUSH, dir, NULL);
 
 	return	TRUE;
 }
@@ -1221,19 +1164,19 @@ BOOL DeleteLinkV(void *path)
 /*
 	親ディレクトリ取得（必ずフルパスであること。UNC対応）
 */
-BOOL GetParentDirV(const void *srcfile, void *dir)
+BOOL GetParentDirW(const WCHAR *srcfile, WCHAR *dir)
 {
 	WCHAR	path[MAX_PATH], *fname=NULL;
 
-	if (GetFullPathNameV(srcfile, MAX_PATH, path, (void **)&fname) == 0 || fname == NULL)
-		return	strcpyV(dir, srcfile), FALSE;
+	if (GetFullPathNameW(srcfile, MAX_PATH, path, &fname) == 0 || fname == NULL)
+		return	wcscpy(dir, srcfile), FALSE;
 
-	if (((char *)fname - (char *)path) > 3 * CHAR_LEN_V || GetChar(path, 1) != ':')
-		SetChar(fname, -1, 0);
+	if ((fname - path) > 3 || path[1] != ':')
+		fname[-1] = 0;
 	else
-		SetChar(fname, 0, 0);		// C:\ の場合
+		fname[0] = 0;		// C:\ の場合
 
-	strcpyV(dir, path);
+	wcscpy(dir, path);
 	return	TRUE;
 }
 
@@ -1246,27 +1189,27 @@ BOOL GetParentDirV(const void *srcfile, void *dir)
 #include <htmlhelp.h>
 #endif
 
-HWND ShowHelpV(HWND hOwner, void *help_dir, void *help_file, void *section)
+HWND ShowHelpW(HWND hOwner, WCHAR *help_dir, WCHAR *help_file, WCHAR *section)
 {
 #if defined(ENABLE_HTML_HELP)
-	static HWND (WINAPI *pHtmlHelpV)(HWND, void *, UINT, DWORD_PTR) = NULL;
+	static HWND (WINAPI *pHtmlHelpW)(HWND, WCHAR *, UINT, DWORD_PTR) = NULL;
 
-	if (pHtmlHelpV == NULL) {
+	if (pHtmlHelpW == NULL) {
 		DWORD		cookie=0;
 		HMODULE		hHtmlHelp = TLoadLibrary("hhctrl.ocx");
 		if (hHtmlHelp)
-			pHtmlHelpV = (HWND (WINAPI *)(HWND, void *, UINT, DWORD_PTR))
-						::GetProcAddress(hHtmlHelp, IS_WINNT_V ? "HtmlHelpW" : "HtmlHelpA");
-		if (pHtmlHelpV)
-			pHtmlHelpV(NULL, NULL, HH_INITIALIZE, (DWORD)&cookie);
+			pHtmlHelpW = (HWND (WINAPI *)(HWND, WCHAR *, UINT, DWORD_PTR))
+						::GetProcAddress(hHtmlHelp, "HtmlHelpW");
+		if (pHtmlHelpW)
+			pHtmlHelpW(NULL, NULL, HH_INITIALIZE, (DWORD)&cookie);
 	}
-	if (pHtmlHelpV) {
+	if (pHtmlHelpW) {
 		WCHAR	path[MAX_PATH];
 
-		MakePathV(path, help_dir, help_file);
+		MakePathW(path, help_dir, help_file);
 		if (section)
-			strcpyV(MakeAddr(path, strlenV(path)), section);
-		return	pHtmlHelpV(hOwner, path, HH_DISPLAY_TOC, 0);
+			wcscpy(path + wcslen(path), section);
+		return	pHtmlHelpW(hOwner, path, HH_DISPLAY_TOC, 0);
 	}
 #endif
 	return	NULL;
@@ -1274,18 +1217,11 @@ HWND ShowHelpV(HWND hOwner, void *help_dir, void *help_file, void *section)
 
 HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const char *section)
 {
-	if (IS_WINNT_V) {
-		Wstr	dir(help_dir);
-		Wstr	file(help_file);
-		Wstr	sec(section);
-		return	ShowHelpV(hOwner, dir.Buf(), file.Buf(), sec.Buf());
-	}
-	else {
-		MBCSstr	dir(help_dir);
-		MBCSstr	file(help_file);
-		MBCSstr	sec(section);
-		return	ShowHelpV(hOwner, dir.Buf(), file.Buf(), sec.Buf());
-	}
+	Wstr	dir(help_dir);
+	Wstr	file(help_file);
+	Wstr	sec(section);
+
+	return	ShowHelpW(hOwner, dir.Buf(), file.Buf(), sec.Buf());
 }
 
 #ifdef REPLACE_DEBUG_ALLOCATOR

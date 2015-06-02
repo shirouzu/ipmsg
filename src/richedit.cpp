@@ -1,10 +1,10 @@
 ﻿static char *richedit_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2012   richedit.cpp	Ver3.41";
+	"@(#)Copyright (C) H.Shirouzu 2011-2014   richedit.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Rich Edit Control and PNG-BMP convert
 	Create					: 2011-05-03(Tue)
-	Update					: 2012-04-03(Tue)
+	Update					: 2014-08-24(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -17,6 +17,8 @@
 #include <commctrl.h>
 #include <richedit.h>
 #include <oledlg.h>
+#include <gdiplus.h>
+using namespace Gdiplus;
 
 class TDataObject : IDataObject {
 private:
@@ -42,7 +44,7 @@ public:
 	STDMETHODIMP DAdvise(FORMATETC *_fe, DWORD advf, IAdviseSink *as, DWORD *conn) {
 					return E_NOTIMPL; }
 
-	void InsertBitmap(IRichEditOle *richOle, HBITMAP hBmp);
+	void InsertBitmap(IRichEditOle *richOle, HBITMAP _hBmp);
 };
 
 HRESULT TDataObject::QueryInterface(REFIID riid, LPVOID* ppv)
@@ -406,10 +408,13 @@ BOOL TEditSub::AttachWnd(HWND _hWnd)
 {
 	// Protection for Visual C++ Resource editor problem...
 	// RICHEDIT20W is correct, but VC++ changes to RICHEDIT20A, sometimes.
+//#define RICHED20A_TEST
+#ifdef RICHED20A_TEST
 	char	cname[64];
 	if (GetClassName(_hWnd, cname, sizeof(cname)) && stricmp(cname, "RICHEDIT20A") == 0) {
 		MessageBox("Change RichEdit20A to RichEdit20W in ipmsg.rc", "IPMSG Resource file problem");
 	}
+#endif
 
 	if (!TSubClassCtl::AttachWnd(_hWnd)) return	FALSE;
 
@@ -465,7 +470,7 @@ void TEditSub::SaveSelectedImage()
 		DWORD	size = 0;
 
 		if (hFile != INVALID_HANDLE_VALUE) {
-			WriteFile(hFile, vbuf->Buf(), vbuf->Size(), &size, 0);
+			WriteFile(hFile, vbuf->Buf(), (DWORD)vbuf->Size(), &size, 0);
 			CloseHandle(hFile);
 			PathToDir(fname, cfg->lastSaveDir);
 		}
@@ -473,6 +478,25 @@ void TEditSub::SaveSelectedImage()
 	delete vbuf;
 }
 
+void TEditSub::InsertImage()
+{
+	char		fname[MAX_PATH_U8] = "";
+	char		dir[MAX_PATH_U8] = "";
+	OpenFileDlg	dlg(this->parent, OpenFileDlg::OPEN);
+
+	MakeImageFolderName(cfg, dir);
+
+	if (dlg.Exec(fname, sizeof(fname), NULL,
+		"Image\0*.png;*.jpg;*.jpeg;*.gif;*.tiff;*.ico;*.bmp;*.wmf;*.wmz;*.emf;*.emz\0\0", dir)) {
+		Bitmap	*bmp = Bitmap::FromFile(Wstr(fname));
+		HBITMAP	hBmp = NULL;
+		if (bmp && !bmp->GetHBITMAP(0, &hBmp) && hBmp) {
+			InsertBitmapByHandle(hBmp, -1);
+			::DeleteObject(hBmp);
+		}
+		delete bmp;
+	}
+}
 
 HMENU TEditSub::CreatePopupMenu()
 {
@@ -499,8 +523,13 @@ HMENU TEditSub::CreatePopupMenu()
 
 	/* 画像保存 */
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
-	AppendMenuU8(hMenu, MF_STRING|(SelectedImageIndex() < 0 ? MF_DISABLED : 0),
+	AppendMenuU8(hMenu, MF_STRING|(SelectedImageIndex() < 0 ? MF_DISABLED|MF_GRAYED : 0),
 					WM_SAVE_IMAGE, GetLoadStrU8(IDS_SAVE_IMAGE));
+	if (!is_readonly) {
+		AppendMenuU8(hMenu, MF_STRING|(SelectedImageIndex() < 0 ? MF_DISABLED|MF_GRAYED : 0),
+						WM_EDIT_IMAGE, GetLoadStrU8(IDS_EDIT_IMAGE));
+		AppendMenuU8(hMenu, MF_STRING, WM_INSERT_IMAGE, GetLoadStrU8(IDS_INSERT_IMAGE));
+	}
 
 	return	hMenu;
 }
@@ -533,6 +562,14 @@ BOOL TEditSub::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 	case WM_SAVE_IMAGE:
 		SaveSelectedImage();
+		return	TRUE;
+
+	case WM_INSERT_IMAGE:
+		InsertImage();
+		return	TRUE;
+
+	case WM_EDIT_IMAGE:
+		parent->PostMessage(WM_EDIT_IMAGE, 0, -1);
 		return	TRUE;
 
 	case EM_SETSEL:
@@ -622,7 +659,7 @@ BOOL TEditSub::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			memmove(wbuf, wbuf + start, (end - start) * sizeof(WCHAR));
 			wbuf[end - start] = 0;
 			char	*url_ptr;
-			char	*u8buf = WtoU8(wbuf, TRUE);
+			char	*u8buf = WtoU8(wbuf);
 
 			if ((url_ptr = strstr(u8buf, URL_STR))) {
 				char	proto[MAX_NAMEBUF];
@@ -812,24 +849,28 @@ void TEditSub::InsertBitmapByHandle(HBITMAP hBmp, int pos)
 	}
 }
 
+#include <Shlwapi.h>
+
 void TEditSub::InsertBitmap(BITMAPINFO	*bmi, int size, int pos)
 {
 	HBITMAP	hBmp = BmpInfoToHandle(bmi, size);
 
 	if (hBmp) {
 		InsertBitmapByHandle(hBmp, pos);
-		DeleteObject(hBmp);
+		::DeleteObject(hBmp);
 	}
 }
 
 BOOL TEditSub::InsertPng(VBuf *vbuf, int pos)
 {
-	HBITMAP	hBmp = PngByteToBmpHandle(vbuf);
+	HBITMAP	hBmp = NULL;
 
+	hBmp = PngByteToBmpHandle(vbuf);
 	if (!hBmp) return FALSE;
 
 	InsertBitmapByHandle(hBmp, pos);
-	DeleteObject(hBmp);
+	::DeleteObject(hBmp);
+
 	return	TRUE;
 }
 
@@ -865,6 +906,40 @@ VBuf *TEditSub::GetPngByte(int idx, int *pos)
 	}
 
 	return	 buf;
+}
+
+HBITMAP TEditSub::GetBitmap(int idx, int *pos)
+{
+	if (!richOle) return NULL;
+
+	HBITMAP			hBmp = NULL;
+	LPDATAOBJECT	dobj = NULL;
+	REOBJECT		reobj;
+
+	memset(&reobj, 0, sizeof(REOBJECT));
+	reobj.cbStruct = sizeof(REOBJECT);
+
+	if (SUCCEEDED(richOle->GetObject(idx, &reobj, REO_GETOBJ_POLEOBJ))) {
+		if (pos) *pos = reobj.cp;
+		if (SUCCEEDED(reobj.poleobj->QueryInterface(IID_IDataObject, (void **)&dobj))) {
+			STGMEDIUM	sm = {};
+			FORMATETC	fe;
+			memset(&fe, 0, sizeof(fe));
+			fe.cfFormat	= CF_BITMAP;
+			fe.dwAspect	= DVASPECT_CONTENT;
+			fe.lindex	= -1;
+			fe.tymed	= TYMED_GDI;
+
+			if (SUCCEEDED(dobj->GetData(&fe, &sm))) {
+				hBmp = (HBITMAP)::CopyImage(sm.hBitmap, IMAGE_BITMAP, 0, 0, LR_COPYRETURNORG);
+				::ReleaseStgMedium(&sm);
+			}
+			dobj->Release();
+		}
+		reobj.poleobj->Release();
+	}
+
+	return	 hBmp;
 }
 
 int TEditSub::GetImagePos(int idx)

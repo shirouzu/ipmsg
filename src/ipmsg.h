@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 1996-2011   ipmsg.h	Ver3.00 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 1996-2015   ipmsg.h	Ver3.50 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Protocol Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2015-06-02(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -63,8 +63,9 @@
 #define IPMSG_CAPUTF8OPT		0x01000000UL
 #define IPMSG_ENCEXTMSGOPT		0x04000000UL
 #define IPMSG_CLIPBOARDOPT		0x08000000UL
+#define IPMSG_CAPFILEENCOPT		0x00001000UL
 
-/*  option for send command  */
+/*  option for SENDMSG command  */
 #define IPMSG_SENDCHECKOPT		0x00000100UL
 #define IPMSG_SECRETOPT			0x00000200UL
 #define IPMSG_BROADCASTOPT		0x00000400UL
@@ -77,8 +78,10 @@
 #define IPMSG_READCHECKOPT		0x00100000UL
 #define IPMSG_SECRETEXOPT		(IPMSG_READCHECKOPT|IPMSG_SECRETOPT)
 
+/*  option for GETDIRFILES/GETFILEDATA command  */
+#define IPMSG_ENCFILEOPT		0x00000400UL
+
 /*  obsolete option for send command  */
-#define IPMSG_NOPOPUPOPTOBSOLT	0x00001000UL
 #define IPMSG_NEWMULTIOPTOBSOLT	0x00040000UL
 
 /* encryption/capability flags for encrypt command */
@@ -143,6 +146,10 @@
 #define FILELIST_SEPARATOR	'\a'
 #define HOSTLIST_SEPARATOR	'\a'
 #define HOSTLIST_DUMMY		"\b"
+
+#define IPMSG_DEFAULT_MULTICAST_ADDR6	"ff15::979"
+#define LINK_MULTICAST_ADDR6			"ff02::1"
+//#define IPMSG_MULTICAST_ADDR4	"224.9.7.9"
 
 /*  end of IP Messenger Communication Protocol version 3.0 define  */
 

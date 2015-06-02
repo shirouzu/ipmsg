@@ -1,227 +1,89 @@
 ﻿static char *image_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2012   image.cpp	Ver3.41";
+	"@(#)Copyright (C) H.Shirouzu 2011-2015   image.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Image
 	Create					: 2011-07-24(Mon)
-	Update					: 2012-04-03(Tue)
+	Update					: 2015-06-02(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
 #include "resource.h"
 #include "ipmsg.h"
-#include "../external/libpng/pnginfo.h"
+#include <gdiplus.h>
+using namespace Gdiplus;
 
-#define PNG_SIG_SIZE 8
+#pragma comment (lib, "msimg32.lib")
 
-void png_vbuf_wfunc(png_struct *png, png_byte *buf, png_size_t size)
-{
-	VBuf	*vbuf = (VBuf *)png_get_io_ptr(png);
-
-	if (!vbuf) return;
-
-	if (vbuf->RemainSize() < (int)size) {
-		int	grow_size = (int)size - vbuf->RemainSize();
-		if (!vbuf->Grow(grow_size)) return;
-	}
-
-	// 圧縮中にも、わずかにメッセージループを回して、フリーズっぽい状態を避ける
-	TApp::Idle(100);
-
-	memcpy(vbuf->Buf() + vbuf->UsedSize(), buf, size);
-	vbuf->AddUsedSize((int)size);
-}
-
-void png_vbuf_wflush(png_struct *png)
-{
-}
+//bool GetEncoderClsid(const WCHAR* mime, CLSID* pClsid)
+//{
+//	ImageCodecInfo* ici = NULL;
+//	UINT			num=0, size=0, i=0;
+//
+//	if (::GetImageEncodersSize(&num, &size) != Ok || size == 0) return false;
+//	if (!(ici = (ImageCodecInfo *)malloc(size))) return false;
+//
+//	if (::GetImageEncoders(num, size, ici) == Ok) {
+//		for (i=0; i < num; i++) {
+//			if(wcscmp(ici[i].MimeType, mime) == 0) {
+//				*pClsid = ici[i].Clsid;
+//				break;
+//			}
+//		}
+//	}
+//	free(ici);
+//
+//	return i < num ? true : false;
+//}
 
 VBuf *BmpHandleToPngByte(HBITMAP hBmp)
 {
-	BITMAP		bmp;
-	BITMAPINFO	*bmi = NULL;
-	int			palette, total_size, header_size, data_size, line_size;
-	HWND		hWnd = ::GetDesktopWindow();
-	HDC			hDc = NULL;
-	VBuf		bmpVbuf;
-	png_struct	*png  = NULL;
-	png_info	*info = NULL;
-	png_color_8	sbit;
-	png_byte	**lines = NULL;
-	VBuf		*vbuf = NULL, *ret = NULL;
+	static CLSID	pngid = {0x557cf406,0x1a04,0x11d3, {0x9a,0x73,0x00,0x00,0xf8,0x1e,0xf3,0x2e}};
+	VBuf	*vbuf	= NULL;
+	IStream *is		= NULL;
+	Bitmap	*bmp	= NULL;
 
-	if (!::GetObject(hBmp, sizeof(bmp), &bmp)) return NULL;
+	if (!(bmp = Bitmap::FromHBITMAP(hBmp, NULL))) return false;
 
-	//if (bmp.bmBitsPixel < 24)
-	bmp.bmBitsPixel = 24;
+	if (::CreateStreamOnHGlobal(NULL, TRUE, &is) == S_OK) {
+		if (bmp->Save(is, &pngid) == S_OK) {
+			LARGE_INTEGER	pos  = {};
+			ULARGE_INTEGER	size = {};
 
-	line_size   = bmp.bmWidth * ALIGN_SIZE(bmp.bmBitsPixel, 8) / 8;
-	line_size   = ALIGN_SIZE(line_size, 4);
-	data_size   = line_size * bmp.bmHeight;
-	palette     = bmp.bmBitsPixel <= 8 ? 1 << bmp.bmBitsPixel : 0;
-	header_size = sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * palette;
-	total_size	= header_size + data_size;
+			if (is->Seek(pos, STREAM_SEEK_CUR, &size) == S_OK) {
+				ULONG	targ_size = size.LowPart;
+				vbuf = new VBuf(targ_size);
 
-	if (!bmpVbuf.AllocBuf(total_size)) return	NULL;
-	bmi = (BITMAPINFO *)bmpVbuf.Buf();
-
-	bmi->bmiHeader.biSize         = sizeof(BITMAPINFOHEADER);
-	bmi->bmiHeader.biWidth        = bmp.bmWidth;
-	bmi->bmiHeader.biHeight       = bmp.bmHeight;
-	bmi->bmiHeader.biPlanes       = 1;
-	bmi->bmiHeader.biBitCount     = bmp.bmBitsPixel;
-	bmi->bmiHeader.biCompression  = BI_RGB;
-	bmi->bmiHeader.biClrUsed      = palette;
-	bmi->bmiHeader.biClrImportant = palette;
-
-	if (!(hDc = ::GetDC(hWnd)) ||
-		!::GetDIBits(hDc, hBmp, 0, bmp.bmHeight, (char *)bmi + header_size, bmi, DIB_RGB_COLORS)) {
-		goto END;
-	}
-
-	if (!(png = png_create_write_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0))) return NULL;
-	if (!(info = png_create_info_struct(png))) goto END;
-	if (!(vbuf = new VBuf(0, total_size))) goto END;
-
-	png_set_write_fn(png, (void *)vbuf, (png_rw_ptr)png_vbuf_wfunc,
-					(png_flush_ptr)png_vbuf_wflush);
-
-	if (palette) {
-		png_color	png_palette[256];
-		for (int i=0; i < palette; i++) {
-			png_palette[i].red		= bmi->bmiColors[i].rgbRed;
-			png_palette[i].green	= bmi->bmiColors[i].rgbGreen;
-			png_palette[i].blue		= bmi->bmiColors[i].rgbBlue;
+				is->Seek(pos, STREAM_SEEK_SET, &size);
+				if (is->Read(vbuf->Buf(), targ_size, &targ_size) != S_OK) {
+					delete vbuf;
+					vbuf = NULL;
+				}
+			}
 		}
-		png_set_IHDR(png, info, bmp.bmWidth, bmp.bmHeight, bmp.bmBitsPixel,
-					PNG_COLOR_TYPE_PALETTE,
-					PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-		png_set_PLTE(png, info, png_palette, palette);
+		is->Release();
 	}
-	else {
-		png_set_IHDR(png, info, bmp.bmWidth, bmp.bmHeight, 8,
-					bmp.bmBitsPixel > 24 ? PNG_COLOR_TYPE_RGB_ALPHA  : PNG_COLOR_TYPE_RGB,
-					PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-	}
-	sbit.red = sbit.green = sbit.blue = 8;
-	sbit.alpha = bmp.bmBitsPixel > 24 ? 8 : 0;
-	png_set_sBIT(png, info, &sbit);
+	delete bmp;
 
-	if (setjmp(png_jmpbuf(png))) {
-		goto END;
-	}
-	else {
-		png_write_info(png, info);
-		png_set_bgr(png);
-
-		lines = (png_byte **)malloc(sizeof(png_bytep *) * bmp.bmHeight);
-
-		for (int i = 0; i < bmp.bmHeight; i++) {
-			lines[i] = bmpVbuf.Buf() + header_size + line_size * (bmp.bmHeight - i - 1);
-		}
-		png_write_image(png, lines);
-		png_write_end(png, info);
-		ret = vbuf;
-	}
-
-END:
-	if (png) png_destroy_write_struct(&png, &info);
-	if (hDc) ::ReleaseDC(hWnd, hDc);
-	if (lines) free(lines);
-	if (!ret && vbuf) delete vbuf;
-	return	ret;
-}
-
-void png_vbuf_rfunc(png_struct *png, png_byte *buf, png_size_t size)
-{
-	VBuf	*vbuf = (VBuf *)png_get_io_ptr(png);
-
-	if (!vbuf) return;
-
-	u_int remain = vbuf->Size() - vbuf->UsedSize();
-
-	if (remain < size) size = remain;
-	memcpy(buf, vbuf->Buf() + vbuf->UsedSize(), size);
-	vbuf->AddUsedSize((int)size);
+	return	vbuf;
 }
 
 HBITMAP PngByteToBmpHandle(VBuf *vbuf)
 {
-	png_struct	*png  = NULL;
-	png_info	*info = NULL;
-	HBITMAP		hBmp  = NULL;
-	BITMAPINFO	*bmi  = NULL;
-	png_byte	**row = NULL;
-	BYTE		*data = NULL;
-	HWND		hWnd = ::GetDesktopWindow();
-	HDC			hDc   = NULL;
-	int			line_size, aligned_line_size, header_size;
-	VBuf		bmpVbuf;
+	HBITMAP	hBmp = NULL;
+	GBuf	gbuf(vbuf);
+	IStream	*is = NULL;
 
-	if (vbuf->Size() < PNG_SIG_SIZE || !png_check_sig(vbuf->Buf(), PNG_SIG_SIZE)) return NULL;
+	if (::CreateStreamOnHGlobal(gbuf.Handle(), FALSE, &is) == S_OK) {
+		Bitmap	*bmp = Bitmap::FromStream(is);
+		is->Release();
 
-	if (!(png = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0))) return NULL;
-	if (!(info = png_create_info_struct(png))) goto END;
-
-	if (setjmp(png_jmpbuf(png))) goto END;
-
-	png_set_user_limits(png, 15000, 10000); // 15,000 * 10,000 pix
-	png_set_read_fn(png, (void *)vbuf, (png_rw_ptr)png_vbuf_rfunc);
-	png_read_png(png, info, PNG_TRANSFORM_BGR, NULL);
-
-	if (info->bit_depth > 8) goto END; // not support
-
-	line_size = info->width * info->channels * ALIGN_SIZE(info->bit_depth, 8) / 8;
-	aligned_line_size = ALIGN_SIZE(line_size, 4);
-	header_size = sizeof(BITMAPV5HEADER) + sizeof(RGBQUAD) * info->num_palette;
-
-	if (!bmpVbuf.AllocBuf(header_size + aligned_line_size * info->height)) goto END;
-	bmi = (BITMAPINFO *)bmpVbuf.Buf();
-
-	bmi->bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-	bmi->bmiHeader.biSizeImage   = aligned_line_size * info->height;
-	bmi->bmiHeader.biWidth       = info->width;
-	bmi->bmiHeader.biHeight      = -(int)info->height;
-	bmi->bmiHeader.biPlanes      = 1;
-	bmi->bmiHeader.biCompression = BI_RGB;
-
-	if (info->color_type == PNG_COLOR_TYPE_PALETTE) {
-		bmi->bmiHeader.biBitCount = info->bit_depth;
-		bmi->bmiHeader.biClrUsed = info->num_palette;
-		for (int i=0; i < info->num_palette; i++) {
-			bmi->bmiColors[i].rgbRed	= info->palette[i].red;
-			bmi->bmiColors[i].rgbGreen	= info->palette[i].green;
-			bmi->bmiColors[i].rgbBlue	= info->palette[i].blue;
+		if (bmp) {
+			bmp->GetHBITMAP(0, &hBmp);
+			delete bmp;
 		}
 	}
-	else  {
-		bmi->bmiHeader.biBitCount = info->bit_depth * info->channels;
-		if (info->channels == 4) {
-			bmi->bmiHeader.biSize	= sizeof(BITMAPV5HEADER);
-			BITMAPV5HEADER *bm5		= (BITMAPV5HEADER*)bmi;
-			bm5->bV5Compression		= BI_BITFIELDS;
-			bm5->bV5RedMask			= 0x00FF0000;
-			bm5->bV5GreenMask		= 0x0000FF00;
-			bm5->bV5BlueMask		= 0x000000FF;
-			bm5->bV5AlphaMask		= 0xFF000000;
-		}
-	}
-
-	if (!(row = png_get_rows(png, info))) goto END;
-
-	data = bmpVbuf.Buf() + header_size;
-	u_int i;
-	for (i=0; i < info->height; i++) {
-		memcpy(data + aligned_line_size * i, row[i], line_size);
-	}
-
-	if (!(hDc = ::GetDC(hWnd))) goto END;
-	hBmp = ::CreateDIBitmap(hDc, (BITMAPINFOHEADER *)bmi, CBM_INIT, data, bmi, DIB_RGB_COLORS);
-	if (hDc) ::ReleaseDC(hWnd, hDc);
-
-END:
-	png_destroy_read_struct(&png, &info, 0);
 	return	hBmp;
 }
 
@@ -289,7 +151,13 @@ HBITMAP BmpInfoToHandle(BITMAPINFO *bmi, int size)
 
 	if (!(hDc = ::GetDC(hWnd))) return NULL;
 
-	header_size = bmi->bmiHeader.biSize + (bmi->bmiHeader.biClrUsed * sizeof(RGBQUAD));
+	header_size = bmi->bmiHeader.biSize;
+	if ((bmi->bmiHeader.biBitCount == 16 || bmi->bmiHeader.biBitCount == 32) &&
+			bmi->bmiHeader.biCompression == BI_BITFIELDS) {
+		header_size += sizeof(DWORD) * 3; // color masks
+	} else {
+		header_size += bmi->bmiHeader.biClrUsed * sizeof(RGBQUAD);
+	}
 	hBmp = ::CreateDIBitmap(hDc, (BITMAPINFOHEADER *)bmi, CBM_INIT,
 								(char *)bmi + header_size, bmi, DIB_RGB_COLORS);
 
@@ -305,28 +173,30 @@ TAreaConfirmDlg::TAreaConfirmDlg(Cfg *_cfg, TImageWin *_parentWin)
 	cfg			= _cfg;
 	useClip		= NULL;
 	withSave	= NULL;
+	reEdit		= FALSE;
 	color		= 0;
 	hToolBar	= NULL;
+	mode		= MARKER_PEN;
 }
 
 
 /*
 	画面キャプチャ用ツールバーウィンドウ
 */
-BOOL TAreaConfirmDlg::Create(BOOL *_useClip, BOOL *_withSave)
+BOOL TAreaConfirmDlg::Create(BOOL *_useClip, BOOL *_withSave, BOOL _reEdit)
 {
-	useClip = _useClip;
-	withSave = _withSave;
-	return	TDlg::Create();
-}
+	useClip		= _useClip;
+	withSave	= _withSave;
+	reEdit		= _reEdit;
+	mode		= MARKER_PEN;
+	BOOL ret = TDlg::Create();
 
-#define MARKER_OFFSET    3000
-#define MARKER_RED       (MARKER_OFFSET + 0)
-#define MARKER_GREEN     (MARKER_OFFSET + 1)
-#define MARKER_BLUE      (MARKER_OFFSET + 2)
-#define MARKER_YELLOW    (MARKER_OFFSET + 3)
-#define MARKER_UNDO      (MARKER_OFFSET + 4)
-#define MARKER_TB_MAX    5
+	if (reEdit) {
+		SetWindowTextU8(GetLoadStrU8(IDS_REEDIT_IMAGE));
+	}
+
+	return ret;
+}
 
 BOOL TAreaConfirmDlg::EvCreate(LPARAM lParam)
 {
@@ -337,23 +207,32 @@ BOOL TAreaConfirmDlg::EvCreate(LPARAM lParam)
 	CheckDlgButton(CLIP_CHECK, *useClip);
 	CheckDlgButton(SAVE_CHECK, *withSave);
 
-	TBBUTTON tbb[MARKER_TB_MAX] = {{0}};
+	TBBUTTON tb_undo = { 0, MARKER_UNDO, 0, TBSTYLE_BUTTON };
 
-	for (int i=0; i < MARKER_TB_MAX; i++) {
-		tbb[i].iBitmap   = i;
-		tbb[i].idCommand = MARKER_OFFSET + i;
-		tbb[i].fsState   = TBSTATE_ENABLED;
-		tbb[i].fsStyle   = TBSTYLE_CHECKGROUP;
-	};
-	tbb[4].fsState  = 0;
-	tbb[4].fsStyle  = TBSTYLE_BUTTON;
+	// 戻るボタンでツールバー作成 (iBitmap: 0)
+	hToolBar = ::CreateToolbarEx(hWnd, WS_CHILD|WS_VISIBLE|TBSTYLE_TOOLTIPS, AREA_TOOLBAR,
+								1, TApp::GetInstance(), MARKERTB_BITMAP, &tb_undo,
+								1, 0, 0, 16, 16, sizeof(TBBUTTON));
 
-	hToolBar = CreateToolbarEx(hWnd, WS_CHILD|WS_VISIBLE|TBSTYLE_TOOLTIPS, AREA_TOOLBAR,
-								MARKER_TB_MAX, TApp::GetInstance(), MARKERTB_BITMAP, tbb,
-								MARKER_TB_MAX, 0, 0, 16, 16, sizeof(TBBUTTON));
+	// 赤・緑・青・黄色のビットマップを追加 (iBitmap 1-16)
+	for (int i=0; i < 4; i++) {
+		TBADDBITMAP tab = { TApp::GetInstance(), MARKERRED_BITMAP + i };
+		::SendMessage(hToolBar, TB_ADDBITMAP, 4, (LPARAM)&tab);
+	}
 
-	TBBUTTON tb = {0, 0, TBSTATE_ENABLED, TBSTYLE_SEP, 0, 0};
-	::SendMessage(hToolBar, TB_INSERTBUTTON, 4, (LPARAM)&tb);
+	// マーカーボタン類追加
+	for (int i=0; i < 4; i++) {
+		TBBUTTON tb = { i+1, MARKER_PEN+i, TBSTATE_ENABLED, TBSTYLE_CHECKGROUP };
+		if (i == 0)			tb.fsState |= TBSTATE_CHECKED;
+		else if (i == 3)	tb.fsStyle  = TBSTYLE_BUTTON;
+		::SendMessage(hToolBar, TB_INSERTBUTTON, i, (LPARAM)&tb);
+	}
+	// デフォルトで赤色選択
+	SetColor(COLOR_RED);
+
+	TBBUTTON tb_sep = {0, 0, TBSTATE_ENABLED, TBSTYLE_SEP, 0, 0};
+	::SendMessage(hToolBar, TB_INSERTBUTTON, 3, (LPARAM)&tb_sep);
+	::SendMessage(hToolBar, TB_INSERTBUTTON, 5, (LPARAM)&tb_sep);
 
 	Show();
 
@@ -370,7 +249,7 @@ BOOL TAreaConfirmDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 			if (useClip)  *useClip  = IsDlgButtonChecked(CLIP_CHECK);
 			if (withSave) *withSave = IsDlgButtonChecked(SAVE_CHECK);
 		}
-		EndDialog(wID);
+		if (wID != IDRETRY || !reEdit) EndDialog(wID);
 		parentWin->Notify(wID);
 		break;
 
@@ -379,19 +258,55 @@ BOOL TAreaConfirmDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		Notify();
 		break;
 
-	default:
-		if (wID >= MARKER_RED && wID <= MARKER_YELLOW) {
-			switch (wID) {
-			case MARKER_RED:	color = RGB(255,0,0);	break;
-			case MARKER_GREEN:	color = RGB(0,255,0);	break;
-			case MARKER_BLUE:	color = RGB(0,0,255);	break;
-			case MARKER_YELLOW:	color = RGB(255,255,0);	break;
-			}
-			parentWin->SetMode(TRUE);
+	case MARKER_COLOR:
+		switch (color) {
+		case COLOR_RED:		SetColor(COLOR_GREEN);	break;
+		case COLOR_GREEN:	SetColor(COLOR_BLUE);	break;
+		case COLOR_BLUE:	SetColor(COLOR_YELLOW);	break;
+		default:			SetColor(COLOR_RED);	break;
 		}
+		break;
+
+	case MARKER_PEN:
+		mode = MARKER_PEN;
+		parentWin->SetMode(TRUE);
+		break;
+
+	case MARKER_RECT:
+		mode = MARKER_RECT;
+		parentWin->SetMode(TRUE);
+		break;
+
+	case MARKER_ARROW:
+		mode = MARKER_ARROW;
+		parentWin->SetMode(TRUE);
+		break;
+
+	default:
 		break;
 	}
 	return	TRUE;
+}
+
+void TAreaConfirmDlg::SetColor(COLORREF _color)
+{
+	int	image_base = 0;
+
+	color = _color;
+
+	switch (color) {
+	case COLOR_GREEN:	image_base = 1;	break;
+	case COLOR_BLUE:	image_base = 2;	break;
+	case COLOR_YELLOW:	image_base = 3;	break;
+	default:			image_base = 0;	break; // red
+	}
+
+	// マーカーボタン色変更
+	for (int i=0; i < 4; i++) {
+		::SendMessage(hToolBar, TB_CHANGEBITMAP, MARKER_PEN+i, image_base*4 + i + 1);
+	}
+
+	parentWin->SetMode(TRUE);
 }
 
 BOOL TAreaConfirmDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
@@ -402,10 +317,10 @@ BOOL TAreaConfirmDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 			itip->pszText = NULL;
 
 			switch (itip->iItem) {
-			case MARKER_RED:	itip->pszText = GetLoadStrW(IDS_MARKER_RED);	break;
-			case MARKER_GREEN:	itip->pszText = GetLoadStrW(IDS_MARKER_GREEN);	break;
-			case MARKER_BLUE:	itip->pszText = GetLoadStrW(IDS_MARKER_BLUE);	break;
-			case MARKER_YELLOW:	itip->pszText = GetLoadStrW(IDS_MARKER_YELLOW);	break;
+			case MARKER_PEN:	itip->pszText = GetLoadStrW(IDS_MARKER_PEN);	break;
+			case MARKER_RECT:	itip->pszText = GetLoadStrW(IDS_MARKER_RECT);	break;
+			case MARKER_ARROW:	itip->pszText = GetLoadStrW(IDS_MARKER_ARROW);	break;
+			case MARKER_COLOR:	itip->pszText = GetLoadStrW(IDS_MARKER_COLOR);	break;
 			case MARKER_UNDO:	itip->pszText = GetLoadStrW(IDS_MARKER_UNDO);	break;
 			}
 			if (itip->pszText) itip->cchTextMax = (int)wcslen(itip->pszText);
@@ -428,12 +343,16 @@ CursorMap TImageWin::cursorMap;
 #define ARROW_ID	RGB(1,1,1) // dummy color
 #define CROSS_ID	RGB(2,2,2) // dummy color
 
-TImageWin::TImageWin(Cfg *_cfg, TSendDlg *_parent) : TWin(_parent), areaDlg(_cfg, this)
+TImageWin::TImageWin(Cfg *_cfg, TSendDlg *_parent)
+	: areaDlg(_cfg, this), inputDlg(this), TWin(_parent)
 {
 	parentWnd	= _parent;
 	cfg			= _cfg;
 	hSelfDc		= NULL;
 	hSelfBmp	= NULL;
+	hDarkDc		= NULL;
+	hDarkBmp	= NULL;
+	reEdit		= NULL;
 	useClip		= cfg->CaptureClip;
 	withSave	= cfg->CaptureSave;
 	memset(areaPts, 0, sizeof(areaPts));
@@ -444,55 +363,10 @@ TImageWin::~TImageWin()
 {
 }
 
-BOOL TImageWin::Create()
-{
-	int	x  = ::GetSystemMetrics(SM_XVIRTUALSCREEN);
-	int	y  = ::GetSystemMetrics(SM_YVIRTUALSCREEN);
-	int	cx = ::GetSystemMetrics(SM_CXVIRTUALSCREEN);
-	int	cy = ::GetSystemMetrics(SM_CYVIRTUALSCREEN);
-
-	rect.left	= x;
-	rect.top	= y;
-	rect.right	= cx + rect.left;
-	rect.bottom	= cy + rect.top;
-
-	HWND	hDesktop = ::GetDesktopWindow();
-	HDC		hDesktopDc = ::GetDC(hDesktop);
-
-	hSelfDc  = ::CreateCompatibleDC(hDesktopDc);
-	hSelfBmp = ::CreateCompatibleBitmap(hDesktopDc, cx, cy);
-
-	HBITMAP	hOldBmp = (HBITMAP)::SelectObject(hSelfDc, hSelfBmp);
-	::BitBlt(hSelfDc, 0, 0, cx, cy, hDesktopDc, x, y, SRCCOPY);
-	::SelectObject(hSelfDc, hOldBmp);
-
-	::ReleaseDC(hDesktop, hDesktopDc);
-
-	if (cursorMap.empty()) {
-		cursorMap[CROSS_ID]			= ::LoadCursor(TApp::GetInstance(), (LPCSTR)CROSS_CUR);
-		cursorMap[ARROW_ID]			= ::LoadCursor(NULL, (LPCSTR)IDC_ARROW);
-		cursorMap[RGB(255,0,0)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)RED_CUR);
-		cursorMap[RGB(0,255,0)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GREEN_CUR);
-		cursorMap[RGB(0,0,255)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)BLUE_CUR);
-		cursorMap[RGB(255,255,0)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)YELLOW_CUR);
-		TRegisterClassU8(IPMSG_CAPTURE_CLASS, CS_DBLCLKS);
-	}
-
-	return	TWin::Create(IPMSG_CAPTURE_CLASS, NULL, WS_POPUP|WS_DISABLED, 0);
-}
-
-BOOL TImageWin::EvCreate(LPARAM lParam)
-{
-	status = INIT;
-	::SetTimer(hWnd, 100, 10, NULL);
-	::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[CROSS_ID]);
-
-	return	TRUE;
-}
-
-BOOL TImageWin::EvNcDestroy()
+void TImageWin::UnInit()
 {
 	if (hSelfDc) {
+		::SelectObject(hSelfDc, hSelfBmpOld);
 		::DeleteDC(hSelfDc);
 		hSelfDc = NULL;
 	}
@@ -500,23 +374,102 @@ BOOL TImageWin::EvNcDestroy()
 		::DeleteObject(hSelfBmp);
 		hSelfBmp = NULL;
 	}
-	::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[ARROW_ID]);
+	if (hDarkDc) {
+		::SelectObject(hDarkDc, hDarkBmpOld);
+		::DeleteDC(hDarkDc);
+		hDarkDc = NULL;
+	}
+	if (hDarkBmp) {
+		::DeleteObject(hDarkBmp);
+		hDarkBmp = NULL;
+	}
+	if (cursorMap[ARROW_ID]) ::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[ARROW_ID]);
+}
 
+BOOL TImageWin::Create(TEditSub *_reEdit)
+{
+	sX  = ::GetSystemMetrics(SM_XVIRTUALSCREEN);
+	sY  = ::GetSystemMetrics(SM_YVIRTUALSCREEN);
+	sCx = ::GetSystemMetrics(SM_CXVIRTUALSCREEN);
+	sCy = ::GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+	rect.left	= sX;
+	rect.top	= sY;
+	rect.right	= sCx + rect.left;
+	rect.bottom	= sCy + rect.top;
+
+	HWND	hDesktop   = ::GetDesktopWindow();
+	HDC		hDesktopDc = ::GetDC(hDesktop);
+
+	hSelfDc	= ::CreateCompatibleDC(hDesktopDc);
+
+	if ((reEdit = _reEdit)) {
+		if (!ReEdit()) {
+			UnInit();
+			return FALSE;
+		}
+	}
+	else {
+		hSelfBmp	= ::CreateCompatibleBitmap(hDesktopDc, sCx, sCy);
+		hSelfBmpOld	= (HBITMAP)::SelectObject(hSelfDc, hSelfBmp);
+
+		::BitBlt(hSelfDc, 0, 0, sCx, sCy, hDesktopDc, sX, sY, SRCCOPY);
+
+		hDarkDc		= ::CreateCompatibleDC(hSelfDc);
+		hDarkBmp	= ::CreateCompatibleBitmap(hSelfDc, sCx, sCy);
+		hDarkBmpOld	= (HBITMAP)::SelectObject(hDarkDc, hDarkBmp);
+		MakeDarkBmp(200);
+	}
+	::ReleaseDC(hDesktop, hDesktopDc);
+
+	if (cursorMap.empty()) {
+		cursorMap[CROSS_ID]						= ::LoadCursor(TApp::GetInstance(), (LPCSTR)CROSS_CUR);
+		cursorMap[ARROW_ID]						= ::LoadCursor(NULL, (LPCSTR)IDC_ARROW);
+		cursorMap[CURSOR_IDX(COLOR_RED)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)RED_CUR);
+		cursorMap[CURSOR_IDX(COLOR_GREEN)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GREEN_CUR);
+		cursorMap[CURSOR_IDX(COLOR_BLUE)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)BLUE_CUR);
+		cursorMap[CURSOR_IDX(COLOR_YELLOW)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)YELLOW_CUR);
+		cursorMap[CURSOR_IDX(COLOR_RED,   1)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GENRED_CUR);
+		cursorMap[CURSOR_IDX(COLOR_GREEN, 1)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GENGREEN_CUR);
+		cursorMap[CURSOR_IDX(COLOR_BLUE,  1)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GENBLUE_CUR);
+		cursorMap[CURSOR_IDX(COLOR_YELLOW,1)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GENYELLOW_CUR);
+		TRegisterClassU8(IPMSG_CAPTURE_CLASS, CS_DBLCLKS);
+	}
+
+	return	TWin::CreateU8(IPMSG_CAPTURE_CLASS, NULL, WS_POPUP|WS_DISABLED, 0);
+}
+
+BOOL TImageWin::EvCreate(LPARAM lParam)
+{
+	status = INIT;
+	::SetTimer(hWnd, 100, 10, NULL);
+	if (!reEdit) ::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[CROSS_ID]);
+
+	return	TRUE;
+}
+
+BOOL TImageWin::EvNcDestroy()
+{
+	UnInit();
 	return	FALSE;
 }
 
 BOOL TImageWin::EvPaint()
 {
 	PAINTSTRUCT	ps;
-	HDC		hDc = ::BeginPaint(hWnd, &ps);
-	HBITMAP	hOldBmp = (HBITMAP)::SelectObject(hSelfDc, hSelfBmp);
+	HDC			hDc = ::BeginPaint(hWnd, &ps);
 
-	::BitBlt(hDc, 0, 0, rect.right - rect.left, rect.bottom - rect.top, hSelfDc, 0, 0, SRCCOPY);
-	::SelectObject(hSelfDc, hOldBmp);
+	if (reEdit) {
+		::BitBlt(hDc, 0, 0, sCx, sCy, hSelfDc, 0, 0, BLACKNESS);
+		::BitBlt(hDc, reRc.left, reRc.top, reRc.cx(), reRc.cy(), hSelfDc, 0, 0, SRCCOPY);
+	}
+	else {
+		::BitBlt(hDc, 0, 0, sCx, sCy, hSelfDc, 0, 0, SRCCOPY);
+	}
 	::EndPaint(hWnd, &ps);
 
 	if (status >= START && status <= DRAW_END) {
-		DrawLines();
+		DrawArea();
 		DrawMarker();
 	}
 
@@ -529,6 +482,12 @@ BOOL TImageWin::EvTimer(WPARAM _timerID, TIMERPROC proc)
 	SetWindowLong(GWL_STYLE, (GetWindowLong(GWL_STYLE) & ~WS_DISABLED)|WS_VISIBLE);
 	SetWindowPos(HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOREDRAW);
 	InvalidateRect(NULL, TRUE);
+
+	if (reEdit) {
+		status = END;
+		areaDlg.Create(&useClip, &withSave, TRUE);
+	}
+
 	return	TRUE;
 }
 
@@ -538,47 +497,127 @@ BOOL TImageWin::EvChar(WCHAR code, LPARAM keyData)
 	return	TRUE;
 }
 
-void RegularRect(RECT *rc)
+BOOL TImageWin::MakeDarkBmp(int level)
 {
-	if (rc->left > rc->right) {
-		long tmp = rc->left;
-		rc->left = rc->right;
-		rc->right = tmp;
-	}
-	if (rc->top > rc->bottom) {
-		long tmp = rc->top;
-		rc->top = rc->bottom;
-		rc->bottom = tmp;
-	}
+	::BitBlt(hDarkDc, 0, 0, sCx, sCy, hSelfDc, 0, 0, BLACKNESS);
+	BLENDFUNCTION	bf = { AC_SRC_OVER, 0, level, 0 };
+	::AlphaBlend(hDarkDc, 0, 0, sCx, sCy, hSelfDc, 0, 0, sCx, sCy, bf);
+	return	TRUE;
 }
+
+BOOL TImageWin::ReEdit()
+{
+	if (!(hSelfBmp = reEdit->GetBitmap(reEdit->SelectedImageIndex()))) return FALSE;
+
+	BITMAP	bmp  = {};
+	BOOL	ret  = TRUE;
+
+	if (::GetObject(hSelfBmp, sizeof(bmp), &bmp)) {
+		hSelfBmpOld	= (HBITMAP)::SelectObject(hSelfDc, hSelfBmp);
+
+		long	cx = abs(bmp.bmWidth);
+		long	cy = abs(bmp.bmHeight);
+
+		areaPts[0].x = (short)((sCx - cx) / 2);
+		areaPts[0].y = (short)((sCy - cy) / 2);
+		areaPts[1].x = (short)(areaPts[0].x + cx - 1);
+		areaPts[1].y = (short)(areaPts[0].y + cy - 1);
+		lastPts = areaPts[1];
+		reRc = TRect(areaPts[0], cx, cy);
+	}
+	return	ret;
+}
+
+#include <math.h>
 
 BOOL TImageWin::DrawMarker(HDC hDc)
 {
-	if (status >= DRAW_INIT && status <= DRAW_END) {
+	if (status >= DRAW_INIT && status <= DRAW_END && status != DRAW_INPUT) {
 		HDC		hDcSv = hDc;
 		HRGN	hRgn = NULL;
+		POINT	offset = {0, 0};
 
 		if (!hDc && !(hDc = ::GetDC(hWnd))) return FALSE;
 
-		if (!hDcSv) {
-			RECT rc = { areaPts[0].x, areaPts[0].y, lastPts.x, lastPts.y };
-			RegularRect(&rc);
+		TRect rc(areaPts[0], lastPts);
+		rc.Regular();
 
+		if (!hDcSv) { // ウィンドウ座標同士のコピーなのでオフセット不要。クリッピングのみ
 			hRgn = ::CreateRectRgn(rc.left, rc.top, rc.right+1, rc.bottom+1);
 			::SelectClipRgn(hDc, hRgn);
 		}
-		for (VColPtsItr i=drawPts.begin(); i != drawPts.end(); i++) {
-			if (i->pts.size() <= 1) continue;
+		else {	// ウィンドウ座標からビットマップにコピーの場合はオフセット必要
+			offset.x = rc.left;
+			offset.y = rc.top;
+		}
 
+		for (VColPtsItr i=drawPts.begin(); i != drawPts.end(); i++) {
 			HPEN	hPen = ::CreatePen(PS_SOLID, cfg->MarkerThick, i->color);
 			HPEN	hOldPen = (HPEN)::SelectObject(hDc, (HGDIOBJ)hPen);
 
 			VPtsItr	vp = i->pts.begin();
-			::MoveToEx(hDc, vp->x, vp->y, NULL);
+			int		x = vp->x - offset.x;
+			int		y = vp->y - offset.y;
 
-			for (; vp != i->pts.end(); vp++) {
-				::LineTo(hDc, vp->x, vp->y);
+			if (i->mode == MARKER_PEN) {
+				::MoveToEx(hDc, x, y, NULL);
+				for (vp++; vp != i->pts.end(); vp++) {
+					::LineTo(hDc, vp->x - offset.x, vp->y - offset.y);
+				}
 			}
+			else if (i->mode == MARKER_RECT) {
+				HBRUSH	hOldBrush = (HBRUSH)::SelectObject(hDc, (HGDIOBJ)GetStockObject(NULL_BRUSH));
+				if (i->pts.size() > 1) {
+					int		end_x = i->pts.back().x - offset.x;
+					int		end_y = i->pts.back().y - offset.y;
+					TRect	rrc(x, y, end_x-x, end_y-y);
+					rrc.Regular();
+					RoundRect(hDc, rrc.left, rrc.top, rrc.right, rrc.bottom, 6, 6);
+				}
+				::SelectObject(hDc, hOldBrush);
+			}
+			else if (i->mode == MARKER_ARROW) {
+				if (i->pts.size() > 1) {
+					POINT	end_pt = {  i->pts.back().x - offset.x,
+										i->pts.back().y - offset.y };
+					if (i->memo.size()) {
+						TRect	max_rc(rc.x()-offset.x, rc.y()-offset.y, rc.cx(), rc.cy());
+						TRect	mrc = DrawMarkerMemo(hDc, *i, &end_pt, max_rc);
+
+						if (y > end_pt.y && mrc.bottom > end_pt.y) {
+							double ratio = ((double)x - end_pt.x) / ((double)y - end_pt.y);
+							end_pt.x = int(end_pt.x + ratio * (mrc.bottom - end_pt.y));
+							end_pt.y = mrc.bottom;
+						}
+						else if (y < end_pt.y && mrc.top < end_pt.y) {
+							double ratio = ((double)end_pt.x - x) / ((double)end_pt.y - y);
+							end_pt.x = int(end_pt.x - ratio * (end_pt.y - mrc.top));
+							end_pt.y = mrc.top;
+						}
+						i->pts.back().x = short(end_pt.x + offset.x);
+						i->pts.back().y = short(end_pt.y + offset.y);
+					}
+					::MoveToEx(hDc, x, y, NULL);
+					::LineTo(hDc, end_pt.x, end_pt.y);
+
+					double	fx = (double)x - end_pt.x;
+					double	fy = (double)y - end_pt.y;
+					double	fv = sqrt(fx*fx + fy*fy);
+					if	(fv == 0.0) 0.001;
+					double	fux = fx/fv;
+					double	fuy = fy/fv;
+#define AR_W 4
+#define AR_H 8
+#define AR_M 4
+					::MoveToEx(hDc, x, y, NULL);
+					::LineTo(hDc, int(x-fuy*AR_W-fux*AR_H), int(y+fux*AR_W-fuy*AR_H));
+					::LineTo(hDc, int(x-fux*AR_M), int(y-fuy*AR_H));
+					::MoveToEx(hDc, x, y, NULL);
+					::LineTo(hDc, int(x+fuy*AR_W-fux*AR_H), int(y-fux*AR_W-fuy*AR_H));
+					::LineTo(hDc, int(x-fux*AR_M), int(y-fuy*AR_H));
+				}
+			}
+
 			::SelectObject(hDc, hOldPen);
 			::DeleteObject(hPen);
 		}
@@ -591,21 +630,86 @@ BOOL TImageWin::DrawMarker(HDC hDc)
 	return	TRUE;
 }
 
-BOOL TImageWin::DrawLines(POINTS *pts)
+TRect TImageWin::DrawMarkerMemo(HDC hDc, const ColPts& col, POINT *pt, TRect max_rc)
+{
+#define RC_MARGIN 2
+ 	HFONT	hFont	 = TSendDlg::GetEditFont();
+ 	HFONT	hOldFont = NULL;
+ 	if (hFont) hOldFont = (HFONT)::SelectObject(hDc, hFont);
+
+	Wstr	wstr(col.memo.c_str());
+	SIZE	size = {};
+	::GetTextExtentPoint32W(hDc, wstr, (int)wcslen(wstr), &size);
+	size.cx += RC_MARGIN * 2;
+	size.cy += RC_MARGIN * 2;
+	TRect	rc(pt->x - size.cx/2 + RC_MARGIN, pt->y + RC_MARGIN, size.cx, size.cy);
+
+	::InflateRect(&max_rc, -RC_MARGIN, -RC_MARGIN);
+
+	if (rc.x() < max_rc.x()) {
+		rc.x() = max_rc.x();
+	}
+	else if ((rc.x() + size.cx) > max_rc.right) {
+		rc.x() = max_rc.right - size.cx;
+	}
+	if (col.pts.front().y > col.pts.back().y) {
+		rc.y() -= size.cy + RC_MARGIN * 2;
+	}
+	if (rc.y() < max_rc.y()) {
+		rc.y() = max_rc.y();
+	}
+	else if ((rc.y() + size.cy) > max_rc.bottom) {
+		rc.y() = max_rc.bottom - size.cy;
+	}
+	rc.set_cx(size.cx);
+	rc.set_cy(size.cy);
+
+	TRect	trc(rc.x()+RC_MARGIN, rc.y()+RC_MARGIN, rc.cx(), rc.cy());
+
+//	COLORREF bkcol = (col.color == COLOR_RED || col.color == COLOR_BLUE) ?
+//						RGB(255,255,255) : RGB(128,128,128);
+//	int		 bkobj = (bkcol == RGB(255,255,255)) ? WHITE_BRUSH : GRAY_BRUSH;
+
+	::SetBkMode(hDc, TRANSPARENT);
+	HBRUSH	 hOldBrush = (HBRUSH)::SelectObject(hDc, (HGDIOBJ)GetStockObject(NULL_BRUSH));
+//	HBRUSH	 hOldBrush = (HBRUSH)::SelectObject(hDc, (HGDIOBJ)GetStockObject(bkobj));
+//	::SetBkColor(hDc, bkcol);
+	::SetTextColor(hDc, col.color);
+
+	::InflateRect(&rc, RC_MARGIN, RC_MARGIN);
+	RoundRect(hDc, rc.left, rc.top, rc.right, rc.bottom, 6, 6);
+
+	::DrawTextW(hDc, wstr, -1, &trc, DT_LEFT);
+
+	::SelectObject(hDc, hOldBrush);
+	::SelectObject(hDc, hOldFont);
+
+
+	return	rc;
+}
+
+BOOL TImageWin::DrawArea(POINTS *pts)
 {
 	HDC		hDc;
 	POINTS	cur = pts ? *pts : status == END ? areaPts[1] : lastPts;
 
 	if (!(hDc = ::GetDC(hWnd))) return FALSE;
 
-	HPEN	hPen = ::CreatePen(PS_DOT, 0, RGB(255, 0, 0));
+	HRGN	hRgn = ::CreateRectRgn(areaPts[0].x, areaPts[0].y, cur.x + 1, cur.y + 1);
+
+	::ExtSelectClipRgn(hDc, hRgn, RGN_DIFF);
+	::BitBlt(hDc, 0, 0, sCx, sCy, hDarkDc, 0, 0, SRCCOPY);
+	::SelectClipRgn(hDc, NULL);
+	::DeleteObject(hRgn);
+
+	HPEN	hPen    = ::CreatePen(PS_DOT, 0, COLOR_RED);
 	HPEN	hOldPen = (HPEN)::SelectObject(hDc, (HGDIOBJ)hPen);
 
 	if (pts && !IS_SAME_PTS(cur, areaPts[0])) {
-		RECT rc = { areaPts[0].x, areaPts[0].y, lastPts.x, lastPts.y };
-		RegularRect(&rc);
-		::InflateRect(&rc, 1, 1);
-		::InvalidateRect(hWnd, &rc, FALSE);
+		TRect rc(areaPts[0], lastPts);
+		rc.Regular();
+		InflateRect(&rc, 1, 1);
+		InvalidateRect(&rc, FALSE);
 	}
 	::MoveToEx(hDc, areaPts[0].x, areaPts[0].y, NULL);
 	::LineTo(hDc, cur.x, areaPts[0].y);
@@ -626,18 +730,40 @@ BOOL TImageWin::DrawLines(POINTS *pts)
 BOOL TImageWin::EvMouseMove(UINT fwKeys, POINTS pts)
 {
 	if (status == START) {
-		DrawLines(&pts);
+		DrawArea(&pts);
 	}
 	else if (status == DRAW_START) {
 		if (!IS_SAME_PTS(drawPts.back().pts.back(), pts)) {
-			drawPts.back().pts.push_back(pts);
+			if (areaDlg.GetMode() == MARKER_PEN) {
+				drawPts.back().pts.push_back(pts);
+			}
+			else if (areaDlg.GetMode() == MARKER_RECT) {
+				if (drawPts.back().pts.size() > 1) {
+					TRect rc(drawPts.back().pts.front(), drawPts.back().pts.back());
+					drawPts.back().pts.pop_back();
+					rc.Regular();
+					InflateRect(&rc, 2, 2);
+					InvalidateRect(&rc, FALSE);
+				}
+				drawPts.back().pts.push_back(pts);
+			}
+			else {
+				if (drawPts.back().pts.size() > 1) {
+					TRect rc(drawPts.back().pts.front(), drawPts.back().pts.back());
+					drawPts.back().pts.pop_back();
+					rc.Regular();
+					InflateRect(&rc, 10, 10);
+					InvalidateRect(&rc, FALSE);
+				}
+				drawPts.back().pts.push_back(pts);
+			}
 		}
 		DrawMarker();
 	}
 	return	TRUE;
 }
 
-BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts)
+BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts) // クライアント座標
 {
 	if (status == INIT) {
 		if (uMsg == WM_LBUTTONDOWN) {
@@ -648,12 +774,15 @@ BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts)
 	else if (status == START && !areaDlg.hWnd) {
 		if (uMsg == WM_LBUTTONUP) {
 			areaPts[1] = pts;
-			if (IS_SAME_PTS(areaPts[0], areaPts[1])) {
+			if ((areaPts[0].x == areaPts[1].x) || (areaPts[0].y == areaPts[1].y)) {
 				status = INIT;
+				InvalidateRect(NULL, FALSE);
 			}
 			else {
 				status = END;
 				areaDlg.Create(&useClip, &withSave);
+				//MakeDarkBmp(100);
+				InvalidateRect(NULL, FALSE);
 			}
 		}
 	}
@@ -661,19 +790,48 @@ BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts)
 		if (uMsg == WM_LBUTTONDOWN) {
 			status = DRAW_START;
 			drawPts.push_back(ColPts());
+			drawPts.back().mode  = areaDlg.GetMode();
 			drawPts.back().color = areaDlg.GetColor();
 			drawPts.back().pts.push_back(pts);
 			areaDlg.Notify();
+			DrawMarker();
 		}
 	}
 	else if (status == DRAW_START) {
 		if (uMsg == WM_LBUTTONUP) {
 			status = DRAW_INIT;
-			if (!IS_SAME_PTS(drawPts.back().pts.back(), pts)) {
+			if (areaDlg.GetMode() == MARKER_ARROW && drawPts.back().pts.size() > 1) {
+				drawPts.back().pts.pop_back();
 				drawPts.back().pts.push_back(pts);
+
+#define INPUTDLG_X	180
+#define INPUTDLG_Y	20
+				char	buf[MAX_BUF] = "";
+				POINT	pt = {	pts.x - INPUTDLG_X / 2,
+								pts.y > drawPts.back().pts.front().y ?
+									pts.y + 2 : pts.y - 2 - INPUTDLG_Y };
+
+			// 将来、非トップレベルウィンドウに変更する場合は、要クライアント座標変換
+				::ClientToScreen(hWnd, &pt);
+				if (pt.x + INPUTDLG_X > sX + sCx)	pt.x = sX + sCx - INPUTDLG_X;
+				else if (pt.x < sX)					pt.x = sX;
+				if (pt.y + INPUTDLG_Y > sY + sCy)	pt.y = sY + sCy - INPUTDLG_Y;
+				else if (pt.y < sY)					pt.y = sY;
+
+				status = DRAW_INPUT;
+				areaDlg.EnableWindow(FALSE);
+				UINT ret = inputDlg.Exec(pt, buf, sizeof(buf));
+				areaDlg.EnableWindow(TRUE);
+				status = DRAW_INIT;
+
+				if (ret == IDOK) {
+					InvalidateRect(NULL, FALSE);
+					drawPts.back().memo = buf;
+					DrawMarker();
+				}
 			}
-			else if (drawPts.back().pts.size() <= 1) {
-				drawPts.pop_back();
+			else {
+				drawPts.back().pts.push_back(pts);
 			}
 		}
 	}
@@ -684,8 +842,15 @@ BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts)
 void TImageWin::Notify(int result)
 {
 	if (result == IDRETRY) {
-		::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[CROSS_ID]);
-		status = INIT;
+		if (reEdit) {
+			status = END;
+			SetMode(TRUE);
+		}
+		else {
+			::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[CROSS_ID]);
+			status = INIT;
+			MakeDarkBmp(200);
+		}
 		InvalidateRect(NULL, FALSE);
 		drawPts.clear();
 	}
@@ -708,7 +873,7 @@ void TImageWin::SetMode(BOOL is_draw)
 			drawPts.clear();
 		}
 		COLORREF		color = areaDlg.GetColor();
-		CursorMapItr	itr = cursorMap.find(color);
+		CursorMapItr	itr = cursorMap.find(CURSOR_IDX(color, areaDlg.GetMode() != MARKER_PEN));
 		if (itr != cursorMap.end()) {
 			::SetClassLong(hWnd, GCL_HCURSOR, (LONG)itr->second);
 		}
@@ -729,26 +894,20 @@ void TImageWin::PopDrawHist()
 
 BOOL TImageWin::CutImage(BOOL use_clip, BOOL with_save)
 {
-	RECT rc = { areaPts[0].x, areaPts[0].y, areaPts[1].x, areaPts[1].y };
-	RegularRect(&rc);
+	TRect	rc(areaPts[0], areaPts[1]);
+	rc.Regular();
 
-	int	cx = rc.right  - rc.left + 1; // include right line pixel
-	int	cy = rc.bottom - rc.top  + 1; // include bottom line pixel
+	rc.right  += 1; // include right/bottom line pixel
+	rc.bottom += 1;
+	int	off_x = reEdit ? 0 : rc.left;
+	int	off_y = reEdit ? 0 : rc.top;
 
-	HWND	hDesktop = ::GetDesktopWindow();
-	HDC		hDesktopDc = ::GetDC(hDesktop);
+	HDC		hAreaDc		= ::CreateCompatibleDC(hSelfDc);
+	HBITMAP	hAreaBmp	= ::CreateCompatibleBitmap(hSelfDc, rc.cx(), rc.cy());
+	HBITMAP	hAreaBmpOld	= (HBITMAP)::SelectObject(hAreaDc, hAreaBmp);
 
-	HDC		hAreaDc  = ::CreateCompatibleDC(hDesktopDc);
-	HBITMAP	hAreaBmp = ::CreateCompatibleBitmap(hDesktopDc, cx, cy);
-
-	HBITMAP	hOldBmp = (HBITMAP)::SelectObject(hSelfDc, hSelfBmp);
-	HBITMAP	hAreaOldBmp = (HBITMAP)::SelectObject(hAreaDc, hAreaBmp);
-
-	DrawMarker(hSelfDc);
-	::BitBlt(hAreaDc, 0, 0, cx, cy, hSelfDc, rc.left, rc.top, SRCCOPY);
-
-	::SelectObject(hAreaDc, hAreaOldBmp);
-	::SelectObject(hSelfDc, hOldBmp);
+	::BitBlt(hAreaDc, 0, 0, rc.cx(), rc.cy(), hSelfDc, off_x, off_y, SRCCOPY);
+	DrawMarker(hAreaDc);
 
 	if (use_clip && ::OpenClipboard(hWnd)) {
 		::EmptyClipboard();
@@ -771,17 +930,16 @@ BOOL TImageWin::CutImage(BOOL use_clip, BOOL with_save)
 											 FILE_SHARE_READ|FILE_SHARE_WRITE,
 											 NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 				if (hFile != INVALID_HANDLE_VALUE) {
-					WriteFile(hFile, buf->Buf(), buf->Size(), &size, 0);
+					WriteFile(hFile, buf->Buf(), (DWORD)buf->Size(), &size, 0);
 					CloseHandle(hFile);
 				}
 				delete buf;
 			}
 		}
 	}
-
-	::DeleteObject(hAreaBmp);
+	::SelectObject(hAreaDc, hAreaBmpOld);
 	::DeleteDC(hAreaDc);
-	::ReleaseDC(hDesktop, hDesktopDc);
+	::DeleteObject(hAreaBmp);
 
 	return	TRUE;
 }

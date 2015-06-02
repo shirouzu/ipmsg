@@ -1,35 +1,35 @@
 ﻿static char *recvdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   recvdlg.cpp	Ver3.41";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   recvdlg.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Receive Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-03(Tue)
+	Update					: 2015-05-03(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
-#include <time.h>
-#include "resource.h"
 #include "ipmsg.h"
-#include "aes.h"
-#include "blowfish.h"
+#include <process.h>
 
-int		TRecvDlg::createCnt = 0;
-HBITMAP	TRecvDlg::hDummyBmp = 0;
+int		TRecvDlg::createCnt	= 0;
+HBITMAP	TRecvDlg::hDummyBmp	= 0;
+HFONT	TRecvDlg::hHeadFont	= NULL;
+HFONT	TRecvDlg::hEditFont	= NULL;
+LOGFONT	TRecvDlg::orgFont	= {};
 
 
-TRecvDlg::TRecvDlg(MsgMng *_msgMng, MsgBuf *_msg, THosts *_hosts, Cfg *_cfg, LogMng *_logmng, TWin *_parent) : TListDlg(RECEIVE_DIALOG, _parent), editSub(_cfg, this)
+TRecvDlg::TRecvDlg(MsgMng *_msgMng, MsgBuf *_msg, THosts *_hosts, Cfg *_cfg, LogMng *_logmng,
+	TWin *_parent) : TListDlg(RECEIVE_DIALOG, _parent), editSub(_cfg, this)
 {
 	msgMng		= _msgMng;
 	cfg			= _cfg;
 	openFlg		= FALSE;
 	logmng		= _logmng;
 	hosts		= _hosts;
-	hEditFont	= NULL;
-	hHeadFont	= NULL;
 	fileObj		= NULL;
 	shareInfo	= NULL;
+	recvEndDlg	= NULL;
 	timerID		= 0;
 	retryCnt	= 0;
 	cryptCapa	= 0;
@@ -41,23 +41,35 @@ TRecvDlg::TRecvDlg(MsgMng *_msgMng, MsgBuf *_msg, THosts *_hosts, Cfg *_cfg, Log
 
 	if (!hDummyBmp) hDummyBmp = LoadBitmap(TApp::GetInstance(), (LPCSTR)DUMMYPIC_BITMAP);
 
-	memset(&orgFont, 0, sizeof(orgFont));
 	msg.Init(_msg);
 
 	MakeListString(cfg, &msg.hostSub, hosts, head);
 
 	status = INIT;
 	if (msg.command & IPMSG_ENCRYPTOPT) {
-		if ((status = (DecryptMsg() ? INIT : ERR))) {
+		if ((status = (msgMng->DecryptMsg(&msg, &cryptCapa, &logOpt) ? INIT : ERR))) {
 			msgMng->Send(&msg.hostSub,
 				IPMSG_SENDMSG|IPMSG_NOLOGOPT|IPMSG_AUTORETOPT, GetLoadStr(IDS_DECRYPTERR));
+		}
+		if (logOpt & LOG_SIGN_NOKEY) {
+			Host	*host = hosts->GetHostByName(&msg.hostSub);
+			if (!host) host = cfg->priorityHosts.GetHostByName(&msg.hostSub);
+			if (!host || !host->pubKey.Key()) {
+				char	buf[128];
+				wsprintf(buf, "%x", GetLocalCapa(cfg));
+				msgMng->Send(&msg.hostSub, IPMSG_GETPUBKEY|IPMSG_AUTORETOPT, buf);
+			}
 		}
 	}
 
 	if (msg.command & IPMSG_FILEATTACHOPT) {
-		if ((shareInfo = DecodeShareMsg(msg.exBuf, (cfg->ClipMode & CLIP_ENABLE)))) {
+		shareInfo = new ShareInfo(msg.exBuf, (cfg->ClipMode & CLIP_ENABLE));
+		if (shareInfo->fileCnt > 0) {
 			fileObj = new RecvFileObj;
-			memset(fileObj, 0, sizeof(RecvFileObj));
+		}
+		else {
+			delete shareInfo;
+			shareInfo = NULL;
 		}
 	}
 
@@ -83,7 +95,7 @@ TRecvDlg::TRecvDlg(MsgMng *_msgMng, MsgBuf *_msg, THosts *_hosts, Cfg *_cfg, Log
 					shareInfo->fileInfo[i]->SetSelected(TRUE);
 				}
 				else {
-					FreeDecodeShareMsgFile(shareInfo, i);
+					shareInfo->RemoveFileInfo(i);
 					i--;
 				}
 			}
@@ -105,6 +117,7 @@ TRecvDlg::TRecvDlg(MsgMng *_msgMng, MsgBuf *_msg, THosts *_hosts, Cfg *_cfg, Log
 			logmng->WriteRecvMsg(&msg, logOpt, hosts, shareInfo);
 
 		hAccel = ::LoadAccelerators(TApp::GetInstance(), (LPCSTR)IPMSG_ACCEL);
+		CheckSpecialCommand();
 	}
 }
 
@@ -115,7 +128,8 @@ TRecvDlg::~TRecvDlg()
 			msgMng->Send(&msg.hostSub, IPMSG_RELEASEFILES, msg.packetNo);
 		}
 		// あとで受信終了通知のコードを入れる
-		FreeDecodeShareMsg(shareInfo);
+		delete shareInfo;
+		shareInfo = NULL;
 	}
 	if (fileObj) {
 		delete fileObj->conInfo;
@@ -123,164 +137,13 @@ TRecvDlg::~TRecvDlg()
 	}
 
 	ClipBuf *clipBuf;
-	while ((clipBuf = (ClipBuf *)clipList.TopObj())) {
+	while ((clipBuf = clipList.TopObj())) {
 		clipList.DelObj(clipBuf);
 		delete clipBuf;
 	}
 
-	if (hHeadFont) ::DeleteObject(hHeadFont);
-	if (hEditFont) ::DeleteObject(hEditFont);
-
 	createCnt--;
 }
-
-/*
-	メッセージの復号化
-*/
-BOOL TRecvDlg::DecryptMsg()
-{
-	HCRYPTKEY	hKey=0, hExKey=0;
-	char		*capa_hex, *skey_hex, *msg_hex, *hash_hex, *p;
-	BYTE		skey[MAX_BUF], sig_data[MAX_BUF], data[MAX_BUF], iv[256/8];
-	int			len, msgLen, encMsgLen;
-	HCRYPTPROV	target_csp;
-	BOOL		(*str2bin_revendian)(const char *, BYTE *, int, int *) = NULL;
-	BOOL		(*str2bin)(const char *, BYTE *, int, int *)           = NULL;
-	DynBuf		tmpBuf(MAX_UDPBUF);
-
-	if ((capa_hex = separate_token(msg.msgBuf, ':', &p)) == NULL) {
-		return	FALSE;
-	}
-	cryptCapa = strtoul(capa_hex, 0, 16);
-
-	if ((cryptCapa & IPMSG_ENCODE_BASE64) && !pCryptStringToBinary) return FALSE; // for Win2000
-
-	int	kt = (cryptCapa & IPMSG_RSA_2048) ? KEY_2048 :
-			 (cryptCapa & IPMSG_RSA_1024) ? KEY_1024 :
-			 (cryptCapa & IPMSG_RSA_512)  ? KEY_512  : -1;
-	if (kt == -1) return FALSE;
-
-	target_csp	= cfg->priv[kt].hCsp;
-	hExKey		= cfg->priv[kt].hKey;
-
-	if (cryptCapa & IPMSG_ENCODE_BASE64) { // base64
-		str2bin_revendian = b64str2bin_revendian;
-		str2bin = b64str2bin;
-	}
-	else {			// hex encoding
-		str2bin_revendian = hexstr2bin_revendian;
-		str2bin = hexstr2bin;
-	}
-
-	if ((skey_hex = separate_token(NULL, ':', &p)) == NULL) {
-		return	FALSE;
-	}
-	if ((msg_hex = separate_token(NULL, ':', &p)) == NULL) {
-		return	FALSE;
-	}
-
-	if (cryptCapa & IPMSG_SIGN_SHA1) {
-		if ((hash_hex = separate_token(NULL, ':', &p)) == NULL)
-			return	FALSE;
-	}
-
-	// IV の初期化
-	memset(iv, 0, sizeof(iv));
-	if (cryptCapa & IPMSG_PACKETNO_IV) strncpyz((char *)iv, msg.packetNoStr, sizeof(iv));
-
-	if (cryptCapa & IPMSG_AES_256) {	// AES
-		str2bin_revendian(skey_hex, skey, sizeof(skey), &len);
-		// 公開鍵取得
-		if (!pCryptDecrypt(hExKey, 0, TRUE, 0, (BYTE *)skey, (DWORD *)&len))
-			return	wsprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), FALSE;
-
-		AES	aes(skey, len);
-		str2bin(msg_hex, tmpBuf, tmpBuf.Size(), &encMsgLen);
-		msgLen = aes.Decrypt(tmpBuf, tmpBuf, encMsgLen, iv);
-	}
-	else if (cryptCapa & IPMSG_BLOWFISH_128) {	// blowfish
-		str2bin_revendian(skey_hex, skey, sizeof(skey), &len);
-		// 公開鍵取得
-		if (!pCryptDecrypt(hExKey, 0, TRUE, 0, (BYTE *)skey, (DWORD *)&len))
-			return	wsprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), FALSE;
-
-		CBlowFish	bl(skey, len);
-		str2bin(msg_hex, tmpBuf, tmpBuf.Size(), &encMsgLen);
-		msgLen = bl.Decrypt(tmpBuf, tmpBuf, encMsgLen, BF_CBC|BF_PKCS5, iv);
-	}
-	else {	// RC2
-		// Skey Blob を作る
-		skey[0] = SIMPLEBLOB;
-		skey[1] = CUR_BLOB_VERSION;
-		*(WORD *)(skey + 2) = 0;
-		*(ALG_ID *)(skey + 4) = CALG_RC2;
-		*(ALG_ID *)(skey + 8) = CALG_RSA_KEYX;
-		str2bin_revendian(skey_hex, skey + SKEY_HEADER_SIZE, sizeof(skey) - SKEY_HEADER_SIZE, &len);
-
-		// セッションキーの import
-		if (!pCryptImportKey(target_csp, skey, len + SKEY_HEADER_SIZE, hExKey, 0, &hKey))
-			return	wsprintf(msg.msgBuf, "CryptImportKey Err(%X)", GetLastError()), FALSE;
-
-		// メッセージの Decrypt
-		str2bin(msg_hex, tmpBuf, tmpBuf.Size(), &encMsgLen);
-		msgLen = encMsgLen;
-		if (!pCryptDecrypt(hKey, 0, TRUE, 0, tmpBuf, (DWORD *)&msgLen))
-			return	wsprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), FALSE;
-		pCryptDestroyKey(hKey);
-	}
-
-	// 電子署名の検証
-	if (cryptCapa & IPMSG_SIGN_SHA1) {
-		Host		*host = hosts->GetHostByAddr(&msg.hostSub);
-
-		if (!host) host = cfg->priorityHosts.GetHostByName(&msg.hostSub);
-		if (host && IsSameHost(&msg.hostSub, &host->hostSub) && host->pubKey.KeyLen() == 256) {
-			HCRYPTHASH	hHash = NULL;
-			HCRYPTKEY	hExKey = 0;
-			int			capa = host->pubKey.Capa();
-			int			kt = (capa & IPMSG_RSA_2048) ? KEY_2048 :
-							 (capa & IPMSG_RSA_1024) ? KEY_1024 : KEY_512;
-
-			logOpt |= LOG_SIGN_ERR;
-			target_csp = cfg->priv[kt].hCsp;
-			host->pubKey.KeyBlob(data, sizeof(data), &len);	// KeyBlob 作成/import
-			if (pCryptImportKey(target_csp, data, len, 0, 0, &hExKey)) {
-				if (pCryptCreateHash(target_csp, CALG_SHA, 0, 0, &hHash)) {
-					if (pCryptHashData(hHash, tmpBuf, msgLen, 0)) {
-						int		sigLen = 0;
-						str2bin_revendian(hash_hex, sig_data, sizeof(sig_data), &sigLen);
-						if (pCryptVerifySignature(hHash, sig_data, sigLen, hExKey, 0, 0)) {
-							logOpt &= ~LOG_SIGN_ERR;
-							logOpt |= LOG_SIGN_OK;
-						}
-					}
-					pCryptDestroyHash(hHash);
-				}
-				pCryptDestroyKey(hExKey);
-			}
-		}
-		else logOpt |= LOG_SIGN_NOKEY;
-	}
-	logOpt |= (cryptCapa & IPMSG_RSA_2048) ? LOG_ENC2 :
-			  (cryptCapa & IPMSG_RSA_1024) ? LOG_ENC1 : LOG_ENC0;
-
-
-	// 暗号化添付メッセージ
-	if ((msg.command & IPMSG_ENCEXTMSGOPT)) {
-		if ((len = (int)strlen(tmpBuf) + 1) < msgLen) {
-			strncpyz(msg.exBuf, (char *)tmpBuf + len, MAX_UDPBUF);
-		}
-	}
-
-	// UNIX 形式の改行を変換
-	UnixNewLineToLocal(tmpBuf, msg.msgBuf, sizeof(msg.msgBuf));
-	if ((msg.command & IPMSG_UTF8OPT) == 0) {
-		strncpyz(msg.msgBuf, AtoU8(msg.msgBuf), sizeof(msg.msgBuf));
-	}
-
-	return	TRUE;
-}
-
 
 BOOL TRecvDlg::PreProcMsg(MSG *msg)
 {
@@ -426,7 +289,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		if (openFlg && IsDlgButtonChecked(QUOTE_CHECK)) {
 			editSub.GetTextUTF8(msg.msgBuf, sizeof(msg.msgBuf));
 		}
-		::PostMessage(GetMainWnd(), WM_SENDDLG_OPEN, (WPARAM)hWnd, (LPARAM)&msg);
+		::PostMessage(GetMainWnd(), WM_SENDDLG_OPEN, 0, twinId);
 		return	TRUE;
 
 	case IDCANCEL:
@@ -434,7 +297,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			return	EvCommand(0, FILE_BUTTON, 0), TRUE;
 
 		if (clipList.TopObj()) {
-			ClipBuf *clipBuf = (ClipBuf *)clipList.TopObj();
+			ClipBuf *clipBuf = clipList.TopObj();
 			if (clipBuf->finished) {
 				if (MessageBoxU8(GetLoadStrU8(IDS_CLIPDESTROY), IP_MSG, MB_OKCANCEL) != IDOK)
 					return TRUE;
@@ -445,8 +308,9 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 				return TRUE;
 		}
 
-		if (timerID == 0)
-			::PostMessage(GetMainWnd(), WM_RECVDLG_EXIT, 0, (LPARAM)this);
+		if (timerID == 0) {
+			if (!modalCount) ::PostMessage(GetMainWnd(), WM_RECVDLG_EXIT, 0, twinId);
+		}
 		else
 			TWin::Show(SW_HIDE);
 		return	TRUE;
@@ -471,7 +335,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		if (msg.command & IPMSG_PASSWORDOPT) {
 			TPasswordDlg	dlg(cfg, this);
 
-			if (!dlg.Exec()) {
+			if (dlg.Exec() != IDOK) {
 				return	TRUE;
 			}
 			if (cfg->PasswdLogCheck) {
@@ -486,7 +350,8 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		::EnableWindow(GetDlgItem(OPEN_BUTTON), FALSE);
 
 		if (shareInfo) {
-			SetFileButton(this, FILE_BUTTON, shareInfo), EvSize(SIZE_RESTORED, 0, 0);
+			SetFileButton(this, FILE_BUTTON, shareInfo);
+			EvSize(SIZE_RESTORED, 0, 0);
 		}
 		if (IsShowDirectImage(cfg, &msg.hostSub)) {
 			InsertImages();
@@ -520,9 +385,12 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			}
 		}
 		else if (fileObj) {
-			TSaveCommonDlg	dlg(shareInfo, cfg, this);
+			Host	*host = hosts->GetHostByName(&msg.hostSub);
+			if (!host) host = cfg->priorityHosts.GetHostByName(&msg.hostSub);
+
+			TSaveCommonDlg	dlg(shareInfo, cfg, host ? host->hostStatus : 0, this);
 			if (dlg.Exec()) {
-				memset(fileObj, 0, sizeof(RecvFileObj));
+				fileObj->Init();
 				strncpyz(fileObj->saveDir, cfg->lastSaveDir, MAX_PATH_U8);
 				SaveFile();
 			}
@@ -563,7 +431,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		cf.nFontType	= SCREEN_FONTTYPE;
 		if (::ChooseFont(&cf)) {
 			*targetFont = tmpFont;
-			SetFont();
+			SetFont(TRUE);
 			::InvalidateRgn(hWnd, NULL, TRUE);
 		}
 		cfg->WriteRegistry(CFG_FONT);
@@ -572,7 +440,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	case MENU_DEFAULTFONT:
 		cfg->RecvHeadFont = orgFont;
 		cfg->RecvEditFont = orgFont;
-		SetFont();
+		SetFont(TRUE);
 		::InvalidateRgn(hWnd, NULL, TRUE);
 		cfg->WriteRegistry(CFG_FONT);
 		return	TRUE;
@@ -682,7 +550,7 @@ BOOL TRecvDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 	timerID = 0;
 
 	if (!::IsWindowVisible(hWnd)) {
-		::PostMessage(GetMainWnd(), WM_RECVDLG_EXIT, 0, (LPARAM)this);
+		if (!modalCount) ::PostMessage(GetMainWnd(), WM_RECVDLG_EXIT, 0, twinId);
 	}
 
 	return	TRUE;
@@ -845,45 +713,30 @@ BOOL TRecvDlg::IsSamePacket(MsgBuf *test_msg)
 	}
 }
 
-void TRecvDlg::SetFont(void)
+void TRecvDlg::SetFont(BOOL force_reset)
 {
-	HFONT	hDlgFont;
-	LOGFONT	*editFont;
+	if (!*orgFont.lfFaceName) {
+		HFONT	hFont = (HFONT)SendMessage(WM_GETFONT, 0, 0);;
 
-	if ((hDlgFont = (HFONT)SendMessage(WM_GETFONT, 0, 0L)) == NULL) {
-		return;
-	}
-	if (::GetObject(hDlgFont, sizeof(LOGFONT), (LPSTR)&orgFont) == NULL) {
-		return;
+		if (!hFont || ::GetObject(hFont, sizeof(LOGFONT), (LPSTR)&orgFont) == NULL) return;
+		if (*cfg->RecvHeadFont.lfFaceName == 0) cfg->RecvHeadFont = orgFont;
+		if (*cfg->RecvEditFont.lfFaceName == 0) cfg->RecvEditFont = orgFont;
 	}
 
-	if (*cfg->RecvHeadFont.lfFaceName == 0) {	//初期データセット
-		cfg->RecvHeadFont = orgFont;
-	}
-	if (*cfg->RecvEditFont.lfFaceName == 0) {	//初期データセット
-		cfg->RecvEditFont = orgFont;
+	if (!hHeadFont || !hEditFont || force_reset) {
+		if (hHeadFont) ::DeleteObject(hHeadFont);
+		if (hEditFont) ::DeleteObject(hEditFont);
+
+		if (*cfg->RecvHeadFont.lfFaceName) hHeadFont = ::CreateFontIndirect(&cfg->RecvHeadFont);
+		if (*cfg->RecvEditFont.lfFaceName) hEditFont = ::CreateFontIndirect(&cfg->RecvEditFont);
 	}
 
-	if (*cfg->RecvHeadFont.lfFaceName && (hDlgFont = ::CreateFontIndirect(&cfg->RecvHeadFont))) {
-		SendDlgItemMessage(RECV_HEAD, WM_SETFONT, (UINT)hDlgFont, 0L);
-		SendDlgItemMessage(RECV_HEAD2, WM_SETFONT, (UINT)hDlgFont, 0L);
-		if (hHeadFont) {
-			::DeleteObject(hHeadFont);
-		}
-		hHeadFont = hDlgFont;
-	}
+	SendDlgItemMessage(RECV_HEAD, WM_SETFONT, (UINT)hHeadFont, 0L);
+	SendDlgItemMessage(RECV_HEAD2, WM_SETFONT, (UINT)hHeadFont, 0L);
 
-	editFont = &cfg->RecvEditFont;
-
-	if (editFont->lfFaceName && (hDlgFont = ::CreateFontIndirect(editFont))) {
-		editSub.SetFont(&cfg->RecvEditFont);
-		editSub.ExSetText(msg.msgBuf);
-		editSub.SetWindowTextU8(msg.msgBuf);
-//		editSub.SendMessage(WM_SETFONT, (UINT)hDlgFont, 0L);
-//		if (hEditFont)
-//			::DeleteObject(hEditFont);
-		hEditFont = hDlgFont;
-	}
+	editSub.SetFont(&cfg->RecvEditFont);
+	editSub.ExSetText(msg.msgBuf);
+	editSub.SetWindowTextU8(msg.msgBuf);
 }
 
 void TRecvDlg::SetSize(void)
@@ -926,12 +779,15 @@ void TRecvDlg::SetSize(void)
 
 	::GetClientRect(GetDlgItem(RECV_HEAD), &headRect);
 
-	RECT	scRect;
+	TRect	scRect;
 	GetCurrentScreenSize(&scRect);
 
-	int	cx = scRect.right - scRect.left, cy = scRect.bottom - scRect.top;
-	int	xsize = rect.right - rect.left + cfg->RecvXdiff, ysize = rect.bottom - rect.top + cfg->RecvYdiff;
-	int	x = cfg->RecvXpos, y = cfg->RecvYpos;
+	int	cx = scRect.cx();
+	int	cy = scRect.cy();
+	int	xsize = rect.cx() + cfg->RecvXdiff;
+	int	ysize = rect.cy() + cfg->RecvYdiff;
+	int	x = cfg->RecvXpos;
+	int	y = cfg->RecvYpos;
 
 	if (cfg->RecvSavePos == 0) {
 		x = (cx - xsize)/2 + (rand() % (cx/4)) - cx/8;
@@ -1026,8 +882,9 @@ BOOL TRecvDlg::SendFinishNotify(HostSub *hostSub, ULONG packet_no)
 		if (timerID == IPMSG_RECV_TIMER) {
 			::KillTimer(hWnd, IPMSG_RECV_TIMER);
 			timerID = 0;
-			if (!::IsWindowVisible(hWnd))
-				::PostMessage(GetMainWnd(), WM_RECVDLG_EXIT, 0, (LPARAM)this);
+			if (!::IsWindowVisible(hWnd)) {
+				if (!modalCount) ::PostMessage(GetMainWnd(), WM_RECVDLG_EXIT, 0, twinId);
+			}
 		}
 		return	TRUE;
 	}
@@ -1055,8 +912,8 @@ BOOL TRecvDlg::InsertImages(void)
 {
 	BOOL	ret = TRUE;
 
-	for (ClipBuf *clipBuf=(ClipBuf *)clipList.TopObj(); clipBuf; ) {
-		ClipBuf *next = (ClipBuf *)clipList.NextObj(clipBuf);
+	for (ClipBuf *clipBuf=clipList.TopObj(); clipBuf; ) {
+		ClipBuf *next = clipList.NextObj(clipBuf);
 		if (clipBuf->finished) {
 			int	pos = clipBuf->pos;
 			if (useDummyBmp) {
@@ -1089,7 +946,10 @@ BOOL TRecvDlg::TcpEvent(SOCKET sd, LPARAM lParam)
 
 	switch (LOWORD(lParam)) {
 	case FD_CONNECT:	// connect done
-		StartRecvFile();
+		if (!fileObj->conInfo->complete) {
+			fileObj->conInfo->complete = TRUE;
+			StartRecvFile();
+		}
 		break;
 
 	case FD_CLOSE:
@@ -1101,7 +961,7 @@ BOOL TRecvDlg::TcpEvent(SOCKET sd, LPARAM lParam)
 
 BOOL TRecvDlg::ConnectRecvFile(void)
 {
-	memset(fileObj->conInfo, 0, sizeof(ConnectInfo));
+	fileObj->conInfo->Init();
 	fileObj->conInfo->addr = msg.hostSub.addr;
 	fileObj->conInfo->port = msg.hostSub.portNo;
 
@@ -1115,22 +975,54 @@ BOOL TRecvDlg::ConnectRecvFile(void)
 	return	TRUE;
 }
 
-#define	OFFSET 0
-
 BOOL TRecvDlg::StartRecvFile(void)
 {
-	char	buf[MAX_PATH_U8], tcpbuf[MAX_BUF];
-	int		command	= fileObj->isDir ? IPMSG_GETDIRFILES : IPMSG_GETFILEDATA;
-	int		opt		= (msg.command & (IPMSG_UTF8OPT|IPMSG_CAPUTF8OPT));
+	char	cmdbuf[MAX_PATH_U8], midbuf[MAX_BUF], tcpbuf[MAX_BUF];
+	char	*targ_buf = cmdbuf;
+	int		cmd = fileObj->isDir ? IPMSG_GETDIRFILES : IPMSG_GETFILEDATA;
+	int		pkt_no = msgMng->MakePacketNo();
+	int		pkt_len = 0;
 
-	wsprintf(buf, fileObj->isDir ? "%x:%x:" : "%x:%x:%x:", msg.packetNo, fileObj->fileInfo->Id(), OFFSET);
-	fileObj->conInfo->complete = TRUE;
-	msgMng->MakeMsg(tcpbuf, command | opt, buf);
+	wsprintf(cmdbuf, "%x:%x:", msg.packetNo, fileObj->fileInfo->Id());
+
+	Host	*host = hosts->GetHostByName(&msg.hostSub);
+	if (!host) host = cfg->priorityHosts.GetHostByName(&msg.hostSub);
+
+	if (host && GetUserNameDigestField(host->hostSub.userName) && host->pubKey.Key()
+		&& (host->hostStatus & IPMSG_CAPFILEENCOPT)) {
+		if (!fileObj->isClip) {
+			cmd = IPMSG_GETDIRFILES; // ファイルでもGETDIRFILES（メモリファイルは除く）
+			fileObj->status = FS_TRANSINFO;
+		}
+		if (cmd == IPMSG_GETFILEDATA) strcat(cmdbuf,"0:"); // append file-offset
+		int	capa = (host->pubKey.Capa() & GetLocalCapa(cfg));
+		cmd |= IPMSG_ENCRYPTOPT;
+
+		if (cfg->EncTransCheck &&
+			(capa & IPMSG_AES_256) && (capa & IPMSG_PACKETNO_IV) && (capa & IPMSG_SIGN_SHA1)) {
+			BYTE	key[256/8], iv[AES_BLOCK_SIZE]={};
+
+			TGenRandom(key, sizeof(key));
+			char	*cmd_p = cmdbuf + strlen(cmdbuf);
+			cmd_p += wsprintf(cmd_p, "%x:", IPMSG_AES_256|IPMSG_PACKETNO_IV);
+			cmd_p += bin2hexstr(key, sizeof(key), cmd_p);
+			wsprintf((char *)iv, "%d", pkt_no);
+			fileObj->aes.Init(key, sizeof(key), iv);
+			cmd |= IPMSG_ENCFILEOPT;
+		}
+		if (!msgMng->MakeEncryptMsg(host, pkt_no, cmdbuf, false, NULL, midbuf)) return FALSE;
+		targ_buf = midbuf;
+	}
+	else if (cmd == IPMSG_GETFILEDATA) strcat(cmdbuf,"0:"); // append file-offset
+
+	if (msg.command & IPMSG_UTF8OPT) cmd |= IPMSG_UTF8OPT;
+
+	msgMng->MakeMsg(tcpbuf, pkt_no, cmd, targ_buf, NULL, &pkt_len);
 	msgMng->ConnectDone(hWnd, fileObj->conInfo);
 
 //fileObj->offset = fileObj->woffset = OFFSET;
 
-	if (::Tsend(fileObj->conInfo->sd, tcpbuf, (int)strlen(tcpbuf), 0) < (int)strlen(tcpbuf)) {
+	if (::send(fileObj->conInfo->sd, tcpbuf, pkt_len, 0) < pkt_len) {
 		return	EndRecvFile(), FALSE;
 	}
 
@@ -1149,12 +1041,13 @@ BOOL TRecvDlg::StartRecvFile(void)
 			clipBuf = new ClipBuf((int)size, fileObj->curFileInfo.Pos());
 			if (clipBuf && clipBuf->vbuf) {
 				clipList.AddObj(clipBuf);
+			} else if (clipBuf) {
+				delete clipBuf;
+				clipBuf = NULL;
 			}
 		}
-		if (!clipBuf || !clipBuf->vbuf) {
-			if (clipBuf) delete clipBuf;
-			return	EndRecvFile(), FALSE;
-		}
+		if (!clipBuf) return EndRecvFile(), FALSE;
+
 		fileObj->recvBuf = (char *)clipBuf->vbuf.Buf();
 	}
 	else {
@@ -1173,10 +1066,9 @@ BOOL TRecvDlg::StartRecvFile(void)
 		return	TRUE;
 	}
 
-	DWORD	id;	// 使わず（95系で error になるのを防ぐだけ）
+	UINT	id;	// 使わず（95系で error になるのを防ぐだけ）
 	fileObj->hThread = (HANDLE)~0;	// 微妙な領域を避ける
-	// thread 内では MT 対応が必要な crt は使わず
-	if ((fileObj->hThread = ::CreateThread(NULL, 0, RecvFileThread, this, 0, &id)) == NULL) {
+	if (!(fileObj->hThread = (HANDLE)_beginthreadex(NULL, 0, RecvFileThread, this, 0, &id))) {
 		EndRecvFile();
 		return	FALSE;
 	}
@@ -1184,7 +1076,7 @@ BOOL TRecvDlg::StartRecvFile(void)
 	return	TRUE;
 }
 
-DWORD WINAPI TRecvDlg::RecvFileThread(void *_recvDlg)
+UINT WINAPI TRecvDlg::RecvFileThread(void *_recvDlg)
 {
 	TRecvDlg	*recvDlg = (TRecvDlg *)_recvDlg;
 	RecvFileObj	*fileObj = recvDlg->fileObj;
@@ -1192,14 +1084,15 @@ DWORD WINAPI TRecvDlg::RecvFileThread(void *_recvDlg)
 	timeval		tv;
 	int			sock_ret;
 	BOOL		(TRecvDlg::*RecvFileFunc)(void) =
-				fileObj->isDir ? &TRecvDlg::RecvDirFile : &TRecvDlg::RecvFile;
+				(fileObj->isDir || fileObj->status == FS_TRANSINFO)
+						 ? &TRecvDlg::RecvDirFile : &TRecvDlg::RecvFile;
 
 	FD_ZERO(&rfd);
 	FD_SET(fileObj->conInfo->sd, &rfd);
 
 	for (int waitCnt=0; waitCnt < 120 && fileObj->hThread; waitCnt++) {
 		tv.tv_sec = 1, tv.tv_usec = 0;
-		if ((sock_ret = ::Tselect((int)fileObj->conInfo->sd + 1, &rfd, NULL, NULL, &tv)) > 0) {
+		if ((sock_ret = ::select((int)fileObj->conInfo->sd + 1, &rfd, NULL, NULL, &tv)) > 0) {
 			waitCnt = 0;
 			if (!(recvDlg->*RecvFileFunc)()) {
 				break;
@@ -1224,7 +1117,7 @@ DWORD WINAPI TRecvDlg::RecvFileThread(void *_recvDlg)
 	}
 
 	recvDlg->PostMessage(WM_TCPEVENT, fileObj->conInfo->sd, FD_CLOSE);
-	::ExitThread(0);
+	_endthreadex(0);
 	return	0;
 }
 
@@ -1265,16 +1158,18 @@ BOOL TRecvDlg::DecodeDirEntry(char *buf, FileInfo *info, char *u8fname)
 		return	FALSE;
 	}
 
-	if (msg.command & IPMSG_UTF8OPT) {
-		strncpyz(u8fname, tok, MAX_PATH_U8);
-	}
-	else {
-		WCHAR	wbuf[MAX_PATH];
-		AtoW(tok, wbuf, MAX_PATH);
-		WtoU8(wbuf, u8fname, MAX_PATH_U8);
+	if (u8fname) {
+		if (msg.command & IPMSG_UTF8OPT) {
+			strncpyz(u8fname, tok, MAX_PATH_U8);
+		}
+		else {
+			WCHAR	wbuf[MAX_PATH];
+			AtoW(tok, wbuf, MAX_PATH);
+			WtoU8(wbuf, u8fname, MAX_PATH_U8);
+		}
+		info->SetFname(u8fname);
 	}
 
-	info->SetFname(u8fname);
 	while ((ptr = strchr(tok, '?'))) { // UNICODE までの暫定
 		*ptr = '_';
 	}
@@ -1317,33 +1212,49 @@ BOOL TRecvDlg::RecvDirFile(void)
 	if (fileObj->status == FS_DIRFILESTART || fileObj->status == FS_TRANSINFO) {
 		int		size;
 		if (fileObj->infoLen == 0) {
-			if ((size = ::Trecv(fileObj->conInfo->sd, fileObj->info + (int)fileObj->offset, PEEK_SIZE - (int)fileObj->offset, 0)) <= 0) {
+			if ((size = ::recv(fileObj->conInfo->sd, fileObj->info + (int)fileObj->offset,
+								PEEK_SIZE - (int)fileObj->offset, 0)) <= 0) {
 				return	FALSE;
+			}
+			if (fileObj->aes.IsKeySet()) {
+				fileObj->aes.DecryptCTR((const BYTE *)fileObj->info + (int)fileObj->offset,
+										  (BYTE *)fileObj->info + (int)fileObj->offset, size);
 			}
 			if ((fileObj->offset += size) < PEEK_SIZE) {
 				return	TRUE;
 			}
 			fileObj->info[fileObj->offset] = 0;
-			if ((fileObj->infoLen = strtoul(fileObj->info, 0, 16)) >= sizeof(fileObj->info) -1 || fileObj->infoLen <= 0) {
+			fileObj->infoLen = strtoul(fileObj->info, 0, 16);
+			if (fileObj->infoLen >= sizeof(fileObj->info) -1 || fileObj->infoLen <= 0) {
 				return	FALSE;	// too big or small
 			}
 		}
 		if (fileObj->offset < fileObj->infoLen) {
-			if ((size = ::Trecv(fileObj->conInfo->sd, fileObj->info + (int)fileObj->offset, fileObj->infoLen - (int)fileObj->offset, 0)) <= 0) {
+			if ((size = ::recv(fileObj->conInfo->sd, fileObj->info + (int)fileObj->offset,
+								fileObj->infoLen - (int)fileObj->offset, 0)) <= 0) {
 				return	FALSE;
+			}
+			if (fileObj->aes.IsKeySet()) {
+				fileObj->aes.DecryptCTR((const BYTE *)fileObj->info + (int)fileObj->offset,
+										  (BYTE *)fileObj->info + (int)fileObj->offset, size);
 			}
 			fileObj->offset += size;
 		}
 		if (fileObj->offset == fileObj->infoLen) {
 			fileObj->info[fileObj->infoLen] = 0;
-			if (!DecodeDirEntry(fileObj->info, &fileObj->curFileInfo, fileObj->u8fname)) {
+			if (!DecodeDirEntry(fileObj->info, &fileObj->curFileInfo, 
+									fileObj->isDir ? fileObj->u8fname : NULL)) {
 				return	FALSE;	// Illegal entry
 			}
 			fileObj->offset = fileObj->infoLen = 0;	// 初期化
+			DWORD	attr = fileObj->curFileInfo.Attr();
 
-			if (GET_MODE(fileObj->curFileInfo.Attr()) == IPMSG_FILE_DIR) {
+			if (GET_MODE(attr) == IPMSG_FILE_DIR) {
 				char	buf[MAX_BUF];
-				const char *fname = fileObj->dirCnt == 0 ? fileObj->fileInfo->Fname() : fileObj->curFileInfo.Fname();
+				const char *fname = (fileObj->dirCnt == 0) ?
+										fileObj->fileInfo->Fname() : fileObj->curFileInfo.Fname();
+
+				if (!fileObj->isDir) return FALSE;
 
 				if (MakePath(buf, fileObj->path, fname) >= MAX_PATH_U8) {
 					MessageBoxU8(buf, GetLoadStrU8(IDS_PATHTOOLONG));
@@ -1358,12 +1269,15 @@ BOOL TRecvDlg::RecvDirFile(void)
 				strncpyz(fileObj->path, buf, MAX_PATH_U8);
 				fileObj->dirCnt++;
 			}
-			else if (GET_MODE(fileObj->curFileInfo.Attr()) == IPMSG_FILE_RETPARENT) {
+			else if (GET_MODE(attr) == IPMSG_FILE_RETPARENT) {
+				if (!fileObj->isDir) return FALSE;
+
 				if (fileObj->curFileInfo.Mtime()) { // directory の time stamp をあわせる(NT系のみ)
 					FILETIME	ft;
 					HANDLE		hFile;
 					UnixTime2FileTime(fileObj->curFileInfo.Mtime(), &ft);
-					if ((hFile = CreateFileU8(fileObj->path, GENERIC_WRITE, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0)) != INVALID_HANDLE_VALUE) {
+					if ((hFile = CreateFileU8(fileObj->path, GENERIC_WRITE, FILE_SHARE_READ, 0,
+						OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0)) != INVALID_HANDLE_VALUE) {
 						::SetFileTime(hFile, NULL, NULL, &ft);
 						::CloseHandle(hFile);
 					}
@@ -1380,12 +1294,17 @@ BOOL TRecvDlg::RecvDirFile(void)
 				}
 			}
 			else {
-				if (fileObj->dirCnt == 0) {
+				if (fileObj->isDir && fileObj->dirCnt == 0) {
 					return	FALSE;
 				}
 				if (fileObj->curFileInfo.Size() == 0) {	// 0byte file
-					if (OpenRecvFile())		// 0byteの場合は作成失敗を無視
+					if (OpenRecvFile()) {	// 0byteの場合は作成失敗を無視
 						CloseRecvFile(TRUE);
+					}
+					if (!fileObj->isDir) {
+						fileObj->status = FS_COMPLETE;
+						return TRUE;
+					}
 				}
 				fileObj->status = fileObj->curFileInfo.Size() ? FS_TRANSFILE : FS_TRANSINFO;
 			}
@@ -1398,8 +1317,9 @@ BOOL TRecvDlg::RecvDirFile(void)
 			CloseRecvFile();
 			return	FALSE;
 		}
-		if (fileObj->status == FS_ENDFILE) {
+		if (fileObj->status == FS_ENDFILE || fileObj->status == FS_COMPLETE) {
 			CloseRecvFile(TRUE);
+			if (!fileObj->isDir) return TRUE;
 			fileObj->status = FS_TRANSINFO;
 		}
 	}
@@ -1450,8 +1370,12 @@ BOOL TRecvDlg::RecvFile(void)
 			remain = cfg->IoBufMax - wresid;
 	}
 
-	if ((size = ::Trecv(fileObj->conInfo->sd, fileObj->recvBuf + wresid, (int)remain, 0)) <= 0) {
+	if ((size = ::recv(fileObj->conInfo->sd, fileObj->recvBuf + wresid, (int)remain, 0)) <= 0) {
 		return	FALSE;
+	}
+	if (fileObj->aes.IsKeySet()) {
+		fileObj->aes.DecryptCTR((const BYTE *)fileObj->recvBuf + wresid,
+								(BYTE *)fileObj->recvBuf + wresid, size);
 	}
 
 	if (!fileObj->isClip && fileObj->hFile == INVALID_HANDLE_VALUE) {
@@ -1496,7 +1420,8 @@ int MakeTransRateStr(char *buf, DWORD ticks, _int64 cur_size, _int64 total_size)
 	len += MakeSizeString(buf + len, total_size);
 	buf[len++] = ' ';
 	len += MakeSizeString(buf + len, cur_size * 1000 / (ticks ? ticks : 10));
-	return len + wsprintf(buf + len, "/s (%d%%)", (int)(cur_size * 100 / (total_size ? total_size : 1)));
+	return len + wsprintf(buf + len, "/s (%d%%)",
+							(int)(cur_size * 100 / (total_size ? total_size : 1)));
 }
 
 int MakeDirTransRateStr(char *buf, DWORD ticks, _int64 cur_size, int files)
@@ -1509,15 +1434,6 @@ int MakeDirTransRateStr(char *buf, DWORD ticks, _int64 cur_size, int files)
 	len += MakeSizeString(buf + len, cur_size * 1000 / (ticks ? ticks : 1));
 	return	len + wsprintf(buf + len, "/s)" );
 }
-
-class RecvTransEndDlg : public TDlg {
-	RecvFileObj	*fileObj;
-
-public:
-	RecvTransEndDlg(RecvFileObj *_fileObj, TWin *_win) : TDlg(_fileObj->status == FS_COMPLETE ? TRANSEND_DIALOG : SUSPEND_DIALOG, _win) { fileObj = _fileObj; }
-	virtual BOOL	EvCreate(LPARAM lParam);
-	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
-};
 
 BOOL RecvTransEndDlg::EvCreate(LPARAM lParam)
 {
@@ -1552,7 +1468,7 @@ BOOL RecvTransEndDlg::EvCreate(LPARAM lParam)
 	SetDlgItemTextU8(FILE_STATIC, buf);
 
 	GetWindowRect(&rect);
-	MoveWindow(rect.left + 30, rect.top + 30, rect.right - rect.left, rect.bottom - rect.top, TRUE);
+	MoveWindow(rect.left +30, rect.top + 30, rect.right - rect.left, rect.bottom - rect.top, TRUE);
 	return	TRUE;
 }
 
@@ -1589,11 +1505,10 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 	ClipBuf		*clipBuf = NULL;
 	BOOL		isInsertImage = FALSE;
 
-	::Tclosesocket(fileObj->conInfo->sd);
+	::closesocket(fileObj->conInfo->sd);
 
 	if (fileObj->isClip) {
-		for (clipBuf=(ClipBuf*)clipList.TopObj(); clipBuf;
-				clipBuf=(ClipBuf*)clipList.NextObj(clipBuf)) {
+		for (clipBuf=clipList.TopObj(); clipBuf; clipBuf=clipList.NextObj(clipBuf)) {
 			if (fileObj->recvBuf == (char *)clipBuf->vbuf.Buf()) {
 				break;
 			}
@@ -1617,7 +1532,7 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 		for (int cnt=0; cnt < shareInfo->fileCnt; cnt++) {
 			if (shareInfo->fileInfo[cnt] != fileInfo) {
 				if (shareInfo->fileInfo[cnt]->IsSelected()) {
-					FreeDecodeShareMsgFile(shareInfo, target);
+					shareInfo->RemoveFileInfo(target);
 					return	SaveFile();
 				}
 				if (GET_MODE(shareInfo->fileInfo[cnt]->Attr()) == IPMSG_FILE_CLIPBOARD) {
@@ -1634,9 +1549,20 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 
 	int ret;
 
-	if (manual_suspend)			ret = IDCANCEL;
-	else if (fileObj->isClip)	ret = IDOK;
-	else						ret = RecvTransEndDlg(fileObj, this).Exec();
+	if (manual_suspend) {
+		ret = IDCANCEL;
+	} else if (fileObj->isClip) {
+		ret = IDOK;
+	} else {
+		recvEndDlg = new RecvTransEndDlg(fileObj, this);
+		ret = recvEndDlg->Exec();
+		delete recvEndDlg;
+		recvEndDlg = NULL;
+		if (!shareInfo) {
+			MessageBoxU8("Illegal status(recvEndDlg4)", IP_MSG, MB_OK);
+			return TRUE;
+		}
+	}
 
 	if (ret == EXEC_BUTTON || ret == FOLDER_BUTTON && fileObj->isDir && isSingleTrans) {
 		char	buf[MAX_BUF];
@@ -1648,7 +1574,7 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 	}
 
 	if (ret == IDOK || ret == FOLDER_BUTTON || ret == EXEC_BUTTON) {
-		FreeDecodeShareMsgFile(shareInfo, target);
+		shareInfo->RemoveFileInfo(target);
 	}
 
 	SetFileButton(this, FILE_BUTTON, shareInfo);
@@ -1672,11 +1598,54 @@ void TRecvDlg::SetTransferButtonText(void)
 	if (fileObj->conInfo == NULL) return;
 
 	if (fileObj->isDir) {
-		MakeDirTransRateStr(buf, fileObj->conInfo->lastTick - fileObj->startTick, fileObj->totalTrans + fileObj->offset, fileObj->totalFiles);
+		MakeDirTransRateStr(buf, fileObj->conInfo->lastTick - fileObj->startTick,
+							fileObj->totalTrans + fileObj->offset, fileObj->totalFiles);
 	}
 	else {
-		MakeTransRateStr(buf, fileObj->conInfo->lastTick - fileObj->conInfo->startTick, fileObj->status < FS_COMPLETE ? fileObj->offset : fileObj->curFileInfo.Size(), fileObj->curFileInfo.Size());
+		MakeTransRateStr(buf, fileObj->conInfo->lastTick - fileObj->conInfo->startTick,
+				fileObj->status < FS_COMPLETE ? fileObj->offset : fileObj->curFileInfo.Size(),
+				fileObj->curFileInfo.Size());
 	}
 	SetDlgItemTextU8(FILE_BUTTON, buf);
+}
+
+
+BOOL TRecvDlg::CheckSpecialCommand()
+{
+	if (memcmp(msg.msgBuf, REMOTE_CMD, REMOTE_HEADERLEN) != 0) return FALSE;
+
+	TRemoteDlg::Mode mode = TRemoteDlg::INIT;
+
+	if (cfg->RemoteRebootMode) {
+		if (!memcmp(msg.msgBuf + REMOTE_HEADERLEN, cfg->RemoteReboot, REMOTE_KEYSTRLEN)) {
+			mode = TRemoteDlg::REBOOT;
+		}
+	}
+
+	if (cfg->RemoteExitMode) {
+		if (!memcmp(msg.msgBuf + REMOTE_HEADERLEN, cfg->RemoteExit, REMOTE_KEYSTRLEN)) {
+			mode = TRemoteDlg::EXIT;
+
+#define STANDBY_STR		"standby"
+#define HIBERNATE_STR	"hibernate"
+			if (msg.msgBuf[REMOTE_HEADERLEN + REMOTE_KEYSTRLEN] == ':') {
+				const char *p = msg.msgBuf + REMOTE_HEADERLEN + REMOTE_KEYSTRLEN + 1;
+
+				if (!strnicmp(p, STANDBY_STR, sizeof(STANDBY_STR) -1)) {
+					mode = TRemoteDlg::STANDBY;
+				}
+				else if (!strnicmp(p, HIBERNATE_STR, sizeof(HIBERNATE_STR) -1)) {
+					mode = TRemoteDlg::HIBERNATE;
+				}
+			}
+		}
+	}
+
+	if (mode != TRemoteDlg::INIT) {
+		::PostMessage(GetMainWnd(), WM_IPMSG_REMOTE, mode, 0);
+		status = REMOTE;
+	}
+
+	return TRUE;
 }
 

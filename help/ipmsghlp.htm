@@ -69,11 +69,11 @@
 
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.42</h1>
+<h1 class="help_head1">IP Messenger v3.50</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2012/06/10 H.Shirouzu (白水啓章)</div>
+<div align="right">2015/06/02 H.Shirouzu (白水啓章)</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -83,12 +83,13 @@
   <a href="#environment">3. 動作環境</a><br>
   <a href="#uninstall">4. アンインストール</a><br>
   <a href="#usage">5. 使用法＆画面説明</a><br>
+  　<a href="#settings">5.1 設定（IPv6 multicast等）</a><br>
   <a href="#misc">6. その他</a><br>
   <a href="#wan">7. ルータ越えの設定について（LocalNetwork以外へのBroadcast設定）</a><br>
   <a href="#firewall">8. メンバ認識、ファイル転送、画像添付で問題があるとき</a><br>
   <a href="#cmdline">9. コマンドライン</a><br>
   <a href="#support">10. サポートについて（疑問・質問のある方は、こちらをご覧ください）</a><br>
-  <a href="#thanks">11. 謝辞</a><br>
+  <a href="#todo">11. ToDo</a><br>
   <a href="#history">12. 履歴</a><br>
 </div>
 
@@ -114,7 +115,7 @@
 	タスクトレイに常駐します。
 	<br><br>
 
-	MacOSX版、iPhone版、X11/GTK/GNOME版、WinCE版、Java版、および、
+	MacOSX版、iPhone版、Android版、X11/GTK/GNOME版、Java版、および、
 	全ソース(protocol 仕様同梱) も公開しています。以下の URL にあります。
 	<br>
     <a href="http://ipmsg.org">http://ipmsg.org</a>
@@ -122,19 +123,19 @@
 </div>
 
 <a name="license"/>
-<h2 class="help_head2">2. ライセンス＆免責</h2>
+<h2 class="help_head2">2. ライセンス＆免責(BSD License)</h2>
 <div class="help_section">
 	<div class="help_license">
-	<strong>Copyright 1996-2012 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<strong>Copyright 1996-2015 SHIROUZU Hiroaki All rights reserved.</strong><br>
 	<br>
-	ソースコード形式であれバイナリ形式であれ、変更の有無に関わらず、以下の条件を満たす限りにおいて、再配布および使用を許可します:<br>
+	ソースとバイナリ形式の再配布および使用は、「変更の有無、商用/非商用にかかわらず」、以下の条件を満たす場合に許可されます:<br>
 	<div class="help_license_cond">
 	 1. ソースコード形式で再配布する場合、上記著作権表示、本条件書、および下記免責表示を必ず含めてください。<br>
 	<br>
-	 2. バイナリ形式で再配布する場合、上記著作権表示、本条件書、および下記免責表示を、配布物とともに提供される文書及び他の資料に必ず含めてください。
+	 2. バイナリ形式で再配布する場合、上記著作権表示、本条件書、および下記免責表示を、配布物とともに提供される文書及び 他の資料に必ず含めてください。
 	</div>
 	<div class="help_license">
-	<strong>SHIROUZU Hiroaki および貢献者は、本ソフトウェアの使用/利用によるいかなる損失に対しても、責任を負いません。</strong>
+	<strong>このソフトウエアは、SHIROUZU Hiroaki により「あるがままの状態」で提供され、あらゆる明示的または暗黙の保証を否認し、いかなる損害に対しても責任を負いません。</strong>
 	</div>
 	</div>
 </div>
@@ -142,9 +143,8 @@
 <a name="environment"/>
 <h2 class="help_head2">3. 動作環境</h2>
 <div class="help_section">
-	Windows 2000/XP/2003/Vista/2008/Win7<br>
-	（Windows 95/98/Me をお使いの方は、v2.06 をお使いください）<br>
-	（Win3.1 および NT3.50以前には Win16版をご利用ください）<br>
+	Windows XP/Vista/Win7/8/8.1（及び Windows2003/2008/2012）<br>
+	（Windows 2000 をお使いの方は、v3.42 をお使いください）<br>
 </div>
 
 <a name="uninstall"/>
@@ -255,9 +255,36 @@
 
 	</div>
 
+<a name="settings"/>
 <h3 class="help_head3">設定ダイアログ</h3>
 	<div class="help_sub_section">
-各種設定ができます。
+各種設定ができます。<br>
+<br>
+・自セグメントへの Broadcast (IPv4用メンバ認識)<br>
+	<table class="help_table" border="4">
+	<tr><th>種類</th><th>説明</th></tr>
+	<tr><td>制限(Limited broadcast)</td><td>255.255.255.255宛てに、参加/離脱を通知します。<br>（Windowsの最優先NICからパケットが出ます。VMWare等を入れると仮想NICが最優先になることが多いため、その場合は「直接」を選ぶか、WindowsのNIC優先順位で認識したいNICの優先度を上げて下さい）</td></tr>
+	<tr><td>直接(Directed broadcast)</td><td>すべてのNICに付与されているIPv4アドレスをリストアップし、すべての付与IPアドレスに対する直接ブロードキャストに対し、参加/離脱を通知します。（例: 192.168.0.1/24 と 192.168.100.2/24 を持っている場合、192.168.0.255 と 192.168.100.255 の 2つのアドレスに、参加/離脱を通知します。</td></tr>
+	<tr><td>両利用</td><td>上記の２つを併用します。</td></tr>
+	</table>
+<br>
+
+・IPv6マルチキャスト（IPv6用メンバ認識）（IP Messenger v3.50以降）<br>
+	<table class="help_table" border="4">
+	<tr><th>種類</th><th>マルチキャストアドレス＆説明</th></tr>
+	<tr><td>SiteLocal</td><td>ff15::979 をマルチキャストアドレスとして、参加/離脱を通知します。<br>（IPv6マルチキャスト対応ルータの場合、サイト内であればルータ越えが可能です）</td></tr>
+	<tr><td>LinkLocal</td><td>ff02::1 をマルチキャストアドレスとして、参加/離脱を通知します。<br>（ルータを越えません）</td></tr>
+	<tr><td>Site/LinkLocal dual</td><td>上記の２つ両方のアドレスに参加/離脱を通知します。</td></tr>
+	</table>
+<br>
+
+・遠隔再起動（or 遠隔shutdown）<br>
+	<table class="help_table" border="4">
+	<tr><td>「遠隔再起動を許可」にチェックをした状態で、"ipmsg-cmd:～" で始まるメッセージを受信すると、15秒間の実行確認ウィンドウが出たのちに再起動します。（遠隔shutdownも同様です）</td></tr>
+	</table>
+<br>
+
+
 	</div>
 
 <h3 class="help_head3">ショートカット等</h3>
@@ -359,15 +386,13 @@ IPMsgを立ちあげている人だけと、通信できるようになります。
 ご確認されることをお勧めします。
 <br><br>
 
-コマンドラインからの送信もできます。
-<br><br>
-
-コマンドライン送信での書式は以下の通りです。<br>
-ipmsg.exe [port] /MSG [/LOG][/SEAL] &lt;hostname or IPaddr&gt; &lt;message&gt; <br>
+コマンドラインでのメッセージ送信の書式は以下の通りです。<br>
+&nbsp;C:\&gt; ipmsg.exe [port] /MSG [/LOG][/SEAL] &lt;hostname or IPaddr&gt; &lt;message&gt; <br>
+（なお、/MSG を /MSGEX に変更すると message 内の \n を改行に置換して送信します）<br>
 <br>
 
 例：自分宛てに Hello という封書を送る<br>
-    C:\&gt; ipmsg.exe /MSG /SEAL localhost Hello.<br>
+&nbsp;C:\&gt; ipmsg.exe /MSG /SEAL localhost Hello.<br>
 
 </div>
 
@@ -375,18 +400,12 @@ ipmsg.exe [port] /MSG [/LOG][/SEAL] &lt;hostname or IPaddr&gt; &lt;message&gt; <
 <h2 class="help_head2">10. サポートについて</h2>
 <div class="help_section">
 
-サポートは、ipmsg-ML(メーリングリスト)で行っています。MLへの入り方の
-  説明は、下記のURLに載っています。お気軽にご参加ください。
+サポートは、下記のURLの掲示板で行っています。<br>
   （最新版は常にこの URL にあります）
     <a href="http://ipmsg.org">http://ipmsg.org</a>
 <br><br>
 
-感想・リクエスト・バグ報告のメールを頂けると嬉しいです。（質問は
-  上記の ipmsg-ML でお願いしますm(__)m）
-<br><br>
-
-バグ・障害報告の場合、バージョン, OS, 発生状況（できれば再現方法）
-  を教えていただきますと、とても助かります。
+障害報告の場合、バージョン, OS, 発生状況（できれば再現方法）を教えていただきますと助かります。
 <br><br>
 
 典型的な質問等は、上記URLの「ご意見のページ」に載っていますので、
@@ -394,15 +413,11 @@ ipmsg.exe [port] /MSG [/LOG][/SEAL] &lt;hostname or IPaddr&gt; &lt;message&gt; <
 
 </div>
 
-<a name="Thanks">
-<h2 class="help_head2">11. 謝辞</h2>
+<a name="ToDo">
+<h2 class="help_head2">11. ToDo</h2>
 <div class="help_section">
 
-・IP Messenger ver3.00 以降, 画像貼り付け用PNG変換に libpng および zlib を利用しています.<br>
-libpng: <a href="http://www.libpng.org/pub/png/libpng.html">http://www.libpng.org/pub/png/libpng.html</a><br>
-zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
-<br>
-・その他、ご意見などを寄せていただいた方に感謝します。
+・画像表示可能なログビューア<br>
 </div>
 
 <a name="history"/>
@@ -411,9 +426,20 @@ zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>説明</th></tr>
+<tr><td>v3.50</td><td>
+添付ファイルダウンロードの暗号通信(AES-CTR256)対応（＆要求リクエストの電子署名追加）。<br>
+IPv6マルチキャストに対応。<br>
+画像キャプチャ用マーカ機能で吹き出し矢印モードを追加。<br>
+画像の再編集機能（画像右クリックで選択）を追加。<br>
+画像ファイルの貼付を追加。<br>
+libpng から GDI+ に画像処理ルーチンを移行（セキュリティ対応用）。<br>
+遠隔リブート＆シャットダウン機能を追加。<br>
+複数行コマンドライン送信(/MSGEX）を増設（文中の\nを改行に置換）。<br>
+ショートカットキーを任意のキー組み合わせに設定可能に。<br>
+</td></tr>
 <tr><td>v3.42</td><td>
 libpng を更新。（1.5.9 -> 1.5.10）<br>
-クラシックスタイルで、一部ボタンラベルが出ない問題を修正<br>
+クラシックスタイルで、一部ボタンラベルが出ない問題を修正。<br>
 （Windows2000対応は、このバージョンまでの予定）
 </td></tr>
 <tr><td>v3.41</td><td>

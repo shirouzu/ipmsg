@@ -38,6 +38,10 @@
 			<param name="Local" value="ipmsghlp.htm#usage">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="5.1 Ý’èiIPv6“™j">
+			<param name="Local" value="ipmsghlp.htm#settings">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="6. ‚»‚Ì‘¼">
 			<param name="Local" value="ipmsghlp.htm#misc">
 			</OBJECT>
@@ -58,8 +62,8 @@
 			<param name="Local" value="ipmsghlp.htm#support">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-			<param name="Name" value="11. ŽÓŽ«">
-			<param name="Local" value="ipmsghlp.htm#thanks">
+			<param name="Name" value="11. ToDo">
+			<param name="Local" value="ipmsghlp.htm#ToDo">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="12. —š—ð">
@@ -96,6 +100,10 @@
 			<param name="Local" value="ipmsghlp_eng.htm#usage">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="5.1. Settings(IPv6 etc)">
+			<param name="Local" value="ipmsghlp_eng.htm#settings">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="6. Others">
 			<param name="Local" value="ipmsghlp_eng.htm#misc">
 			</OBJECT>
@@ -116,8 +124,8 @@
 			<param name="Local" value="ipmsghlp_eng.htm#support">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-			<param name="Name" value="11. Thanks">
-			<param name="Local" value="ipmsghlp_eng.htm#thanks">
+			<param name="Name" value="11. ToDo">
+			<param name="Local" value="ipmsghlp_eng.htm#ToDo">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="12. History">

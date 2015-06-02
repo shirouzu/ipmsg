@@ -1,33 +1,20 @@
 ﻿static char *pubkey_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   pubkey.cpp	Ver3.01";
+	"@(#)Copyright (C) H.Shirouzu 2011-2015   pubkey.cpp	Ver3.50";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Public Key Encryption
 	Create					: 2011-05-03(Tue)
-	Update					: 2011-05-03(Tue)
+	Update					: 2015-05-03(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
-#include <stdio.h>
-#include "resource.h"
 #include "ipmsg.h"
 #include "blowfish.h"
-
 
 /* VC4 で CryptoAPI を使用可能にする */
 BOOL SetupCryptAPI(Cfg *cfg, MsgMng *msgMng)
 {
-	if (pCryptProtectData == NULL) {
-		for (int i=KEY_1024; i < MAX_KEY; i++) {
-			if (cfg->priv[i].encryptType == PRIV_BLOB_DPAPI)
-				cfg->priv[i].encryptType = PRIV_BLOB_RAW;
-		}
-	}
-
-	if (pCryptAcquireContext == NULL)
-		return	GetLastErrorMsg("CryptAcquireContext"), FALSE;
-
 	SetupCryptAPICore(cfg, msgMng);
 
 // 起動直後に、まれにコケる環境があるらしいので、わずかにリトライ...
@@ -50,7 +37,7 @@ BOOL SetupCryptAPI(Cfg *cfg, MsgMng *msgMng)
 
 		for (i=0; i < MAX_KEY; i++) {
 			if (cfg->priv[i].hCsp) {
-				pCryptReleaseContext(cfg->priv[i].hCsp, 0);
+				::CryptReleaseContext(cfg->priv[i].hCsp, 0);
 				cfg->priv[i].hCsp = NULL;
 			}
 		}
@@ -98,43 +85,43 @@ BOOL SetupCryptAPICore(Cfg *cfg, MsgMng *msgMng, int ctl_flg)
 
 		cfg->pub[i].KeyBlob(data, sizeof(data), &len);
 		if (i == KEY_512) {		// Self Check 512bit
-			if (pCryptImportKey(cfg->priv[i].hCsp, data, len, 0, 0, &hExKey)) {
-				if (pCryptGenKey(cfg->priv[i].hCsp, CALG_RC2, CRYPT_EXPORTABLE, &hKey)) {
-					pCryptExportKey(hKey, hExKey, SIMPLEBLOB, 0, NULL, (DWORD *)&len);
-					if (pCryptExportKey(hKey, hExKey, SIMPLEBLOB, 0, data, (DWORD *)&len)) {
-						if (pCryptEncrypt(hKey, 0, TRUE, 0, tmp, &tmplen, MAX_BUF)) ret = TRUE;
+			if (::CryptImportKey(cfg->priv[i].hCsp, data, len, 0, 0, &hExKey)) {
+				if (::CryptGenKey(cfg->priv[i].hCsp, CALG_RC2, CRYPT_EXPORTABLE, &hKey)) {
+					::CryptExportKey(hKey, hExKey, SIMPLEBLOB, 0, NULL, (DWORD *)&len);
+					if (::CryptExportKey(hKey, hExKey, SIMPLEBLOB, 0, data, (DWORD *)&len)) {
+						if (::CryptEncrypt(hKey, 0, TRUE, 0, tmp, &tmplen, MAX_BUF)) ret = TRUE;
 						else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptEncrypt test512");
 					}
 					else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptExportKey test512");
-					pCryptDestroyKey(hKey);
+					::CryptDestroyKey(hKey);
 				}
 				else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptGenKey test512");
-				pCryptDestroyKey(hExKey);
+				::CryptDestroyKey(hExKey);
 			}
 			else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptImportKey test512");
 
 			if (ret) {
 				ret = FALSE;
-				if (pCryptImportKey(cfg->priv[i].hCsp, data, len, cfg->priv[i].hKey, 0, &hKey)) {
-					if (pCryptDecrypt(hKey, 0, TRUE, 0, (BYTE *)tmp, (DWORD *)&tmplen)) ret = TRUE;
+				if (::CryptImportKey(cfg->priv[i].hCsp, data, len, cfg->priv[i].hKey, 0, &hKey)) {
+					if (::CryptDecrypt(hKey, 0, TRUE, 0, (BYTE *)tmp, (DWORD *)&tmplen)) ret = TRUE;
 					else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptDecrypt test512");
-					pCryptDestroyKey(hKey);
+					::CryptDestroyKey(hKey);
 				}
 				else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptImportKey test512");
 			}
 		}
 		else {					// Self Check 1024/2048 bits
-			if (pCryptImportKey(cfg->priv[i].hCsp, data, len, 0, 0, &hExKey)) {
+			if (::CryptImportKey(cfg->priv[i].hCsp, data, len, 0, 0, &hExKey)) {
 				len = 128/8;
-				if (pCryptEncrypt(hExKey, 0, TRUE, 0, data, (DWORD *)&len, MAX_BUF)) ret = TRUE;
+				if (::CryptEncrypt(hExKey, 0, TRUE, 0, data, (DWORD *)&len, MAX_BUF)) ret = TRUE;
 				else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptEncrypt test1024/2048");
-				pCryptDestroyKey(hExKey);
+				::CryptDestroyKey(hExKey);
 			}
 			else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptImportKey test1024/2048");
 
 			if (ret) {
 				ret = FALSE;
-				if (pCryptDecrypt(cfg->priv[i].hKey, 0, TRUE, 0, (BYTE *)data, (DWORD *)&len)) ret = TRUE;
+				if (::CryptDecrypt(cfg->priv[i].hKey, 0, TRUE, 0, (BYTE *)data, (DWORD *)&len)) ret = TRUE;
 				else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptDecrypt test1024/2048");
 			}
 		}
@@ -146,7 +133,7 @@ BOOL SetupCryptAPICore(Cfg *cfg, MsgMng *msgMng, int ctl_flg)
 			ret = TRUE;
 		}
 		else if (cfg->priv[i].hKey) {
-			pCryptDestroyKey(cfg->priv[i].hKey);
+			::CryptDestroyKey(cfg->priv[i].hKey);
 			cfg->priv[i].hKey = NULL;
 		}
 	}
@@ -164,8 +151,8 @@ BOOL MakeDefaultRSAKey()
 
 	for (i=0; csp_name[i]; i++) {
 		for (j=0; csp_name[j]; j++) {
-			if (pCryptAcquireContext(&hCsp, NULL, csp_name[j], PROV_RSA_FULL, flags[j])) {
-				 pCryptReleaseContext(hCsp, 0);
+			if (::CryptAcquireContext(&hCsp, NULL, csp_name[j], PROV_RSA_FULL, flags[j])) {
+				 ::CryptReleaseContext(hCsp, 0);
 				 hCsp = 0;
 			}
 		}
@@ -190,35 +177,33 @@ BOOL SetupRSAKey(Cfg *cfg, MsgMng *msgMng, KeyType kt, int ctl_flg)
 	int	cap =	kt == KEY_512  ? IPMSG_RSA_512 |IPMSG_RC2_40 :
 				kt == KEY_1024 ? IPMSG_RSA_1024|IPMSG_BLOWFISH_128|IPMSG_PACKETNO_IV :
 				kt == KEY_2048 ? IPMSG_RSA_2048|IPMSG_AES_256|IPMSG_SIGN_SHA1|IPMSG_PACKETNO_IV : 0;
-	int	AcqFlgs[] = { CRYPT_MACHINE_KEYSET, 0, CRYPT_NEWKEYSET|CRYPT_MACHINE_KEYSET, CRYPT_NEWKEYSET, -1 };
+	if (IsWinXP()) cap |= IPMSG_ENCODE_BASE64;
 
-	if (pCryptStringToBinary && pCryptBinaryToString) {
-		cap |= IPMSG_ENCODE_BASE64;
-	}
+	int	AcqFlgs[] = { CRYPT_MACHINE_KEYSET, 0, CRYPT_NEWKEYSET|CRYPT_MACHINE_KEYSET, CRYPT_NEWKEYSET, -1 };
 
 	wsprintf(contName, "ipmsg.rsa%d.%s", key_bits, msgMng->GetLocalHostA()->userName);
 
 	if (hCsp) {
-		pCryptReleaseContext(hCsp, 0);
+		::CryptReleaseContext(hCsp, 0);
 		hCsp = NULL;
 	}
 
 // デフォルトキーセットを作成しておく
-	if (TIsEnableUAC() && TIsUserAnAdmin()) {
+	if (TIsEnableUAC() && ::IsUserAnAdmin()) {
 		MakeDefaultRSAKey();
 	}
 
 // rebuld 時には、事前に公開鍵を消去
 	if ((ctl_flg & KEY_REBUILD) && pubKey.Key() == NULL) {
-		if (!pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET|CRYPT_MACHINE_KEYSET))
+		if (!::CryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET|CRYPT_MACHINE_KEYSET))
 			if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptAcquireContext(destroy)");
-		pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET);
+		::CryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET);
 	}
 
 // open key cotainer
 	for (i=0; AcqFlgs[i] != -1; i++) {
 		hCsp = NULL;
-		if (pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, AcqFlgs[i]))
+		if (::CryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, AcqFlgs[i]))
 			break;
 	}
 	if (hCsp == NULL) {
@@ -230,42 +215,41 @@ BOOL SetupRSAKey(Cfg *cfg, MsgMng *msgMng, KeyType kt, int ctl_flg)
 // プライベート鍵をimport (1024/2048bit)
 	if (cfg->priv[kt].blob) {
 		if (LoadPrivBlob(&cfg->priv[kt], data, &len)
-			&& !pCryptImportKey(hCsp, data, len, 0, CRYPT_EXPORTABLE, &hPrivKey))
+			&& !::CryptImportKey(hCsp, data, len, 0, CRYPT_EXPORTABLE, &hPrivKey))
 		{	// import is fail...
 			if (ctl_flg & KEY_DIAG)
 				GetLastErrorMsg("CryptImportKey(blob)");
 			// コケた場合、再Acquireしないと副作用が残ることがある...
-			pCryptReleaseContext(hCsp, 0), hCsp = NULL;
-			if (!pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_MACHINE_KEYSET))
-				pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, 0);
+			::CryptReleaseContext(hCsp, 0), hCsp = NULL;
+			if (!::CryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_MACHINE_KEYSET))
+				::CryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, 0);
 		}
 		if (hPrivKey == NULL) {
 			if (cfg->priv[kt].encryptType == PRIV_BLOB_USER && cfg->priv[kt].encryptSeed) {
 				::SendMessage(GetMainWnd(), WM_FORCE_TERMINATE, 0, 0); // 強制終了
 				return	FALSE;
 			}
-			delete [] cfg->priv[kt].blob;
-			cfg->priv[kt].blob = NULL;
+			cfg->priv[kt].ClearBlob();
 		}
 	}
 
 // 初回 or 512bit 鍵の場合は、hCsp からプライベート鍵ハンドルを取得
 	if (hPrivKey == NULL) {
-		if (!pCryptGetUserKey(hCsp, AT_KEYEXCHANGE, &hPrivKey)
-		&& !pCryptGenKey(hCsp, CALG_RSA_KEYX, (key_bits << 16) | CRYPT_EXPORTABLE, &hPrivKey))
+		if (!::CryptGetUserKey(hCsp, AT_KEYEXCHANGE, &hPrivKey)
+		&& !::CryptGenKey(hCsp, CALG_RSA_KEYX, (key_bits << 16) | CRYPT_EXPORTABLE, &hPrivKey))
 			if (ctl_flg & KEY_DIAG)
 				GetLastErrorMsg("CryptGenKey");
 	}
 
 // 公開鍵を export
-	if (pCryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, data, (DWORD *)&len)) {
+	if (::CryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, data, (DWORD *)&len)) {
 		if (len < key_bits / 8) {	// 鍵長の短いキーペア（v2.50b14 で発生する可能性）
-			pCryptDestroyKey(hPrivKey);
+			::CryptDestroyKey(hPrivKey);
 			hPrivKey = NULL;
-			pCryptReleaseContext(hCsp, 0);
+			::CryptReleaseContext(hCsp, 0);
 			hCsp = NULL;
-			pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET|CRYPT_MACHINE_KEYSET);
-			pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET);
+			::CryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET|CRYPT_MACHINE_KEYSET);
+			::CryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET);
 			if (ctl_flg & KEY_INTERNAL)
 				return FALSE;
 			return	SetupRSAKey(cfg, msgMng, kt, ctl_flg | KEY_INTERNAL);
@@ -277,7 +261,7 @@ BOOL SetupRSAKey(Cfg *cfg, MsgMng *msgMng, KeyType kt, int ctl_flg)
 // プライベート鍵を保存
 	if (kt != KEY_512 && cfg->priv[kt].blob == NULL && hPrivKey) {
 		len = sizeof(data);
-		if (pCryptExportKey(hPrivKey, 0, PRIVATEKEYBLOB, 0, data, (DWORD *)&len)) {
+		if (::CryptExportKey(hPrivKey, 0, PRIVATEKEYBLOB, 0, data, (DWORD *)&len)) {
 			if (StorePrivBlob(&cfg->priv[kt], data, len)) {
 				cfg->WriteRegistry(CFG_CRYPT);
 			}
@@ -298,25 +282,26 @@ BOOL LoadPrivBlob(PrivKey *priv, BYTE *rawBlob, int *rawBlobLen)
 	}
 	else if (priv->encryptType == PRIV_BLOB_USER)
 	{
-		if (priv->encryptSeed == NULL)
-			return	FALSE;
+		if (priv->encryptSeed == NULL) return FALSE;
+
 		while (1)
 		{
 			TPasswordDlg	dlg((char *)key);
-			if (!dlg.Exec())
+			if (dlg.Exec() != IDOK)
 				return	FALSE;
 			CBlowFish	bl(key, (int)strlen((char *)key));
-			if (bl.Decrypt(priv->encryptSeed, key, priv->encryptSeedLen) == PRIV_SEED_LEN && memcmp(key, PRIV_SEED_HEADER, PRIV_SEED_HEADER_LEN) == 0)
-				break;
+
+			if (bl.Decrypt(priv->encryptSeed, key, priv->encryptSeedLen) == PRIV_SEED_LEN &&
+				memcmp(key, PRIV_SEED_HEADER, PRIV_SEED_HEADER_LEN) == 0) break;
 		}
 	}
 	else if (priv->encryptType == PRIV_BLOB_DPAPI)
 	{
-		if (priv->encryptSeed == NULL)
-			return	FALSE;
+		if (priv->encryptSeed == NULL) return FALSE;
+
 		DATA_BLOB	in = { priv->encryptSeedLen, priv->encryptSeed }, out;
-		if (!pCryptUnprotectData(&in, 0, 0, 0, 0,
-				CRYPTPROTECT_LOCAL_MACHINE|CRYPTPROTECT_UI_FORBIDDEN, &out))
+		if (!::CryptUnprotectData(&in, 0, 0, 0, 0,
+								  CRYPTPROTECT_LOCAL_MACHINE|CRYPTPROTECT_UI_FORBIDDEN, &out))
 			return	FALSE;
 		memcpy(key, out.pbData, out.cbData);
 		::LocalFree(out.pbData);
@@ -331,51 +316,44 @@ BOOL LoadPrivBlob(PrivKey *priv, BYTE *rawBlob, int *rawBlobLen)
 
 BOOL StorePrivBlob(PrivKey *priv, BYTE *rawBlob, int rawBlobLen)
 {
-	delete	priv->blob;
-	priv->blob = NULL;
-	delete	priv->encryptSeed;
-	priv->encryptSeed = NULL;
-	priv->blobLen = priv->encryptSeedLen = 0;
-
+	int		blobLen = 0;
 	BYTE	data[MAX_BUF_EX], *encodeBlob = data;
 
 	if (priv->encryptType == PRIV_BLOB_RAW) {
 		encodeBlob = rawBlob;
-		priv->blobLen = rawBlobLen;
+		blobLen    = rawBlobLen;
 	}
 	else {
 		BYTE	seed[PRIV_SEED_LEN], *seedCore = seed + PRIV_SEED_HEADER_LEN;
 		// seed の作成
 		memcpy(seed, PRIV_SEED_HEADER, PRIV_SEED_HEADER_LEN);
-		pCryptGenRandom(priv->hCsp, 128/8, seedCore);
+		::CryptGenRandom(priv->hCsp, 128/8, seedCore);
 
 		if (priv->encryptType == PRIV_BLOB_USER) {
 			TPasswordDlg	dlg((char *)data);
-			if (!dlg.Exec())
+			if (dlg.Exec() != IDOK)
 				return	FALSE;
 			// seed の暗号化
 			CBlowFish	bl(data, (int)strlen((char *)data));
-			priv->encryptSeedLen = bl.Encrypt(seed, data, PRIV_SEED_LEN);
-			priv->encryptSeed = new BYTE [priv->encryptSeedLen];
-			memcpy(priv->encryptSeed, data, priv->encryptSeedLen);
+			int			len = bl.Encrypt(seed, data, PRIV_SEED_LEN);
+			priv->SetSeed(data, len);
 		}
 		else if (priv->encryptType == PRIV_BLOB_DPAPI) {
 			// seed の暗号化
 			DATA_BLOB in = { PRIV_SEED_LEN, seed }, out;
-			if (!pCryptProtectData(&in, L"ipmsg", 0, 0, 0, CRYPTPROTECT_LOCAL_MACHINE|CRYPTPROTECT_UI_FORBIDDEN, &out))
+			if (!::CryptProtectData(&in, L"ipmsg", 0, 0, 0,
+									CRYPTPROTECT_LOCAL_MACHINE|CRYPTPROTECT_UI_FORBIDDEN, &out))
 				return	FALSE;
-			priv->encryptSeed = new BYTE [priv->encryptSeedLen = out.cbData];
-			memcpy(priv->encryptSeed, out.pbData, out.cbData);
+			priv->SetSeed(out.pbData, out.cbData);
 			::LocalFree(out.pbData);
 		}
 		else return	FALSE;
 		// seed による、暗号化blob の作成
 		CBlowFish	bl(seedCore, 128/8);
-		priv->blobLen = bl.Encrypt(rawBlob, encodeBlob, rawBlobLen);
+		blobLen = bl.Encrypt(rawBlob, encodeBlob, rawBlobLen);
 	}
 
-	priv->blob = new BYTE [priv->blobLen];
-	memcpy(priv->blob, encodeBlob, priv->blobLen);
+	priv->SetBlob(encodeBlob, blobLen);
 	return	TRUE;
 }
 

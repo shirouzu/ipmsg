@@ -6,6 +6,12 @@
 #define IDS_BROADCAST                   100
 #define IDS_MULTICAST                   101
 #define IDS_UNICAST                     102
+#define IDS_REMOTE_TITLE_FMT            103
+#define IDS_REMOTE_NOTIFY_FMT           104
+#define IDS_REMOTE_REBOOT               106
+#define IDS_REMOTE_EXIT                 107
+#define IDS_REMOTE_STANDBY              108
+#define IDS_REMOTE_HIBERNATE            109
 #define IDS_UNIABSENCE                  111
 #define IDS_KEYOPEN                     112
 #define IDS_FILEATTBTN                  113
@@ -72,6 +78,7 @@
 #define IDS_PASSWDLOG                   177
 #define IDS_SECRETLOG                   178
 #define IDS_FILEATTACH                  179
+#define IDS_LOGVIEWFONT                 180
 #define IDS_USEWIN32                    182
 #define IDS_IPMSG                       183
 #define IDS_PASSWDNOTSET                184
@@ -120,6 +127,7 @@
 #define IDS_OPENFILELOG                 228
 #define IDS_OPENFILELOGFLTR             229
 #define IDS_EXCEPTIONLOG                230
+#define IDS_ENCTRANS                    231
 #define IDS_UNDO                        232
 #define IDS_CUT                         233
 #define IDS_COPY                        234
@@ -134,6 +142,8 @@
 #define IDS_RECVMSG                     243
 #define IDS_LRUUSER                     244
 #define IDS_SAVE_IMAGE                  245
+#define IDS_EDIT_IMAGE                  246
+#define IDS_INSERT_IMAGE                247
 #define IDS_ENCRYPT                     250
 #define IDS_ENCRYPT2                    251
 #define IDS_ENCRYPT2_SIGNED             252
@@ -171,11 +181,17 @@
 #define IDS_CLIPALWAYS                  285
 #define IDS_CLIPNORMAL                  286
 #define IDS_CLIPSTRICT                  287
-#define IDS_MARKER_RED                  288
-#define IDS_MARKER_GREEN                289
-#define IDS_MARKER_BLUE                 290
-#define IDS_MARKER_YELLOW               291
-#define IDS_MARKER_UNDO                 292
+#define IDS_MARKER_ARROW                288
+#define IDS_MARKER_PEN                  289
+#define IDS_MARKER_RECT                 290
+#define IDS_MARKER_COLOR                291
+#define IDS_MARKER_RED                  292
+#define IDS_MARKER_GREEN                293
+#define IDS_MARKER_BLUE                 294
+#define IDS_MARKER_YELLOW               295
+#define IDS_MARKER_UNDO                 296
+#define IDS_REEDIT                      297
+#define IDS_REEDIT_IMAGE                298
 #define IDS_SETUP_SHEET1                301
 #define IDS_SETUP_SHEET2                302
 #define IDS_SETUP_SHEET3                303
@@ -186,6 +202,8 @@
 #define IDS_SETUP_SHEET8                308
 #define IDS_SETUP_SHEET9                309
 #define IDS_SETUP_SHEET10               310
+#define IDS_SETUP_SHEET11               311
+#define IDS_SETUP_SHEET12               312
 #define SEND_DIALOG                     501
 #define SETUP_DIALOG                    503
 #define IPMSG_ICON                      505
@@ -234,20 +252,37 @@
 #define SETUP_SHEET8                    608
 #define SETUP_SHEET9                    609
 #define SETUP_SHEET10                   610
+#define SETUP_SHEET11                   611
+#define SETUP_SHEET12                   612
 #define SEP_CUR                         700
 #define REFRESH_ICON                    702
 #define CAMERAXP_ICON                   703
 #define SEAL_ICON                       704
 #define KEY_ICON                        705
 #define SEND_ICON                       706
-#define MARKERTB_BITMAP                 707
 #define RED_CUR                         708
 #define GREEN_CUR                       709
 #define BLUE_CUR                        710
 #define YELLOW_CUR                      711
 #define AREA_TOOLBAR                    712
-#define SEP_CUR1                        712
-#define CROSS_CUR                       712
+#define CROSS_CUR                       713
+#define REMOTE_DIALOG                   715
+#define LOGVIEW_TOOLBAR                 717
+#define MARKERTB_BITMAP                 720
+#define MARKERRED_BITMAP                721
+#define MARKERGREEN_BITMAP              722
+#define MARKERBLUE_BITMAP               723
+#define MARKERYELLOW_BITMAP             724
+#define MARKERTB_BITMAP1                725
+#define LOGVIEWTB_BITMAP                725
+#define GENBLUE_CUR                     730
+#define GENGREEN_CUR                    731
+#define GENRED_CUR                      732
+#define GENYELLOW_CUR                   733
+#define INPUT_DIALOG                    734
+#define LOGVIEW_ACCEL                   735
+#define IDD_DIALOG1                     736
+#define LOGVIEW_DIALOG                  736
 #define SEND_EDIT                       1001
 #define SECRET_CHECK                    1004
 #define PASSWORD_CHECK                  1005
@@ -361,6 +396,8 @@
 #define HISTORY_LIST                    1192
 #define CLEAR_BUTTON                    1193
 #define EXTBROADCAST_COMBO              1195
+#define EXTBROADCAST_COMBO2             1196
+#define IPV6_COMBO                      1196
 #define DETAIL_BUTTON                   1199
 #define OPENED_CHECK                    1201
 #define SETUP_LIST                      1202
@@ -390,7 +427,27 @@
 #define CAPTURE_CHECK                   1233
 #define COLOR_CHECK                     1237
 #define UNDO_BUTTON                     1238
+#define IDC_RICHEDIT21                  1238
 #define THICK_CHECK                     1239
+#define REBOOT_CHECK                    1243
+#define EXIT_CHECK                      1244
+#define REBOOT_EDIT                     1247
+#define REBOOT_BUTTON                   1248
+#define EXIT_EDIT                       1249
+#define EXIT_BUTTON                     1250
+#define STANDBY_CHECK                   1251
+#define HIBERNATE_CHECK                 1252
+#define NOTIFY_STATIC                   1252
+#define CTRL_CHECK                      1256
+#define ALT_CHECK                       1257
+#define SHIFT_CHECK                     1258
+#define SEND_COMBO                      1261
+#define RECV_COMBO                      1262
+#define INPUT_EDIT                      1262
+#define MULTICAST_COMBO                 1265
+#define MULTICAST_STATIC                1266
+#define BROADCAST_STATIC                1267
+#define MULTINEXT_STATIC                1268
 #define MENU_SETUP                      10001
 #define MENU_EXIT                       10003
 #define MENU_ABOUT                      10008
@@ -431,6 +488,8 @@
 #define SEND_ACCEL                      15001
 #define HIDE_ACCEL                      15002
 #define MISC_ACCEL                      15003
+#define LOGVIEW_COPY                    16001
+#define ID_ACCELERATOR16002             16002
 
 // Next default values for new objects
 // 
@@ -438,9 +497,9 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        713
-#define _APS_NEXT_COMMAND_VALUE         16001
-#define _APS_NEXT_CONTROL_VALUE         1238
+#define _APS_NEXT_RESOURCE_VALUE        737
+#define _APS_NEXT_COMMAND_VALUE         16004
+#define _APS_NEXT_CONTROL_VALUE         1269
 #define _APS_NEXT_SYMED_VALUE           2001
 #endif
 #endif

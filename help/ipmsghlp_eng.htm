@@ -70,11 +70,11 @@
 
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.42</h1>
+<h1 class="help_head1">IP Messenger v3.50</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2012/06/10 H.Shirouzu</div>
+<div align="right">2015/06/02 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -84,12 +84,13 @@
   <a href="#environment">3. Requirements</a><br>
   <a href="#uninstall">4. Uninstall</a><br>
   <a href="#usage">5. Usage</a><br>
+  &nbsp;<a href="#settings">5.1 Settings(IPv6 multicast, etc)</a><br>
   <a href="#misc">6. Others</a><br>
   <a href="#wan">7. WAN Settings (Broadcast Settings)</a><br>
   <a href="#firewall">8. Member detection or file transfer Problem</a><br>
   <a href="#cmdline">9. CommandLine</a><br>
   <a href="#support">10. Support</a><br>
-  <a href="#thanks">11. Thanks</a><br>
+  <a href="#ToDo">11. ToDo</a><br>
   <a href="#history">12. History</a><br>
 </div>
 
@@ -118,9 +119,9 @@
 	Simple, lightweight, and free software :-)
 	<br><br>
 
-	IPMsg software is available for MacOSX, iPhone, Java, X11/GTK/GNOME and all sources supplied with protocol.
+	IPMsg software is available for MacOSX, iPhone, Android, Java, X11/GTK/GNOME and all sources supplied with protocol.
 	Please check the URL addresses below.
-	    <a href="http://ipmsg.org/index.html.en">http://ipmsg.org/index.html.en</a> (Android version is open to public in Android Market)
+	    <a href="http://ipmsg.org/index.html.en">http://ipmsg.org/index.html.en</a>
 	<br><br>
 </div>
 
@@ -128,51 +129,46 @@
 <h2 class="help_head2">2. License (BSD License)</h2>
 <div class="help_section">
 	<div class="help_license">
-	<strong>Copyright 1996-2012 SHIROUZU Hiroaki All rights reserved.</strong>
-
+	<strong>Copyright 2004-2015 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<br>
+	Redistribution and use in source and binary forms, with or
+	without modification, are permitted provided that the following
+	conditions are met:
 	<div class="help_license_cond">
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-    Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer. 
-<br>
-<br>
-    Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in
-    the documentation and/or other materials provided with the
-    distribution.
-<br>
-<br>
-    Neither the name of the SHIROUZU Hiroaki nor the names of its
-    contributors may be used to endorse or promote products derived
-    from this software without specific prior written permission. 
-
+	1.	Redistributions of source code must retain the above
+		copyright notice, this list of conditions and the following
+		disclaimer.<br>
+	<br>
+	2.	Redistributions in binary form must reproduce the above
+		copyright notice, this list of conditions and the following
+		disclaimer in the documentation and/or other materials
+		provided with the distribution.
 	</div>
 	<div class="help_license">
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-  FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-<br>
-<br>
- IN NO EVENT SHALL THE
-  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-  POSSIBILITY OF SUCH DAMAGE.
+	<strong>
+	THIS SOFTWARE IS PROVIDED BY SHIROUZU Hiroaki ``AS IS'' AND ANY
+	EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+	THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+	PARTICULAR PURPOSE ARE DISCLAIMED.
+	IN NO EVENT SHALL SHIROUZU Hiroaki OR CONTRIBUTORS BE LIABLE
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+	OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+	OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+	LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+	THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+	OF SUCH DAMAGE.
+	</strong>
+	</div>
 	</div>
 </div>
 
 <a name="environment"/>
 <h2 class="help_head2">3. Requirements</h2>
 <div class="help_section">
-	Windows 2000/XP/2003/Vista/2008/Win7<br>
+	Windows XP/Vista/Win7/8/8.1 (and Windows2003/2008/2012)<br>
+	(for Windows2000, please use v3.42)<br>
 </div>
 
 <a name="uninstall"/>
@@ -189,11 +185,14 @@
 <div class="help_section">
 
 <h3 class="help_head3">Task tray icon</h3>
+	<div class="help_sub_section">
    Left Single(or double) click on the icon opens a Send Message window.<br>
    Right single click on the icon opens IPMsg menu such as setting,
    absence mode, etc.
+	</div>
 
 <h3 class="help_head3">Send Message Window</h3>
+	<div class="help_sub_section">
    If [Seal] is checked, it will be sealed message.<br>
    If [Lock] is checked, it will be locked message. The receiver must
    use <strong>receiver's own</strong> password to open a locked message.
@@ -248,8 +247,10 @@
      If there are identical priority data, then go to the detail
      setting -> approx. level user sort setting
 	<br><br>
+	</div>
 
 <h3 class="help_head3">Receive Message Window</h3>
+	<div class="help_sub_section">
    Right click on the window and select from the menu: Font Setting,
    Size Setting, Fix Position.
 	<br><br>
@@ -271,10 +272,39 @@
 	<br>
 	It is used most strong way that is supported by sender and reciever.<br>
 	UserID is extended with finger print in v3.0 or later. ("uid" --&gt; "uid-&lt;finger_print_hexstr&gt;")<br>
+	</div>
 
+<a name="settings"/>
 <h3 class="help_head3">Settings Dialog</h3>
 	<div class="help_sub_section">
-	It can be changed detail settings.
+	It can be changed detail settings.<br><br>
+
+	<strong>Local segment broadcast (for IPv4 member detection)</strong><br>
+	<br>
+	<table class="help_table" border="4">
+	<tr><th>Kind</th><th>Details</th></tr>
+	<tr><td>Limited broadcast</td><td>Send to 255.255.255.255 for member detection<br>(If VMWare is used, we recommend to use "Directed broadcast")</td></tr>
+	<tr><td>Directed broadcast</td><td>Listing all IPv4 addresses that NICs have, and send all directed broadcast addresses for member detection. <br>(ex: OS have two addresses(192.168.0.1/24 and 192.168.100.2/24), send to 192.168.0.255 and 192.168.100.255 for member detection.</td></tr>
+	<tr><td>both</td><td>use Limted and Directed broadcast together</td></tr>
+	</table>
+<br>
+
+	<strong>IPv6 multicast (for IPv6 member detection) (IP Messenger v3.50 or later)</strong><br>
+	<br>
+	<table class="help_table" border="4">
+	<tr><th>Kind</th><th>Multicast address and details</th></tr>
+	<tr><td>SiteLocal</td><td>Send to ff15::979 as multicast address for member detection.<br>(If your site routers can use IPv6 multicast, over router member detection will be available.)</td></tr>
+	<tr><td>LinkLocal</td><td>Send to ff02::1 as multicast address for member detection.<br>(member detection is available in local segment only)</td></tr>
+	<tr><td>Site/LinkLocal dual</td><td>use SiteLocal and LinkLocal</td></tr>
+	</table>
+<br>
+
+	<strong>Remote restart (or remote shutdown)</strong><br>
+	<br>
+	<table class="help_table" border="4">
+	<tr><td>If it is checked "Allow remote restart" and received "ipmsg-cmd:..." message, it will be restarted after the confirmation dialog comes out for 15sec.</td></tr>
+	</table>
+<br>
 	</div>
 
 <h3 class="help_head3">Shortcut or etc</h3>
@@ -373,7 +403,7 @@ ex) C:\> ipmsg.exe /NIC 192.168.10.100<br>
 Command Line support<br>
 ipmsg.exe [port] /MSG [/LOG][/SEAL] &lt;hostname or IPaddr&gt; &lt;message&gt; <br>
 ex) C:\&gt; ipmsg.exe /MSG /SEAL localhost Hello.<br>
-
+(Changing /MSG to /MSGEX, '\n' in message will be replaced to new-line character)
 
 </div>
 
@@ -381,24 +411,18 @@ ex) C:\&gt; ipmsg.exe /MSG /SEAL localhost Hello.<br>
 <h2 class="help_head2">10. Support</h2>
 <div class="help_section">
 
-ipmsg-ML is opened. If you want to subscribe for this ML, mail to ipmsg-ml-join@ipmsg.org <br>
-<br>
-Any bug report, suggestion and recommendations are welcome.<br>
-<br>
-If you have any question, send to Mailing list.<br>
+Any bug report, suggestion and recommendations are welcome in the bbs of http://ipmsg.org/index.html.en<br>
 <br>
 For these report, please send the following information.<br>
 Software Version, Operating System, problem situation, repeatability.
 
 </div>
 
-<a name="Thanks">
-<h2 class="help_head2">11. Thanks</h2>
+<a name="ToDo">
+<h2 class="help_head2">11. ToDo</h2>
 <div class="help_section">
 
-IP Messenger ver3.00 or after, uses libpng and zlib libraries for embedded image support.<br>
-libpng: <a href="http://www.libpng.org/pub/png/libpng.html">http://www.libpng.org/pub/png/libpng.html</a><br>
-zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
+- LogViewer for text and image.
 
 </div>
 
@@ -408,6 +432,18 @@ zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
+</td></tr>
+<tr><td>v3.50</td><td>
+Support to encryption/sign(AES-CTR256bit) for file/folder transfer<br>
+Support IPv6 multicast<br>
+Change image processing library (libpng -> GDI+)<br>
+Add new marker function(arrow with text/rectangle).<br>
+Support to re-edit image.<br>
+Support to paste image by file.<br>
+Add new commandline message mode(/MSGEX), "\n" in message is replaced to new line code.<br>
+Suport remote reboot/shutdown.<br>
+misc refine.<br>
+</td></tr>
 <tr><td>v3.42</td><td>
 Update libpng (1.5.9 -> 1.5.10)<br>
 Fix hidden button label in classic style.<br>

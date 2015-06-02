@@ -16,106 +16,8 @@
 #include <stddef.h>
 #include <assert.h>
 
-BOOL (WINAPI *pCryptAcquireContext)(HCRYPTPROV *, LPCSTR, LPCSTR, DWORD, DWORD);
-BOOL (WINAPI *pCryptReleaseContext)(HCRYPTPROV, DWORD);
-BOOL (WINAPI *pCryptGenRandom)(HCRYPTPROV, DWORD, BYTE *);
-
-BOOL (WINAPI *pCryptExportKey)(HCRYPTKEY, HCRYPTKEY, DWORD, DWORD, BYTE *, DWORD *);
-BOOL (WINAPI *pCryptImportKey)(HCRYPTPROV, CONST BYTE *, DWORD, HCRYPTKEY, DWORD, HCRYPTKEY *);
-BOOL (WINAPI *pCryptGenKey)(HCRYPTPROV, ALG_ID, DWORD, HCRYPTKEY *);
-BOOL (WINAPI *pCryptGetUserKey)(HCRYPTPROV, DWORD, HCRYPTKEY *);
-BOOL (WINAPI *pCryptDestroyKey)(HCRYPTKEY);
-BOOL (WINAPI *pCryptGetKeyParam)(HCRYPTKEY, DWORD, BYTE *, DWORD *, DWORD);
-BOOL (WINAPI *pCryptSetKeyParam)(HCRYPTKEY, DWORD, BYTE *, DWORD);
-BOOL (WINAPI *pCryptEncrypt)(HCRYPTKEY, HCRYPTHASH, BOOL, DWORD, BYTE *, DWORD *, DWORD);
-BOOL (WINAPI *pCryptDecrypt)(HCRYPTKEY, HCRYPTHASH, BOOL, DWORD, BYTE *, DWORD *);
-
-BOOL (WINAPI *pCryptCreateHash)(HCRYPTPROV, ALG_ID, HCRYPTKEY, DWORD, HCRYPTHASH *);
-BOOL (WINAPI *pCryptDestroyHash)(HCRYPTHASH);
-BOOL (WINAPI *pCryptHashData)(HCRYPTHASH, BYTE *, DWORD, DWORD);
-BOOL (WINAPI *pCryptSignHash)(HCRYPTHASH, DWORD, LPCSTR, DWORD, BYTE *, DWORD *);
-BOOL (WINAPI *pCryptGetHashParam)(HCRYPTHASH, DWORD, BYTE *, DWORD *, DWORD);
-BOOL (WINAPI *pCryptSetHashParam)(HCRYPTHASH, DWORD, const BYTE *, DWORD);
-BOOL (WINAPI *pCryptVerifySignature)(HCRYPTHASH, CONST BYTE *, DWORD, HCRYPTKEY, LPCSTR, DWORD);
-
-BOOL (WINAPI *pCryptProtectData)(DATA_BLOB*, LPCWSTR, DATA_BLOB*, PVOID,
-		CRYPTPROTECT_PROMPTSTRUCT*, DWORD, DATA_BLOB*);
-BOOL (WINAPI *pCryptUnprotectData)(DATA_BLOB*, LPWSTR*, DATA_BLOB*, PVOID,
-		CRYPTPROTECT_PROMPTSTRUCT*, DWORD, DATA_BLOB*);
-BOOL (WINAPI *pCryptStringToBinary) (LPCTSTR, DWORD, DWORD, BYTE *, DWORD *, DWORD *, DWORD *);
-BOOL (WINAPI *pCryptBinaryToString)(const BYTE *, DWORD, DWORD, LPTSTR , DWORD *);
-
 NTSTATUS (WINAPI *pNtQueryInformationFile)(HANDLE FileHandle, PIO_STATUS_BLOCK IoStatusBlock,
 	PVOID FileInformation, ULONG Length, FILE_INFORMATION_CLASS FileInformationClass);
-
-BOOL TLibInit_AdvAPI32()
-{
-	HMODULE	advdll = ::GetModuleHandle("advapi32.dll");
-	pCryptAcquireContext = (BOOL (WINAPI *)(HCRYPTPROV *, LPCSTR, LPCSTR, DWORD, DWORD))
-		::GetProcAddress(advdll, "CryptAcquireContextA");
-	pCryptGenRandom = (BOOL (WINAPI *)(HCRYPTPROV, DWORD, BYTE *))
-		::GetProcAddress(advdll, "CryptGenRandom");
-	pCryptGetKeyParam = (BOOL (WINAPI *)(HCRYPTKEY, DWORD, BYTE *, DWORD *, DWORD))
-		::GetProcAddress(advdll, "CryptGetKeyParam");
-	pCryptSetKeyParam = (BOOL (WINAPI *)(HCRYPTKEY, DWORD, BYTE *, DWORD))
-		::GetProcAddress(advdll, "CryptSetKeyParam");
-	pCryptCreateHash = (BOOL (WINAPI *)(HCRYPTPROV, ALG_ID, HCRYPTKEY, DWORD, HCRYPTHASH *))
-		::GetProcAddress(advdll, "CryptCreateHash");
-	pCryptDestroyHash = (BOOL (WINAPI *)(HCRYPTHASH))
-		::GetProcAddress(advdll, "CryptDestroyHash");
-	pCryptHashData = (BOOL (WINAPI *)(HCRYPTHASH, BYTE *, DWORD, DWORD))
-		::GetProcAddress(advdll, "CryptHashData");
-	pCryptGetHashParam = (BOOL (WINAPI *)(HCRYPTHASH, DWORD, BYTE *, DWORD *, DWORD))
-		::GetProcAddress(advdll, "CryptGetHashParam");
-	pCryptSetHashParam = (BOOL (WINAPI *)(HCRYPTHASH, DWORD, const BYTE *, DWORD))
-		::GetProcAddress(advdll, "CryptSetHashParam");
-	pCryptReleaseContext = (BOOL (WINAPI *)(HCRYPTPROV, DWORD))
-		::GetProcAddress(advdll, "CryptReleaseContext");
-
-	pCryptExportKey = (BOOL (WINAPI *)(HCRYPTKEY, HCRYPTKEY, DWORD, DWORD, BYTE *, DWORD *))
-		::GetProcAddress(advdll, "CryptExportKey");
-	pCryptGetUserKey = (BOOL (WINAPI *)(HCRYPTPROV, DWORD, HCRYPTKEY *))
-		::GetProcAddress(advdll, "CryptGetUserKey");
-	pCryptEncrypt = (BOOL (WINAPI *)(HCRYPTKEY, HCRYPTHASH, BOOL, DWORD, BYTE *, DWORD *, DWORD))
-		::GetProcAddress(advdll, "CryptEncrypt");
-	pCryptGenKey = (BOOL (WINAPI *)(HCRYPTPROV, ALG_ID, DWORD, HCRYPTKEY *))
-		::GetProcAddress(advdll, "CryptGenKey");
-	pCryptDestroyKey = (BOOL (WINAPI *)(HCRYPTKEY))
-		::GetProcAddress(advdll, "CryptDestroyKey");
-	pCryptImportKey =
-		(BOOL (WINAPI *)(HCRYPTPROV, CONST BYTE *, DWORD, HCRYPTKEY, DWORD, HCRYPTKEY *))
-		::GetProcAddress(advdll, "CryptImportKey");
-	pCryptDecrypt = (BOOL (WINAPI *)(HCRYPTKEY, HCRYPTHASH, BOOL, DWORD, BYTE *, DWORD *))
-		::GetProcAddress(advdll, "CryptDecrypt");
-	pCryptSignHash = (BOOL (WINAPI *)(HCRYPTHASH, DWORD, LPCSTR, DWORD, BYTE *, DWORD *))
-		::GetProcAddress(advdll, "CryptSignHashA");
-	pCryptVerifySignature =
-		(BOOL (WINAPI *)(HCRYPTHASH, CONST BYTE *, DWORD, HCRYPTKEY, LPCSTR, DWORD))
-		::GetProcAddress(advdll, "CryptVerifySignatureA");
-
-	return	TRUE;
-}
-
-BOOL TLibInit_Crypt32()
-{
-	HINSTANCE	cryptdll = ::LoadLibrary("crypt32.dll");
-
-	pCryptProtectData = (BOOL (WINAPI *)(DATA_BLOB*, LPCWSTR, DATA_BLOB*,
-		PVOID, CRYPTPROTECT_PROMPTSTRUCT*, DWORD, DATA_BLOB*))
-		::GetProcAddress(cryptdll, "CryptProtectData");
-	pCryptUnprotectData = (BOOL (WINAPI *)(DATA_BLOB*, LPWSTR*, DATA_BLOB*,
-		PVOID, CRYPTPROTECT_PROMPTSTRUCT*, DWORD, DATA_BLOB*))
-		::GetProcAddress(cryptdll, "CryptUnprotectData");
-
-	pCryptStringToBinary =
-		(BOOL (WINAPI *)(LPCTSTR, DWORD, DWORD, BYTE *, DWORD *, DWORD *, DWORD *))
-		::GetProcAddress(cryptdll, "CryptStringToBinaryA");
-	pCryptBinaryToString =
-		(BOOL (WINAPI *)(const BYTE *, DWORD, DWORD, LPTSTR , DWORD *))
-		::GetProcAddress(cryptdll, "CryptBinaryToStringA");
-
-	return	TRUE;
-}
 
 BOOL TLibInit_Ntdll()
 {
@@ -138,8 +40,8 @@ TDigest::TDigest()
 
 TDigest::~TDigest()
 {
-	if (hHash)	pCryptDestroyHash(hHash);
-	if (hProv)	pCryptReleaseContext(hProv, 0);
+	if (hHash)	::CryptDestroyHash(hHash);
+	if (hProv)	::CryptReleaseContext(hProv, 0);
 }
 
 BOOL TDigest::Init(TDigest::Type _type)
@@ -147,17 +49,17 @@ BOOL TDigest::Init(TDigest::Type _type)
 	type = _type;
 
 	if (hProv == NULL) {
-		if (!pCryptAcquireContext(&hProv, NULL, MS_DEF_DSS_PROV, PROV_DSS, 0)) {
-			pCryptAcquireContext(&hProv, NULL, MS_DEF_DSS_PROV, PROV_DSS, CRYPT_NEWKEYSET);
+		if (!::CryptAcquireContext(&hProv, NULL, MS_DEF_DSS_PROV, PROV_DSS, 0)) {
+			::CryptAcquireContext(&hProv, NULL, MS_DEF_DSS_PROV, PROV_DSS, CRYPT_NEWKEYSET);
 		}
 	}
 	if (hHash) {
-		pCryptDestroyHash(hHash);
+		::CryptDestroyHash(hHash);
 		hHash = NULL;
 	}
 	updateSize = 0;
 
-	return	pCryptCreateHash(hProv, type == SHA1 ? CALG_SHA : CALG_MD5, 0, 0, &hHash);
+	return	::CryptCreateHash(hProv, type == SHA1 ? CALG_SHA : CALG_MD5, 0, 0, &hHash);
 }
 
 BOOL TDigest::Reset()
@@ -171,14 +73,14 @@ BOOL TDigest::Reset()
 BOOL TDigest::Update(void *data, int size)
 {
 	updateSize += size;
-	return	pCryptHashData(hHash, (BYTE *)data, size, 0);
+	return	::CryptHashData(hHash, (BYTE *)data, size, 0);
 }
 
 BOOL TDigest::GetVal(void *data)
 {
 	DWORD	size = GetDigestSize();
 
-	return	pCryptGetHashParam(hHash, HP_HASHVAL, (BYTE *)data, &size, 0);
+	return	::CryptGetHashParam(hHash, HP_HASHVAL, (BYTE *)data, &size, 0);
 }
 
 BOOL TDigest::GetRevVal(void *data)
@@ -208,12 +110,12 @@ BOOL TGenRandom(void *buf, int len)
 	static HCRYPTPROV hProv;
 
 	if (hProv == NULL) {
-		if (!pCryptAcquireContext(&hProv, NULL, MS_DEF_DSS_PROV, PROV_DSS, 0)) {
-			pCryptAcquireContext(&hProv, NULL, MS_DEF_DSS_PROV, PROV_DSS, CRYPT_NEWKEYSET);
+		if (!::CryptAcquireContext(&hProv, NULL, MS_DEF_DSS_PROV, PROV_DSS, 0)) {
+			::CryptAcquireContext(&hProv, NULL, MS_DEF_DSS_PROV, PROV_DSS, CRYPT_NEWKEYSET);
 		}
 	}
 
-	if (hProv && pCryptGenRandom && pCryptGenRandom(hProv, (DWORD)len, (BYTE *)buf))
+	if (hProv && ::CryptGenRandom(hProv, (DWORD)len, (BYTE *)buf))
 		return	TRUE;
 
 	for (int i=0; i < len; i++) {

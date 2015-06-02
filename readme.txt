@@ -1,8 +1,8 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 3.42
-			H.Shirouzu Jun 10, 2012
+	Source code of IP Messenger for Win version 3.50
+			H.Shirouzu June 02, 2015
 
-		Copyright (C) 1996-2012 SHIROUZU Hiroaki
+		Copyright (C) 1996-2015 SHIROUZU Hiroaki
 			All Rights Reserved.
 ---------------------------------------------------------------------
 
@@ -29,47 +29,47 @@ Index.
    all source is open to public. You can get in the following URL.
        http://ipmsg.org/index.html.en
 
+ - iOS, Android version is available, but source code is not opened.
+       http://ipmsg.org/index.html.en
+
 ----------------------------------------------------------------------
 2. License (BSD License)
 
-  Copyright (c) 1996-2012 SHIROUZU Hiroaki All rights reserved.
+ /* ==============================================================
+  Copyright (c) 1996-2015 SHIROUZU Hiroaki All rights reserved.
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
+  Redistribution and use in source and binary forms, with or
+  without modification, are permitted provided that the following
+  conditions are met:
 
-    Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer. 
+  1. Redistributions of source code must retain the above
+     copyright notice, this list of conditions and the following
+     disclaimer.
 
-    Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in
-    the documentation and/or other materials provided with the
-    distribution.
+  2. Redistributions in binary form must reproduce the above
+     copyright notice, this list of conditions and the following
+     disclaimer in the documentation and/or other materials
+     provided with the distribution.
 
-    Neither the name of the SHIROUZU Hiroaki nor the names of its
-    contributors may be used to endorse or promote products derived
-    from this software without specific prior written permission. 
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-  POSSIBILITY OF SUCH DAMAGE.
+  THIS SOFTWARE IS PROVIDED BY SHIROUZU Hiroaki ``AS IS'' AND ANY
+  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+  PARTICULAR PURPOSE ARE DISCLAIMED.
+  IN NO EVENT SHALL SHIROUZU Hiroaki OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+  OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+  OF SUCH DAMAGE.
+ =============================================================== */
 
 ----------------------------------------------------------------------
 3. Requirements
 
- - VS2005 or later
- - IP Messenger ver3.0 or later, use zlib/lipng for embedded image.
-    http://www.libpng.org/pub/png/libpng.html
-    http://zlib.net/
+ - VS2013 or later
 
 ----------------------------------------------------------------------
 4. Directory
@@ -81,15 +81,20 @@ Index.
 		|          +-install-+- install.cpp
 		|                    |       :
 		|
-		+-External-+-Zlib---+-zlib.vcproj
-		|          |            :
-		|          +-Libpng-+-libpng.vcproj
-		|                       :
+		+-external-+-zlib (for installer)
+		|
+		+-Lib
+		|
 		+-Release--+-
 		|
 		+-Obj------+-Release-+-
-		           |
-		           +-Debug---+-
+		|          |
+		|          +-Debug---+-
+		|
+		+-x64---+-Release
+		        |
+		        +-obj---+-Relase
+		                |   :
 
 ----------------------------------------------------------------------
 5. Support

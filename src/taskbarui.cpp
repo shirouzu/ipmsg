@@ -1,10 +1,10 @@
 ﻿static char *taskbarui_id = 
-	"@(#)Copyright (C) H.Shirouzu 2012   taskbarui.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 2012-2014   taskbarui.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Windows7 Taskbar UI
 	Create					: 2012-01-09(Mon)
-	Update					: 2012-04-02(Mon)
+	Update					: 2014-04-14(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -12,12 +12,15 @@
 #undef _MSC_VER
 #define _MSC_VER 1500
 
+#include "ipmsg.h"
+
+#if 0
+
 #include <ObjBase.h>
 #include <propvarutil.h>
 #include <propkey.h>
 
 #include "resource.h"
-#include "ipmsg.h"
 
 // Creates a CLSID_ShellLink to insert into the Tasks section of the Jump List.  This type of Jump
 // List item allows the specification of an explicit command line to execute the task.
@@ -138,7 +141,7 @@ void CreateJumpList(const char *option)
 {
 	WCHAR	wopt[MAX_BUF];
 
-	_swprintf(wopt, L"/TASKBAR_MSG %s 1", AtoW(option));
+	_swprintf(wopt, L"/TASKBAR_MSG %s 1", AtoWs(option));
 
 	// Create the custom Jump List object.
 	ICustomDestinationList *pcdl;
@@ -178,4 +181,5 @@ void DeleteJumpList()
 	}
 }
 
+#endif
 

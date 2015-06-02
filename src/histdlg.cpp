@@ -1,10 +1,10 @@
 ﻿static char *histdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011   histdlg.cpp	Ver3.30";
+	"@(#)Copyright (C) H.Shirouzu 2011-2015   histdlg.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: History Dialog
 	Create					: 2011-07-24(Sun)
-	Update					: 2011-07-31(Sun)
+	Update					: 2015-05-03(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -40,13 +40,13 @@ void HistHash::Register(THashObj *_obj, u_int hash_id)
 	THashTbl::Register(obj, hash_id);
 	if (top) {
 		obj->next = top;
-		obj->prior = NULL;
-		top->prior = obj;
+		obj->prev = NULL;
+		top->prev = obj;
 		top = obj;
 	}
 	else {
 		top = end = obj;
-		obj->next = obj->prior = NULL;
+		obj->next = obj->prev = NULL;
 	}
 }
 
@@ -54,13 +54,13 @@ void HistHash::RegisterLru(HistObj *obj)
 {
 	if (lruTop) {
 		obj->lruNext = lruTop;
-		obj->lruPrior = NULL;
-		lruTop->lruPrior = obj;
+		obj->lruPrev = NULL;
+		lruTop->lruPrev = obj;
 		lruTop = obj;
 	}
 	else {
 		lruTop = lruEnd = obj;
-		obj->lruNext = obj->lruPrior = NULL;
+		obj->lruNext = obj->lruPrev = NULL;
 	}
 }
 
@@ -69,18 +69,18 @@ void HistHash::UnRegister(THashObj *_obj)
 	HistObj	*obj = (HistObj *)_obj;
 
 	if (obj->next) {
-		obj->next->prior = obj->prior;
+		obj->next->prev = obj->prev;
 	}
 	if (obj == top) {
 		top = obj->next;
 	}
-	if (obj->prior) {
-		obj->prior->next = obj->next;
+	if (obj->prev) {
+		obj->prev->next = obj->next;
 	}
 	if (obj == end) {
-		end = obj->prior;
+		end = obj->prev;
 	}
-	obj->next = obj->prior = NULL;
+	obj->next = obj->prev = NULL;
 
 	UnRegisterLru(obj);
 
@@ -90,18 +90,18 @@ void HistHash::UnRegister(THashObj *_obj)
 void HistHash::UnRegisterLru(HistObj *obj)
 {
 	if (obj->lruNext) {
-		obj->lruNext->lruPrior = obj->lruPrior;
+		obj->lruNext->lruPrev = obj->lruPrev;
 	}
 	if (obj == lruTop) {
 		lruTop = obj->lruNext;
 	}
-	if (obj->lruPrior) {
-		obj->lruPrior->lruNext = obj->lruNext;
+	if (obj->lruPrev) {
+		obj->lruPrev->lruNext = obj->lruNext;
 	}
 	if (obj == lruEnd) {
-		lruEnd = obj->lruPrior;
+		lruEnd = obj->lruPrev;
 	}
-	obj->lruNext = obj->lruPrior = NULL;
+	obj->lruNext = obj->lruPrev = NULL;
 }
 
 
@@ -201,8 +201,7 @@ BOOL THistDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 	case IDOK:
 	case IDCANCEL:
-		EndDialog(FALSE);
-//		::PostMessage(GetMainWnd(), WM_MSGDLG_EXIT, (WPARAM)0, (LPARAM)this);
+		EndDialog(wID);
 		return	TRUE;
 
 	case OPENED_CHECK:
@@ -298,12 +297,12 @@ void THistDlg::SetAllData()
 	SetTitle();
 
 	if (openedMode) {
-		for (HistObj *obj = histHash.LruEnd(); obj; obj = obj->lruPrior) {
+		for (HistObj *obj = histHash.LruEnd(); obj; obj = obj->lruPrev) {
 			SetData(obj);
 		}
 	}
 	else {
-		for (HistObj *obj = histHash.End(); obj; obj = obj->prior) {
+		for (HistObj *obj = histHash.End(); obj; obj = obj->prev) {
 			if (!*obj->odate) SetData(obj);
 		}
 	}

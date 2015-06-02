@@ -1,9 +1,9 @@
-﻿/* @(#)Copyright (C) H.Shirouzu 1998-2011   install.h	Ver3.20 */
+﻿/* @(#)Copyright (C) H.Shirouzu 1998-2015   install.h	Ver3.50 */
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Main Header
 	Create					: 1998-06-14(Sun)
-	Update					: 2011-05-23(Mon)
+	Update					: 2015-06-02(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -86,6 +86,7 @@ public:
 #define IPMSG_DEFAULT_PORT		0x0979
 
 #define IPMSG_EXENAME			"ipmsg.exe"
+#define IPMSG_EXENAME_W			L"ipmsg.exe"
 #define SETUP_EXENAME			"setup.exe"
 #define IPMSGHELP_NAME			"ipmsg.chm"
 

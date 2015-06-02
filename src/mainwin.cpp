@@ -1,17 +1,21 @@
 ﻿static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   mainwin.cpp	Ver3.42";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   mainwin.cpp	Ver3.50";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-06-10(Sun)
+	Update					: 2015-05-03(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
-#include <stdio.h>
-#include "resource.h"
 #include "ipmsg.h"
+#include <process.h>
+#include <gdiplus.h>
+using namespace Gdiplus;
+#pragma comment (lib, "gdiplus.lib")
+static GdiplusStartupInput	gdisi;
+static ULONG_PTR			gditk = NULL;
 
 HICON		TMainWin::hMainIcon = NULL;
 HICON		TMainWin::hRevIcon = NULL;
@@ -21,31 +25,42 @@ static HWND	hMainWnd = NULL;
 /*
 	MainWindow の初期化
 */
-TMainWin::TMainWin(ULONG nicAddr, int _portNo, TWin *_parent) : TWin(_parent)
+TMainWin::TMainWin(Addr nicAddr, int _portNo, TWin *_parent) : TWin(_parent)
 {
-	char	title[100];
+	char	title[100], user_dir[MAX_PATH], exception_log[MAX_PATH];
+
+	TRegistry	reg(HKEY_CURRENT_USER);
+	if (reg.OpenKey(REGSTR_SHELLFOLDERS)) {
+		if (reg.GetStr(REGSTR_MYDOCUMENT, user_dir, sizeof(user_dir))) {
+			MakePath(exception_log, user_dir, "ipmsg_exception.log");
+		}
+	}
 	sprintf(title, "IPMsg ver%s", GetVersionStr());
-	InstallExceptionFilter(title, GetLoadStr(IDS_EXCEPTIONLOG));
+	InstallExceptionFilter(title, GetLoadStr(IDS_EXCEPTIONLOG), exception_log);
+
+	::GdiplusStartup(&gditk, &gdisi, NULL);
 
 	hosts.Enable(THosts::NAME, TRUE);
 	hosts.Enable(THosts::ADDR, TRUE);
 	cfg = new Cfg(nicAddr, portNo = _portNo);
+	cfg->ReadRegistry();
 
-	if (!(msgMng = new MsgMng(nicAddr, portNo, cfg))->GetStatus()) {
+	if (!(msgMng = new MsgMng(nicAddr, portNo, cfg, &hosts))->GetStatus()) {
 		::ExitProcess(0xffffffff);
 		return;
 	}
-	cfg->ReadRegistry();
 	if (cfg->lcid > 0) TSetDefaultLCID(cfg->lcid);
 
 	setupDlg = new TSetupDlg(cfg, &hosts);
 	aboutDlg = new TAboutDlg();
 	absenceDlg = new TAbsenceDlg(cfg, this);
 	logmng = new LogMng(cfg);
-	ansList = new TRecycleList(MAX_ANSLIST, sizeof(AnsQueueObj));
-	shareMng = new ShareMng(cfg);
+	ansList = new TRecycleListEx<AnsQueueObj>(MAX_ANSLIST);
+	shareMng = new ShareMng(cfg, msgMng);
 	shareStatDlg = new TShareStatDlg(shareMng, cfg);
 	histDlg = new THistDlg(cfg, &hosts);
+	//logView = new TLogView(cfg);
+	remoteDlg = new TRemoteDlg(cfg, this);
 	refreshStartTime = 0;
 	entryStartTime = IPMSG_GETLIST_FINISH;
 
@@ -96,18 +111,22 @@ void TMainWin::Terminate(void)
 	DeleteListDlg(&sendList);
 	DeleteListDlg(&recvList);
 	DeleteListDlg(&msgList);
+	//delete logView;
 	delete histDlg;
 	delete shareStatDlg;
 	delete absenceDlg;
 	delete aboutDlg;
 	delete setupDlg;
+	delete remoteDlg;
 
 //	if (!cfg->TaskbarUI)
 		TaskTray(NIM_DELETE);
 
+#if 0
 	if (IsWin7() && cfg->TaskbarUI) {
 		DeleteJumpList();
 	}
+#endif
 
 	Time_t	now_time = Time();
 	for (int cnt=0; cnt < hosts.HostCnt(); cnt++) {
@@ -118,7 +137,7 @@ void TMainWin::Terminate(void)
 	msgMng->CloseSocket();
 
 	for (int i=0; i < MAX_KEY; i++) {
-		if (cfg->priv[i].hKey) pCryptDestroyKey(cfg->priv[i].hKey);
+		if (cfg->priv[i].hKey) ::CryptDestroyKey(cfg->priv[i].hKey);
 	}
 
 #if 0	// 無駄
@@ -131,14 +150,14 @@ void TMainWin::Terminate(void)
 	}
 
 	AddrObj *brObj;
-	while ((brObj = (AddrObj *)cfg->DialUpList.TopObj())) {
+	while ((brObj = cfg->DialUpList.TopObj())) {
 		cfg->DialUpList.DelObj(brObj);
 		delete brObj;
 	}
 #endif
 }
 
-BOOL TMainWin::Create(LPCSTR class_name, LPCSTR title, DWORD, DWORD, HMENU)
+BOOL TMainWin::CreateU8(LPCSTR class_name, LPCSTR title, DWORD, DWORD, HMENU)
 {
 	className = strdup(class_name);
 	DWORD style = WS_OVERLAPPEDWINDOW|(cfg->TaskbarUI ? 0 : WS_MINIMIZE);
@@ -155,7 +174,7 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 	hMainWnd = hWnd;
 	mainWin = this;
 
-	if (IsWinVista() && TIsUserAnAdmin() && TIsEnableUAC()) {
+	if (IsWinVista() && ::IsUserAnAdmin() && TIsEnableUAC()) {
 		TChangeWindowMessageFilter(WM_DROPFILES, 1);
 		TChangeWindowMessageFilter(WM_COPYDATA, 1);
 		TChangeWindowMessageFilter(WM_COPYGLOBALDATA, 1);
@@ -170,7 +189,7 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 		Show(SW_HIDE);
 	}
 	while (!TaskTray(NIM_ADD, hMainIcon, IP_MSG)) {
-		Sleep(1000);	// for logon script
+		this->Sleep(1000);	// for logon script
 	}
 
 	TaskBarCreateMsg = ::RegisterWindowMessage("TaskbarCreated");
@@ -188,6 +207,7 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 		EntryHost();
 	}
 
+#if 0
 	if (IsWin7()) {	// for TaskbarUI
 		::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED); 
 
@@ -198,8 +218,10 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 //			DeleteJumpList();
 		}
 	}
+#endif
 
-	::SetTimer(hWnd, IPMSG_CLEANUP_TIMER, 60000, NULL); // 1min
+	::SetTimer(hWnd, IPMSG_CLEANUP_TIMER, 10000, NULL); // 10sec
+//	::SetTimer(hWnd, 0x0200, 1000, NULL);
 	return	TRUE;
 }
 
@@ -225,6 +247,12 @@ BOOL TMainWin::EvTimer(WPARAM timerID, TIMERPROC proc)
 		return	TRUE;
 	}
 
+/*	if (timerID == 0x0200) {
+		::KillTimer(hWnd, timerID);
+		LogOpen();
+		return	TRUE;
+	}
+*/
 	switch (timerID) {
 	case IPMSG_REVERSEICON:
 		ReverseIcon(FALSE);
@@ -260,7 +288,24 @@ BOOL TMainWin::EvTimer(WPARAM timerID, TIMERPROC proc)
 		return	TRUE;
 
 	case IPMSG_CLEANUP_TIMER:
-		shareMng->Cleanup();
+		{
+			ConnectInfo	*connInfo = connList.TopObj();
+
+			if (connInfo) {
+				DWORD	tick = GetTickCount();
+
+				while (connInfo) {
+					ConnectInfo	*next = connList.NextObj(connInfo);
+					if (tick - connInfo->startTick > 10000) {
+						connList.DelObj(connInfo);
+						::closesocket(connInfo->sd);
+						delete connInfo;
+					}
+					connInfo = next;
+				}
+			}
+			shareMng->Cleanup();
+		}
 		return	TRUE;
 
 	case IPMSG_BALLOON_RECV_TIMER:
@@ -286,11 +331,11 @@ BOOL TMainWin::EvTimer(WPARAM timerID, TIMERPROC proc)
 	case IPMSG_ENTRY_TIMER:
 		::KillTimer(hWnd, IPMSG_ENTRY_TIMER);
 
-		for (TBrObj *brobj=brListEx.Top(); brobj; brobj=brListEx.Next(brobj)) {
-			BroadcastEntrySub(brobj->Addr(), Thtons(portNo), IPMSG_BR_ENTRY);
+		for (TBrObj *brobj=brListEx.TopObj(); brobj; brobj=brListEx.NextObj(brobj)) {
+			BroadcastEntrySub(brobj->Addr(), ::htons(portNo), IPMSG_BR_ENTRY);
 		}
 
-		for (AddrObj *obj = (AddrObj *)cfg->DialUpList.TopObj(); obj; obj = (AddrObj *)cfg->DialUpList.NextObj(obj)) {
+		for (AddrObj *obj = cfg->DialUpList.TopObj(); obj; obj = cfg->DialUpList.NextObj(obj)) {
 			BroadcastEntrySub(obj->addr, obj->portNo, IPMSG_BR_ENTRY);
 		}
 		return	TRUE;
@@ -316,7 +361,7 @@ BOOL TMainWin::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 	case MENU_LOGIMGOPEN:
 		{
 			char	path[MAX_PATH_U8];
-			if (MakeImageFolder(cfg, path)) {
+			if (MakeImageFolderName(cfg, path)) {
 				ShellExecuteU8(NULL, NULL, path, 0, 0, SW_SHOW);
 			}
 		}
@@ -484,7 +529,7 @@ BOOL TMainWin::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 
 		if (cfg->TaskbarUI) ActiveListDlg(&msgList);
 
-		for (TSendDlg *dlg = (TSendDlg *)sendList.TopObj(); dlg; dlg = (TSendDlg *)sendList.NextObj(dlg)) {
+		for (TSendDlg *dlg = sendList.TopObj(); dlg; dlg = sendList.NextObj(dlg)) {
 			if (dlg->IsSending()) dlg->SetForegroundWindow();	// 再送信確認ダイアログを前に
 		}
 
@@ -523,10 +568,12 @@ BOOL TMainWin::AddAbsenceMenu(HMENU hTargetMenu, int insertOffset)
 	}
 	AppendMenuU8(hSubMenu, MF_SEPARATOR, 0, 0);
 	AppendMenuU8(hSubMenu, MF_STRING, MENU_ABSENCEEX, GetLoadStrU8(IDS_ABSENCESET));
-	InsertMenuU8(hTargetMenu, index++, MF_BYPOSITION|MF_POPUP, (UINT)hSubMenu, GetLoadStrU8(IDS_ABSENCEMENU));
+	InsertMenuU8(hTargetMenu, index++, MF_BYPOSITION|MF_POPUP, (UINT)hSubMenu,
+					GetLoadStrU8(IDS_ABSENCEMENU));
 
 	if (cfg->AbsenceCheck) {
-		wsprintf(buf, "%s(%s)", GetLoadStrU8(IDS_ABSENCELIFT), cfg->AbsenceHead[cfg->AbsenceChoice]);
+		wsprintf(buf, "%s(%s)",
+				GetLoadStrU8(IDS_ABSENCELIFT), cfg->AbsenceHead[cfg->AbsenceChoice]);
 		InsertMenuU8(hTargetMenu, index, MF_BYPOSITION|MF_STRING, MENU_ABSENCE, buf);
 	}
 	return	TRUE;
@@ -539,15 +586,15 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) {
 	case WM_SENDDLG_OPEN:
-		SendDlgOpen((HWND)wParam, (MsgBuf *)lParam);
+		SendDlgOpen((DWORD)lParam);
 		return	TRUE;
 
 	case WM_SENDDLG_EXIT:
-		SendDlgExit((TSendDlg *)lParam);
+		SendDlgExit((DWORD)lParam);
 		return	TRUE;
 
 	case WM_SENDDLG_HIDE:
-		SendDlgHide((TSendDlg *)lParam);
+		SendDlgHide((DWORD)lParam);
 		return	TRUE;
 
 	case WM_SENDDLG_FONTCHANGED:
@@ -562,7 +609,7 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return	TRUE;
 
 	case WM_RECVDLG_EXIT:
-		RecvDlgExit((TRecvDlg *)lParam);
+		RecvDlgExit((DWORD)lParam);
 		return	TRUE;
 
 	case WM_NOTIFY_TRAY:		// TaskTray
@@ -608,11 +655,14 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return	TRUE;
 
 	case WM_MSGDLG_EXIT:
-		MsgDlgExit((TMsgDlg *)lParam);
+		MsgDlgExit((DWORD)lParam);
 		return	TRUE;
 
 	case WM_DELMISCDLG:
-		if (msgList.TopObj()) {
+		if (cfg->HotKeyCheck >= 2 && cfg->OpenCheck < 2) {
+			LockWorkStation();
+		}
+		else if (msgList.TopObj()) {
 			DeleteListDlg(&msgList);
 		}
 		return	TRUE;
@@ -622,10 +672,9 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		SetIcon(cfg->AbsenceCheck ? hRevIcon : hMainIcon);
 		return	TRUE;
 
-// refresh時に更新すれば十分
-//	case WM_IPMSG_BRRESET:
-//		MakeBrListEx();
-//		return	TRUE;
+	case WM_IPMSG_CHANGE_MCAST:
+		ChangeMulticastMode((int)wParam);
+		return	TRUE;
 
 	case WM_HISTDLG_OPEN:
 		if (wParam == 1) histDlg->SetMode(TRUE);
@@ -654,6 +703,10 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (lParam == IPMSG_DEFAULT_PORT) {
 			BroadcastEntry(IPMSG_BR_ABSENCE); 
 		}
+		return	TRUE;
+
+	case WM_IPMSG_REMOTE:
+		remoteDlg->Start((TRemoteDlg::Mode)wParam);
 		return	TRUE;
 	}
 	return	FALSE;
@@ -836,7 +889,7 @@ BOOL TMainWin::UdpEvent(LPARAM lParam)
 */
 inline SendFileObj *TMainWin::FindSendFileObj(SOCKET sd)
 {
-	for (SendFileObj *obj = (SendFileObj *)sendFileList.TopObj(); obj; obj = (SendFileObj *)sendFileList.NextObj(obj)) {
+	for (SendFileObj *obj = sendFileList.TopObj(); obj; obj = sendFileList.NextObj(obj)) {
 		if (obj->conInfo->sd == sd) {
 			return	obj;
 		}
@@ -856,10 +909,11 @@ BOOL TMainWin::TcpEvent(SOCKET sd, LPARAM lParam)
 			if (msgMng->Accept(hWnd, &tmpInfo)) {
 				if (CheckConnectInfo(&tmpInfo)) {
 					info = new ConnectInfo(tmpInfo);
-					connectList.AddObj(info);
+					info->startTick = GetTickCount();
+					connList.AddObj(info);
 				}
 				else {
-					::Tclosesocket(tmpInfo.sd);
+					::closesocket(tmpInfo.sd);
 				}
 			}
 		}
@@ -876,7 +930,7 @@ BOOL TMainWin::TcpEvent(SOCKET sd, LPARAM lParam)
 				EndSendFile(obj);
 			}
 			else {
-				::Tclosesocket(sd);
+				::closesocket(sd);
 			}
 		}
 		break;
@@ -886,14 +940,7 @@ BOOL TMainWin::TcpEvent(SOCKET sd, LPARAM lParam)
 
 BOOL TMainWin::CheckConnectInfo(ConnectInfo *conInfo)
 {
-	for (ShareInfo *info=shareMng->Top(); info; info=shareMng->Next(info)) {
-		for (int cnt=0; cnt < info->hostCnt; cnt++) {
-			if (info->host[cnt]->hostSub.addr == conInfo->addr/* && info->host[cnt]->hostSub.portNo == conInfo->port*/) {
-				return	conInfo->port = info->host[cnt]->hostSub.portNo, TRUE;
-			}
-		}
-	}
-	return	FALSE;
+	return	shareMng->TopObj() ? TRUE : FALSE;	// for authorized connection
 }
 
 /*
@@ -904,32 +951,32 @@ BOOL TMainWin::StartSendFile(SOCKET sd)
 	ConnectInfo 	*conInfo;
 	AcceptFileInfo	fileInfo;
 
-	for (conInfo=(ConnectInfo *)connectList.TopObj(); conInfo && conInfo->sd != sd; conInfo=(ConnectInfo *)connectList.NextObj(conInfo))
-		;
+	for (conInfo=connList.TopObj(); conInfo; conInfo=connList.NextObj(conInfo)) {
+		if (conInfo->sd == sd) break;
+	}
 
 	if (conInfo == NULL) {
-		return	::Tclosesocket(sd), FALSE;
+		return	::closesocket(sd), FALSE;
 	} else {
 		msgMng->ConnectDone(hWnd, conInfo);	// 非同期メッセージの抑制
 
 		// すでに read 要求がきているので、固まる事は無い...はず
 		// 一度の recv で読めない場合、エラーにしてしまう（手抜き）
-		char	buf[MAX_PATH_U8];
+		char	buf[MAX_BUF];
 		int		size;
 
-		if ((size = ::Trecv(conInfo->sd, buf, sizeof(buf) -1, 0)) > 0) {
+		if ((size = ::recv(conInfo->sd, buf, sizeof(buf) -1, 0)) > 0) {
 			buf[size] = 0;
 		}
-		if (size <= 0 || !shareMng->GetAcceptableFileInfo(conInfo, buf, &fileInfo)) {
-			connectList.DelObj(conInfo);
-			::Tclosesocket(conInfo->sd);
+		if (size <= 0 || !shareMng->GetAcceptableFileInfo(conInfo, buf, size, &fileInfo)) {
+			connList.DelObj(conInfo);
+			::closesocket(conInfo->sd);
 			delete conInfo;
 			return	FALSE;
 		}
 	}
 
 	SendFileObj	*obj = new SendFileObj;
-	memset(obj, 0, sizeof(SendFileObj));
 	obj->conInfo = conInfo;
 	obj->hFile = INVALID_HANDLE_VALUE;
 	obj->fileInfo = fileInfo.fileInfo;
@@ -939,7 +986,14 @@ BOOL TMainWin::StartSendFile(SOCKET sd)
 	obj->command = fileInfo.command;
 	obj->conInfo->startTick = obj->conInfo->lastTick = ::GetTickCount();
 	obj->attachTime = fileInfo.attachTime;
-	connectList.DelObj(conInfo);
+	if ((fileInfo.logOpt & LOG_SIGN_OK) && (GET_OPT(fileInfo.command) & IPMSG_ENCFILEOPT)) {
+		BYTE	nonce[AES_BLOCK_SIZE] = {};
+		wsprintf((char *)nonce, "%d", fileInfo.ivPacketNo);
+		obj->aes.Init(fileInfo.aesKey, sizeof(fileInfo.aesKey), nonce);
+	}
+	if (!obj->vbuf.AllocBuf(cfg->IoBufMax)) return FALSE;
+
+	connList.DelObj(conInfo);
 	sendFileList.AddObj(obj);
 
 	BOOL	ret = FALSE;
@@ -954,7 +1008,8 @@ BOOL TMainWin::StartSendFile(SOCKET sd)
 			return	EndSendFile(obj), FALSE;
 		}
 		obj->isDir = (obj->fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
-		obj->status = obj->isDir || GET_MODE(obj->command) == IPMSG_GETDIRFILES ? FS_DIRFILESTART : FS_TRANSFILE;
+		obj->status = (obj->isDir || GET_MODE(obj->command) == IPMSG_GETDIRFILES) ?
+						FS_DIRFILESTART : FS_TRANSFILE;
 
 		if (*obj->fdata.cFileName == 0) {
 			ForcePathToFname(obj->fileInfo->Fname(), obj->fdata.cFileName);
@@ -965,7 +1020,8 @@ BOOL TMainWin::StartSendFile(SOCKET sd)
 			obj->hDir = (HANDLE *)malloc((MAX_PATH_U8/2) * sizeof(HANDLE));
 		}
 		else {
-			if ((cfg->fileTransOpt & FT_STRICTDATE) && *(_int64 *)&obj->fdata.ftLastWriteTime > *(_int64 *)&obj->attachTime) {
+			if ((cfg->fileTransOpt & FT_STRICTDATE) &&
+				*(_int64 *)&obj->fdata.ftLastWriteTime > *(_int64 *)&obj->attachTime) {
 				ret = FALSE, obj->status = FS_COMPLETE;		// 共有情報から消去
 			}
 			else if (GET_MODE(obj->command) == IPMSG_GETDIRFILES) {
@@ -981,10 +1037,9 @@ BOOL TMainWin::StartSendFile(SOCKET sd)
 		return FALSE;
 	}
 
-	DWORD	id;	// 使わず（95系で error になるのを防ぐだけ）
+	UINT	id;	// 使わず（95系で error になるのを防ぐだけ）
 	obj->hThread = (HANDLE)~0;	// 微妙な領域を避ける
-	// thread 内では MT 対応が必要な crt は使わず
-	if ((obj->hThread = ::CreateThread(NULL, 0, SendFileThread, obj, 0, &id)) == NULL) {
+	if (!(obj->hThread = (HANDLE)_beginthreadex(NULL, 0, SendFileThread, obj, 0, &id))) {
 		return	EndSendFile(obj), FALSE;
 	}
 
@@ -993,41 +1048,33 @@ BOOL TMainWin::StartSendFile(SOCKET sd)
 
 BOOL TMainWin::OpenSendFile(const char *fname, SendFileObj *obj)
 {
-	DWORD	lowSize, highSize, viewSize;
+#define USE_OSCACHE_LIMIT	(4 * 1024 * 1024)
+	DWORD	flags = (obj->fdata.nFileSizeHigh > 0 || obj->fdata.nFileSizeLow > USE_OSCACHE_LIMIT) ?
+						FILE_FLAG_NO_BUFFERING : 0;
 
-	if ((obj->hFile = CreateFileU8(fname, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0)) != INVALID_HANDLE_VALUE) {
+	obj->hFile = CreateFileU8(fname, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, 0,
+								OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL|flags, 0);
+	if (obj->hFile == INVALID_HANDLE_VALUE) return FALSE;
 
-		lowSize = ::GetFileSize(obj->hFile, &highSize);
-		if ((obj->fileSize = (_int64)highSize << 32 | lowSize) == 0) {
-			return	TRUE;
-		}
-		obj->hMap = ::CreateFileMapping(obj->hFile, 0, PAGE_READONLY, highSize, lowSize, 0);
-		viewSize = (int)(obj->fileSize > cfg->ViewMax ? cfg->ViewMax : obj->fileSize);
-		highSize = (int)(obj->offset >> 32);
-		lowSize = (int)((obj->offset / cfg->ViewMax) * cfg->ViewMax);
-		obj->mapAddr = (char *)::MapViewOfFile(obj->hMap, FILE_MAP_READ, highSize, lowSize, viewSize);
+	DWORD	lowSize, highSize;
+	lowSize = ::GetFileSize(obj->hFile, &highSize);
+	obj->fileSize = (_int64)highSize << 32 | lowSize;
 
-		if (obj->mapAddr && ::IsBadReadPtr(obj->mapAddr, 1)) {
-			CloseSendFile(obj);
-			return	FALSE;
-		}
-	}
-	return	obj->mapAddr ? TRUE : FALSE;
+	return	TRUE;
 }
 
 BOOL TMainWin::CloseSendFile(SendFileObj *obj)
 {
 	if (obj == NULL) return	FALSE;
 
-	::UnmapViewOfFile(obj->mapAddr);obj->mapAddr= NULL;
-	::CloseHandle(obj->hMap);		obj->hMap	= NULL;
-	::CloseHandle(obj->hFile);		obj->hFile	= INVALID_HANDLE_VALUE;
+	::CloseHandle(obj->hFile);
+	obj->hFile	= INVALID_HANDLE_VALUE;
 	obj->offset = 0;
 
 	return	TRUE;
 }
 
-DWORD WINAPI TMainWin::SendFileThread(void *_sendFileObj)
+UINT WINAPI TMainWin::SendFileThread(void *_sendFileObj)
 {
 	SendFileObj	*obj = (SendFileObj *)_sendFileObj;
 	fd_set		fds;
@@ -1036,21 +1083,21 @@ DWORD WINAPI TMainWin::SendFileThread(void *_sendFileObj)
 	int			sock_ret;
 	BOOL		ret = FALSE, completeWait = FALSE;
 	BOOL		(TMainWin::*SendFileFunc)(SendFileObj*) =
-				obj->status == FS_MEMFILESTART ? &TMainWin::SendMemFile :
-				GET_MODE(obj->command) == IPMSG_GETDIRFILES ? &TMainWin::SendDirFile : &TMainWin::SendFile;
-
+					obj->status == FS_MEMFILESTART ?				&TMainWin::SendMemFile :
+					GET_MODE(obj->command) == IPMSG_GETDIRFILES ?	&TMainWin::SendDirFile :
+																	&TMainWin::SendFile;
 	FD_ZERO(&fds);
 	FD_SET(obj->conInfo->sd, &fds);
 
 	for (int waitCnt=0; waitCnt < 180 && obj->hThread; waitCnt++) {
 		tv.tv_sec = 1, tv.tv_usec = 0;
 
-		if ((sock_ret = ::Tselect((int)obj->conInfo->sd + 1, rfds, wfds, NULL, &tv)) > 0) {
+		if ((sock_ret = ::select((int)obj->conInfo->sd + 1, rfds, wfds, NULL, &tv)) > 0) {
 			waitCnt = 0;
 
 			if (completeWait) {
 				// dummy read により、相手側の socket クローズによる EOF を検出
-				if (::Trecv(obj->conInfo->sd, (char *)&ret, sizeof(ret), 0) >= 0) {
+				if (::recv(obj->conInfo->sd, (char *)&ret, sizeof(ret), 0) >= 0) {
 					ret = TRUE;
 				}
 				break;
@@ -1084,7 +1131,8 @@ DWORD WINAPI TMainWin::SendFileThread(void *_sendFileObj)
 
 	obj->status = ret ? FS_COMPLETE : FS_ERROR;
 	mainWin->PostMessage(WM_TCPEVENT, obj->conInfo->sd, FD_CLOSE);
-	::ExitThread(0);
+
+	_endthreadex(0);
 	return	0;
 }
 
@@ -1142,7 +1190,8 @@ BOOL TMainWin::SendDirFile(SendFileObj *obj)
 		if (obj->dirCnt == 0) {
 			strncpyz(buf, obj->fileInfo->Fname(), MAX_PATH_U8);
 		}
-		else if (MakePath(buf, obj->path, *obj->fdata.cAlternateFileName ? obj->fdata.cAlternateFileName : obj->fdata.cFileName) >= MAX_PATH_U8) {
+		else if (MakePath(buf, obj->path, *obj->fdata.cAlternateFileName ?
+							obj->fdata.cAlternateFileName : obj->fdata.cFileName) >= MAX_PATH_U8) {
 			return	FALSE;
 		}
 		strncpyz(obj->path, buf, MAX_PATH_U8);
@@ -1154,13 +1203,15 @@ BOOL TMainWin::SendDirFile(SendFileObj *obj)
 		if (obj->status == FS_FIRSTINFO) {
 			char	buf[MAX_BUF];
 			MakePath(buf, obj->path, "*");
-			find = (obj->hDir[obj->dirCnt -1] = FindFirstFileU8(buf, &obj->fdata)) == INVALID_HANDLE_VALUE ? FALSE : TRUE;
+			find = (obj->hDir[obj->dirCnt -1] = 
+					FindFirstFileU8(buf, &obj->fdata)) == INVALID_HANDLE_VALUE ? FALSE : TRUE;
 		}
 		else {
 			find = FindNextFileU8(obj->hDir[obj->dirCnt -1], &obj->fdata);
 		}
 
-		while (find && (strcmp(obj->fdata.cFileName, ".") == 0 || strcmp(obj->fdata.cFileName, "..") == 0)) {
+		while (find && (strcmp(obj->fdata.cFileName, ".") == 0 ||
+						strcmp(obj->fdata.cFileName, "..") == 0)) {
 			find = FindNextFileU8(obj->hDir[obj->dirCnt -1], &obj->fdata);
 		}
 		obj->status = FS_MAKEINFO;
@@ -1170,12 +1221,17 @@ BOOL TMainWin::SendDirFile(SendFileObj *obj)
 		if (obj->status == FS_DIRFILESTART) {
 			find = TRUE;
 		}
-		if (find && (obj->dirCnt > 0 || !obj->isDir) && (obj->fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+		if (find && (obj->dirCnt > 0 || !obj->isDir) &&
+			(obj->fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
 			char	buf[MAX_BUF];
-			int		len = obj->isDir ? MakePath(buf, obj->path, *obj->fdata.cAlternateFileName ? obj->fdata.cAlternateFileName : obj->fdata.cFileName) : wsprintf(buf, "%s", obj->fileInfo->Fname());
-			BOOL	modifyCheck = (cfg->fileTransOpt & FT_STRICTDATE) && *(_int64 *)&obj->fdata.ftLastWriteTime > *(_int64 *)&obj->attachTime;
+			int		len = obj->isDir ?
+							MakePath(buf, obj->path, *obj->fdata.cAlternateFileName ?
+										obj->fdata.cAlternateFileName : obj->fdata.cFileName) :
+							wsprintf(buf, "%s", obj->fileInfo->Fname());
+			BOOL	is_modify = (cfg->fileTransOpt & FT_STRICTDATE) &&
+							*(_int64 *)&obj->fdata.ftLastWriteTime > *(_int64 *)&obj->attachTime;
 
-			if (len >= MAX_PATH_U8 || modifyCheck || !OpenSendFile(buf, obj)) {
+			if (len >= MAX_PATH_U8 || is_modify || !OpenSendFile(buf, obj)) {
 				len = (int)strlen(obj->fdata.cFileName);
 				strncpyz(obj->fdata.cFileName + len, " (Can't open)", MAX_PATH_U8 - len);
 				obj->fdata.nFileSizeHigh = obj->fdata.nFileSizeLow = 0;
@@ -1195,11 +1251,15 @@ BOOL TMainWin::SendDirFile(SendFileObj *obj)
 			}
 			if (obj->dirCnt <= 0) obj->dirCnt--;	// 終了
 		}
+		if (obj->aes.IsKeySet()) {
+			obj->aes.EncryptCTR((BYTE *)obj->header, (BYTE *)obj->header, obj->headerLen);
+		}
 		obj->status = FS_TRANSINFO;
 	}
 
 	if (obj->status == FS_TRANSINFO) {
-		int	size = ::Tsend(obj->conInfo->sd, obj->header + obj->headerOffset, obj->headerLen - obj->headerOffset, 0);
+		int	size = ::send(obj->conInfo->sd, obj->header + obj->headerOffset,
+							obj->headerLen - obj->headerOffset, 0);
 		if (size < 0) {
 			return	FALSE;
 		}
@@ -1207,16 +1267,18 @@ BOOL TMainWin::SendDirFile(SendFileObj *obj)
 			if ((obj->headerOffset += size) < obj->headerLen) {
 				return	TRUE;
 			}
-			obj->status = obj->dirCnt < 0 ? FS_COMPLETE : !find ? FS_NEXTINFO : (obj->fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? FS_OPENINFO : FS_TRANSFILE;
+			obj->status = (obj->dirCnt < 0) ? FS_COMPLETE : !find ? FS_NEXTINFO :
+							(obj->fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ?
+							FS_OPENINFO : FS_TRANSFILE;
 		}
 	}
 
 	if (obj->status == FS_TRANSFILE) {
-		if (obj->mapAddr && !SendFile(obj)) {
+		if (!SendFile(obj)) {
 			CloseSendFile(obj);
 			return	FALSE;
 		}
-		else if (obj->mapAddr == NULL || obj->status == FS_ENDFILE) {
+		else if (obj->status == FS_ENDFILE) {
 			CloseSendFile(obj);
 			obj->status = obj->isDir ? FS_NEXTINFO : FS_MAKEINFO;
 		}
@@ -1235,21 +1297,31 @@ BOOL TMainWin::SendFile(SendFileObj *obj)
 
 	int		size = 0;
 	_int64	remain = obj->fileSize - obj->offset;
-	int		transMax = cfg->TransMax - (int)(obj->offset % cfg->TransMax);
+	_int64	offset = obj->offset % cfg->IoBufMax;
+	int		trans  = cfg->IoBufMax - (int)offset;
 
-	if (remain > 0 && (size = ::Tsend(obj->conInfo->sd, obj->mapAddr + (obj->offset % cfg->ViewMax), (int)(remain > transMax ? transMax : remain), 0)) < 0) {
-		return	FALSE;
+	if (remain > 0 && offset == 0) {
+		DWORD	rsize=0;
+		if (!::ReadFile(obj->hFile, obj->vbuf, trans, &rsize, 0)) {
+			return FALSE;
+		}
+		if (obj->aes.IsKeySet()) {
+			obj->aes.EncryptCTR(obj->vbuf, obj->vbuf, rsize);
+		}
+	}
+
+	if (remain > 0) {
+		if ((size = ::send(obj->conInfo->sd, (char *)obj->vbuf + offset,
+							(int)(remain > trans ? trans : remain), 0)) <= 0) {
+			return	FALSE;
+		}
 	}
 
 	obj->offset += size;
 
 	if (obj->offset == obj->fileSize) {
-		obj->status = GET_MODE(obj->command) == IPMSG_GETDIRFILES ? FS_ENDFILE : FS_COMPLETE;
-	}
-	else if ((obj->offset % cfg->ViewMax) == 0) {	// 再マップの必要
-		::UnmapViewOfFile(obj->mapAddr);
-		remain = obj->fileSize - obj->offset;
-		obj->mapAddr = (char *)::MapViewOfFile(obj->hMap, FILE_MAP_READ, (int)(obj->offset >> 32), (int)obj->offset, (int)(remain > cfg->ViewMax ? cfg->ViewMax : remain));
+		obj->status = (GET_MODE(obj->command) == IPMSG_GETDIRFILES && obj->isDir)
+						? FS_ENDFILE : FS_COMPLETE;
 	}
 
 	obj->conInfo->lastTick = ::GetTickCount();
@@ -1266,12 +1338,21 @@ BOOL TMainWin::SendMemFile(SendFileObj *obj)
 		return	FALSE;
 	}
 
-	int		size = 0;
-	_int64	remain = obj->fileInfo->Size() - obj->offset;
-	if (remain > cfg->TransMax) remain = cfg->TransMax;
+	int			size = 0;
+	_int64		remain64 = obj->fileInfo->Size() - obj->offset;
+	int			remain   = (remain64 > cfg->IoBufMax) ? cfg->IoBufMax : (int)remain64;
+	const BYTE	*data    = obj->fileInfo->MemData() + obj->offset;
 
-	if (remain > 0 && (size = ::Tsend(obj->conInfo->sd, (const char *)obj->fileInfo->MemData() + obj->offset, (int)remain, 0)) < 0) {
-		return	FALSE;
+	if (remain > 0) {
+		if (obj->aes.IsKeySet()) {
+			if ((obj->offset % cfg->IoBufMax) == 0) {
+				obj->aes.EncryptCTR(data, obj->vbuf, remain);
+			}
+			data = obj->vbuf;
+		}
+		if ((size = ::send(obj->conInfo->sd, (char *)data, remain, 0)) < 0) {
+			return	FALSE;
+		}
 	}
 
 	obj->offset += size;
@@ -1295,7 +1376,7 @@ BOOL TMainWin::EndSendFile(SendFileObj *obj)
 		::WaitForSingleObject(hThread, INFINITE);
 		::CloseHandle(hThread);
 	}
-	if (::Tclosesocket(obj->conInfo->sd) != 0) {
+	if (::closesocket(obj->conInfo->sd) != 0) {
 		obj->status = FS_ERROR;	// error 扱いにする
 	}
 
@@ -1318,26 +1399,41 @@ BOOL TMainWin::EndSendFile(SendFileObj *obj)
 */
 void TMainWin::MsgBrEntry(MsgBuf *msg)
 {
-	AnsQueueObj *obj = (AnsQueueObj *)ansList->GetObj(FREE_LIST);
-	int			command = IPMSG_ANSENTRY|HostStatus();
+	BOOL	is_send = TRUE;
+
+	AnsQueueObj *obj = ansList->TopObj(USED_LIST);
+	for ( ; obj; obj = ansList->NextObj(USED_LIST, obj)) {
+		if (IsSameHost(&msg->hostSub, &obj->hostSub)) {
+			is_send = FALSE;	// 既に返信キューに入っている
+			break;
+		}
+	}
+
+	int	command = IPMSG_ANSENTRY|HostStatus();
 
 	if (msg->command & IPMSG_CAPUTF8OPT) command |= IPMSG_UTF8OPT;
 
 	if (!VerifyUserNameExtension(cfg, msg)) return;
 
-	if (obj) {
-		obj->hostSub = msg->hostSub;
-		obj->command = command;
-		ansList->PutObj(USED_LIST, obj);
-	}
-	if (obj == NULL || !SetAnswerQueue(obj)) {
-		msgMng->Send(&msg->hostSub, command, GetNickNameEx(), cfg->GroupNameStr);
+	if (is_send) {
+		obj = ansList->GetObj(FREE_LIST);
+		if (obj) {
+			obj->hostSub = msg->hostSub;
+			obj->command = command;
+		}
+		if (obj && SetAnswerQueue(&msg->hostSub)) {
+			ansList->PutObj(USED_LIST, obj);
+		}
+		else {
+			msgMng->Send(&msg->hostSub, command, GetNickNameEx(), cfg->GroupNameStr);
+			ansList->PutObj(FREE_LIST, obj);
+		}
 	}
 
 	AddHost(&msg->hostSub, msg->command, msg->msgBuf, msg->exBuf);
 }
 
-BOOL TMainWin::SetAnswerQueue(AnsQueueObj *obj)
+BOOL TMainWin::SetAnswerQueue(HostSub *hostSub)
 {
 	if (ansTimerID) {
 		return	TRUE;
@@ -1349,7 +1445,8 @@ BOOL TMainWin::SetAnswerQueue(AnsQueueObj *obj)
 
 	TGenRandom(&rand_val, sizeof(rand_val));
 
-	if (hostCnt < 50 || ((msgMng->GetLocalHost()->addr ^ obj->hostSub.addr) << 8) == 0) {
+	if (hostCnt < 50 ||
+		((msgMng->GetLocalHost()->addr.V4Addr() ^ hostSub->addr.V4Addr()) << 8) == 0) {
 		spawn = 1023 & rand_val;
 	}
 	else if (hostCnt < 300) {
@@ -1359,7 +1456,7 @@ BOOL TMainWin::SetAnswerQueue(AnsQueueObj *obj)
 		spawn = 4095 & rand_val;
 	}
 
-	if ((ansTimerID = ::SetTimer(hWnd, IPMSG_ANS_TIMER, spawn, NULL)) == 0) {
+	if ((ansTimerID = ::SetTimer(hWnd, IPMSG_ANS_TIMER, spawn+5, NULL)) == 0) {
 		return	FALSE;
 	}
 
@@ -1370,7 +1467,7 @@ void TMainWin::ExecuteAnsQueue(void)
 {
 	AnsQueueObj *obj;
 
-	while ((obj = (AnsQueueObj *)ansList->GetObj(USED_LIST))) {
+	while ((obj = ansList->GetObj(USED_LIST))) {
 		msgMng->Send(&obj->hostSub, obj->command, GetNickNameEx(), cfg->GroupNameStr);
 		ansList->PutObj(FREE_LIST, obj);
 	}
@@ -1386,9 +1483,9 @@ void TMainWin::MsgBrExit(MsgBuf *msg)
 		host->updateTime = Time();
 	DelHost(&msg->hostSub);
 
-	for (ShareInfo *info=shareMng->Top(),*next; info; info = next)
+	for (ShareInfo *info=shareMng->TopObj(),*next; info; info = next)
 	{
-		next = shareMng->Next(info);
+		next = shareMng->NextObj(info);
 		shareMng->EndHostShare(info->packetNo, &msg->hostSub);
 	}
 }
@@ -1429,7 +1526,7 @@ void TMainWin::MsgSendMsg(MsgBuf *msg)
 
 	if (TRecvDlg::GetCreateCnt() >= cfg->RecvMax) return;
 
-	for (recvDlg = (TRecvDlg *)recvList.TopObj(); recvDlg; recvDlg = (TRecvDlg *)recvList.NextObj(recvDlg)) {
+	for (recvDlg = recvList.TopObj(); recvDlg; recvDlg = recvList.NextObj(recvDlg)) {
 		if (recvDlg->IsSamePacket(msg)) break;
 	}
 
@@ -1607,8 +1704,8 @@ void TMainWin::MsgAnsPubKey(MsgBuf *msg)
 		host->pubKeyUpdated = TRUE;
 	}
 
-	for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
-		if (sendDlg->SendPubKeyNotify(&msg->hostSub, key, key_len, e, capa))
+	for (TSendDlg *dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+		if (dlg->SendPubKeyNotify(&msg->hostSub, key, key_len, e, capa))
 			break;
 	}
 }
@@ -1629,17 +1726,18 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 	}
 	else {
 		if (cmd == IPMSG_ANSREADMSG) {
-			for (TRecvDlg *recvDlg = (TRecvDlg *)recvList.TopObj(); recvDlg; recvDlg = (TRecvDlg *)recvList.NextObj(recvDlg))
-				if (recvDlg->SendFinishNotify(&msg->hostSub, packet_no))
+			for (TRecvDlg *dlg=recvList.TopObj(); dlg; dlg=recvList.NextObj(dlg)) {
+				if (dlg->SendFinishNotify(&msg->hostSub, packet_no))
 					break;
+			}
 			return;
 		}
 
-		TSendDlg *sendDlg;
-		for (sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
-			if (sendDlg->SendFinishNotify(&msg->hostSub, packet_no)) break;
+		TSendDlg *dlg;
+		for (dlg = sendList.TopObj(); dlg; dlg = sendList.NextObj(dlg)) {
+			if (dlg->SendFinishNotify(&msg->hostSub, packet_no)) break;
 		}
-		if (sendDlg == NULL) return;
+		if (dlg == NULL) return;
 	}
 	if (IsLastPacket(msg))		//重複チェック
 		return;
@@ -1710,7 +1808,8 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 */
 void TMainWin::MsgGetAbsenceInfo(MsgBuf *msg)
 {
-	msgMng->Send(&msg->hostSub, IPMSG_SENDABSENCEINFO, cfg->AbsenceCheck ? cfg->AbsenceStr[cfg->AbsenceChoice] : GetLoadStrU8(IDS_NOTABSENCE));
+	msgMng->Send(&msg->hostSub, IPMSG_SENDABSENCEINFO,
+		cfg->AbsenceCheck ? cfg->AbsenceStr[cfg->AbsenceChoice] : GetLoadStrU8(IDS_NOTABSENCE));
 }
 
 /*
@@ -1735,18 +1834,20 @@ void TMainWin::MsgReleaseFiles(MsgBuf *msg)
 	送信Dialog生成。ただし、同一の迎撃送信Dialogが開いている場合は、
 	そのDialogを Activeにするのみ。
 */
-BOOL TMainWin::SendDlgOpen(HWND hRecvWnd, MsgBuf *msg)
+BOOL TMainWin::SendDlgOpen(DWORD recvId)
 {
-	TSendDlg *sendDlg;
+	TRecvDlg *recvDlg = recvId ? recvList.Search(recvId) : NULL;
+	TSendDlg *sendDlg = NULL;
 
-	if (hRecvWnd) {
-		for (sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg))
-			if (sendDlg->GetRecvWnd() == hRecvWnd && !sendDlg->IsSending())
+	if (recvDlg) {
+		for (sendDlg = sendList.TopObj(); sendDlg; sendDlg = sendList.NextObj(sendDlg)) {
+			if (sendDlg->GetRecvId() == recvDlg->twinId && !sendDlg->IsSending())
 				return	ActiveDlg(sendDlg), TRUE;
+		}
 	}
 
-	if (!(sendDlg = new TSendDlg(msgMng, shareMng, &hosts, cfg, logmng, hRecvWnd, msg,
-									cfg->TaskbarUI ? this : 0))) {
+	if (!(sendDlg = new TSendDlg(msgMng, shareMng, &hosts, cfg, logmng,
+								 recvDlg, cfg->TaskbarUI ? this : 0))) {
 		return	FALSE;
 	}
 
@@ -1759,7 +1860,7 @@ BOOL TMainWin::SendDlgOpen(HWND hRecvWnd, MsgBuf *msg)
 
 // test
 	if (hosts.HostCnt() == 0 && !cfg->ListGet)
-		BroadcastEntrySub(Tinet_addr("127.0.0.1"), Thtons(portNo), IPMSG_BR_ENTRY);
+		BroadcastEntrySub(Addr("127.0.0.1"), ::htons(portNo), IPMSG_BR_ENTRY);
 
 	return	TRUE;
 }
@@ -1768,19 +1869,17 @@ BOOL TMainWin::SendDlgOpen(HWND hRecvWnd, MsgBuf *msg)
 	送信Dialog Hide通知(WM_SENDDLG_HIDE)処理。
 	伝えてきた送信Dialogに対応する、受信Dialogを破棄
 */
-void TMainWin::SendDlgHide(TSendDlg *sendDlg)
+void TMainWin::SendDlgHide(DWORD sendid)
 {
+	TSendDlg *sendDlg = sendList.Search(sendid);
+	if (!sendDlg) return;
+
 	ControlIME(sendDlg, FALSE);
 
-	if (sendDlg->GetRecvWnd() && !cfg->NoErase) {
-		TRecvDlg *recvDlg;
-
-		for (recvDlg = (TRecvDlg *)recvList.TopObj();
-				recvDlg; recvDlg = (TRecvDlg *)recvList.NextObj(recvDlg)) {
-			if (recvDlg->hWnd == sendDlg->GetRecvWnd() && recvDlg->IsClosable()) {
-				recvDlg->EvCommand(0, IDCANCEL, 0);
-				break;
-			}
+	if (sendDlg->GetRecvId() && !cfg->NoErase) {
+		TRecvDlg	*recvdlg = recvList.Search(sendDlg->GetRecvId());
+		if (recvdlg && recvdlg->IsClosable() && recvdlg->modalCount == 0) {
+			recvdlg->PostMessage(WM_COMMAND, IDCANCEL, 0);
 		}
 	}
 }
@@ -1789,8 +1888,11 @@ void TMainWin::SendDlgHide(TSendDlg *sendDlg)
 	送信Dialog Exit通知(WM_SENDDLG_EXIT)処理。
 	伝えてきた送信Dialog および対応する受信Dialogの破棄
 */
-void TMainWin::SendDlgExit(TSendDlg *sendDlg)
+void TMainWin::SendDlgExit(DWORD sendid)
 {
+	TSendDlg *sendDlg = sendList.Search(sendid);
+	if (!sendDlg || sendDlg->modalCount) return;
+
 	if (!sendDlg->IsSending())	// 送信中の場合は HIDE で実行済み
 		ControlIME(sendDlg, FALSE);
 	sendList.DelObj(sendDlg);
@@ -1808,7 +1910,8 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg)
 		return	FALSE;
 	}
 
-	if (recvDlg->Status() == TRecvDlg::ERR) {	// 暗号文の復号に失敗した
+	switch (recvDlg->Status()) {
+	case TRecvDlg::ERR: case TRecvDlg::REMOTE:	// 暗号文の復号に失敗 or 遠隔コマンドメッセージ
 		delete recvDlg;
 		return	FALSE;
 	}
@@ -1873,8 +1976,11 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg)
 /*
 	受信Dialogを破棄
 */
-void TMainWin::RecvDlgExit(TRecvDlg *recvDlg)
+void TMainWin::RecvDlgExit(DWORD recvid)
 {
+	TRecvDlg *recvDlg = recvList.Search(recvid);
+	if (!recvDlg || recvDlg->modalCount) return;
+
 	recvList.DelObj(recvDlg);
 	delete recvDlg;
 }
@@ -1882,10 +1988,14 @@ void TMainWin::RecvDlgExit(TRecvDlg *recvDlg)
 /*
 	確認Dialogを破棄
 */
-void TMainWin::MsgDlgExit(TMsgDlg *msgDlg)
+void TMainWin::MsgDlgExit(DWORD msgid)
 {
-	msgList.DelObj(msgDlg);
-	delete msgDlg;
+	TMsgDlg	*msgDlg = msgList.Search(msgid);
+
+	if (msgDlg && msgDlg->modalCount == 0) {
+		msgList.DelObj(msgDlg);
+		delete msgDlg;
+	}
 }
 
 /*
@@ -1904,7 +2014,7 @@ void TMainWin::MiscDlgOpen(TDlg *dlg)
 */
 BOOL TMainWin::TaskTray(int nimMode, HICON hSetIcon, LPCSTR tip)
 {
-	NOTIFYICONDATA2W	tn = { sizeof(NOTIFYICONDATA2W) };
+	NOTIFYICONDATAW	tn = { sizeof(NOTIFYICONDATAW) };
 
 	tn.hWnd = hWnd;
 	tn.uID = WM_NOTIFY_TRAY;
@@ -1915,7 +2025,7 @@ BOOL TMainWin::TaskTray(int nimMode, HICON hSetIcon, LPCSTR tip)
 		U8toW(tip, tn.szTip, sizeof(tn.szTip) / sizeof(WCHAR));
 	}
 
-	return	::Shell_NotifyIconW(nimMode, (NOTIFYICONDATAW *)&tn);
+	return	::Shell_NotifyIconW(nimMode, &tn);
 }
 
 inline int strcharcount(const char *s, char c) {
@@ -1928,7 +2038,7 @@ inline int strcharcount(const char *s, char c) {
 */
 BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWORD timer)
 {
-	NOTIFYICONDATA2W	tn = { sizeof(tn) };
+	NOTIFYICONDATAW	tn = { sizeof(tn) };
 
 	tn.hWnd = hWnd;
 	tn.uID = WM_NOTIFY_TRAY;
@@ -1981,14 +2091,14 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 		if (timer + 4000 > val * 1000) {
 			::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)((timer + 4999) / 1000), 0);
 		}
-		BOOL	ret = ::Shell_NotifyIconW(NIM_MODIFY, (NOTIFYICONDATAW *)&tn);
+		BOOL	ret = ::Shell_NotifyIconW(NIM_MODIFY, &tn);
 		if (timer + 4000 > val * 1000) {
 			::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)val, 0);
 		}
 		return	ret;
 	}
 
-	return	::Shell_NotifyIconW(NIM_MODIFY, (NOTIFYICONDATAW *)&tn);
+	return	::Shell_NotifyIconW(NIM_MODIFY, &tn);
 }
 
 /*
@@ -1998,7 +2108,7 @@ void TMainWin::Popup(UINT resId)
 {
 	HMENU	hMenu = ::LoadMenu(TApp::GetInstance(), (LPCSTR)resId);
 	HMENU	hSubMenu = ::GetSubMenu(hMenu, 0);	//かならず、最初の項目に定義
-	POINT	pt = {0};
+	POINT	pt = {};
 	char	buf[MAX_LISTBUF];
 
 	::GetCursorPos(&pt);
@@ -2035,20 +2145,19 @@ void TMainWin::Popup(UINT resId)
 */
 BOOL TMainWin::PopupCheck(void)
 {
-	BOOL		result = FALSE; 
-	TRecvDlg	*recvDlg;
+	BOOL	result = FALSE; 
 
 	::KillTimer(hWnd, IPMSG_REVERSEICON);
 	reverseTimerStatus = 0;
 	SetIcon(cfg->AbsenceCheck ? hRevIcon : hMainIcon);
 	BalloonWindow(TRAY_NORMAL);
 
-	for (recvDlg = (TRecvDlg *)recvList.TopObj(); recvDlg; recvDlg = (TRecvDlg *)recvList.NextObj(recvDlg)) {
-		if (!recvDlg->hWnd) recvDlg->Create();
-		if (recvDlg->Status() == TRecvDlg::INIT) {
-			recvDlg->SetStatus(TRecvDlg::SHOW);
-			recvDlg->Show();
-			recvDlg->SetForceForegroundWindow();
+	for (TRecvDlg *dlg=recvList.TopObj(); dlg; dlg=recvList.NextObj(dlg)) {
+		if (!dlg->hWnd) dlg->Create();
+		if (dlg->Status() == TRecvDlg::INIT) {
+			dlg->SetStatus(TRecvDlg::SHOW);
+			dlg->Show();
+			dlg->SetForceForegroundWindow();
 			result = TRUE;
 		}
 	}
@@ -2076,7 +2185,8 @@ void TMainWin::ActiveChildWindow(BOOL active)
 /*
 	HostDataのcopy
 */
-inline void TMainWin::SetHostData(Host *destHost, HostSub *hostSub, ULONG command, Time_t update_time, char *nickName, char *groupName, int priority)
+inline void TMainWin::SetHostData(Host *destHost, HostSub *hostSub,
+	ULONG command, Time_t update_time, char *nickName, char *groupName, int priority)
 {
 	destHost->hostStatus = GET_OPT(command);
 	destHost->hostSub = *hostSub;
@@ -2095,9 +2205,10 @@ void TMainWin::AddHost(HostSub *hostSub, ULONG command, char *nickName, char *gr
 	Time_t	now_time = Time();
 	int		priority = DEFAULT_PRIORITY;
 
-	if (GET_MODE(command) == IPMSG_BR_ENTRY && (command & IPMSG_DIALUPOPT) && !IsSameHost(hostSub, msgMng->GetLocalHost())) {
+	if (GET_MODE(command) == IPMSG_BR_ENTRY && (command & IPMSG_DIALUPOPT) &&
+		!IsSameHost(hostSub, msgMng->GetLocalHost())) {
 		AddrObj *obj;
-		for (obj = (AddrObj *)cfg->DialUpList.TopObj(); obj; obj = (AddrObj *)cfg->DialUpList.NextObj(obj)) {
+		for (obj = cfg->DialUpList.TopObj(); obj; obj = cfg->DialUpList.NextObj(obj)) {
 			if (obj->addr == hostSub->addr && obj->portNo == hostSub->portNo) {
 				break;
 			}
@@ -2143,8 +2254,8 @@ void TMainWin::AddHost(HostSub *hostSub, ULONG command, char *nickName, char *gr
 		if (host->hostSub.addr != hostSub->addr || host->hostSub.portNo != hostSub->portNo) {
 			if ((tmp_host = hosts.GetHostByAddr(hostSub))) {
 
-				for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
-					sendDlg->DelHost(tmp_host);
+				for (TSendDlg *dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+					dlg->DelHost(tmp_host);
 				}
 				hosts.DelHost(tmp_host);
 				if (tmp_host->RefCnt() == 0)
@@ -2156,11 +2267,13 @@ void TMainWin::AddHost(HostSub *hostSub, ULONG command, char *nickName, char *gr
 			hosts.AddHost(host);
 		}
 
-		if (((command ^ host->hostStatus) & (IPMSG_ABSENCEOPT|IPMSG_FILEATTACHOPT|IPMSG_ENCRYPTOPT)) || strcmp(host->nickName, nickName) || strcmp(host->groupName, groupName)) {
+		if (((command ^ host->hostStatus) &
+				(IPMSG_ABSENCEOPT|IPMSG_FILEATTACHOPT|IPMSG_ENCRYPTOPT)) ||
+			strcmp(host->nickName, nickName) || strcmp(host->groupName, groupName)) {
 
 			SetHostData(host, hostSub, command, now_time, nickName, groupName, priority);
-			for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
-				sendDlg->ModifyHost(host);
+			for (TSendDlg *dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+				dlg->ModifyHost(host);
 			}
 		}
 		else {
@@ -2171,8 +2284,8 @@ void TMainWin::AddHost(HostSub *hostSub, ULONG command, char *nickName, char *gr
 	}
 
 	if ((host = hosts.GetHostByAddr(hostSub))) {
-		for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
-			sendDlg->DelHost(host);
+		for (TSendDlg *dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+			dlg->DelHost(host);
 		}
 		hosts.DelHost(host);
 		if (host->RefCnt() == 0) {
@@ -2192,8 +2305,8 @@ void TMainWin::AddHost(HostSub *hostSub, ULONG command, char *nickName, char *gr
 
 	SetCaption();
 
-	for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
-		sendDlg->AddHost(host);
+	for (TSendDlg *dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+		dlg->AddHost(host);
 	}
 }
 
@@ -2202,8 +2315,8 @@ void TMainWin::AddHost(HostSub *hostSub, ULONG command, char *nickName, char *gr
 */
 void TMainWin::DelAllHost(void)
 {
-	for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
-		sendDlg->DelAllHost();
+	for (TSendDlg *dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+		dlg->DelAllHost();
 	}
 
 	while (hosts.HostCnt() > 0) {
@@ -2228,11 +2341,11 @@ void TMainWin::DelHost(HostSub *hostSub)
 */
 void TMainWin::DelHostSub(Host *host)
 {
-	for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
-		sendDlg->DelHost(host);
+	for (TSendDlg *dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+		dlg->DelHost(host);
 	}
 
-	for (AddrObj *obj = (AddrObj *)cfg->DialUpList.TopObj(); obj; obj = (AddrObj *)cfg->DialUpList.NextObj(obj)) {
+	for (AddrObj *obj = cfg->DialUpList.TopObj(); obj; obj = cfg->DialUpList.NextObj(obj)) {
 		if (obj->addr == host->hostSub.addr && obj->portNo == host->hostSub.portNo) {
 			cfg->DialUpList.DelObj(obj);
 			delete obj;
@@ -2310,19 +2423,19 @@ void TMainWin::SetCaption(void)
 void TMainWin::BroadcastEntry(ULONG mode)
 {
 	TBrObj *brobj;
-	for (brobj=brListEx.Top(); brobj; brobj=brListEx.Next(brobj)) {
-		BroadcastEntrySub(brobj->Addr(), Thtons(portNo), IPMSG_NOOPERATION);
+	for (brobj=brListEx.TopObj(); brobj; brobj=brListEx.NextObj(brobj)) {
+		BroadcastEntrySub(brobj->Addr(), ::htons(portNo), IPMSG_NOOPERATION);
 	}
 
 	this->Sleep(cfg->DelayTime);
 
-	UINT host_status = mode | HostStatus();
+	ULONG host_status = mode | HostStatus();
 
-	for (brobj=brListEx.Top(); brobj; brobj=brListEx.Next(brobj)) {
-		BroadcastEntrySub(brobj->Addr(), Thtons(portNo), host_status);
+	for (brobj=brListEx.TopObj(); brobj; brobj=brListEx.NextObj(brobj)) {
+		BroadcastEntrySub(brobj->Addr(), ::htons(portNo), host_status);
 	}
 
-	for (AddrObj *obj = (AddrObj *)cfg->DialUpList.TopObj(); obj; obj = (AddrObj *)cfg->DialUpList.NextObj(obj)) {
+	for (AddrObj *obj = cfg->DialUpList.TopObj(); obj; obj = cfg->DialUpList.NextObj(obj)) {
 		BroadcastEntrySub(obj->addr, obj->portNo, host_status);
 	}
 
@@ -2334,9 +2447,9 @@ void TMainWin::BroadcastEntry(ULONG mode)
 /*
 	IPMSG_ENTRY/IPMSG_EXIT/IPMSG_ABSENCEパケット送出Sub
 */
-void TMainWin::BroadcastEntrySub(ULONG addr, int port_no, ULONG mode)
+void TMainWin::BroadcastEntrySub(Addr addr, int port_no, ULONG mode)
 {
-	if (addr == 0) return;
+	if (!addr.IsEnabled()) return;
 
 	msgMng->Send(addr, port_no, mode | (cfg->DialUpCheck ? IPMSG_DIALUPOPT : 0) | HostStatus(),
 				 GetNickNameEx(), cfg->GroupNameStr);
@@ -2380,7 +2493,7 @@ void TMainWin::SendHostList(MsgBuf *msg)
 	int		start_no, len, total_len = 0, host_cnt = 0;
 	char	*buf = new char [MAX_UDPBUF];
 	char	tmp[MAX_BUF], *tmp_p = tmp;
-	char	tmp_mbcs[MAX_BUF];
+	char	tmp_mbcs[MAX_BUF], tmp_host[MAX_BUF];
 	int		utf8opt = (msg->command & (IPMSG_CAPUTF8OPT|IPMSG_UTF8OPT)) ? IPMSG_UTF8OPT : 0;
 
 	if ((start_no = atoi(msg->msgBuf)) < 0)
@@ -2391,17 +2504,19 @@ void TMainWin::SendHostList(MsgBuf *msg)
 	for (int cnt=start_no; cnt < hosts.HostCnt(); cnt++) {
 		Host	*host = hosts.GetHost(cnt);
 
+		host->hostSub.addr.ToStr(tmp_host);
+
 		len = wsprintf(tmp, "%s%c%s%c%ld%c%s%c%d%c%s%c%s%c",
 			host->hostSub.userName, HOSTLIST_SEPARATOR,
 			host->hostSub.hostName, HOSTLIST_SEPARATOR,
 			host->hostStatus, HOSTLIST_SEPARATOR,
-			::Tinet_ntoa(*(LPIN_ADDR)&host->hostSub.addr), HOSTLIST_SEPARATOR,
+			tmp_host, HOSTLIST_SEPARATOR,
 			host->hostSub.portNo, HOSTLIST_SEPARATOR,
 			*host->nickName ? host->nickName : HOSTLIST_DUMMY, HOSTLIST_SEPARATOR,
 			*host->groupName ? host->groupName : HOSTLIST_DUMMY, HOSTLIST_SEPARATOR);
 
 		if (!utf8opt) { // MBCS mode
-			len = sprintf(tmp_mbcs, "%s", U8toA(tmp));
+			len = sprintf(tmp_mbcs, "%s", U8toAs(tmp));
 			tmp_p = tmp_mbcs;
 		}
 
@@ -2412,7 +2527,8 @@ void TMainWin::SendHostList(MsgBuf *msg)
 		total_len += len;
 		host_cnt++;
 	}
-	len = wsprintf(tmp, "%5d%c%5d", (start_no + host_cnt == hosts.HostCnt()) ? 0 : start_no + host_cnt, HOSTLIST_SEPARATOR, host_cnt);
+	len = wsprintf(tmp, "%5d%c%5d", (start_no + host_cnt == hosts.HostCnt()) ?
+										0 : start_no + host_cnt, HOSTLIST_SEPARATOR, host_cnt);
 	memcpy(buf, tmp, len);
 	msgMng->Send(&msg->hostSub, IPMSG_ANSLIST|utf8opt, buf);
 	delete [] buf;
@@ -2455,7 +2571,7 @@ void TMainWin::AddHostList(MsgBuf *msg)
 
 		if ((tok = separate_token(NULL, HOSTLIST_SEPARATOR, &p)) == NULL)
 			break;
-		hostSub.addr = Tinet_addr(tok);
+		hostSub.addr = Addr(tok);
 
 		if ((tok = separate_token(NULL, HOSTLIST_SEPARATOR, &p)) == NULL)
 			break;
@@ -2491,6 +2607,13 @@ void TMainWin::AddHostList(MsgBuf *msg)
 */
 void TMainWin::LogOpen(void)
 {
+//	if (GetAsyncKeyState(VK_CONTROL) & 0x8000) {
+//		if (!logView->hWnd) {
+//			logView->Create();
+//			return;
+//		}
+//	}
+
 	SHELLEXECUTEINFO	shellExecInfo = { sizeof(SHELLEXECUTEINFO) };
 
 	shellExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
@@ -2522,7 +2645,8 @@ ULONG TMainWin::HostStatus(void)
 			  (IPMSG_FILEATTACHOPT | ((cfg->ClipMode & CLIP_ENABLE) ? IPMSG_CLIPBOARDOPT : 0)) : 0)
 			| (GetLocalCapa(cfg) ? IPMSG_ENCRYPTOPT : 0)
 			| IPMSG_CAPUTF8OPT
-			| IPMSG_ENCEXTMSGOPT;
+			| IPMSG_ENCEXTMSGOPT
+			| IPMSG_CAPFILEENCOPT;
 }
 
 /*
@@ -2531,12 +2655,12 @@ ULONG TMainWin::HostStatus(void)
 void  TMainWin::InitIcon(void)
 {
 	if (*cfg->IconFile == 0 ||
-		!(hMainIcon = ::ExtractIconW(TApp::GetInstance(), U8toW(cfg->IconFile), 0))) {
+		!(hMainIcon = ::ExtractIconW(TApp::GetInstance(), U8toWs(cfg->IconFile), 0))) {
 		hMainIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)IPMSG_ICON);
 	}
 
 	if (*cfg->RevIconFile == 0 ||
-		!(hRevIcon = ::ExtractIconW(TApp::GetInstance(), U8toW(cfg->RevIconFile), 0))) {
+		!(hRevIcon = ::ExtractIconW(TApp::GetInstance(), U8toWs(cfg->RevIconFile), 0))) {
 		hRevIcon = ::LoadIcon(TApp::GetInstance(), (LPCSTR)RECV_ICON);
 	}
 }
@@ -2553,9 +2677,11 @@ HICON TMainWin::GetIPMsgIcon(void)
 /*
 	ListDlg を Active or Hideに（単なる簡易ルーチン）
 */
-void TMainWin::ActiveListDlg(TList *list, BOOL active)
+void TMainWin::ActiveListDlg(TList *_list, BOOL active)
 {
-	for (TListDlg *dlg = (TListDlg *)list->TopObj(); dlg; dlg = (TListDlg *)list->NextObj(dlg)) {
+	TListEx<TListDlg>	*list = (TListEx<TListDlg> *)_list;
+
+	for (TListDlg *dlg = list->TopObj(); dlg; dlg = list->NextObj(dlg)) {
 		ActiveDlg(dlg, active);
 	}
 }
@@ -2563,11 +2689,12 @@ void TMainWin::ActiveListDlg(TList *list, BOOL active)
 /*
 	ListDlg を Delete する（単なる簡易ルーチン）
 */
-void TMainWin::DeleteListDlg(TList *list)
+void TMainWin::DeleteListDlg(TList *_list)
 {
-	TListDlg *dlg;
+	TListEx<TListDlg>	*list = (TListEx<TListDlg> *)_list;
+	TListDlg			*dlg;
 
-	while ((dlg = (TListDlg *)list->TopObj())) {
+	while ((dlg = list->TopObj())) {
 		list->DelObj(dlg);
 		delete dlg;
 	}
@@ -2597,7 +2724,9 @@ char *TMainWin::GetNickNameEx(void)
 	static char buf[MAX_LISTBUF];
 
 	if (cfg->AbsenceCheck && *cfg->AbsenceHead[cfg->AbsenceChoice]) {
-		wsprintf(buf, "%s[%s]", *cfg->NickNameStr ? cfg->NickNameStr : msgMng->GetOrgLocalHost()->userName, cfg->AbsenceHead[cfg->AbsenceChoice]);
+		wsprintf(buf, "%s[%s]", *cfg->NickNameStr ?
+									cfg->NickNameStr : msgMng->GetOrgLocalHost()->userName,
+									cfg->AbsenceHead[cfg->AbsenceChoice]);
 	}
 	else {
 		strcpy(buf, *cfg->NickNameStr ? cfg->NickNameStr : msgMng->GetOrgLocalHost()->userName);
@@ -2618,9 +2747,8 @@ void TMainWin::ControlIME(TWin *win, BOOL open)
 	if (!cfg->ControlIME) return;
 
 	if (!open) {
-		for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg;
-				sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
-			if (sendDlg != win && !sendDlg->IsSending()) return;
+		for (TSendDlg *dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+			if (dlg != win && !dlg->IsSending()) return;
 		}
 	}
 
@@ -2629,39 +2757,63 @@ void TMainWin::ControlIME(TWin *win, BOOL open)
 	}
 }
 
+void TMainWin::ChangeMulticastMode(int new_mcast_mode)
+{
+	msgMng->MulticastLeave();
+	cfg->MulticastMode = new_mcast_mode;
+	msgMng->MulticastJoin();
+}
+
 void TMainWin::MakeBrListEx()
 {
 	brListEx.Reset();
 
 	int			num = 0, i, j;
-	AddrInfo	*info = cfg->ExtendBroadcast > 0 ? GetIPAddrs(TRUE, &num) : NULL;
+	AddrInfo	*info = cfg->ExtendBroadcast > 0 ?
+							GetIPAddrs(GIA_STRICT, &num, cfg->IPv6Mode) : NULL;
 	TBrObj		*obj;
 
 	if (info && num > 0) {
-		for (i=num-1; i >= 0; i--) brListEx.SetHostRaw(NULL, info[i].br_addr);
+		for (i=0; i < num; i++) {
+			if (info[i].type == AddrInfo::BROADCAST) {
+				brListEx.SetHostRaw(NULL, info[i].addr);
+				Debug("type=%d len=%d %s/mask=%d\n",
+					info[i].type, info[i].addr.size, info[i].addr.ToStr(), info[i].addr.size);
+			}
+		}
 	}
 
-	if ((cfg->ExtendBroadcast & 0x1) == 0 || !info || num == 0) {
-		brListEx.SetHostRaw(NULL, ~0);
+	if (cfg->IPv6Mode) {
+		if ((cfg->MulticastMode & 0x1) == 0) {
+			brListEx.SetHostRaw(NULL, cfg->IPv6Multicast);
+		}
+		if ((cfg->MulticastMode & 0x2) == 0) {
+			brListEx.SetHostRaw(NULL, LINK_MULTICAST_ADDR6);
+		}
+	}
+	if (cfg->IPv6Mode != 1) {
+		if (cfg->ExtendBroadcast != 1 || !info || num == 0) {
+			brListEx.SetHostRaw(NULL, Addr("255.255.255.255"));
+		}
 	}
 
-	for (obj=cfg->brList.Top(); obj; obj=cfg->brList.Next(obj)) {
-		if (obj->addr == 0) {
+	for (obj=cfg->brList.TopObj(); obj; obj=cfg->brList.NextObj(obj)) {
+		if (!obj->addr.IsEnabled()) {
 //			if (obj->Addr(TRUE) == 0) {
 //				MessageBox(Fmt("Can't resolve <%s> in broadcast list", obj->host), "IPMsg");
 				continue;
 //			}
 		}
 		for (j=0; j < num; j++) {
-			if (obj->Addr() == info[j].br_addr) break;
+			if (obj->Addr() == info[j].addr) break;
 		}
 		if (j == num) {
 			brListEx.SetHostRaw(NULL, obj->Addr());
 		}
 	}
-//	for (obj=brListEx.Top(); obj; obj=brListEx.Next(obj)) {
-//		Debug("%s\n", ::Tinet_ntoa(*(struct in_addr *)&obj->addr));
-//	}
+	for (obj=brListEx.TopObj(); obj; obj=brListEx.NextObj(obj)) {
+		Debug("brlist=%s\n", obj->addr.ToStr());
+	}
 	delete [] info;
 }
 

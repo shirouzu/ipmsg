@@ -20,7 +20,7 @@ public:
 
 class PluginMng {
 protected:
-	TList	plugin;
+	TListEx<Plugin>	plugin;
 
 public:
 	PluginMng(void);

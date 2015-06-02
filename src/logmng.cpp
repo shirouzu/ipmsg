@@ -1,16 +1,14 @@
 ﻿static char *logmng_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   logmng.cpp	Ver3.00";
+	"@(#)Copyright (C) H.Shirouzu 1996-2014   logmng.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Log Manager
 	Create					: 1996-08-18(Sun)
-	Update					: 2011-04-20(Wed)
+	Update					: 2014-04-14(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
-#include "tlib/tlib.h"
-#include "resource.h"
 #include "ipmsg.h"
 
 LogMng::LogMng(Cfg *_cfg)
@@ -152,7 +150,7 @@ BOOL LogMng::Write(LPCSTR str)
 	if ((fh = CreateFileU8(cfg->LogFile, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)) != INVALID_HANDLE_VALUE)
 	{
 		::SetFilePointer(fh, 0, 0, FILE_END);
-		str = cfg->LogUTF8 ? str : U8toA(str);
+		str = cfg->LogUTF8 ? str : U8toAs(str);
 		ret = ::WriteFile(fh, str, (DWORD)strlen(str), &size, NULL);
 		::CloseHandle(fh);
 	}

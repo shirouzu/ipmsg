@@ -1,27 +1,30 @@
 ﻿static char *senddlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   senddlg.cpp	Ver3.41";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   senddlg.cpp	Ver3.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-03(Tue)
+	Update					: 2015-06-02(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 #include "resource.h"
 #include "ipmsg.h"
-#include "aes.h"
-#include "blowfish.h"
 
 /*
 	SendDialog の初期化
 */
+HFONT	TSendDlg::hEditFont	= NULL;
+HFONT	TSendDlg::hListFont	= NULL;
+LOGFONT	TSendDlg::orgFont	= {};
+
 TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_cfg,
-					LogMng *_logmng, HWND _hRecvWnd, MsgBuf *_msg, TWin *_parent)
+					LogMng *_logmng, TRecvDlg *recvDlg, TWin *_parent)
 	: TListDlg(SEND_DIALOG, _parent), editSub(_cfg, this), hostListView(this),
 		hostListHeader(&hostListView), imageWin(_cfg, this)
 {
-	hRecvWnd		= _hRecvWnd;
+	recvId			= recvDlg ? recvDlg->twinId : 0;
+	hRecvWnd		= recvDlg ? recvDlg->hWnd : 0;
 	msgMng			= _msgmng;
 	shareMng		= _shareMng;
 	shareInfo		= NULL;
@@ -37,15 +40,12 @@ TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_c
 	packetNo		= msgMng->MakePacketNo();
 	retryCnt		= 0;
 	timerID			= 0;
-	hEditFont		= NULL;
-	hListFont		= NULL;
 	captureMode		= FALSE;
 	listOperateCnt	= 0;
 	hiddenDisp		= FALSE;
 	*selectGroup	= 0;
 	*filterStr		= 0;
 	currentMidYdiff	= cfg->SendMidYdiff;
-	memset(&orgFont, 0, sizeof(orgFont));
 	maxItems		= 0;
 	lvStateEnable	= FALSE;
 	sortItem		= -1;
@@ -53,7 +53,7 @@ TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_c
 	findDlg			= NULL;
 //	hCurMenu		= NULL;
 
-	msg.Init(_msg);
+	msg.Init(recvDlg ? recvDlg->GetMsgBuf() : NULL);
 
 	hAccel = ::LoadAccelerators(TApp::GetInstance(), (LPCSTR)IPMSG_ACCEL);
 }
@@ -68,11 +68,6 @@ TSendDlg::~TSendDlg()
 
 	// ListView メモリリーク暫定対策...
 	hostListView.DeleteAllItems();
-
-	if (hListFont)
-		::DeleteObject(hListFont);
-	if (hEditFont)
-		::DeleteObject(hEditFont);
 
 	delete [] sendEntry;
 	delete [] shareExStr;
@@ -99,21 +94,11 @@ BOOL TSendDlg::PreProcMsg(MSG *msg)
 #define AW_SLIDE 0x00040000
 #define AW_BLEND 0x00080000
 
-BOOL (WINAPI *pAnimateWindow)(
-  HWND hwnd,     // ウィンドウのハンドル
-  DWORD dwTime,  // アニメーションの時間(ミリ秒)
-  DWORD dwFlags  // アニメーションの種類
-);
-
 /*
 	SendDialog 生成時の CallBack
 */
 BOOL TSendDlg::EvCreate(LPARAM lParam)
 {
-//	if (!pAnimateWindow) {
-//		pAnimateWindow = (BOOL (WINAPI *)(HWND, DWORD, DWORD))::GetProcAddress(::GetModuleHandle("user32.dll"), "AnimateWindow");
-//	}
-
 	editSub.AttachWnd(GetDlgItem(SEND_EDIT));
 	editSub.SendMessage(EM_AUTOURLDETECT, 1, 0);
 	editSub.SendMessage(EM_SETTARGETDEVICE, 0, 0);		// 折り返し
@@ -125,7 +110,7 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 
 	SetDlgIcon(hWnd);
 
-	if (msg.hostSub.addr) {
+	if (msg.hostSub.addr.IsEnabled()) {
 		Host	*host = cfg->priorityHosts.GetHostByName(&msg.hostSub);
 		if (host && host->priority <= 0)
 			hiddenDisp = TRUE;
@@ -161,18 +146,17 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 #endif
 
 	InitializeHeader();
+	hostListView.LetterKey(cfg->LetterKey);
 
 	SetFont();
 	SetSize();
 	ReregisterEntry();
 
 	::SetFocus(hostListView.hWnd);
-	if (msg.hostSub.addr)
+	if (msg.hostSub.addr.IsEnabled())
 		SelectHost(&msg.hostSub);
 
-//	if (pAnimateWindow) {
-//		pAnimateWindow(hWnd, 1000, AW_HOR_POSITIVE|AW_BLEND|AW_ACTIVATE|AW_SLIDE);
-//	}
+//	::AnimateWindow(hWnd, 1000, AW_HOR_POSITIVE|AW_BLEND|AW_ACTIVATE|AW_SLIDE);
 
 	PostMessage(WM_DELAYSETTEXT, 0, 0);
 
@@ -233,17 +217,16 @@ void TSendDlg::InitializeHeader(void)
 	ColumnItems = cfg->ColumnItems & ~(1 << SW_ABSENCE);
 	memcpy(FullOrder, cfg->SendOrder, sizeof(FullOrder));
 
-	int cnt;
-	for (cnt=0; cnt < MAX_SENDWIDTH; cnt++) {
-		if (GetItem(ColumnItems, cnt)) {
-			items[maxItems] = cnt;
-			revItems[cnt] = maxItems++;
+	for (int i=0; i < MAX_SENDWIDTH; i++) {
+		if (GetItem(ColumnItems, i)) {
+			items[maxItems] = i;
+			revItems[i] = maxItems++;
 		}
 	}
 	int		orderCnt = 0;
-	for (cnt=0; cnt < MAX_SENDWIDTH; cnt++) {
-		if (GetItem(ColumnItems, FullOrder[cnt]))
-			order[orderCnt++] = revItems[FullOrder[cnt]];
+	for (int i=0; i < MAX_SENDWIDTH; i++) {
+		if (GetItem(ColumnItems, FullOrder[i]))
+			order[orderCnt++] = revItems[FullOrder[i]];
 	}
 
 	static char	*headerStr[MAX_SENDWIDTH];
@@ -257,8 +240,8 @@ void TSendDlg::InitializeHeader(void)
 		headerStr[SW_IPADDR]	= GetLoadStrU8(IDS_IPADDR);
 	}
 
-	for (cnt = 0; cnt < maxItems; cnt++) {
-		hostListView.InsertColumn(cnt, headerStr[items[cnt]], cfg->SendWidth[items[cnt]]);
+	for (int i=0; i < maxItems; i++) {
+		hostListView.InsertColumn(i, headerStr[items[i]], cfg->SendWidth[items[i]]);
 	}
 	hostListView.SetColumnOrder(order, maxItems);
 }
@@ -280,19 +263,19 @@ void TSendDlg::GetOrder(void)
 
 void TSendDlg::GetSeparateArea(RECT *sep_rc)
 {
-	RECT	lv_rc, file_rc;
+	TRect	lv_rc, file_rc;
 	POINT	lv_pt, file_pt;
 	int		lv_height;
 	int		file_width;
 
 	hostListView.GetWindowRect(&lv_rc);
-	lv_height = lv_rc.bottom - lv_rc.top;
+	lv_height = lv_rc.cy();
 	lv_pt.x = lv_rc.left;
 	lv_pt.y = lv_rc.top;
 	::ScreenToClient(hWnd, &lv_pt);
 
 	::GetWindowRect(GetDlgItem(FILE_BUTTON), &file_rc);
-	file_width = file_rc.right - file_rc.left;
+	file_width = file_rc.cx();
 	file_pt.x = file_rc.left;
 	file_pt.y = file_rc.top;
 	::ScreenToClient(hWnd, &file_pt);
@@ -340,9 +323,13 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 //		if (findDlg && findDlg->hWnd)
 //			return	findDlg->Destroy(), TRUE;
 
-		if (shareInfo)
-			shareMng->DestroyShare(shareInfo), shareInfo = NULL;
-		::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, (LPARAM)this);
+		if (!modalCount) {
+			if (shareInfo) {
+				shareMng->DestroyShare(shareInfo);
+				shareInfo = NULL;
+			}
+			::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, twinId);
+		}
 		return	TRUE;
 
 	case REFRESH_BUTTON:
@@ -379,7 +366,8 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			}
 			if (BrowseDirDlg(this, GetLoadStrU8(IDS_FOLDERATTACH), cfg->lastOpenDir, cfg->lastOpenDir))
 			{
-				shareMng->AddFileShare(shareInfo ? shareInfo : (shareInfo = shareMng->CreateShare(packetNo)), cfg->lastOpenDir);
+				if (!shareInfo) shareInfo = shareMng->CreateShare(packetNo);
+				shareMng->AddFileShare(shareInfo, cfg->lastOpenDir);
 				SetFileButton(this, FILE_BUTTON, shareInfo);
 				EvSize(SIZE_RESTORED, 0, 0);
 			}
@@ -460,7 +448,7 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			if (::ChooseFont(&cf))
 			{
 				*targetFont = tmpFont;
-				SetFont();
+				SetFont(TRUE);
 				::InvalidateRgn(hWnd, NULL, TRUE);
 				cfg->WriteRegistry(CFG_FONT);
 				::PostMessage(GetMainWnd(), WM_SENDDLG_FONTCHANGED, 0, 0);
@@ -475,7 +463,7 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			if (ex_font && *ex_font)
 				strcpy(cfg->SendListFont.lfFaceName, ex_font);
 		}
-		SetFont();
+		SetFont(TRUE);
 		::InvalidateRgn(hWnd, NULL, TRUE);
 		cfg->WriteRegistry(CFG_FONT);
 		return	TRUE;
@@ -487,7 +475,7 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		return	TRUE;
 
 	case MENU_MEMBERDISP:
-		if (TSortDlg(cfg, this).Exec()) {
+		if (TSortDlg(cfg, this).Exec() == IDOK) {
 			GetOrder();
 			cfg->WriteRegistry(CFG_WINSIZE);
 			DelAllHost();
@@ -504,9 +492,14 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	case WM_PASTE_REV:
 	case WM_PASTE_IMAGE:
 	case WM_SAVE_IMAGE:
+	case WM_INSERT_IMAGE:
 	case WM_CLEAR:
 	case EM_SETSEL:
 		editSub.SendMessage(WM_COMMAND, wID, 0);
+		return	TRUE;
+
+	case WM_EDIT_IMAGE:
+		imageWin.Create(&editSub);
 		return	TRUE;
 
 	case MENU_CHECK:
@@ -578,15 +571,15 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		}
 		else if (wID >= MENU_LRUUSER && wID < MENU_LRUUSER + (UINT)cfg->lruUserMax) {
 			int		idx = wID - MENU_LRUUSER;
-			UsersObj *obj = (UsersObj *)cfg->lruUserList.EndObj();
+			UsersObj *obj = cfg->lruUserList.EndObj();
 			for (int i=0; i < idx && obj; i++) {
-				obj = (UsersObj *)cfg->lruUserList.PriorObj(obj);
+				obj = cfg->lruUserList.PrevObj(obj);
 			}
 			if (obj) {
 				UserObj *user = (UserObj *)obj->users.EndObj();
 				for (int j=0; user; j++) {
 					SelectHost(&user->hostSub, j == 0 ? TRUE : FALSE, FALSE);
-					user = (UserObj *)obj->users.PriorObj(user);
+					user = (UserObj *)obj->users.PrevObj(user);
 				}
 			}
 		}
@@ -771,7 +764,7 @@ void TSendDlg::GetListItemStr(Host *host, int item, char *buf)
 		strcpy(buf, host->hostSub.hostName);
 		break;
 	case SW_IPADDR:
-		strcpy(buf, ::Tinet_ntoa(*(LPIN_ADDR)&host->hostSub.addr));
+		host->hostSub.addr.ToStr(buf);
 		break;
 	default:
 		*buf = 0;
@@ -812,7 +805,7 @@ BOOL TSendDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 			switch (el->msg) {
 			case WM_LBUTTONDOWN:
 //				Debug("EN_LINK (%d %d)\n", el->chrg.cpMin, el->chrg.cpMax);
-				editSub.SendMessageV(EM_EXSETSEL, 0, (LPARAM)&el->chrg);
+				editSub.SendMessageW(EM_EXSETSEL, 0, (LPARAM)&el->chrg);
 //				editSub.EventApp(WM_EDIT_DBLCLK, 0, 0);
 				break;
 
@@ -1064,7 +1057,7 @@ BOOL TSendDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 		if (timerID == IPMSG_DUMMY_TIMER)	// 再入よけ
 			return	FALSE;
 		timerID = IPMSG_DUMMY_TIMER;
-		::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, (LPARAM)this);
+		if (!modalCount) ::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, twinId);
 		return	TRUE;
 	}
 	if (retryCnt++ <= cfg->RetryMax)
@@ -1094,11 +1087,13 @@ BOOL TSendDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 		retryCnt = 0;
 		SendMsgCore();
 		timerID = IPMSG_SEND_TIMER;
-		if (::SetTimer(hWnd, IPMSG_SEND_TIMER, cfg->RetryMSec, NULL) == 0)
-			::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, (LPARAM)this);
+		if (::SetTimer(hWnd, IPMSG_SEND_TIMER, cfg->RetryMSec, NULL) == 0) {
+			if (!modalCount) ::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, twinId);
+		}
 	}
-	else
-		::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, (LPARAM)this);
+	else {
+		if (!modalCount) ::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, twinId);
+	}
 
 	return	TRUE;
 }
@@ -1358,7 +1353,7 @@ int TSendDlg::CompareHosts(Host *host1, Host *host2)
 		case SW_HOST:
 			ret = strcmp(host1->hostSub.hostName, host2->hostSub.hostName); break;
 		case SW_IPADDR:
-			ret = Tntohl(host1->hostSub.addr) > Tntohl(host2->hostSub.addr) ? 1 : -1;
+			ret = host1->hostSub.addr > host2->hostSub.addr ? 1 : -1;
 			break;
 		case SW_USER:
 			ret = strcmp(host1->hostSub.userName, host2->hostSub.userName); break;
@@ -1455,7 +1450,7 @@ int TSendDlg::SubCompare(Host *host1, Host *host2)
 		// このまま 下に落ちる
 
 	case IPMSG_IPADDRSORT:
-		if (Tntohl(host1->hostSub.addr) > Tntohl(host2->hostSub.addr))
+		if (host1->hostSub.addr > host2->hostSub.addr)
 			ret = 1;
 		else
 			ret = -1;
@@ -1573,13 +1568,13 @@ void TSendDlg::AddLruUsers(void)
 	if (cfg->lruUserMax <= 0) goto END;
 
 // 既存エントリの検査
-	obj = (UsersObj *)cfg->lruUserList.TopObj();
+	obj = cfg->lruUserList.TopObj();
 	for (i=0; obj; i++) {
 		if (sendEntryNum == obj->users.Num()) {
-			UserObj *user = (UserObj *)obj->users.TopObj();
+			UserObj *user = obj->users.TopObj();
 			for (j=0; j < sendEntryNum; j++) {
 				if (!user || !IsSameHost(&user->hostSub, &sendEntry[j].Host()->hostSub)) break;
-				user = (UserObj *)obj->users.NextObj(user);
+				user = obj->users.NextObj(user);
 			}
 			if (j == sendEntryNum) {
 				cfg->lruUserList.DelObj(obj);
@@ -1587,7 +1582,7 @@ void TSendDlg::AddLruUsers(void)
 				goto END;
 			}
 		}
-		obj = (UsersObj *)cfg->lruUserList.NextObj(obj);
+		obj = cfg->lruUserList.NextObj(obj);
 	}
 
 	obj = new UsersObj();
@@ -1601,7 +1596,7 @@ void TSendDlg::AddLruUsers(void)
 
 END:
 	while (cfg->lruUserMax < cfg->lruUserList.Num()) {
-		obj = (UsersObj *)cfg->lruUserList.TopObj();
+		obj = cfg->lruUserList.TopObj();
 		cfg->lruUserList.DelObj(obj);
 		delete obj;
 	}
@@ -1624,7 +1619,7 @@ BOOL TSendDlg::SendMsg(void)
 		command = rbutton_on ? IPMSG_GETINFO : IPMSG_GETABSENCEINFO;
 	else if (ctl_on || shift_on || rbutton_on)
 		return	FALSE;
-	else if (!shareInfo && editSub.GetWindowTextLengthV() <= 0) {
+	else if (!shareInfo && editSub.GetWindowTextLengthW() <= 0) {
 		if (MessageBoxU8(GetLoadStrU8(IDS_EMPTYMSG), IP_MSG,
 						 MB_OKCANCEL|MB_ICONQUESTION) == IDCANCEL) return FALSE;
 	}
@@ -1634,8 +1629,10 @@ BOOL TSendDlg::SendMsg(void)
 		return	FALSE;
 	}
 
-	if ((sendEntryNum = (int)hostListView.SendMessage(LVM_GETSELECTEDCOUNT, 0, 0)) <= 0 || !(sendEntry = new SendEntry [sendEntryNum]))
-		return	FALSE;
+	if ((sendEntryNum = (int)hostListView.SendMessage(LVM_GETSELECTEDCOUNT, 0, 0)) <= 0)
+		return FALSE;
+
+	if (!(sendEntry = new SendEntry [sendEntryNum])) return	FALSE;
 
 	for (i=0, storeCnt=0; i < memberCnt && storeCnt < sendEntryNum; i++) {
 		if (!hostListView.IsSelected(i))
@@ -1654,7 +1651,7 @@ BOOL TSendDlg::SendMsg(void)
 
 	if (findDlg && findDlg->hWnd) findDlg->Destroy();
 	TWin::Show(SW_HIDE);
-	::SendMessage(GetMainWnd(), WM_SENDDLG_HIDE, 0, (LPARAM)this);
+	::PostMessage(GetMainWnd(), WM_SENDDLG_HIDE, 0, twinId);
 
 	if (is_clip_enable && msgMng->IsAvailableTCP()) {
 		SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
@@ -1671,7 +1668,7 @@ BOOL TSendDlg::SendMsg(void)
 					is_bmp_only = TRUE;
 				}
 				MakeClipFileName(file_base, pos, TRUE, fname);
-				if (shareMng->AddMemShare(shareInfo, fname, vbuf->Buf(), vbuf->Size(), pos)) {
+				if (shareMng->AddMemShare(shareInfo, fname, vbuf->Buf(), (DWORD)vbuf->Size(), pos)) {
 					if (cfg->LogCheck && (cfg->ClipMode & CLIP_SAVE)) {
 						FileInfo *fileInfo = shareInfo->fileInfo[shareInfo->fileCnt -1];
 						SaveImageFile(cfg, fileInfo->Fname(), vbuf);
@@ -1743,7 +1740,7 @@ BOOL TSendDlg::SendMsg(void)
 	if (shareInfo && shareInfo->fileCnt)		// ...\0no:fname:size:mtime:
 	{
 		DynBuf	buf(MAX_UDPBUF / 2);
-		EncodeShareMsg(shareInfo, buf, buf.Size(), TRUE);
+		shareInfo->EncodeMsg(buf, buf.Size(), TRUE);
 		shareStr = strdup(buf);
 
 		shareMng->AddHostShare(shareInfo, sendEntry, sendEntryNum);
@@ -1754,8 +1751,9 @@ BOOL TSendDlg::SendMsg(void)
 	SendMsgCore();
 
 	timerID = IPMSG_SEND_TIMER;
-	if (::SetTimer(hWnd, IPMSG_SEND_TIMER, cfg->RetryMSec, NULL) == 0)
-		::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, (LPARAM)this);
+	if (::SetTimer(hWnd, IPMSG_SEND_TIMER, cfg->RetryMSec, NULL) == 0) {
+		if (!modalCount) ::PostMessage(GetMainWnd(), WM_SENDDLG_EXIT, 0, twinId);
+	}
 
 	return	TRUE;
 }
@@ -1767,12 +1765,13 @@ BOOL TSendDlg::MakeMsgPacket(SendEntry *entry)
 {
 	char	*tmpbuf = new char[MAX_UDPBUF];
 	char	*buf = new char[MAX_UDPBUF];
-	char	*target_msg = (entry->Command() & IPMSG_UTF8OPT) ? msg.msgBuf : U8toA(msg.msgBuf);
+	char	*target_msg = (entry->Command() & IPMSG_UTF8OPT) ? msg.msgBuf : U8toAs(msg.msgBuf);
 	int		msgLen;
 	BOOL	ret = FALSE;
 
 	if (entry->Status() == ST_MAKECRYPTMSG) {
-		ret = MakeEncryptMsg(entry, target_msg, tmpbuf);
+		ret = msgMng->MakeEncryptMsg(entry->Host(), packetNo, target_msg,
+						(entry->Command() & IPMSG_ENCEXTMSGOPT) ? true : false, shareStr, tmpbuf);
 	}
 	if (!ret) {
 		entry->SetCommand(entry->Command() & ~IPMSG_ENCRYPTOPT);
@@ -1788,149 +1787,6 @@ BOOL TSendDlg::MakeMsgPacket(SendEntry *entry)
 	delete [] buf;
 	delete [] tmpbuf;
 	return	TRUE;
-}
-
-BOOL TSendDlg::MakeEncryptMsg(SendEntry *entry, char *msgstr, char *buf)
-{
-	HCRYPTKEY	hExKey = 0, hKey = 0;
-	Host		*host = entry->Host();
-	BYTE		skey[MAX_BUF];
-	DynBuf		data(MAX_UDPBUF);
-	DynBuf		msg_data(MAX_UDPBUF);
-	BYTE		iv[256/8];
-	int			len = 0, shareStrLen = 0;
-	int			capa = host->pubKey.Capa() & GetLocalCapa(cfg);
-	int			kt = (capa & IPMSG_RSA_2048) ? KEY_2048 : (capa & IPMSG_RSA_1024) ? KEY_1024 : KEY_512;
-	HCRYPTPROV	target_csp = cfg->priv[kt].hCsp;
-	DWORD 		msgLen, encMsgLen;
-	int			max_body_size = MAX_UDPBUF - MAX_BUF;
-	double		stringify_coef = 0.0;
-	int			(*bin2str_revendian)(const BYTE *, int, char *) = NULL;
-	int			(*bin2str)(const BYTE *, int, char *)           = NULL;
-
-	// すべてのマトリクスはサポートしない（特定の組み合わせのみサポート）
-	if ((capa & IPMSG_RSA_2048) && (capa & IPMSG_AES_256)) {
-		capa &= IPMSG_RSA_2048 | IPMSG_AES_256 | IPMSG_SIGN_SHA1 | IPMSG_PACKETNO_IV | IPMSG_ENCODE_BASE64;
-	}
-	else if ((capa & IPMSG_RSA_1024) && (capa & IPMSG_BLOWFISH_128)) {
-		capa &= IPMSG_RSA_1024 | IPMSG_BLOWFISH_128 | IPMSG_PACKETNO_IV | IPMSG_ENCODE_BASE64;
-	}
-	else if ((capa & IPMSG_RSA_512) && (capa & IPMSG_RC2_40)) {
-		capa &= IPMSG_RSA_512 | IPMSG_RC2_40 | IPMSG_ENCODE_BASE64;
-	}
-	else return	FALSE;
-
-	if (capa & IPMSG_ENCODE_BASE64) {	// base64
-#pragma warning ( disable : 4056 )
-		stringify_coef = 4.0 / 3.0;
-		bin2str_revendian = bin2b64str_revendian;
-		bin2str = bin2b64str;
-	}
-	else {				// hex encoding
-		stringify_coef = 2.0;
-		bin2str_revendian = bin2hexstr_revendian;
-		bin2str = bin2hexstr;
-	}
-
-	if (shareStr) {
-		shareStrLen = (int)strlen(shareStr) + 1;
-		max_body_size -= shareStrLen;
-	}
-	max_body_size -= (int)(host->pubKey.KeyLen() * stringify_coef * ((capa & IPMSG_SIGN_SHA1) ? 2 : 1));
-	max_body_size = (int)(max_body_size / stringify_coef);
-
-	// KeyBlob 作成
-	host->pubKey.KeyBlob(data, data.Size(), &len);
-
-	// 送信先公開鍵の import
-	if (!pCryptImportKey(target_csp, data, len, 0, 0, &hExKey)) {
-		host->pubKey.UnSet();
-		return GetLastErrorMsg("CryptImportKey"), FALSE;
-	}
-
-	// IV の初期化
-	memset(iv, 0, sizeof(iv));
-	if (capa & IPMSG_PACKETNO_IV) sprintf((char *)iv, "%u", packetNo);
-
-	// UNIX 形式の改行に変換
-	msgLen = LocalNewLineToUnix(msgstr, msg_data, max_body_size) + 1;
-	if (shareStr && (entry->Command() & IPMSG_ENCEXTMSGOPT)) {
-		memcpy((char *)msg_data + msgLen, shareStr, shareStrLen);
-		msgLen += shareStrLen;
-	}
-
-	if (capa & IPMSG_AES_256) {	// AES
-		// AES 用ランダム鍵作成
-		if (!pCryptGenRandom(target_csp, len = 256/8, data))
-			return	GetLastErrorMsg("CryptGenRandom"), FALSE;
-
-		// AES 用共通鍵のセット
-		AES		aes(data, len);
-
-		//共通鍵の暗号化
-		if (!pCryptEncrypt(hExKey, 0, TRUE, 0, data, (DWORD *)&len, MAX_BUF))
-			return GetLastErrorMsg("CryptEncrypt"), FALSE;
-		bin2str_revendian(data, len, (char *)skey);	// 鍵をhex文字列に
-
-		// メッセージ暗号化
-		encMsgLen = aes.Encrypt(msg_data, data, msgLen, iv);
-	}
-	else if (capa & IPMSG_BLOWFISH_128) {	// blowfish
-		// blowfish 用ランダム鍵作成
-		if (!pCryptGenRandom(target_csp, len = 128/8, data))
-			return	GetLastErrorMsg("CryptGenRandom"), FALSE;
-
-		// blowfish 用共通鍵のセット
-		CBlowFish	bl(data, len);
-
-		//共通鍵の暗号化
-		if (!pCryptEncrypt(hExKey, 0, TRUE, 0, data, (DWORD *)&len, MAX_BUF))
-			return GetLastErrorMsg("CryptEncrypt"), FALSE;
-		bin2str_revendian(data, len, (char *)skey);	// 鍵をhex文字列に
-
-		// メッセージ暗号化
-		encMsgLen = bl.Encrypt(msg_data, data, msgLen, BF_CBC|BF_PKCS5, iv);
-	}
-	else {	// RC2
-		if (!pCryptGenKey(target_csp, CALG_RC2, CRYPT_EXPORTABLE, &hKey))
-			return	GetLastErrorMsg("CryptGenKey"), FALSE;
-
-		pCryptExportKey(hKey, hExKey, SIMPLEBLOB, 0, NULL, (DWORD *)&len);
-		if (!pCryptExportKey(hKey, hExKey, SIMPLEBLOB, 0, data, (DWORD *)&len))
-			return GetLastErrorMsg("CryptExportKey"), FALSE;
-
-		len -= SKEY_HEADER_SIZE;
-		bin2str_revendian((BYTE*)data + SKEY_HEADER_SIZE, len, (char *)skey);
-		memcpy(data, msg_data, msgLen);
-
-		// メッセージの暗号化
-		encMsgLen = msgLen;
-		if (!pCryptEncrypt(hKey, 0, TRUE, 0, data, &encMsgLen, MAX_UDPBUF))
-			return GetLastErrorMsg("CryptEncrypt RC2"), FALSE;
-		pCryptDestroyKey(hKey);
-	}
-	len =  wsprintf(buf, "%X:%s:", capa, skey);
-	len += bin2str(data, (int)encMsgLen, buf + len);
-
-	pCryptDestroyKey(hExKey);
-
-	// 電子署名の追加
-	if (capa & IPMSG_SIGN_SHA1) {
-		HCRYPTHASH	hHash;
-		if (pCryptCreateHash(target_csp, CALG_SHA, 0, 0, &hHash)) {
-			if (pCryptHashData(hHash, msg_data, msgLen, 0)) {
-				DWORD		sigLen = 0;
-				pCryptSignHash(hHash, AT_KEYEXCHANGE, 0, 0, 0, &sigLen);
-				if (pCryptSignHash(hHash, AT_KEYEXCHANGE, 0, 0, data, &sigLen)) {
-					buf[len++] = ':';
-					len += bin2str_revendian(data, (int)sigLen, buf + len);
-				}
-			}
-			pCryptDestroyHash(hHash);
-		}
-	}
-
-	return TRUE;
 }
 
 /*
@@ -1960,7 +1816,8 @@ BOOL TSendDlg::SendMsgCoreEntry(SendEntry *entry)
 		MakeMsgPacket(entry);		// ST_MAKECRYPTMSG/ST_MAKEMSG -> ST_SENDMSG
 	}
 	if (entry->Status() == ST_SENDMSG) {
-		msgMng->UdpSend(entry->Host()->hostSub.addr, entry->Host()->hostSub.portNo, entry->Msg(), entry->MsgLen());
+		msgMng->UdpSend(entry->Host()->hostSub.addr, entry->Host()->hostSub.portNo,
+						entry->Msg(), entry->MsgLen(retryCnt >= 3 ? true : false));
 	}
 	return	TRUE;
 }
@@ -2113,43 +1970,35 @@ HBITMAP CreateAbsenceBmp(int cx, int cy)
 /*
 	Font 設定
 */
-void TSendDlg::SetFont(void)
+void TSendDlg::SetFont(BOOL force_reset)
 {
-	HFONT	hDlgFont;
+	if (!*orgFont.lfFaceName) {
+		HFONT	hFont = (HFONT)SendMessage(WM_GETFONT, 0, 0);
 
-	if (!(hDlgFont = (HFONT)SendMessage(WM_GETFONT, 0, 0)))
-		return;
-	if (::GetObject(hDlgFont, sizeof(LOGFONT), (void *)&orgFont) == 0)
-		return;
-
-	if (*cfg->SendEditFont.lfFaceName == 0)	//初期データセット
-		cfg->SendEditFont = orgFont;
-	if (*cfg->SendListFont.lfFaceName == 0) {
-		cfg->SendListFont = orgFont;
-		char	*ex_font = GetLoadStrA(IDS_PROPORTIONALFONT);
-		if (ex_font && *ex_font)
-			strcpy(cfg->SendListFont.lfFaceName, ex_font);
+		if (!hFont || ::GetObject(hFont, sizeof(LOGFONT), (void *)&orgFont) == 0) return;
+		if (*cfg->SendEditFont.lfFaceName == 0) cfg->SendEditFont = orgFont;
+		if (*cfg->SendListFont.lfFaceName == 0) {
+			cfg->SendListFont = orgFont;
+			char	*ex_font = GetLoadStrA(IDS_PROPORTIONALFONT);
+			if (ex_font && *ex_font)
+				strcpy(cfg->SendListFont.lfFaceName, ex_font);
+		}
 	}
 
-	if (*cfg->SendListFont.lfFaceName && (hDlgFont = ::CreateFontIndirect(&cfg->SendListFont)))
-	{
-		hostListView.SendMessage(WM_SETFONT, (WPARAM)hDlgFont, 0);
-		if (hListFont)
-			::DeleteObject(hListFont);
-		hListFont = hDlgFont;
- 	}
+	if (!hListFont || !hEditFont || force_reset) {
+		if (hListFont) ::DeleteObject(hListFont);
+		if (hEditFont) ::DeleteObject(hEditFont);
+
+		if (*cfg->SendListFont.lfFaceName) hListFont = ::CreateFontIndirect(&cfg->SendListFont);
+		if (*cfg->SendEditFont.lfFaceName) hEditFont = ::CreateFontIndirect(&cfg->SendEditFont);
+	}
+
+	hostListView.SendMessage(WM_SETFONT, (WPARAM)hListFont, 0);
 	hostListHeader.ChangeFontNotify();
 	if (hostListView.GetItemCount() > 0) {	// EvCreate時は不要
 		ReregisterEntry();
 	}
-	if (*cfg->SendEditFont.lfFaceName && (hDlgFont = ::CreateFontIndirect(&cfg->SendEditFont)))
-	{
-		editSub.SetFont(&cfg->SendEditFont);
-//		editSub.SendMessage(WM_SETFONT, (WPARAM)hDlgFont, 0);
-//		if (hEditFont)
-//			::DeleteObject(hEditFont);
-		hEditFont = hDlgFont;
-	}
+	editSub.SetFont(&cfg->SendEditFont);
 
 	static HIMAGELIST	himlState;
 	static int			lfHeight;
@@ -2223,11 +2072,13 @@ void TSendDlg::SetSize(void)
 	GetWindowRect(&rect);
 	orgRect = rect;
 
-	RECT	scRect;
+	TRect	scRect;
 	GetCurrentScreenSize(&scRect, hRecvWnd);
 
-	int	cx = scRect.right - scRect.left, cy = scRect.bottom - scRect.top;
-	int	xsize = rect.right - rect.left + cfg->SendXdiff, ysize = rect.bottom - rect.top + cfg->SendYdiff;
+	int	cx = scRect.cx();
+	int	cy = scRect.cy();
+	int	xsize = rect.cx() + cfg->SendXdiff;
+	int	ysize = rect.cy() + cfg->SendYdiff;
 	int	x = cfg->SendXpos, y = cfg->SendYpos;
 
 	if (cfg->SendSavePos == 0)
@@ -2276,7 +2127,7 @@ void TSendDlg::PopupContextMenu(POINTS pos)
 			AppendMenuU8(hGroupMenu, MF_STRING|((menuMax % rowMax || !menuMax) ? 0 : MF_MENUBREAK),
 						MENU_GROUP_START + menuMax, hostArray[cnt]->groupName);
 	}
-	InsertMenuU8(hMenu, 5 + (cfg->lruUserMax > 0 ? 1 : 0),
+	InsertMenuU8(hMenu, 1 + (cfg->lruUserMax > 0 ? 1 : 0),
 				MF_POPUP|(::GetMenuItemCount(hGroupMenu) ? 0 : MF_GRAYED)|MF_BYPOSITION,
 				(UINT)hGroupMenu, GetLoadStrU8(IDS_GROUPSELECT));
 
@@ -2308,7 +2159,7 @@ void TSendDlg::PopupContextMenu(POINTS pos)
 	AppendMenuU8(hPriorityMenu, MF_STRING|(hiddenDisp ? MF_CHECKED : 0), MENU_PRIORITY_HIDDEN,
 				GetLoadStrU8(IDS_TMPNODISPDISP));
 	AppendMenuU8(hPriorityMenu, MF_STRING, MENU_PRIORITY_RESET, GetLoadStrU8(IDS_RESETPRIORITY));
-	InsertMenuU8(hMenu, 6 + (cfg->lruUserMax > 0 ? 1 : 0),
+	InsertMenuU8(hMenu, 2 + (cfg->lruUserMax > 0 ? 1 : 0),
 				MF_POPUP|MF_BYPOSITION, (UINT)hPriorityMenu, GetLoadStrU8(IDS_SORTFILTER));
 
 	::TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, pos.x, pos.y, 0, hWnd, NULL);
@@ -2317,26 +2168,15 @@ void TSendDlg::PopupContextMenu(POINTS pos)
 
 void TSendDlg::SetMainMenu(HMENU hMenu)
 {
-	AppendMenuU8(hMenu, MF_STRING, MENU_FILEADD, GetLoadStrU8(IDS_FILEATTACHMENU));
-	AppendMenuU8(hMenu, MF_STRING, MENU_FOLDERADD, GetLoadStrU8(IDS_FOLDERATTACHMENU));
-	AppendMenuU8(hMenu, MF_STRING|((cfg->ClipMode & CLIP_ENABLE) ? 0 : MF_DISABLED|MF_GRAYED),
-						MENU_IMAGERECT, GetLoadStrU8(IDS_IMAGERECTMENU));
-	AppendMenuU8(hMenu, MF_STRING|
-						(!(cfg->ClipMode & CLIP_ENABLE) || !IsImageInClipboard(hWnd) ?
-							MF_DISABLED|MF_GRAYED : 0),
-						MENU_IMAGEPASTE, GetLoadStrU8(IDS_IMAGEPASTEMENU));
-	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
-
 	if (cfg->lruUserMax > 0) {
 		HMENU	hLruMenu = ::CreateMenu();
 		int		i=0;
-		for (UsersObj *obj=(UsersObj *)cfg->lruUserList.EndObj(); obj && i < cfg->lruUserMax;
-				obj=(UsersObj *)cfg->lruUserList.PriorObj(obj)) {
+		for (UsersObj *obj=cfg->lruUserList.EndObj(); obj && i < cfg->lruUserMax;
+				obj=cfg->lruUserList.PrevObj(obj)) {
 			char	buf[MAX_BUF];
 			int		len = 0;
 			BOOL	total_enabled = FALSE;
-			for (UserObj *user=(UserObj *)obj->users.TopObj(); user;
-					user=(UserObj *)obj->users.NextObj(user)) {
+			for (UserObj *user=obj->users.TopObj(); user; user=obj->users.NextObj(user)) {
 				Host *host = hosts->GetHostByName(&user->hostSub);
 				BOOL enabled = FALSE;
 				if (host) total_enabled = enabled = TRUE;
@@ -2362,6 +2202,17 @@ void TSendDlg::SetMainMenu(HMENU hMenu)
 		AppendMenuU8(hMenu, MF_POPUP, (UINT)hLruMenu, Fmt(GetLoadStrU8(IDS_LRUUSER), i));
 	}
 	AppendMenuU8(hMenu, MF_STRING, MENU_FINDDLG, GetLoadStrU8(IDS_FINDDLG));
+	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
+
+	AppendMenuU8(hMenu, MF_STRING, MENU_FILEADD, GetLoadStrU8(IDS_FILEATTACHMENU));
+	AppendMenuU8(hMenu, MF_STRING, MENU_FOLDERADD, GetLoadStrU8(IDS_FOLDERATTACHMENU));
+	AppendMenuU8(hMenu, MF_STRING|((cfg->ClipMode & CLIP_ENABLE) ? 0 : MF_DISABLED|MF_GRAYED),
+						MENU_IMAGERECT, GetLoadStrU8(IDS_IMAGERECTMENU));
+	AppendMenuU8(hMenu, MF_STRING|
+						(!(cfg->ClipMode & CLIP_ENABLE) || !IsImageInClipboard(hWnd) ?
+							MF_DISABLED|MF_GRAYED : 0),
+						MENU_IMAGEPASTE, GetLoadStrU8(IDS_IMAGEPASTEMENU));
+	AppendMenuU8(hMenu, MF_STRING, WM_INSERT_IMAGE, GetLoadStrU8(IDS_INSERT_IMAGE));
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 
 	AppendMenuU8(hMenu, MF_POPUP, (UINT)::LoadMenu(TApp::GetInstance(), (LPCSTR)SENDFONT_MENU),
