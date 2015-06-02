@@ -1,10 +1,10 @@
 ﻿static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   mainwin.cpp	Ver3.41";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   mainwin.cpp	Ver3.42";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-03(Tue)
+	Update					: 2012-06-10(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -2001,14 +2001,7 @@ void TMainWin::Popup(UINT resId)
 	POINT	pt = {0};
 	char	buf[MAX_LISTBUF];
 
-	if (IsWinVista()) {
-		::GetCursorPos(&pt);
-	}
-	else {
-		DWORD	val = ::GetMessagePos();
-		pt.x = LOWORD(val);
-		pt.y = HIWORD(val);
-	}
+	::GetCursorPos(&pt);
 
 	if (hMenu == NULL || hSubMenu == NULL)
 		return;

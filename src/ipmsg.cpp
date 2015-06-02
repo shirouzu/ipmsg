@@ -1,10 +1,10 @@
 ﻿static char *ipmsg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2012   ipmsg.cpp	Ver3.40";
+	"@(#)Copyright (C) H.Shirouzu 1996-2012   ipmsg.cpp	Ver3.42";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Application Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-02(Mon)
+	Update					: 2012-06-10(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -152,7 +152,7 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR cmdLine, int nCmdShow)
 {
 	if (IsWin95()) {
 		MessageBox(0, "Please use old version (v2.06 or earlier)",
-					"Win95/98/Me is not support", MB_OK);
+					"Win95/98/Me is not supported", MB_OK);
 		::ExitProcess(0xffffffff);
 		return	0;
 	}

@@ -22,7 +22,6 @@
 #define INSTALL_DIALOG                  149
 #define INPUT_DIALOG                    150
 #define LAUNCH_DIALOG                   154
-#define LAUNCH_DIALOG1                  155
 #define FILE_EDIT                       1135
 #define FILE_BUTTON                     1136
 #define STARTUP_CHECK                   1137
