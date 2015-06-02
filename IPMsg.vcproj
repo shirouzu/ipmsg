@@ -72,7 +72,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\libpng_d.lib external\lib\zlib_d.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\libpng_d.lib external\lib\zlib_d.lib lib\tlib_d.lib"
 				OutputFile="Debug/IPMsg.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -167,7 +167,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\libpng.lib external\lib\zlib.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib winmm.lib Comctl32.lib imm32.lib wsock32.lib external\lib\libpng.lib external\lib\zlib.lib lib\tlib.lib"
 				OutputFile="Release/IPMsg.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -291,6 +291,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="src\ipmsg.exe.manifest"
+				>
+			</File>
+			<File
 				RelativePath="src\ipmsg.h"
 				>
 			</File>
@@ -313,26 +317,6 @@
 						Name="VCResourceCompilerTool"
 						PreprocessorDefinitions=""
 						AdditionalIncludeDirectories="src"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\logdlg.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
 			</File>
@@ -397,6 +381,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\miscfunc.cpp"
+				>
+			</File>
+			<File
 				RelativePath="src\msgmng.cpp"
 				>
 				<FileConfiguration
@@ -437,6 +425,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\pubkey.cpp"
+				>
+			</File>
+			<File
 				RelativePath="src\recvdlg.cpp"
 				>
 				<FileConfiguration
@@ -458,6 +450,10 @@
 			</File>
 			<File
 				RelativePath="src\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\richedit.cpp"
 				>
 			</File>
 			<File
@@ -521,206 +517,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="src\TLib\tapi32ex.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\TLib\tapi32u8.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\TLib\tapi32v.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\TLib\tapp.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\TLib\tdlg.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\TLib\tini.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\TLib\tlist.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\TLib\tmisc.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\TLib\tregist.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="src\TLib\twin.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="src\version.cpp"
 				>
 				<FileConfiguration
@@ -755,10 +551,6 @@
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
 		</Filter>
-		<File
-			RelativePath="src\ipmsg.exe.manifest"
-			>
-		</File>
 	</Files>
 	<Globals>
 	</Globals>

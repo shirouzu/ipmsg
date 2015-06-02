@@ -70,11 +70,11 @@
 
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.00</h1>
+<h1 class="help_head1">IP Messenger v3.10</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2011/04/20 H.Shirouzu</div>
+<div align="right">2011/05/11 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -82,7 +82,7 @@
   <a href="#about">1. Overview</a><br>
   <a href="#license">2. License</a><br>
   <a href="#environment">3. Requirements</a><br>
-  <a href="#install">4. Install</a><br>
+  <a href="#uninstall">4. Uninstall</a><br>
   <a href="#usage">5. Usage</a><br>
   <a href="#misc">6. Others</a><br>
   <a href="#wan">7. WAN Settings (Broadcast Settings)</a><br>
@@ -171,15 +171,9 @@
 	Windows 2000/XP/2003/Vista/2008/Win7<br>
 </div>
 
-<a name="install"/>
-<h2 class="help_head2">4. Install/Uninstall</h2>
+<a name="uninstall"/>
+<h2 class="help_head2">4. Uninstall</h2>
 <div class="help_section">
-	<h3 class="help_head3">Install</h3>
-	<div class="help_sub_section">
-   You can install IPMsg into the specified folder and setup or re-setup into startup with setup.exe.
-	</div>
-
-	<h3 class="help_head3">Uninstall</h3>
 	<div class="help_sub_section">
 		You can uninstall from control panel. 
 	</div>
@@ -190,34 +184,47 @@
 <h2 class="help_head2">5. Usage</h2>
 <div class="help_section">
 
-<h3>Task tray icon</h3>
+<h3 class="help_head3">Task tray icon</h3>
    Left double click on the icon opens a Send Message window.<br>
    Right single click on the icon opens IPMsg menu such as setting,
    absence mode, etc.
 
-<h3>Send Message Window</h3>
+<h3 class="help_head3">Send Message Window</h3>
    If [Seal] is checked, it will be sealed message.<br>
    If [Lock] is checked, it will be locked message. The receiver must
-   use *receiver's own* password to open a locked message.
+   use <strong>receiver's own</strong> password to open a locked message.
 	<br><br>
-   To transfer File/Folder, Drag & Drop File/Folder to Send Window.
+
+	<strong>To embed clipboard image</strong> (v3.0 or later), push CTRL-V in editbox.(Max.10 image)<br>
+	  If logging setting is enabled, send/receive images are saved in ipmsg_img sub-folder of logfile folder.<br>
+	(Because embedded image mechanism use ipmsg file transfer, it requires to open 2425/tcp port)
+	<br><br>
+
+   <strong>To transfer File/Folder</strong> (v2.0 or later), Drag & Drop File/Folder to Send Window.
    (or selec right button menu on Send Window)
 	<br><br>
+
      File/Folder transfer can't be completed until a receiver starts
      to download the file. If a sender re-starts IPMSG, the attachment
      file information becomes clear, and a receiver will not be able
      to download the file.)
 	<br><br>
+
+	Prefix color of the user list<br>
+	<table class="help_table" border="4">
+	<tr><th>color</th><th>mean</th></tr>
+	<tr><td bgcolor="#ffffff">white</td><td>v3.0 level (embedded image, attached files, RSA2048/AES256/SHA1 encryption/sign)</td></tr>
+	<tr><td bgcolor="#ffc8c8">light pink</td><td>same as white except disabling embedded image</td></tr>
+	<tr><td bgcolor="#f0f0f0">light gray</td><td>v2.0 level (attached files RSA encryption)</td></tr>
+	<tr><td bgcolor="#b4b4f0">light blue</td><td>a part of v2.0 level (attached files)</td></tr>
+	<tr><td bgcolor="#808080">dark gray</td><td>v1.0 level (basic message communication)</td></tr>
+	</table>
+	Attention: <strong>!</strong> mark indicates absence mode
+	<br><br>
+
    The order of Send Message window header item list can be changed
    by Drag & Drop. Right click and select "Save List Header" for
    saving order.
-	<br><br>
-
-   Prefix mark of the user list
-     ':' indicates absence mode.<br>
-     '|' indicates v1.x user. (not supporting File/Folder transfer
-         and encryption of commnication data)<br>
-     '|'(short line) indicates only for File/Folder transfer.
 	<br><br>
 
    Right click on the window and select from the menu: Sort/Filter, 
@@ -231,12 +238,7 @@
      setting -> approx. level user sort setting
 	<br><br>
 
-<strong>IP Messenger v3.0 or later, embedded image in message is supported.</strong>
-<br><br>
-  Push CTRL-V in editbox, embed clipboard image into message. (Max.10 image)<br>
-  If logging setting is enabled, send/receive images are saved in ipmsg_img sub-folder of logfile folder.
-<br><br>
-<h3>Receive Message Window</h3>
+<h3 class="help_head3">Receive Message Window</h3>
    Right click on the window and select from the menu: Font Setting,
    Size Setting, Fix Position.
 	<br><br>
@@ -249,23 +251,12 @@
 <br><br>
 	<table class="help_table" border="4">
 	<tr><th>Strongness</th><th>PublicKey</th><th>CommonKey</th><th>Signature</th><th>Receive Window Title</th><th>Log File</th></tr>
-	<tr><td>Most Strong</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-1</td><td>Receive Message +++</td><td>(RSA2/Signed)</td></tr>
+	<tr><td>Strongest</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-1</td><td>Receive Message +++</td><td>(RSA2/Signed)</td></tr>
 	<tr><td>Strong</td><td>RSA 2048bit</td><td>AES 256bit</td><td>Nothing</td><td>Receive Message ++</td><td>(RSA2)</td></tr>
 	<tr><td>Middle</td><td>RSA 1024bit</td><td>Blowfish 128bit</td><td>Nothing</td><td>Receive Message +</td><td>(RSA)</td></tr>
 	<tr><td>Weak</td><td>RSA 512bit</td><td>RC2 40bit</td><td>Nothing</td><td>Receive Message -</td><td>(RSA)</td></tr>
 	<tr><td>Nothing</td><td>Nothing</td><td>Nothing</td><td>Nothing</td><td>Receive Message</td><td></td></tr>
 	</table>
-<br>
-
-<br><br>
-
-<h3>Others</h3>
-   To make connection to WAN through router, Broadcast setting will
-   be required. (See in Broadcast setting for detail).
-	<br><br>
-
-   Other features are easy to understand.
-   Try first, you will see it. (See 8.Appendices and 10.History)
 
 </div>
 
@@ -296,7 +287,7 @@ Protocol specification comes with source.(Japanese)
 <br><br>
 
 Broadcast messaging happens only at [Start/End], [Absencemode],
-[Refresh].
+[Refresh], [Change 'UserName' or 'GroupName'].
 <br><br>
 Compiled by Visual C++4.1(J)
 <br><br>
@@ -399,19 +390,28 @@ zlib: <a href="http://zlib.net/">http://zlib.net/</a><br>
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
+<tr><td>v3.10</td><td>
+Support icremental search for userlist (Ctrl+F).<br>
+Change recv/log header format.<br>
+Improve send list prefix color.<br>
+Improve setting dialog.<br>
+Change zip archive to exe installer.<br>
+some fix.
+</td></tr>
 <tr><td>v3.00</td><td>
-Support embedded image in message.
-Support multi language communication.
-Support unopened message monitor.
-Support to choose Directed/Limited broadcast for local segment.
-Support RSA2048/AES256bit encryption.
-Support RSA2048/SHA-1 digital sign/verify.
-Support userid extension(public-key fingerprint).
+Support embedded image in message.<br>
+Support multi language communication.<br>
+Support unopened message monitor.<br>
+Support to choose Directed/Limited broadcast for local segment.<br>
+Support RSA2048/AES256bit encryption.<br>
+Support RSA2048/SHA-1 digital sign/verify.<br>
+Support userid extension(public-key fingerprint).<br>
 </td></tr>
 <tr><td>v2.10</td><td>Balloon notification, UTF-8 logging, unify ipmsg.exe for Japanese/English</td></tr>
 <tr><td>v2.00</td><td>File/Folder Transfer function support, Encrypted communication path support.</td></tr>
 <tr><td>v1.31</td><td>English version support(97/09/01)</td></tr>
 <tr><td>v1.00</td><td>Official public version (1996/08/19)</td></tr>
+</table>
 
 </div>
 

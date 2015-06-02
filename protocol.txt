@@ -1,7 +1,7 @@
 (Japanese)
 ----------------------------------------------------------------------
         IP Messenger 通信プロトコル仕様(ドラフト10版）     1996/02/21
-                                                    Modify 2011/04/18
+                                                    Modify 2011/05/03
 
                                                            H.Shirouzu
                                                      http://ipmsg.org
@@ -293,7 +293,7 @@
 	添付（ダウンロード許可）ファイル情報を列挙します。
 
 	fileID:filename:size:mtime:fileattr[:extend-attr=val1
-	[,val2...][:extend-attr2=...]]:\a:fileID...
+	[,val2...][:extend-attr2=...]]:\a[:]fileID...
 	(なお、size, mtime, fileattr は hex で表現します。
 	 filenameに':'がある場合、"::"でエスケープします)
 

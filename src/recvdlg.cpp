@@ -1,10 +1,10 @@
 static char *recvdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   recvdlg.cpp	Ver3.00";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   recvdlg.cpp	Ver3.10";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Receive Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2011-05-11(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -273,6 +273,14 @@ BOOL TRecvDlg::DecryptMsg()
 }
 
 
+BOOL TRecvDlg::PreProcMsg(MSG *msg)
+{
+	if (msg->message == WM_KEYDOWN && msg->wParam == VK_ESCAPE) {
+		return TRUE;
+	}
+	return	TDlg::PreProcMsg(msg);
+}
+
 BOOL TRecvDlg::EvCreate(LPARAM lParam)
 {
 	editSub.AttachWnd(GetDlgItem(RECV_EDIT));
@@ -309,8 +317,9 @@ BOOL TRecvDlg::EvCreate(LPARAM lParam)
 
 	SetWindowTextU8(buf);
 
-	wsprintf(head, "at %s", Ctime(&recvTime));
-	SetDlgItemTextU8(RECV_HEAD2, head);
+	char	head2[MAX_NAMEBUF];
+	wsprintf(head2, "at %s", Ctime(&recvTime));
+	SetDlgItemTextU8(RECV_HEAD2, head2);
 
 	editSub.ExSetText(msg.msgBuf);
 //	editSub.SetWindowTextU8(msg.msgBuf);
@@ -344,7 +353,7 @@ BOOL TRecvDlg::EvCreate(LPARAM lParam)
 	}
 
 	if (cfg->QuoteCheck)
-		SendDlgItemMessage(QUOTE_CHECK, BM_SETCHECK, cfg->QuoteCheck, 0);
+		CheckDlgButton(QUOTE_CHECK, cfg->QuoteCheck);
 
 	if (cfg->AbnormalButton)
 		SetDlgItemTextU8(IDOK, GetLoadStrU8(IDS_INTERCEPT));
@@ -388,7 +397,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	{
 	case IDOK:
 		*msg.msgBuf = 0;
-		if (openFlg && ::IsDlgButtonChecked(hWnd, QUOTE_CHECK)) {
+		if (openFlg && IsDlgButtonChecked(QUOTE_CHECK)) {
 			editSub.GetTextUTF8(msg.msgBuf, sizeof(msg.msgBuf));
 		}
 		::PostMessage(GetMainWnd(), WM_SENDDLG_OPEN, (WPARAM)hWnd, (LPARAM)&msg);
@@ -400,10 +409,12 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		if (clipList.TopObj()) {
 			ClipBuf *clipBuf = (ClipBuf *)clipList.TopObj();
 			if (clipBuf->finished) {
-				if (MessageBoxU8(GetLoadStrU8(IDS_CLIPDESTROY), MSG_STR, MB_OKCANCEL)
-					== IDCANCEL) return TRUE;
+				if (MessageBoxU8(GetLoadStrU8(IDS_CLIPDESTROY), IP_MSG, MB_OKCANCEL) != IDOK)
+					return TRUE;
 			}
 		}
+//		else if (fileObj && MessageBoxU8("OK", IP_MSG, MB_OKCANCEL) != IDOK) return TRUE;
+
 		if (timerID == 0)
 			::PostMessage(GetMainWnd(), WM_RECVDLG_EXIT, 0, (LPARAM)this);
 		else
@@ -470,7 +481,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		{
 			if (fileObj->hThread)
 				::SuspendThread(fileObj->hThread);
-			int ret = MessageBoxU8(GetLoadStrU8(IDS_TRANSSTOP), MSG_STR, MB_OKCANCEL);
+			int ret = MessageBoxU8(GetLoadStrU8(IDS_TRANSSTOP), IP_MSG, MB_OKCANCEL);
 			if (fileObj->hThread)
 				::ResumeThread(fileObj->hThread);
 			if (ret == IDOK)
@@ -637,6 +648,32 @@ BOOL TRecvDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 	return	TRUE;
 }
 
+BOOL GetNoWrapString(HWND hWnd, int cx, char *str, char *buf, int maxlen)
+{
+	Wstr	wstr(str);
+	int		len = wcslen(wstr);
+	int		fit_len = 0;
+	SIZE    size;
+	HDC		hDc;
+
+	if ((hDc = ::GetDC(hWnd))) {
+		if (::GetTextExtentExPointW(hDc, wstr, len, cx, &fit_len, NULL, &size)) {
+			if (fit_len < len) {
+				for (int i=fit_len; i >= 0; i--) {
+					if (wstr[i] == '/') {
+						wstr.Buf()[i] = 0;
+						break;
+					}
+				}
+			}
+		}
+		::ReleaseDC(hWnd, hDc);
+	}
+
+	WtoU8(wstr, buf, maxlen);
+	return	TRUE;
+}
+
 BOOL TRecvDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 {
 	if (fwSizeType != SIZE_RESTORED && fwSizeType != SIZE_MAXIMIZED)
@@ -645,6 +682,10 @@ BOOL TRecvDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	GetWindowRect(&rect);
 	int	xdiff = (rect.right - rect.left) - (orgRect.right - orgRect.left);
 	int ydiff = (rect.bottom - rect.top) - (orgRect.bottom - orgRect.top);
+
+	char	buf[MAX_BUF];
+	GetNoWrapString(GetDlgItem(RECV_HEAD), headRect.right + xdiff - 40, head, buf, sizeof(buf));
+	SetDlgItemTextU8(RECV_HEAD, buf);
 
 	HDWP	hdwp = ::BeginDeferWindowPos(max_recvitem);	// MAX item number
 	WINPOS	*wpos;
@@ -730,10 +771,16 @@ BOOL TRecvDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 	case EN_LINK:
 		{
 			ENLINK	*el = (ENLINK *)pNmHdr;
-			if (el->msg == WM_LBUTTONDOWN) {
+			switch (el->msg) {
+			case WM_LBUTTONDOWN:
 //				Debug("EN_LINK (%d %d)\n", el->chrg.cpMin, el->chrg.cpMax);
 				editSub.SendMessageW(EM_EXSETSEL, 0, (LPARAM)&el->chrg);
 //				editSub.EventUser(WM_EDIT_DBLCLK, 0, 0);
+				break;
+
+			case WM_RBUTTONUP:
+				editSub.PostMessage(WM_CONTEXTMENU, 0, GetMessagePos());
+				break;
 			}
 		}
 		return	TRUE;
@@ -826,6 +873,8 @@ void TRecvDlg::SetSize(void)
 
 	GetWindowRect(&rect);
 	orgRect = rect;
+
+	::GetClientRect(GetDlgItem(RECV_HEAD), &headRect);
 
 	RECT	scRect;
 	GetCurrentScreenSize(&scRect);
@@ -966,6 +1015,9 @@ void TRecvDlg::InsertImages(void)
 		}
 		clipBuf = next;
 	}
+	editSub.SendMessageW(EM_SCROLL, SB_PAGEUP, 0);
+	editSub.SendMessageW(EM_SETSEL, 0, 0);
+	editSub.SendMessageW(EM_SCROLLCARET, 0, 0);
 	::EnableWindow(GetDlgItem(IMAGE_BUTTON), clipList.TopObj() ? TRUE : FALSE);
 }
 

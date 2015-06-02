@@ -119,6 +119,7 @@ void WIN32_FIND_DATA_WtoU8(const WIN32_FIND_DATAW *fdat_w, WIN32_FIND_DATA_U8 *f
 HANDLE FindFirstFileU8(const char *path, WIN32_FIND_DATA_U8 *fdat);
 BOOL FindNextFileU8(HANDLE hDir, WIN32_FIND_DATA_U8 *fdat);
 DWORD GetFullPathNameU8(const char *path, DWORD size, char *buf, char **fname);
+BOOL GetFileInfomationU8(const char *path, WIN32_FIND_DATA_U8 *fdata);
 HANDLE CreateFileU8(const char *path, DWORD access_flg, DWORD share_flg,
 	SECURITY_ATTRIBUTES *sa, DWORD create_flg, DWORD attr_flg, HANDLE hTemplate);
 BOOL CreateDirectoryU8(const char *path, SECURITY_ATTRIBUTES *lsa);

@@ -89,7 +89,7 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return	0;
 
 	case WM_NCDESTROY:
-		GetWindowRect(&rect);
+		if (!::IsIconic(hWnd)) GetWindowRect(&rect);
 		EvNcDestroy();
 		TApp::GetApp()->DelWin(this);
 		hWnd = 0;
@@ -166,6 +166,11 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		result = EvHotKey((int)wParam);
 		SetWindowLong(DWL_MSGRESULT, result);
 		return	result;
+
+	case WM_CHAR:
+		EvChar((WCHAR)wParam, lParam);
+		SetWindowLong(DWL_MSGRESULT, 0);
+		return	0;
 
 	case WM_ACTIVATEAPP:
 		EventActivateApp((BOOL)wParam, (DWORD)lParam);
@@ -346,9 +351,9 @@ BOOL TDlg::FitDlgItems()
 		int w = (f & X_FIT)    == X_FIT    ? item->wpos.cx + xdiff : item->wpos.cx;
 		int h = (f & Y_FIT)    == Y_FIT    ? item->wpos.cy + ydiff : item->wpos.cy;
 
-		hdwp = ::DeferWindowPos(hdwp, item->hWnd, 0, x, y, w, h, dwFlg);
+		if (!(hdwp = ::DeferWindowPos(hdwp, item->hWnd, 0, x, y, w, h, dwFlg))) return FALSE;
 	}
-	EndDeferWindowPos(hdwp);
+	::EndDeferWindowPos(hdwp);
 
 	return	TRUE;
 }

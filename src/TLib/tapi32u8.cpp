@@ -98,6 +98,30 @@ BOOL FindNextFileU8(HANDLE hDir, WIN32_FIND_DATA_U8 *fdat)
 	return	ret;
 }
 
+BOOL GetFileInfomationU8(const char *path, WIN32_FIND_DATA_U8 *fdata)
+{
+	HANDLE	fh;
+
+	if ((fh = FindFirstFileU8(path, fdata)) != INVALID_HANDLE_VALUE)
+	{
+		::FindClose(fh);
+		return	TRUE;
+	}
+
+	if ((fh = CreateFileU8(path, GENERIC_WRITE, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0)) != INVALID_HANDLE_VALUE)
+	{
+		BY_HANDLE_FILE_INFORMATION	info;
+		BOOL	info_ret = ::GetFileInformationByHandle(fh, &info);
+		::CloseHandle(fh);
+		if (info_ret) {
+			memcpy(fdata, &info, (char *)&info.dwVolumeSerialNumber - (char *)&info);
+			return	TRUE;
+		}
+	}
+
+	return	(fdata->dwFileAttributes = GetFileAttributesU8(path)) == 0xffffffff ? FALSE : TRUE;
+}
+
 HANDLE CreateFileU8(const char *path, DWORD access_flg, DWORD share_flg, SECURITY_ATTRIBUTES *sa,
 	DWORD create_flg, DWORD attr_flg, HANDLE hTemplate)
 {

@@ -102,7 +102,7 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_NCDESTROY:
-		GetWindowRect(&rect);
+		if (!::IsIconic(hWnd)) GetWindowRect(&rect);
 		if (!EvNcDestroy())	// hWndÇ0Ç…Ç∑ÇÈëOÇ…åƒÇ—èoÇ∑
 			DefWindowProc(uMsg, wParam, lParam);
 		done = TRUE;
@@ -174,6 +174,10 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_HOTKEY:
 		result = done = EvHotKey((int)wParam);
+		break;
+
+	case WM_CHAR:
+		done = EvChar((WCHAR)wParam, lParam);
 		break;
 
 	case WM_LBUTTONUP:
@@ -401,6 +405,11 @@ BOOL TWin::EvContextMenu(HWND childWnd, POINTS pos)
 }
 
 BOOL TWin::EvHotKey(int hotKey)
+{
+	return	FALSE;
+}
+
+BOOL TWin::EvChar(WCHAR code, LPARAM keyData)
 {
 	return	FALSE;
 }

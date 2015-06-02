@@ -1,10 +1,10 @@
 static char *cfg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.00";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   cfg.cpp	Ver3.10";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration
 	Create					: 1996-09-27(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2011-05-11(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -74,12 +74,14 @@ static char *cfg_id =
 #define DELAYTIME_STR		"DelayTime"
 #define QUOTECHECK_STR		"QuoteCheck"
 #define SECRETCHECK_STR		"SecretCheck"
-#define IPADDRCHECK_STR		"IPAddrCheck"
+#define IPADDRCHECK_STR		"IPAddrCheck2"
+#define RECVIPADDRCHECK_STR	"RecvIPAddrCheck"
 #define ONECLICKPOPUP_STR	"OneClickPopup"
 #define BALLOONNOTIFY_STR	"BalloonNotify"
 #define ABNORMALBTN_STR		"AbnormalButton"
 #define DIALUPCHECK_STR		"DialUpCheck"
-#define NICKNAMECHECK_STR	"NickNameCheck"
+#define LOGONLOG_STR		"LogonLog"
+#define RECVLOGONDISP_STR	"RecvLogonDisp"
 #define NICKNAMESTR_STR		"NickNameStr"
 #define GROUPNAMESTR_STR	"GroupNameStr"
 #define ABSENCENONPOPUP_STR	"AbsenceNonPopup"
@@ -92,7 +94,7 @@ static char *cfg_id =
 #define EXTENDENTRY_STR		"ExtendEntry"
 #define EXTENDBROADCAST_STR	"ExtendBroadcast"
 #define QUOTESTR_STR		"QuoteStr"
-#define CONTROLIME_STR		"ControlIME"
+#define CONTROLIME_STR		"ControlIME2"
 #define HOTKEY_STR			"HotKey"
 #define HOTKEYCHECK_STR		"HotKeyCheck"
 #define HOTKEYMODIFY_STR	"HotKeyModify"
@@ -188,7 +190,7 @@ static char *cfg_id =
 #define PRIORITYREJECT_STR	"PriorityReject"
 #define PUBLICKEY_STR		"PublicKey"
 
-#define GLIDLINE_STR		"GlidLine"
+#define GRIDLINE_STR		"GlidLine" // typo...
 #define COLUMNITEMS_STR		"ColumnItems"
 
 #define CRYPT_STR			"Crypt"
@@ -274,7 +276,7 @@ BOOL Cfg::ReadRegistry(void)
 	NoErase = FALSE;
 	Debug = FALSE;
 	NoPopupCheck = TRUE;
-	OpenCheck = TRUE;
+	OpenCheck = 1;
 	AbsenceSave = FALSE;
 	AbsenceCheck = FALSE;
 	AbsenceMax = IPMSG_DEFAULT_ABSENCEMAX;
@@ -284,12 +286,14 @@ BOOL Cfg::ReadRegistry(void)
 	DelayTime = IPMSG_DEFAULT_DELAY;
 	QuoteCheck = TRUE;
 	SecretCheck = TRUE;
-	IPAddrCheck = FALSE;
+	LogonLog = TRUE;
+	RecvLogonDisp = FALSE;
+	IPAddrCheck = TRUE;
+	RecvIPAddr = TRUE;
 	OneClickPopup = FALSE;
 	BalloonNotify = TRUE;
 	AbnormalButton = FALSE;
 	DialUpCheck = FALSE;
-	NickNameCheck = IPMSG_NICKNAME;
 	*NickNameStr = 0;
 	*GroupNameStr = 0;
 	AbsenceNonPopup = TRUE;
@@ -300,8 +304,8 @@ BOOL Cfg::ReadRegistry(void)
 	ShellExec = FALSE;
 	ExtendEntry = TRUE;
 	ExtendBroadcast = 1;
-	ControlIME = FALSE;
-	GlidLineCheck = TRUE;
+	ControlIME = 1;
+	GridLineCheck = TRUE;
 	PriorityMax = DEFAULT_PRIORITYMAX;
 	PriorityReject = 0;
 	AllowSendList = TRUE;
@@ -462,13 +466,14 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(DELAYTIME_STR, &DelayTime);
 	reg.GetInt(QUOTECHECK_STR, &QuoteCheck);
 	reg.GetInt(SECRETCHECK_STR, &SecretCheck);
+	reg.GetInt(LOGONLOG_STR, &LogonLog);
+	reg.GetInt(RECVLOGONDISP_STR, &RecvLogonDisp);
 	reg.GetInt(IPADDRCHECK_STR, &IPAddrCheck);
+	reg.GetInt(RECVIPADDRCHECK_STR, &RecvIPAddr);
 	reg.GetInt(ONECLICKPOPUP_STR, &OneClickPopup);
 	reg.GetInt(BALLOONNOTIFY_STR, &BalloonNotify);
 	reg.GetInt(ABNORMALBTN_STR, &AbnormalButton);
 	reg.GetInt(DIALUPCHECK_STR, &DialUpCheck);
-	reg.GetInt(NICKNAMECHECK_STR, &NickNameCheck);
-	NickNameCheck = NickNameCheck == IPMSG_NICKNAME;
 	reg.GetInt(ABSENCENONPOPUP_STR, &AbsenceNonPopup);
 	reg.GetStr(NICKNAMESTR_STR, NickNameStr, sizeof(NickNameStr));
 	reg.GetStr(GROUPNAMESTR_STR, GroupNameStr, sizeof(GroupNameStr));
@@ -480,7 +485,7 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(EXTENDENTRY_STR, &ExtendEntry);
 	reg.GetInt(EXTENDBROADCAST_STR, &ExtendBroadcast);
 	reg.GetInt(CONTROLIME_STR, &ControlIME);
-	reg.GetInt(GLIDLINE_STR, &GlidLineCheck);
+	reg.GetInt(GRIDLINE_STR, &GridLineCheck);
 	reg.GetInt(COLUMNITEMS_STR, (int *)&ColumnItems);
 	reg.GetStr(QUOTESTR_STR, QuoteStr, sizeof(QuoteStr));
 	if (reg.CreateKey(HOTKEY_STR))
@@ -821,12 +826,14 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(DELAYTIME_STR, DelayTime);
 		reg.SetInt(QUOTECHECK_STR, QuoteCheck);
 		reg.SetInt(SECRETCHECK_STR, SecretCheck);
+		reg.SetInt(LOGONLOG_STR, LogonLog);
+		reg.SetInt(RECVLOGONDISP_STR, RecvLogonDisp);
 		reg.SetInt(IPADDRCHECK_STR, IPAddrCheck);
+		reg.SetInt(RECVIPADDRCHECK_STR, RecvIPAddr);
 		reg.SetInt(ONECLICKPOPUP_STR, OneClickPopup);
 		reg.SetInt(BALLOONNOTIFY_STR, BalloonNotify);
 		reg.SetInt(ABNORMALBTN_STR, AbnormalButton);
 		reg.SetInt(DIALUPCHECK_STR, DialUpCheck);
-		reg.SetInt(NICKNAMECHECK_STR, NickNameCheck);
 		reg.SetInt(ABSENCENONPOPUP_STR, AbsenceNonPopup);
 		reg.SetStr(NICKNAMESTR_STR, NickNameStr);
 		reg.SetStr(GROUPNAMESTR_STR, GroupNameStr);
@@ -836,7 +843,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(EXTENDENTRY_STR, ExtendEntry);
 		reg.SetInt(EXTENDBROADCAST_STR, ExtendBroadcast);
 		reg.SetInt(CONTROLIME_STR, ControlIME);
-		reg.SetInt(GLIDLINE_STR, GlidLineCheck);
+		reg.SetInt(GRIDLINE_STR, GridLineCheck);
 		reg.SetInt(COLUMNITEMS_STR, ColumnItems);
 		reg.SetStr(QUOTESTR_STR, QuoteStr);
 		if (reg.CreateKey(HOTKEY_STR))

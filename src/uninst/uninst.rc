@@ -1,0 +1,192 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 日本語 resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+#ifdef _WIN32
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+SETUP_ICON              ICON    DISCARDABLE     "setup.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+UNINSTALL_DIALOG DIALOG DISCARDABLE  0, 0, 181, 109
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "IP Messenger Uninstall"
+FONT 9, "ＭＳ Ｐゴシック"
+BEGIN
+    DEFPUSHBUTTON   "開始",IDOK,69,89,42,15
+    PUSHBUTTON      "中止",IDCANCEL,129,89,29,14
+    GROUPBOX        "詳細",IDC_STATIC,6,31,167,53,BS_CENTER | WS_GROUP
+    LTEXT           "レジストリおよびショートカットを削除します",IDC_STATIC,
+                    21,46,131,11
+    CONTROL         "公開鍵も削除する",DELPUBKEY_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,25,63,99,12
+    EDITTEXT        RESETUP_EDIT,6,11,167,13,ES_AUTOHSCROLL | ES_READONLY
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    UNINSTALL_DIALOG, DIALOG
+    BEGIN
+        RIGHTMARGIN, 180
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// 24
+//
+
+1                       24      DISCARDABLE     "setup.exe.manifest"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_UNINSTCOMPLETE      "アンインストールは完了しました。\r\nファイル削除自体は手動で行ってください。"
+    IDS_TERMINATE           "あらかじめ、現在起動している\r\nIP Messenger を終了させる必要があります。\r\nよろしいですか？"
+    IDS_CANTTERMINATE       "IP Messenger を終了できません。手動で終了してください"
+    IDS_REQUIREADMIN_TERM   "IP Messenger の終了に管理者権限が必要です。\r\n管理者権限で実行しますか？"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_REQUIREADMIN_PUBKEY "公開鍵の削除に管理者権限が必要です。\r\n管理者権限で実行しますか？"
+    IDS_NOTCREATEFILE       "ファイルをコピーできません"
+    IDS_START               "開始します"
+    IDS_REGIPMSG            "IPMsg"
+END
+
+#endif    // 日本語 resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英語 (ｱﾒﾘｶ) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+UNINSTALL_DIALOG DIALOG DISCARDABLE  0, 0, 183, 91
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "IP Messenger Uninstall"
+FONT 8, "Verdana"
+BEGIN
+    DEFPUSHBUTTON   "Start",IDOK,68,71,44,15
+    PUSHBUTTON      "Cancel",IDCANCEL,126,72,36,14
+    EDITTEXT        RESETUP_EDIT,8,7,167,12,ES_AUTOHSCROLL | ES_READONLY
+    GROUPBOX        "Details",IDC_STATIC,8,22,167,45,BS_CENTER | WS_GROUP
+    LTEXT           "Delete regsitry and shortcut",IDC_STATIC,20,34,115,12
+    CONTROL         "Delete Public Key",DELPUBKEY_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,29,49,89,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_UNINSTCOMPLETE      "Uninstallation is completed.\r\n"
+    IDS_TERMINATE           "Do you permit to close IP Messenger?"
+    IDS_CANTTERMINATE       "Can't terminate IP Messenger. Please terminate by manual."
+    IDS_REQUIREADMIN_TERM   "Admin privillege is required for terminating IP Messenger"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_REQUIREADMIN_PUBKEY "Admin privillege is required for delete public keypair.\r\nDo you want to run by Admin?"
+    IDS_NOTCREATEFILE       "Can't create file"
+    IDS_START               "Do you permit to start?"
+    IDS_REGIPMSG            "IPMsgEng"
+END
+
+#endif    // 英語 (ｱﾒﾘｶ) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

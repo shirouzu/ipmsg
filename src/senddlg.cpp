@@ -1,10 +1,10 @@
 static char *senddlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   senddlg.cpp	Ver3.00";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   senddlg.cpp	Ver3.10";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2011-05-11(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -63,7 +63,7 @@ TSendDlg::~TSendDlg()
 		delete findDlg;
 
 	// ListView メモリリーク暫定対策...
-	hostListView.SendMessage(LVM_DELETEALLITEMS, 0, 0);
+	hostListView.DeleteAllItems();
 
 	if (hListFont)
 		::DeleteObject(hListFont);
@@ -75,6 +75,14 @@ TSendDlg::~TSendDlg()
 	delete [] shareStr;
 	if (hostArray)
 		free(hostArray);
+}
+
+BOOL TSendDlg::PreProcMsg(MSG *msg)
+{
+	if (msg->message == WM_KEYDOWN && msg->wParam == VK_ESCAPE) {
+		return TRUE;
+	}
+	return	TDlg::PreProcMsg(msg);
 }
 
 #define AW_HOR_POSITIVE 0x00000001
@@ -108,7 +116,9 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 	editSub.SendMessage(EM_SETTARGETDEVICE, 0, 0);		// 折り返し
 
 	separateSub.AttachWnd(GetDlgItem(SEPARATE_STATIC));
-	hostListView.AttachWnd(GetDlgItem(HOST_LIST));
+	DWORD	add_style = LVS_EX_HEADERDRAGDROP|LVS_EX_FULLROWSELECT;
+	if (cfg->GridLineCheck) add_style |= LVS_EX_GRIDLINES;
+	hostListView.AttachWnd(GetDlgItem(HOST_LIST), add_style);
 	hostListHeader.AttachWnd((HWND)hostListView.SendMessage(LVM_GETHEADER, 0, 0));
 
 	SetDlgIcon(hWnd);
@@ -127,7 +137,7 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 		SetDlgItemTextU8(IDOK, GetLoadStrU8(IDS_FIRE));
 
 	if (cfg->SecretCheck)
-		SendDlgItemMessage(SECRET_CHECK, BM_SETCHECK, cfg->SecretCheck, 0);
+		CheckDlgButton(SECRET_CHECK, cfg->SecretCheck);
 	else
 		::EnableWindow(GetDlgItem(PASSWORD_CHECK), FALSE);
 
@@ -186,7 +196,7 @@ void TSendDlg::InitializeHeader(void)
 
 // カラムヘッダを全削除
 	while (maxItems > 0)
-		hostListView.SendMessage(LVM_DELETECOLUMN, --maxItems, 0);
+		hostListView.DeleteColumn(--maxItems);
 
 	ColumnItems = cfg->ColumnItems & ~(1 << SW_ABSENCE);
 	memcpy(FullOrder, cfg->SendOrder, sizeof(FullOrder));
@@ -204,46 +214,28 @@ void TSendDlg::InitializeHeader(void)
 			order[orderCnt++] = revItems[FullOrder[cnt]];
 	}
 
-// 常に選択
-	DWORD dw = hostListView.GetWindowLong(GWL_STYLE) | LVS_SHOWSELALWAYS;
-	hostListView.SetWindowLong(GWL_STYLE, dw);
-
-// １行全カラム選択など
-	DWORD style = hostListView.SendMessage(LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0) | LVS_EX_FULLROWSELECT | LVS_EX_HEADERDRAGDROP;
-	if (cfg->GlidLineCheck)
-		style |= LVS_EX_GRIDLINES;
-	else
-		style &= ~LVS_EX_GRIDLINES;
-	hostListView.SendMessage(LVM_SETEXTENDEDLISTVIEWSTYLE, 0, style);
-
-	static WCHAR	*headerStr[MAX_SENDWIDTH];
+	static char	*headerStr[MAX_SENDWIDTH];
 	if (!headerStr[SW_NICKNAME]) {
-		headerStr[SW_NICKNAME]	= GetLoadStrW(IDS_USER);
-		headerStr[SW_PRIORITY]	= GetLoadStrW(IDS_PRIORITY);
-		headerStr[SW_ABSENCE]	= GetLoadStrW(IDS_ABSENCE);
-		headerStr[SW_GROUP]		= GetLoadStrW(IDS_GROUP);
-		headerStr[SW_HOST]		= GetLoadStrW(IDS_HOST);
-		headerStr[SW_USER]		= GetLoadStrW(IDS_LOGON);
-		headerStr[SW_IPADDR]	= GetLoadStrW(IDS_IPADDR);
+		headerStr[SW_NICKNAME]	= GetLoadStrU8(IDS_USER);
+		headerStr[SW_PRIORITY]	= GetLoadStrU8(IDS_PRIORITY);
+		headerStr[SW_ABSENCE]	= GetLoadStrU8(IDS_ABSENCE);
+		headerStr[SW_GROUP]		= GetLoadStrU8(IDS_GROUP);
+		headerStr[SW_HOST]		= GetLoadStrU8(IDS_HOST);
+		headerStr[SW_USER]		= GetLoadStrU8(IDS_LOGON);
+		headerStr[SW_IPADDR]	= GetLoadStrU8(IDS_IPADDR);
 	}
 
-	LV_COLUMNW	lvC;
-	memset(&lvC, 0, sizeof(lvC));
-	lvC.fmt = LVCFMT_LEFT;
-	lvC.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 	for (cnt = 0; cnt < maxItems; cnt++) {
-		lvC.pszText = headerStr[items[cnt]];
-		lvC.cx = cfg->SendWidth[items[cnt]];
-		hostListView.SendMessage(LVM_INSERTCOLUMNW, lvC.iSubItem=cnt, (LPARAM)&lvC);
+		hostListView.InsertColumn(cnt, headerStr[items[cnt]], cfg->SendWidth[items[cnt]]);
 	}
-	hostListView.SendMessage(LVM_SETCOLUMNORDERARRAY, maxItems, (LPARAM)order);
+	hostListView.SetColumnOrder(order, maxItems);
 }
 
 void TSendDlg::GetOrder(void)
 {
 	int		order[MAX_SENDWIDTH], orderCnt=0;
 
-	if (hostListView.SendMessage(LVM_GETCOLUMNORDERARRAY, maxItems, (LPARAM)order) == FALSE) {
+	if (!hostListView.GetColumnOrder(order, maxItems)) {
 		MessageBoxU8(GetLoadStrU8(IDS_COMCTL), GetLoadStrU8(IDS_CANTGETORDER));
 		return;
 	}
@@ -264,22 +256,23 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	case IDOK:
 		if (IsSending())
 			return	TRUE;
-		if (findDlg && findDlg->hWnd)
-			return	findDlg->SetForegroundWindow();
-		if (cfg->AbsenceCheck && cfg->Debug < 2)
-		{
-			if (MessageBoxU8(GetLoadStrU8(IDS_ABSENCEQUERY), MSG_STR, MB_OKCANCEL) != IDOK)
+//		if (findDlg && findDlg->hWnd)
+//			return	findDlg->SetForegroundWindow();
+		if (cfg->AbsenceCheck && cfg->Debug < 2) {
+			if (MessageBoxU8(GetLoadStrU8(IDS_ABSENCEQUERY), IP_MSG, MB_OKCANCEL) != IDOK)
 				return	TRUE;
 			::SendMessage(GetMainWnd(), WM_COMMAND, MENU_ABSENCE, 0);
 		}
+
 		SendMsg();
 		if (shareInfo && shareInfo->fileCnt == 0)
 			shareMng->DestroyShare(shareInfo), shareInfo = NULL;
+
 		return	TRUE;
 
 	case IDCANCEL:
-		if (findDlg && findDlg->hWnd)
-			return	findDlg->Destroy(), TRUE;
+//		if (findDlg && findDlg->hWnd)
+//			return	findDlg->Destroy(), TRUE;
 
 		if (shareInfo)
 			shareMng->DestroyShare(shareInfo), shareInfo = NULL;
@@ -291,10 +284,10 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		return	TRUE;
 
 	case SECRET_CHECK:
-		if (::IsDlgButtonChecked(hWnd, SECRET_CHECK) != 0)
+		if (IsDlgButtonChecked(SECRET_CHECK) != 0)
 			::EnableWindow(GetDlgItem(PASSWORD_CHECK), TRUE);
 		else {
-			SendDlgItemMessage(PASSWORD_CHECK, BM_SETCHECK, 0, 0);
+			CheckDlgButton(PASSWORD_CHECK, 0);
 			::EnableWindow(GetDlgItem(PASSWORD_CHECK), FALSE);
 		}
 		break;
@@ -462,7 +455,7 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		{
 			if (wID == MENU_PRIORITY_RESET)
 			{
-				if (MessageBoxU8(GetLoadStrU8(IDS_DEFAULTSET), MSG_STR, MB_OKCANCEL) != IDOK)
+				if (MessageBoxU8(GetLoadStrU8(IDS_DEFAULTSET), IP_MSG, MB_OKCANCEL) != IDOK)
 					return	TRUE;
 				while (cfg->priorityHosts.HostCnt() > 0)
 				{
@@ -484,7 +477,7 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 				for (int cnt=0; cnt < memberCnt; cnt++)
 				{
-					if (hostArray[cnt]->priority == priority || (hostListView.SendMessage(LVM_GETITEMSTATE, cnt, LVIS_SELECTED) & LVIS_SELECTED) == 0)
+					if (hostArray[cnt]->priority == priority || !hostListView.IsSelected(cnt))
 						continue;
 					if (hostArray[cnt]->priority == DEFAULT_PRIORITY)
 						cfg->priorityHosts.AddHost(hostArray[cnt]);
@@ -644,41 +637,36 @@ BOOL TSendDlg::EvDropFiles(HDROP hDrop)
 	return	TRUE;
 }
 
-WCHAR *TSendDlg::GetListItemStrW(Host *host, int item)
+void TSendDlg::GetListItemStr(Host *host, int item, char *buf)
 {
-	static WCHAR	wbuf[MAX_LISTBUF];
-	char	*s, buf[MAX_LISTBUF];
-
 	switch (items[item]) {
 	case SW_NICKNAME:
-		s = *host->nickName ? host->nickName : host->hostSub.userName;
+		strcpy(buf, *host->nickName ? host->nickName : host->hostSub.userName);
 		break;
 	case SW_USER:
-		s = host->hostSub.userName;
+		strcpy(buf, host->hostSub.userName);
 		break;
 	case SW_ABSENCE:
-		s = (host->hostStatus & IPMSG_ABSENCEOPT) ? "*" : "";
+		strcpy(buf, (host->hostStatus & IPMSG_ABSENCEOPT) ? "*" : "");
 		break;
 	case SW_PRIORITY:
-		s = buf;
-		if (host->priority == DEFAULT_PRIORITY) s[0] = '-', s[1] = 0;
-		else if (host->priority <= 0) s[0] = 'X', s[1] = 0;
-		else wsprintf(s, "%d", cfg->PriorityMax - (host->priority - DEFAULT_PRIORITY) / PRIORITY_OFFSET);
+		if (host->priority == DEFAULT_PRIORITY) strcpy(buf, "-");
+		else if (host->priority <= 0) strcpy(buf, "X");
+		else wsprintf(buf, "%d", cfg->PriorityMax - (host->priority - DEFAULT_PRIORITY) / PRIORITY_OFFSET);
 		break;
 	case SW_GROUP:
-		s = host->groupName;
+		strcpy(buf, host->groupName);
 		break;
 	case SW_HOST:
-		s = host->hostSub.hostName;
+		strcpy(buf, host->hostSub.hostName);
 		break;
 	case SW_IPADDR:
-		s = inet_ntoa(*(LPIN_ADDR)&host->hostSub.addr);
+		strcpy(buf, inet_ntoa(*(LPIN_ADDR)&host->hostSub.addr));
 		break;
 	default:
-		return	NULL;
+		*buf = 0;
+		break;
 	}
-	U8toW(s, wbuf, MAX_LISTBUF);
-	return	wbuf;
 }
 
 
@@ -703,15 +691,6 @@ BOOL TSendDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 		}
 		return	TRUE;
 
-	case LVN_GETDISPINFOW:
-		{
-			LV_DISPINFOW	*dispInfo = (LV_DISPINFOW *)pNmHdr;
-			Host	*host = (Host *)dispInfo->item.lParam;
-
-			dispInfo->item.pszText = GetListItemStrW(host, dispInfo->item.iSubItem);
-		}
-		return	TRUE;
-
 	case LVN_ENDSCROLL:	// XP の対策
 		::InvalidateRect(editSub.hWnd, NULL, TRUE);
 		::UpdateWindow(editSub.hWnd);
@@ -720,10 +699,16 @@ BOOL TSendDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 	case EN_LINK:
 		{
 			ENLINK	*el = (ENLINK *)pNmHdr;
-			if (el->msg == WM_LBUTTONDOWN) {
+			switch (el->msg) {
+			case WM_LBUTTONDOWN:
 //				Debug("EN_LINK (%d %d)\n", el->chrg.cpMin, el->chrg.cpMax);
 				editSub.SendMessageV(EM_EXSETSEL, 0, (LPARAM)&el->chrg);
 //				editSub.EventUser(WM_EDIT_DBLCLK, 0, 0);
+				break;
+
+			case WM_RBUTTONUP:
+				editSub.PostMessage(WM_CONTEXTMENU, 0, GetMessagePos());
+				break;
 			}
 		}
 		return	TRUE;
@@ -945,7 +930,7 @@ BOOL TSendDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 		}
 	}
 	strcat(buf, GetLoadStrU8(IDS_RETRYSEND));
-	int ret = MessageBoxU8(buf, MSG_STR, MB_RETRYCANCEL|MB_ICONINFORMATION);
+	int ret = MessageBoxU8(buf, IP_MSG, MB_RETRYCANCEL|MB_ICONINFORMATION);
 	delete [] buf;
 
 	if (ret == IDRETRY && !IsSendFinish())
@@ -994,6 +979,13 @@ void TSendDlg::SetQuoteStr(LPSTR str, LPCSTR quoteStr)
 		}
 		if ((*d++ = *s++) == '\n') is_quote = TRUE;
 	}
+	if ((WCHAR *)vbuf.Buf() != d) {
+		if (*(d - 1) != '\n') {
+			*d++ = '\r';
+			*d++ = '\n';
+		}
+	}
+
 	*d = 0;
 
 	editSub.SendMessageW(EM_REPLACESEL, 0, (LPARAM)vbuf.Buf());
@@ -1002,21 +994,58 @@ void TSendDlg::SetQuoteStr(LPSTR str, LPCSTR quoteStr)
 /*
 	HostEntryの追加
 */
-#define MAX_ICON	5
 void TSendDlg::AddHost(Host *host)
 {
 	if (IsSending() || host->priority <= 0 && !hiddenDisp)
 		return;
 
+	char	buf[MAX_BUF];
 	LV_ITEM	lvi;
 
 	lvi.mask = LVIF_TEXT|LVIF_PARAM|(lvStateEnable ? LVIF_STATE : LVIF_IMAGE);
 	lvi.iItem = GetInsertIndexPoint(host);
 	lvi.iSubItem = 0;
-	int	state = ((host->hostStatus & IPMSG_ABSENCEOPT) ? 0 : 1) | ((host->hostStatus & IPMSG_ENCRYPTOPT) ? 4 : ((host->hostStatus & IPMSG_FILEATTACHOPT) ? 2 : 0));
-	lvi.state = INDEXTOSTATEIMAGEMASK((state + 1) % (MAX_ICON + 1));
-	lvi.stateMask = LVIS_STATEIMAGEMASK;
-	lvi.pszText = (char *)GetListItemStrW(host, 0);
+
+	int		state = 0;
+	if (host->hostStatus & IPMSG_CLIPBOARDOPT) {
+		if (GetUserNameDigestField(host->hostSub.userName)) {
+			state = STI_SIGN_CLIP;
+		}
+		else if ((host->hostStatus & IPMSG_ENCRYPTOPT)) {
+			state = STI_ENC_CLIP;
+		}
+		else {
+			state = STI_CLIP;
+		}
+	}
+	else if (host->hostStatus & IPMSG_FILEATTACHOPT) {
+		if (GetUserNameDigestField(host->hostSub.userName)) {
+			state = STI_SIGN_FILE;
+		}
+		else if (host->hostStatus & IPMSG_ENCRYPTOPT) {
+			state = STI_ENC_FILE;
+		}
+		else {
+			state = STI_FILE;
+		}
+	}
+	else {
+		if (GetUserNameDigestField(host->hostSub.userName)) {
+			state = STI_SIGN;
+		}
+		else if (host->hostStatus & IPMSG_ENCRYPTOPT) {
+			state = STI_ENC;
+		}
+		else {
+			state = STI_NONE;
+		}
+	}
+
+	int		absence = (host->hostStatus & IPMSG_ABSENCEOPT) ? 1 : 0;
+	lvi.state = INDEXTOSTATEIMAGEMASK(state + 1) | INDEXTOOVERLAYMASK(absence);
+	lvi.stateMask = LVIS_STATEIMAGEMASK | LVIS_OVERLAYMASK;
+	GetListItemStr(host, 0, buf);
+	lvi.pszText = buf;
 	lvi.cchTextMax = 0;
 	lvi.iImage = 0;
 	lvi.lParam = (LPARAM)host;
@@ -1025,6 +1054,11 @@ void TSendDlg::AddHost(Host *host)
 	int		index;
 	if ((index = (int)hostListView.SendMessage(LVM_INSERTITEMW, 0, (LPARAM)&lvi)) >= 0)
 	{
+		for (int i=0; i < maxItems; i++) {
+			GetListItemStr(host, i, buf);
+			hostListView.SetSubItem(index, i, buf);
+		}
+
 #define BIG_ALLOC	100
 		if ((memberCnt % BIG_ALLOC) == 0)
 			hostArray = (Host **)realloc(hostArray, (memberCnt + BIG_ALLOC) * sizeof(Host *));
@@ -1054,15 +1088,15 @@ void TSendDlg::DelHost(Host *host)
 
 	listOperateCnt++;
 
-	int		index;
+	int		i;
 
-	for (index=0; index < memberCnt; index++)
-		if (hostArray[index] == host)
+	for (i=0; i < memberCnt; i++)
+		if (hostArray[i] == host)
 			break;
 
-	if (index < memberCnt && hostListView.SendMessage(LVM_DELETEITEM, index, 0) != LB_ERR)
+	if (i < memberCnt && hostListView.DeleteItem(i))
 	{
-		memmove(hostArray + index, hostArray + index +1, (memberCnt - index -1) * sizeof(Host *));
+		memmove(hostArray + i, hostArray + i +1, (memberCnt - i -1) * sizeof(Host *));
 		memberCnt--;
 		DisplayMemberCnt();
 	}
@@ -1073,7 +1107,7 @@ void TSendDlg::DelAllHost(void)
 {
 	if (IsSending())
 		return;
-	hostListView.SendMessage(LVM_DELETEALLITEMS, 0, 0);
+	hostListView.DeleteAllItems();
 	free(hostArray);
 	hostArray = NULL;
 	memberCnt = 0;
@@ -1307,6 +1341,10 @@ BOOL TSendDlg::SendMsg(void)
 		command = rbutton_on ? IPMSG_GETINFO : IPMSG_GETABSENCEINFO;
 	else if (ctl_on || shift_on || rbutton_on)
 		return	FALSE;
+	else if (!shareInfo && editSub.GetWindowTextLengthV() <= 0) {
+		if (MessageBoxU8(GetLoadStrU8(IDS_EMPTYMSG), IP_MSG,
+						 MB_OKCANCEL|MB_ICONQUESTION) == IDCANCEL) return FALSE;
+	}
 
 	if (listOperateCnt) {
 		MessageBoxU8(GetLoadStrU8(IDS_BUSYMSG));
@@ -1317,7 +1355,7 @@ BOOL TSendDlg::SendMsg(void)
 		return	FALSE;
 
 	for (i=0, storeCnt=0; i < memberCnt && storeCnt < sendEntryNum; i++) {
-		if ((hostListView.SendMessage(LVM_GETITEMSTATE, i, LVIS_SELECTED) & LVIS_SELECTED) == 0)
+		if (!hostListView.IsSelected(i))
 			continue;
 		if ((cfg->ClipMode & CLIP_ENABLE) && (hostArray[i]->hostStatus & IPMSG_CLIPBOARDOPT))
 			is_clip_enable = TRUE;
@@ -1325,11 +1363,13 @@ BOOL TSendDlg::SendMsg(void)
 	}
 	if (storeCnt == 0) {
 		delete [] sendEntry;
+		sendEntry = NULL;
 		return	FALSE;
 	}
 
 	timerID = IPMSG_DUMMY_TIMER;	// この時点で送信中にする
 
+	if (findDlg && findDlg->hWnd) findDlg->Destroy();
 	TWin::Show(SW_HIDE);
 	::SendMessage(GetMainWnd(), WM_SENDDLG_HIDE, 0, (LPARAM)this);
 
@@ -1358,9 +1398,9 @@ BOOL TSendDlg::SendMsg(void)
 		SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
 	}
 
-	if (::IsDlgButtonChecked(hWnd, SECRET_CHECK) != 0)
+	if (IsDlgButtonChecked(SECRET_CHECK) != 0)
 		command |= IPMSG_SECRETEXOPT;
-	if (::IsDlgButtonChecked(hWnd, PASSWORD_CHECK) != 0)
+	if (IsDlgButtonChecked(PASSWORD_CHECK) != 0)
 		command |= IPMSG_PASSWORDOPT;
 	if (shareInfo && shareInfo->fileCnt)
 		command |= IPMSG_FILEATTACHOPT;
@@ -1391,16 +1431,21 @@ BOOL TSendDlg::SendMsg(void)
 		char		hostStr[MAX_LISTBUF];
 		Host		*host = sendEntry[i].Host();
 		ULONG		opt_target = opt & host->hostStatus;
+		ULONG		cmd_target = command;
 
 		if (opt_target & IPMSG_CAPUTF8OPT) opt_target |= IPMSG_UTF8OPT;
 		opt_sum |= opt_target;
+		if (is_bmp_only && (host->hostStatus & IPMSG_CLIPBOARDOPT) == 0) {
+			cmd_target &= ~(IPMSG_FILEATTACHOPT|IPMSG_ENCEXTMSGOPT);
+		}
+
 		if (GetUserNameDigestField(host->hostSub.userName)) use_sign = TRUE;
-		MakeListString(cfg, host, hostStr);
+		MakeListString(cfg, host, hostStr, TRUE);
 		logmng->WriteSendHead(hostStr);
 
 		sendEntry[i].SetStatus((opt_target & IPMSG_ENCRYPTOPT) == 0 ? ST_MAKEMSG :
 					host->pubKey.Key() && host->pubKeyUpdated ? ST_MAKECRYPTMSG : ST_GETCRYPT);
-		sendEntry[i].SetCommand(command | opt_target);
+		sendEntry[i].SetCommand(cmd_target | opt_target);
 	}
 	command |= opt_sum;
 
@@ -1451,7 +1496,8 @@ BOOL TSendDlg::MakeMsgPacket(SendEntry *entry)
 	}
 
 	msgMng->MakeMsg(buf, packetNo, entry->Command(), tmpbuf,
-		(entry->Command() & IPMSG_ENCEXTMSGOPT) ? NULL : shareStr, &msgLen);
+					(entry->Command() & IPMSG_ENCEXTMSGOPT) ||
+					(entry->Command() & IPMSG_FILEATTACHOPT) == 0 ? NULL : shareStr, &msgLen);
 	entry->SetMsg(buf, msgLen);
 	entry->SetStatus(ST_SENDMSG);
 
@@ -1634,48 +1680,79 @@ BOOL TSendDlg::SendMsgCoreEntry(SendEntry *entry)
 
 inline char *strtoupper(char *buf, const char *org)
 {
-	BOOL dbcsFlg = FALSE;
-
 	for (int i=0; buf[i] = org[i]; i++) {
-		if (dbcsFlg)
-			dbcsFlg = FALSE;
-		else if (IsDBCSLeadByte(org[i]))
-			dbcsFlg = TRUE;
-		else
-			buf[i] = toupper(org[i]);
+		buf[i] = toupper(org[i]);
 	}
 	return	buf;
+}
+
+BOOL is_match_host(Host *host, char *key, BOOL is_all)
+{
+	char	key_buf[MAX_NAMEBUF], buf[MAX_NAMEBUF], user_name[MAX_NAMEBUF];
+	char	*p;
+
+	strtoupper(key_buf, key);
+	strtoupper(user_name, host->hostSub.userName);
+	if ((p = (char *)GetUserNameDigestField(user_name))) *p = 0;
+
+	if (strstr(*host->nickName ? strtoupper(buf, host->nickName) : user_name, key_buf) ||
+		is_all &&	(strstr(strtoupper(buf, host->groupName), key_buf)
+					|| strstr(strtoupper(buf, host->hostSub.hostName), key_buf)
+					|| strstr(user_name, key_buf))) {
+		return	TRUE;
+	}
+	return	FALSE;
 }
 
 /*
 	検索
 */
-BOOL TSendDlg::FindHost(char *findStr, BOOL isAllfind)
+BOOL TSendDlg::FindHost(char *findStr)
 {
 	int		startNo = hostListView.GetFocusIndex() + 1;
-	char	find_buf[MAX_NAMEBUF], buf[MAX_NAMEBUF];
 
 	if (*findStr == '\0')
 		return	FALSE;
 
-	strtoupper(find_buf, findStr);
-
 	for (int i=0; i < memberCnt; i++) {
-		int		index = (i + startNo) % memberCnt;
-		if (*hostArray[index]->nickName)
-			strtoupper(buf, hostArray[index]->nickName);
-		else
-			strtoupper(buf, hostArray[index]->hostSub.userName);
+		Host	*host = hostArray[(i + startNo) % memberCnt];
 
-		if (strstr(buf, find_buf) || isAllfind &&
-			(strstr(strtoupper(buf, hostArray[index]->groupName), find_buf)
-			|| strstr(strtoupper(buf, hostArray[index]->hostSub.hostName), find_buf)
-			|| strstr(strtoupper(buf, hostArray[index]->hostSub.userName), find_buf))) {
-			SelectHost(&hostArray[index]->hostSub, TRUE);
+		if (is_match_host(host, findStr, cfg->FindAll)) {
+			SelectHost(&host->hostSub, TRUE);
 			return	TRUE;
 		}
 	}
 	return	FALSE;
+}
+
+/*
+	Filter
+*/
+int TSendDlg::FilterHost(char *findStr)
+{
+	Host	*selected_host = NULL;
+
+	for (int i=0; i < hosts->HostCnt(); i++) {
+		Host	*host = hosts->GetHost(i);
+
+		if (!*findStr || is_match_host(host, findStr, cfg->FindAll)) {
+			int	idx = GetInsertIndexPoint(host);
+			if (idx < memberCnt && host == hostArray[idx]) {
+				if (!*findStr && !selected_host && hostListView.IsSelected(idx)) {
+					selected_host = host;
+				}
+			}
+			else AddHost(host);
+		}
+		else {
+			DelHost(host);
+		}
+	}
+
+	// 選択位置を表示
+	if (selected_host) SelectHost(&selected_host->hostSub);
+
+	return	memberCnt;
 }
 
 /*
@@ -1759,6 +1836,70 @@ BOOL TSendDlg::IsSendFinish(void)
 	return	finish;
 }
 
+HBITMAP CreateStatusBmp(int cx, int cy, int status)
+{
+	VBuf	bmpVbuf;
+	int		aligned_line_size;
+
+	if (!PrepareBmp(cx, cy, &aligned_line_size, &bmpVbuf)) return NULL;
+
+	int		lines  = cy / 3;
+	int		offset = (cy - lines * 3) / 2;
+
+	DWORD	color;
+
+	switch (status) {
+	case STI_NONE:		color = rRGB(128,128,128);	break; // Win v1.00-v1.47
+	case STI_FILE:		color = rRGB(180,180,240);	break; // MacX
+	case STI_CLIP:		color = rRGB(200,200,255);	break;
+	case STI_ENC:		color = rRGB(200,160,160);	break;
+	case STI_SIGN:		color = rRGB(240,180,180);	break;
+	case STI_ENC_FILE:	color = rRGB(230,230,230);	break; // Win v2.00-v2.11
+	case STI_ENC_CLIP:	color = rRGB(230,230,255);	break; // Win v3.00- in Win2K
+	case STI_SIGN_FILE:	color = rRGB(255,200,200);	break; // Win v3.00 disable Clip settings
+	case STI_SIGN_CLIP:	color = rRGB(255,255,255);	break; // Win v3.00-
+	}
+
+	for (int i=0; i < cy; i++) {
+		BYTE	*data = bmpVbuf.Buf() + bmpVbuf.UsedSize() + aligned_line_size * i;
+		for (int j=0; j < cx; j++) {
+			memcpy(data, &color, 3);
+			data += 3;
+		}
+	}
+	return	FinishBmp(&bmpVbuf);
+}
+
+HBITMAP CreateAbsenceBmp(int cx, int cy)
+{
+	VBuf	bmpVbuf;
+	int		aligned_line_size;
+	int		i, j;
+
+	if (!PrepareBmp(cx, cy, &aligned_line_size, &bmpVbuf)) return NULL;
+
+	DWORD	on  = rRGB( 64, 64, 64);
+	DWORD	mid = rRGB(100,100,100);
+	DWORD	off = rRGB(255,255,255);
+	DWORD	rgb, last_rgb = off;
+
+	for (i=0; i < cy; i++) {
+		BYTE	*data = bmpVbuf.Buf() + bmpVbuf.UsedSize() + aligned_line_size * i;
+		float	yratio = (float)i / cy;
+		rgb = yratio >= 0.10 && yratio < 0.24 || yratio >= 0.33 && yratio < 0.83 ? on : off;
+//		if (last_rgb != mid && rgb != last_rgb) rgb = mid;
+		last_rgb = rgb;
+		for (j=0; j < cx; j++) {
+			float	xratio = (float)j / cx;
+			DWORD	*target = xratio >= 0.25 && xratio < 0.65 ? &rgb : &off;
+			memcpy(data, target, 3);
+			data += 3;
+		}
+	}
+	return	FinishBmp(&bmpVbuf);
+}
+
+
 /*
 	Font 設定
 */
@@ -1788,7 +1929,7 @@ void TSendDlg::SetFont(void)
 		hListFont = hDlgFont;
  	}
 	hostListHeader.ChangeFontNotify();
-	if (hostListView.SendMessage(LVM_GETITEMCOUNT, 0, 0) > 0) {	// EvCreate時は不要
+	if (hostListView.GetItemCount() > 0) {	// EvCreate時は不要
 		ReregisterEntry();
 	}
 	if (*cfg->SendEditFont.lfFaceName && (hDlgFont = ::CreateFontIndirect(&cfg->SendEditFont)))
@@ -1802,22 +1943,25 @@ void TSendDlg::SetFont(void)
 
 	static HIMAGELIST	himlState;
 	static int			lfHeight;
-	static HICON		hiconItem[MAX_ICON];
 
 	if (!himlState || lfHeight != cfg->SendListFont.lfHeight) {
-		if (!hiconItem[0]) {
-			hiconItem[0] = ::LoadIcon(TApp::GetInstance(), (LPCSTR)IPMSGV1ABS_ICON);
-			hiconItem[1] = ::LoadIcon(TApp::GetInstance(), (LPCSTR)IPMSGV1_ICON);
-			hiconItem[2] = ::LoadIcon(TApp::GetInstance(), (LPCSTR)FILEABS_ICON);
-			hiconItem[3] = ::LoadIcon(TApp::GetInstance(), (LPCSTR)FILE_ICON);
-			hiconItem[4] = ::LoadIcon(TApp::GetInstance(), (LPCSTR)ABSENCE_ICON);
-		}
-		if (himlState)
-			ImageList_Destroy(himlState);
+		int		cx = abs(cfg->SendListFont.lfHeight) / 3;
+		int		cy = abs(cfg->SendListFont.lfHeight);
+		HBITMAP	hbmpItem;
+
+		if (himlState)	ImageList_Destroy(himlState);
 		lfHeight = cfg->SendListFont.lfHeight;
-		himlState = ImageList_Create(abs(cfg->SendListFont.lfHeight) / 4, abs(cfg->SendListFont.lfHeight), TRUE, 1, 1);
-		for (int i=0; i < MAX_ICON; i++)
-			ImageList_AddIcon(himlState, hiconItem[i]);
+		himlState = ImageList_Create(cx, cy, ILC_COLOR24|ILC_MASK, STI_MAX, 0);
+
+		for (int i=0; i < STI_MAX; i++) {
+			hbmpItem = CreateStatusBmp(cx, cy, i);
+			ImageList_Add(himlState, hbmpItem, NULL);
+			::DeleteObject(hbmpItem);
+		}
+		hbmpItem = CreateAbsenceBmp(cx, cy);
+		ImageList_AddMasked(himlState, hbmpItem, RGB(255,255,255));
+		::DeleteObject(hbmpItem);
+		ImageList_SetOverlayImage(himlState, STI_MAX, 1);
 	}
 	hostListView.SendMessage(LVM_SETIMAGELIST, LVSIL_STATE, (LPARAM)himlState);
 	if (hostListView.SendMessage(LVM_GETIMAGELIST, LVSIL_STATE, 0))
@@ -1897,15 +2041,13 @@ void TSendDlg::PopupContextMenu(POINTS pos)
 	HMENU	hGroupMenu = ::CreateMenu();
 	int		cnt;
 	char	buf[MAX_BUF];
-	int		selectNum = (int)hostListView.SendMessage(LVM_GETSELECTEDCOUNT, 0, 0);
+	int		selectNum = hostListView.GetSelectedItemCount();
 //	char	*appendStr = selectNum > 0 ? GetLoadStrU8(IDS_MOVETO) : GetLoadStrU8(IDS_SELECT);
 	char	*appendStr = selectNum > 0 ? GetLoadStrU8(IDS_MOVETO) : GetLoadStrU8(IDS_MOVETO);
 	u_int	flag = selectNum <= 0 ? MF_GRAYED : 0;
-
-	if (!hMenu || !hPriorityMenu || !hGroupMenu)
-		return;
-
 	BOOL	isJapanese = IsLang(LANG_JAPANESE);
+
+	if (!hMenu || !hPriorityMenu || !hGroupMenu) return;
 
 // priority menu
 	for (cnt=cfg->PriorityMax; cnt >= 0; cnt--)
@@ -1925,12 +2067,16 @@ void TSendDlg::PopupContextMenu(POINTS pos)
 		if (isJapanese)
 			ptr += wsprintf(ptr, " %s ", appendStr);
 
-		wsprintf(ptr, cnt == 1 ? GetLoadStrU8(IDS_MEMBERCOUNTDEF) : GetLoadStrU8(IDS_MEMBERCOUNT), hosts->PriorityHostCnt(cnt * PRIORITY_OFFSET, PRIORITY_OFFSET), cfg->priorityHosts.PriorityHostCnt(cnt * PRIORITY_OFFSET, PRIORITY_OFFSET));
-		AppendMenuU8(hPriorityMenu, MF_STRING|flag, MENU_PRIORITY_START + cnt * PRIORITY_OFFSET, buf);
+		wsprintf(ptr, cnt == 1 ? GetLoadStrU8(IDS_MEMBERCOUNTDEF) : GetLoadStrU8(IDS_MEMBERCOUNT),
+				hosts->PriorityHostCnt(cnt * PRIORITY_OFFSET, PRIORITY_OFFSET),
+				cfg->priorityHosts.PriorityHostCnt(cnt * PRIORITY_OFFSET, PRIORITY_OFFSET));
+		AppendMenuU8(hPriorityMenu, MF_STRING|flag, MENU_PRIORITY_START + cnt * PRIORITY_OFFSET,
+					buf);
 	}
 
 	AppendMenuU8(hPriorityMenu, MF_SEPARATOR, 0, 0);
-	AppendMenuU8(hPriorityMenu, MF_STRING|(hiddenDisp ? MF_CHECKED : 0), MENU_PRIORITY_HIDDEN, GetLoadStrU8(IDS_TMPNODISPDISP));
+	AppendMenuU8(hPriorityMenu, MF_STRING|(hiddenDisp ? MF_CHECKED : 0), MENU_PRIORITY_HIDDEN,
+				GetLoadStrU8(IDS_TMPNODISPDISP));
 	AppendMenuU8(hPriorityMenu, MF_STRING, MENU_PRIORITY_RESET, GetLoadStrU8(IDS_RESETPRIORITY));
 	AppendMenuU8(hMenu, MF_POPUP, (UINT)hPriorityMenu, GetLoadStrU8(IDS_SORTFILTER));
 //	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
@@ -1949,32 +2095,16 @@ void TSendDlg::PopupContextMenu(POINTS pos)
 				break;
 		}
 		if (cnt2 == menuMax && *hostArray[cnt]->groupName)
-			AppendMenuU8(hGroupMenu, MF_STRING|((menuMax % rowMax || menuMax == 0) ? 0 : MF_MENUBREAK), MENU_GROUP_START + menuMax, hostArray[cnt]->groupName);
+			AppendMenuU8(hGroupMenu, MF_STRING|((menuMax % rowMax || !menuMax) ? 0 : MF_MENUBREAK),
+						MENU_GROUP_START + menuMax, hostArray[cnt]->groupName);
 	}
-	AppendMenuU8(hMenu, MF_POPUP|(::GetMenuItemCount(hGroupMenu) ? 0 : MF_GRAYED), (UINT)hGroupMenu, GetLoadStrU8(IDS_GROUPSELECT));
+	AppendMenuU8(hMenu, MF_POPUP|(::GetMenuItemCount(hGroupMenu) ? 0 : MF_GRAYED),
+				(UINT)hGroupMenu, GetLoadStrU8(IDS_GROUPSELECT));
 //	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 
 	SetMainMenu(hMenu);
 	::TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, pos.x, pos.y, 0, hWnd, NULL);
 	::DestroyMenu(hMenu);
-}
-
-BOOL IsImageInClipboard(HWND hWnd)
-{
-	if (!OpenClipboard(hWnd)) return FALSE;
-
-	BOOL ret = FALSE;
-	UINT fmt = 0;
-
-	while ((fmt = EnumClipboardFormats(fmt))) {
-		if (fmt == CF_BITMAP || fmt == CF_DIB || fmt == CF_DIBV5) {
-			ret = TRUE;
-			break;
-		}
-	}
-
-	CloseClipboard();
-	return	ret;
 }
 
 void TSendDlg::SetMainMenu(HMENU hMenu)
@@ -1983,35 +2113,19 @@ void TSendDlg::SetMainMenu(HMENU hMenu)
 	AppendMenuU8(hMenu, MF_STRING, MENU_FILEADD, GetLoadStrU8(IDS_FILEATTACHMENU));
 	AppendMenuU8(hMenu, MF_STRING, MENU_FOLDERADD, GetLoadStrU8(IDS_FOLDERATTACHMENU));
 
-	AppendMenuU8(hMenu, MF_STRING|(!IsImageInClipboard(hWnd) ? MF_DISABLED|MF_GRAYED : 0),
+	AppendMenuU8(hMenu, MF_STRING|
+						(!(cfg->ClipMode & CLIP_ENABLE) || !IsImageInClipboard(hWnd) ?
+							MF_DISABLED|MF_GRAYED : 0),
 						MENU_IMAGEPASTE, GetLoadStrU8(IDS_IMAGEPASTEMENU));
 
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 	AppendMenuU8(hMenu, MF_STRING, MENU_SAVECOLUMN, GetLoadStrU8(IDS_SAVECOLUMN));
 
-	AppendMenuU8(hMenu, MF_POPUP, (UINT)::LoadMenu(TApp::GetInstance(), (LPCSTR)SENDFONT_MENU), GetLoadStrU8(IDS_FONTSET));
-	AppendMenuU8(hMenu, MF_POPUP, (UINT)::LoadMenu(TApp::GetInstance(), (LPCSTR)SIZE_MENU), GetLoadStrU8(IDS_SIZESET));
+	AppendMenuU8(hMenu, MF_POPUP, (UINT)::LoadMenu(TApp::GetInstance(), (LPCSTR)SENDFONT_MENU),
+						GetLoadStrU8(IDS_FONTSET));
+	AppendMenuU8(hMenu, MF_POPUP, (UINT)::LoadMenu(TApp::GetInstance(), (LPCSTR)SIZE_MENU),
+						GetLoadStrU8(IDS_SIZESET));
 	AppendMenuU8(hMenu, MF_STRING, MENU_SAVEPOS, GetLoadStrU8(IDS_SAVEPOS));
 	AppendMenuU8(hMenu, MF_STRING, MENU_MEMBERDISP, GetLoadStrU8(IDS_MEMBERDISP));
-}
-
-BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info)
-{
-	char	buf[MAX_BUF] = "", fname[MAX_PATH_U8];
-	int		offset = 0;
-	for (int cnt=0; cnt < info->fileCnt; cnt++)
-	{
-		if (dlg->ResId() == SEND_DIALOG)
-			ForcePathToFname(info->fileInfo[cnt]->Fname(), fname);
-		else
-			strncpyz(fname, info->fileInfo[cnt]->Fname(), MAX_PATH_U8);
-		offset += wsprintf(buf + offset, "%s ", fname);
-		if (offset + MAX_PATH_U8 >= sizeof(buf))
-			break;
-	}
-	dlg->SetDlgItemTextU8(buttonID, buf);
-	::ShowWindow(dlg->GetDlgItem(buttonID), info->fileCnt ? SW_SHOW : SW_HIDE);
-	::EnableWindow(dlg->GetDlgItem(buttonID), info->fileCnt ? TRUE : FALSE);
-	return	TRUE;
 }
 

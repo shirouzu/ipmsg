@@ -30,8 +30,8 @@
 			<param name="Local" value="ipmsghlp.htm#environment">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-			<param name="Name" value="4. インストール・アンインストール">
-			<param name="Local" value="ipmsghlp.htm#install">
+			<param name="Name" value="4. アンインストール">
+			<param name="Local" value="ipmsghlp.htm#uninstall">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="5. 使用法＆画面説明">
@@ -88,8 +88,8 @@
 			<param name="Local" value="ipmsghlp_eng.htm#environment">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-			<param name="Name" value="4. Install">
-			<param name="Local" value="ipmsghlp_eng.htm#install">
+			<param name="Name" value="4. Uninstall">
+			<param name="Local" value="ipmsghlp_eng.htm#uninstall">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="5. Usage">

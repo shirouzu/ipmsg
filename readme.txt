@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 3.00
-			H.Shirouzu Apr 20, 2011
+	Source code of IP Messenger for Win version 3.10
+			H.Shirouzu Mar 11, 2011
 
 		Copyright (C) 1996-2011 SHIROUZU Hiroaki
 			All Rights Reserved.
@@ -13,6 +13,7 @@ Index.
   3. Requirements
   4. Directory
   5. Support
+  6. About self-extract installer
 
 ----------------------------------------------------------------------
 1. About IP Messenger
@@ -66,6 +67,9 @@ Index.
 3. Requirements
 
  - Visual C++ 6.0 or later
+ - IP Messenger ver3.0 or later, use zlib/lipng for embedded image.
+    http://www.libpng.org/pub/png/libpng.html
+    http://zlib.net/
 
 ----------------------------------------------------------------------
 4. Directory
@@ -94,4 +98,36 @@ Index.
  - ipmsg-ML is opened. If you want to subscribe for this ML,
    http://ipmsg.org/ (Japanese site)
    http://ipmsg.org/index.html.en (English site)
+
+----------------------------------------------------------------------
+6. About self-extract installer
+
+ - v3.10 or later, self-extract installer format is supported.
+   This format is install.exe with additional files.
+   Additional files are "ipmsg.exe", "ipmsg.chm", "setup.exe".
+   Additional file format is this.
+ 　 \n===(70 characters)===\n
+ 　 filesize filename\n
+ 　 (Zlib compressed file)
+
+ - I have used this python script for generate self-extract installer.
+
+=====================================================
+import sys, zlib
+
+def add_file(f, fname):
+	data = zlib.compress(open(fname, "rb").read())
+	f.write("\n%s\n" % ("=" * 70))
+	f.write("%d %s\n" % (len(data), fname))
+	f.write(data)
+
+def gen_inst(installer_name, installer_base, files):
+	f = open(installer_name, "wb")
+	f.write(open(installer_base, "rb").read())
+	for i in files:
+		add_file(f, i)
+	f.close()
+
+gen_inst("ipmsgXXX_installer.exe", "install.exe", ["ipmsg.exe", "ipmsg.chm", "setup.exe"])
+=====================================================
 

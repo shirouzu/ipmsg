@@ -8,68 +8,39 @@
 	Reference				: 
 	======================================================================== */
 
-class TInstDlg : public TDlg
+class TUninstDlg : public TDlg
 {
 protected:
-	BOOL	runasImm;
+	HWND	runasWnd;
 
 public:
-	TInstDlg(char *cmdLine);
-	virtual ~TInstDlg();
+	TUninstDlg(char *cmdLine);
+	virtual ~TUninstDlg();
 
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	BOOL	Install(void);
+	BOOL	UnInstall(void);
 	int		TerminateIPMsg(void);
 };
 
-class TInstApp : public TApp
+class TUninstApp : public TApp
 {
 public:
-	TInstApp(HINSTANCE _hI, LPSTR _cmdLine, int _nCmdShow);
-	virtual ~TInstApp();
+	TUninstApp(HINSTANCE _hI, LPSTR _cmdLine, int _nCmdShow);
+	virtual ~TUninstApp();
 
 	void InitWindow(void);
 };
 
-class TBrowseDirDlg : public TSubClass
-{
-protected:
-	char	*fileBuf;
-	BOOL	dirtyFlg;
-
-public:
-	TBrowseDirDlg(char *_fileBuf) { fileBuf = _fileBuf; }
-	virtual BOOL	AttachWnd(HWND _hWnd);
-	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
-	virtual BOOL	SetFileBuf(LPARAM list);
-	BOOL	IsDirty(void) { return dirtyFlg; };
-};
-
-class TInputDlg : public TDlg
-{
-protected:
-	char	*dirBuf;
-
-public:
-	TInputDlg(char *_dirBuf, TWin *_win) : TDlg(INPUT_DIALOG, _win) { dirBuf = _dirBuf; }
-	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
-};
-
-#define WM_IPMSG_QUIT			(WM_USER + 100)
-#define WM_IPMSG_INSTALL		(WM_USER + 101)
+#define IPMSG_QUIT_MESSAGE		(WM_USER + 100)
 
 #define IPMSG_CLASS				"ipmsg_class"
 #define IPMSG_NAME				"IPMSG for Win32"
-#define IPMSG_FULLNAME			"IP Messenger for Win"
-#define IPMSG_STR				"IPMsg"
 #define HSTOOLS_STR				"HSTools"
 #define IPMSG_DEFAULT_PORT		0x0979
 
 #define IPMSG_EXENAME			"ipmsg.exe"
-#define SETUP_EXENAME			"setup.exe"
-#define IPMSGHELP_NAME			"ipmsg.chm"
 
 #define IPMSG_SHORTCUT_NAME		IPMSG_NAME ".lnk"
 #define UNC_PREFIX				"\\\\"
@@ -82,17 +53,14 @@ public:
 #define REGSTR_PATH				"Path"
 #define REGSTR_PROGRAMFILES		"ProgramFilesDir"
 
-#define INSTALL_STR				"Install"
+#define UNINSTALL_STR			"UnInstall"
 
 // function prototype
 BOOL CALLBACK TerminateIPMsgProc(HWND hWnd, LPARAM lParam);
-BOOL SymLink(LPCSTR src, LPSTR dest, LPCSTR arg="");
 BOOL DeleteLink(LPCSTR path);
-void BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title);
-int CALLBACK BrowseDirDlg_Proc(HWND hWnd, UINT uMsg, LPARAM lParam, LPARAM data);
 BOOL GetParentDirU8(const char *srcfile, char *dir);
 int MakePath(char *dest, const char *dir, const char *file);
-enum CreateStatus { CS_OK, CS_BROKEN, CS_ACCESS };
-CreateStatus CreateFileBySelf(char *path, char *fname);
+UINT GetDriveTypeEx(const char *file);
 BOOL RemoveSameLink(const char *dir, char *remove_path=NULL);
+inline BOOL IsUncFile(const char *path) { return strnicmp(path, UNC_PREFIX, 2) == 0; }
 

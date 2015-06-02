@@ -2,6 +2,7 @@
 // Microsoft Developer Studio generated include file.
 // Used by IPMsg.rc
 //
+#define APPLY_BUTTON                    3
 #define IDS_BROADCAST                   100
 #define IDS_MULTICAST                   101
 #define IDS_UNICAST                     102
@@ -154,6 +155,16 @@
 #define IDS_IMAGEPASTEMENU              273
 #define IDS_FILEWITHCLIP                274
 #define IDS_UNOPENED                    275
+#define IDS_UNKNOWN                     276
+#define IDS_EMPTYMSG                    277
+#define IDS_CAPTION                     278
+#define IDS_CAPTIONADD                  279
+#define IDS_SETUP_SHEET1                301
+#define IDS_SETUP_SHEET2                302
+#define IDS_SETUP_SHEET3                303
+#define IDS_SETUP_SHEET4                304
+#define IDS_SETUP_SHEET5                305
+#define IDS_SETUP_SHEET6                306
 #define SEND_DIALOG                     501
 #define SETUP_DIALOG                    503
 #define IPMSG_ICON                      505
@@ -172,7 +183,7 @@
 #define RECVFONT_MENU                   522
 #define SIZE_MENU                       523
 #define IPMSG_ACCEL                     524
-#define SENDLIST_MENU                   524
+#define SENDLIST_MENU                   525
 #define ABSENCE_DIALOG                  527
 #define URL_DIALOG                      528
 #define SORT_DIALOG                     544
@@ -186,11 +197,20 @@
 #define SHARE_DIALOG                    561
 #define TRANSEND_DIALOG                 562
 #define FILEABS_ICON                    563
-#define PLUGIN_DIALOG                   563
+#define PLUGIN_DIALOG                   564
 #define FILE_ICON                       566
-#define DUMMYPIC_BITMAP                 572
-#define HISTORY_DIALOG                  573
-#define MENU_ICON                       575
+#define SETUP_SHEET1                    571
+#define SETUP_SHEET2                    572
+#define SETUP_SHEET3                    573
+#define SETUP_SHEET4                    574
+#define SETUP_SHEET5                    575
+#define SETUP_SHEET6                    576
+#define DUMMYPIC_BITMAP                 590
+#define HISTORY_DIALOG                  591
+#define MENU_ICON                       592
+#define IPMSGV2_ICON                    593
+#define SETUP_MAIN_SEET                 594
+#define IPMSGV2ABS_ICON                 595
 #define SEND_EDIT                       1001
 #define SECRET_CHECK                    1004
 #define PASSWORD_CHECK                  1005
@@ -221,10 +241,10 @@
 #define OPEN_BUTTON                     1052
 #define RECV_TITLE                      1053
 #define NOERASE_CHECK                   1054
+#define PLUGIN_BUTTON                   1055
 #define ABSENCENONPOPUP_CHECK           1056
 #define LOG_BUTTON                      1057
 #define CONTROLIME_CHECK                1058
-#define PLUGIN_BUTTON                   1058
 #define SHELLEXEC_CHECK                 1059
 #define LOG_CHECK                       1060
 #define MSGMINIMIZE_CHECK               1061
@@ -242,15 +262,15 @@
 #define IPADDR_CHECK                    1074
 #define SOUND_EDIT                      1075
 #define LOGON_CHECK                     1076
-#define LOGUTF8_CHECK                   1076
-#define OLDPASSWORD_EDIT                1077
-#define IMAGESAVE_CHECK                 1077
-#define HOST_CHECK                      1078
-#define PRIORITY_CHECK                  1079
 #define GROUPDISP_CHECK                 1080
 #define GROUP_COMBO                     1081
 #define URL_EDIT                        1082
 #define QUOTE_EDIT                      1083
+#define LOGUTF8_CHECK                   1084
+#define OLDPASSWORD_EDIT                1085
+#define IMAGESAVE_CHECK                 1086
+#define HOST_CHECK                      1087
+#define PRIORITY_CHECK                  1088
 #define URL_BUTTON                      1090
 #define SEPARATE_STATIC                 1091
 #define DEFAULTURL_CHECK                1092
@@ -274,7 +294,7 @@
 #define FILTER_BUTTON                   1133
 #define FILTER_LIST                     1134
 #define CLOSE_BUTTON                    1142
-#define GLIDLINE_CHECK                  1145
+#define GRIDLINE_CHECK                  1145
 #define ALLFIND_CHECK                   1153
 #define FIND_COMBO                      1155
 #define FILE_BUTTON                     1158
@@ -308,6 +328,15 @@
 #define MENU_CHECK                      1197
 #define DETAIL_BUTTON                   1199
 #define DETAIL_CHECK                    1201
+#define SETUP_LIST                      1202
+#define SOUNDPLAY_BUTTON                1205
+#define RECVLOGON_CHECK                 1206
+#define RECVLOGON_CHECK2                1207
+#define SENDDETAIL_BUTTON               1208
+#define LOGONLOG_CHECK                  1209
+#define RECVIPADDR_CHECK                1210
+#define FINDDLGIME_CHECK                1211
+#define OPEN_COMBO                      1212
 #define MENU_SETUP                      10001
 #define MENU_EXIT                       10003
 #define MENU_ABOUT                      10008
@@ -327,8 +356,8 @@
 #define MENU_MEMBERDISP                 10024
 #define MENU_ABSENCEEX                  10030
 #define MENU_SHARE                      10031
+#define MENU_HEADFONT                   10032
 #define MENU_VERSION                    10033
-#define MENU_HEADFONT                   10034
 #define MENU_OPENHISTDLG                10034
 #define MISC_ACCEL                      10035
 #define MENU_SAVECOLUMN                 10036
@@ -348,9 +377,9 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        576
+#define _APS_NEXT_RESOURCE_VALUE        596
 #define _APS_NEXT_COMMAND_VALUE         30038
-#define _APS_NEXT_CONTROL_VALUE         1202
+#define _APS_NEXT_CONTROL_VALUE         1214
 #define _APS_NEXT_SYMED_VALUE           2001
 #endif
 #endif

@@ -52,6 +52,7 @@ MsgMng::MsgMng(ULONG nicAddr, int portNo, Cfg *_cfg)
 	}
 	WtoU8(wbuf, local.userName, sizeof(local.userName));
 	WtoA(wbuf, localA.userName, sizeof(localA.userName));
+	orgLocal = local;
 
 	status = TRUE;
 }

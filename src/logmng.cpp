@@ -44,7 +44,7 @@ BOOL LogMng::WriteRecvMsg(MsgBuf *msg, int opt, THosts *hosts, ShareInfo *shareI
 	WriteStart();
 	char	buf[MAX_PATH_U8] = " From: ";
 
-	MakeListString(cfg, &msg->hostSub, hosts, buf + strlen(buf));
+	MakeListString(cfg, &msg->hostSub, hosts, buf + strlen(buf), TRUE);
 	strcat(buf, "\r\n");
 	Write(buf);
 

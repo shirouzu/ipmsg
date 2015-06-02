@@ -14,11 +14,14 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libpng
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name TLib
+    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "Setup"=.\src\install\Setup.dsp - Package Owner=<4>
+Project: "TLib"=.\src\TLib\TLib.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -26,6 +29,24 @@ Package=<5>
 
 Package=<4>
 {{{
+}}}
+
+###############################################################################
+
+Project: "install"=.\src\install\install.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name TLib
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name zlib
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -40,6 +61,21 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name zlib
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "uninst"=.\src\uninst\uninst.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name TLib
     End Project Dependency
 }}}
 

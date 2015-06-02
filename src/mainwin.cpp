@@ -1,10 +1,10 @@
 static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2011   mainwin.cpp	Ver3.00";
+	"@(#)Copyright (C) H.Shirouzu 1996-2011   mainwin.cpp	Ver3.10";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-20(Wed)
+	Update					: 2011-05-11(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -12,7 +12,6 @@ static char *mainwin_id =
 #include <stdio.h>
 #include "resource.h"
 #include "ipmsg.h"
-#include "blowfish.h"
 
 HICON		TMainWin::hMainIcon = NULL;
 HICON		TMainWin::hRevIcon = NULL;
@@ -61,7 +60,6 @@ TMainWin::TMainWin(ULONG nicAddr, int _portNo, TWin *_parent) : TWin(_parent)
 	activeToggle = TRUE;
 	writeRegFlags = CFG_HOSTINFO|CFG_DELCHLDHOST;
 	trayMode = TRAY_NORMAL;
-	trayNextMode = TRAY_NORMAL;
 
 	InitIcon();
 	MakeBrListEx();
@@ -104,7 +102,7 @@ void TMainWin::Terminate(void)
 	delete setupDlg;
 
 	if (IsNewShell())
-		TaskBar(NIM_DELETE);
+		TaskTray(NIM_DELETE);
 
 	Time_t	now_time = Time();
 	for (int cnt=0; cnt < hosts.HostCnt(); cnt++)
@@ -150,6 +148,7 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 		TChangeWindowMessageFilter(WM_DROPFILES, 1);
 		TChangeWindowMessageFilter(WM_COPYDATA, 1);
 		TChangeWindowMessageFilter(WM_COPYGLOBALDATA, 1);
+		TChangeWindowMessageFilter(WM_CLOSE, 1);
 	}
 
 	if (!msgMng->GetStatus())
@@ -158,7 +157,7 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 	if (IsNewShell())
 	{
 		Show(SW_HIDE);
-		while (!TaskBar(NIM_ADD, hMainIcon, GetLoadStrU8(IDS_IPMSG)))
+		while (!TaskTray(NIM_ADD, hMainIcon, IP_MSG))
 			Sleep(1000);	// for logon script
 	}
 	else
@@ -167,7 +166,7 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 
 	SetIcon(cfg->AbsenceCheck ? hRevIcon : hMainIcon);
 	SetCaption();
-	if (!SetupCryptAPI()) MessageBoxU8("CryptoAPI can't be used. Setup New version IE");
+	if (!SetupCryptAPI(cfg, msgMng)) MessageBoxU8("CryptoAPI can't be used. Setup New version IE");
 
 	msgMng->AsyncSelectRegister(hWnd);
 	SetHotKey(cfg);
@@ -239,6 +238,16 @@ BOOL TMainWin::EvTimer(WPARAM timerID, TIMERPROC proc)
 
 	case IPMSG_CLEANUP_TIMER:
 		shareMng->Cleanup();
+		return	TRUE;
+
+	case IPMSG_BALLOON_RECV_TIMER:
+	case IPMSG_BALLOON_OPEN_TIMER:
+		::KillTimer(hWnd, timerID);
+		if (timerID == IPMSG_BALLOON_RECV_TIMER && trayMode == TRAY_RECV ||
+			timerID == IPMSG_BALLOON_OPEN_TIMER && trayMode == TRAY_OPENMSG) {
+			trayMode = TRAY_NORMAL;
+			BalloonWindow(NULL, NULL, TRAY_NORMAL);
+		}
 		return	TRUE;
 
 	case IPMSG_ENTRY_TIMER:
@@ -420,6 +429,11 @@ BOOL TMainWin::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 
 	case WM_LBUTTONDOWN:
 	case WM_NCLBUTTONDOWN:
+		if (trayMode == TRAY_RECV && cfg->OneClickPopup) {
+			trayMode = TRAY_NORMAL;
+			break;
+		}
+
 		SetForegroundWindow();
 
 		BOOL ctl_on = (GetAsyncKeyState(VK_CONTROL) & 0x8000) ? TRUE : FALSE;
@@ -523,18 +537,16 @@ BOOL TMainWin::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_NOTIFY_TRAY:		// TaskTray
 		switch (lParam) {
 		case NIN_BALLOONHIDE: case NIN_BALLOONTIMEOUT:
-			trayMode = TRAY_NORMAL;
 			return	TRUE;
-	
+
 		case NIN_BALLOONSHOW:
-			trayMode = trayNextMode;
-			trayNextMode = TRAY_NORMAL;
 			return	TRUE;
 
 		case NIN_BALLOONUSERCLICK:
-			if (trayMode == TRAY_RECV) {
-				PostMessage(WM_RECVDLG_OPEN, 0, 0);
+			if (trayMode != TRAY_OPENMSG) {
+				SendMessage(WM_RECVDLG_OPEN, 0, 0);
 			}
+			trayMode = TRAY_NORMAL;
 			return	TRUE;
 		}
 		PostMessage(lParam, 0, 0);
@@ -587,12 +599,29 @@ BOOL TMainWin::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_HISTDLG_NOTIFY:
 		histDlg->SendNotify((HostSub *)wParam, (ULONG)lParam);
+		SetCaption();
+		return	TRUE;
+
+	case WM_FORCE_TERMINATE:
+		TaskTray(NIM_DELETE);
+		::ExitProcess(0xffffffff);
+		return	TRUE;
+
+	case WM_IPMSG_IMECTRL:
+		ControlIME((TWin *)lParam, (BOOL)wParam);
+		return	TRUE;
+
+	case WM_IPMSG_BRNOTIFY:
+		if (lParam == IPMSG_DEFAULT_PORT) {
+			BroadcastEntry(IPMSG_BR_ABSENCE); 
+		}
 		return	TRUE;
 
 	default:
 		if (uMsg == TaskBarCreateMsg)
 		{
-			TaskBar(NIM_ADD, hMainIcon, GetLoadStrU8(IDS_IPMSG));
+			TaskTray(NIM_ADD, hMainIcon, IP_MSG);
+			SetCaption();
 			return	TRUE;
 		}
 	}
@@ -1245,14 +1274,18 @@ BOOL TMainWin::SetAnswerQueue(AnsQueueObj *obj)
 	if (ansTimerID)
 		return	TRUE;
 
-	int		hostCnt = hosts.HostCnt(), spawn;
+	int		hostCnt = hosts.HostCnt();
+	DWORD	spawn;
+	DWORD	rand_val;
+
+	TGenRandom(&rand_val, sizeof(rand_val));
 
 	if (hostCnt < 50 || ((msgMng->GetLocalHost()->addr ^ obj->hostSub.addr) << 8) == 0)
-		spawn = 1023 & rand();
+		spawn = 1023 & rand_val;
 	else if (hostCnt < 300)
-		spawn = 2047 & rand();
+		spawn = 2047 & rand_val;
 	else
-		spawn = 4095 & rand();
+		spawn = 4095 & rand_val;
 
 	if ((ansTimerID = ::SetTimer(hWnd, IPMSG_ANS_TIMER, spawn, NULL)) == 0)
 		return	FALSE;
@@ -1532,24 +1565,34 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 		return;
 
 	char	title[MAX_LISTBUF], *msg_text = msg->msgBuf;
-	int		show_mode = cfg->OpenCheck == 2 && cmd == IPMSG_READMSG ? SW_MINIMIZE : SW_SHOW;
+	int		show_mode = cfg->OpenCheck == 3 && cmd == IPMSG_READMSG ? SW_MINIMIZE : SW_SHOW;
 	Host	*host = cfg->priorityHosts.GetHostByName(&msg->hostSub);
 
 	if (host && *host->alterName) {
 		strcpy(title, host->alterName);
 	} else {
-		MakeListString(cfg, &msg->hostSub, &hosts, title);
+		strcpy(title, *host->nickName ? host->nickName : host->hostSub.userName);
 	}
 
 	switch (cmd)
 	{
 	case IPMSG_READMSG:
 		histDlg->OpenNotify(&msg->hostSub, packet_no);
+		SetCaption();
 		if (cfg->OpenCheck == 1) {
 			BalloonWindow(title, GetLoadStrU8(IDS_OPENFIN), TRAY_OPENMSG);
 			return;
 		}
-		return;
+		else if (cfg->OpenCheck == 0) {
+			return;
+		}
+		else {
+			char *p =  strchr(Ctime(), ' ');
+			if (p) p++;
+			sprintf(msg_text, "%s\r\n%s", GetLoadStrU8(IDS_OPENFIN), p);
+			if ((p = strrchr(msg_text, ' '))) *p = 0;
+		}
+		break;
 
 	case IPMSG_SENDINFO:
 	case IPMSG_SENDABSENCEINFO:
@@ -1559,7 +1602,6 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 	default:
 		return;
 	}
-	separate_token(title, '(');
 
 	if (cmd == IPMSG_SENDABSENCEINFO) {	//将来的には TMsgDlgで処理
 		static int msg_cnt = 0;	// TMsgDlg 化した後は TMsgDlg::createCnt に移行
@@ -1625,7 +1667,10 @@ BOOL TMainWin::SendDlgOpen(HWND hRecvWnd, MsgBuf *msg)
 		return	FALSE;
 
 	sendList.AddObj(sendDlg);
-	sendDlg->Create(), sendDlg->Show();
+	sendDlg->Create();
+	sendDlg->Show();
+	sendDlg->SetForceForegroundWindow();
+
 	ControlIME(sendDlg, TRUE);
 
 // test
@@ -1776,12 +1821,10 @@ void TMainWin::MiscDlgOpen(TDlg *dlg)
 /*
 	TaskTrayに指定iconを登録
 */
-BOOL TMainWin::TaskBar(int nimMode, HICON hSetIcon, LPCSTR tip)
+BOOL TMainWin::TaskTray(int nimMode, HICON hSetIcon, LPCSTR tip)
 {
-	NOTIFYICONDATA2W	tn;
+	NOTIFYICONDATA2W	tn = { sizeof(NOTIFYICONDATA2W) };
 
-	memset(&tn, 0, sizeof(tn));
-	tn.cbSize = sizeof(tn);
 	tn.hWnd = hWnd;
 	tn.uID = WM_NOTIFY_TRAY;
 	tn.uFlags = NIF_MESSAGE|(hSetIcon ? NIF_ICON : 0)|(tip ? NIF_TIP : 0);
@@ -1799,21 +1842,37 @@ BOOL TMainWin::TaskBar(int nimMode, HICON hSetIcon, LPCSTR tip)
 */
 BOOL TMainWin::BalloonWindow(LPCSTR msg, LPCSTR title, TrayMode _tray_mode)
 {
-	NOTIFYICONDATA2W	tn;
-	memset(&tn, 0, sizeof(tn));
-	tn.cbSize = sizeof(tn);
+	NOTIFYICONDATA2W	tn = { sizeof(tn) };
+
 	tn.hWnd = hWnd;
 	tn.uID = WM_NOTIFY_TRAY;
 	tn.uFlags = NIF_INFO|NIF_MESSAGE|(_tray_mode == TRAY_RECV ? NIF_ICON : 0);
 	tn.uCallbackMessage = WM_NOTIFY_TRAY;
 	tn.hIcon = TMainWin::hMainIcon;
+
 	if (msg) {
 		U8toW(msg,   tn.szInfo,      sizeof(tn.szInfo) / sizeof(WCHAR));
 		U8toW(title, tn.szInfoTitle, sizeof(tn.szInfoTitle) / sizeof(WCHAR));
 	}
-	tn.uTimeout     = 3000;
+	tn.uTimeout     = 10000;
 	tn.dwInfoFlags  = (_tray_mode == TRAY_RECV ? NIIF_USER : NIIF_INFO) | NIIF_NOSOUND;
-	trayNextMode    = _tray_mode;
+
+	if (msg) {
+		if (trayMode != _tray_mode && trayMode != TRAY_NORMAL) {
+			::KillTimer(hWnd,
+				trayMode == TRAY_RECV ? IPMSG_BALLOON_RECV_TIMER : IPMSG_BALLOON_OPEN_TIMER);
+		}
+		trayMode = _tray_mode;
+		if (trayMode == TRAY_RECV) {
+			::SetTimer(hWnd, IPMSG_BALLOON_RECV_TIMER, tn.uTimeout, NULL);
+		}
+		else {
+			::SetTimer(hWnd, IPMSG_BALLOON_OPEN_TIMER, tn.uTimeout/4, NULL);
+		}
+	}
+	else {
+		trayMode = TRAY_NORMAL;
+	}
 
 	return	::Shell_NotifyIconW(NIM_MODIFY, (NOTIFYICONDATAW *)&tn);
 }
@@ -2121,13 +2180,18 @@ void TMainWin::RefreshHost(BOOL unRemoveFlg)
 void TMainWin::SetCaption(void)
 {
 	char	buf[MAX_LISTBUF];
+	int		len;
 
-	wsprintf(buf, "IPMsg(%d)", hosts.HostCnt());
+	len = wsprintf(buf, GetLoadStrU8(IDS_CAPTION), hosts.HostCnt());
+
+	if (histDlg->UnOpenedNum()) {
+		wsprintf(buf + len, GetLoadStrU8(IDS_CAPTIONADD), histDlg->UnOpenedNum());
+	}
 
 	if (IsNewShell())
-		TaskBar(NIM_MODIFY, NULL, buf);
+		TaskTray(NIM_MODIFY, NULL, buf);
 	else
-		::SetWindowText(hWnd, buf);
+		SetWindowTextU8(buf);
 }
 
 /*
@@ -2189,7 +2253,7 @@ void TMainWin::ReverseIcon(BOOL startFlg)
 void TMainWin::SetIcon(HICON hSetIcon)
 {
 	if (IsNewShell())
-		TaskBar(NIM_MODIFY, hSetIcon);
+		TaskTray(NIM_MODIFY, hSetIcon);
 	else {
 		::SetClassLong(hWnd, GCL_HICON, (LONG)hSetIcon);
 		::FlashWindow(hWnd, FALSE);
@@ -2239,7 +2303,7 @@ void TMainWin::SendHostList(MsgBuf *msg)
 		total_len += len;
 		host_cnt++;
 	}
-	len = wsprintf(tmp, "%5d%c%5d", start_no + host_cnt == hosts.HostCnt() ? 0 : start_no + host_cnt, HOSTLIST_SEPARATOR, host_cnt);
+	len = wsprintf(tmp, "%5d%c%5d", (start_no + host_cnt == hosts.HostCnt()) ? 0 : start_no + host_cnt, HOSTLIST_SEPARATOR, host_cnt);
 	memcpy(buf, tmp, len);
 	msgMng->Send(&msg->hostSub, IPMSG_ANSLIST|utf8opt, buf);
 	delete [] buf;
@@ -2302,8 +2366,8 @@ void TMainWin::AddHostList(MsgBuf *msg)
 		AddHost(&hostSub, IPMSG_BR_ENTRY|host_status, nickName, groupName);
 	}
 
-	if (continue_cnt || host_cnt < total_num) {
-		msgMng->Send(&msg->hostSub, IPMSG_GETLIST, abs(continue_cnt - (total_num - host_cnt)));
+	if (continue_cnt && continue_cnt >= host_cnt) {
+		msgMng->Send(&msg->hostSub, IPMSG_GETLIST, abs(continue_cnt));
 		if (::SetTimer(hWnd, IPMSG_LISTGETRETRY_TIMER, cfg->ListGetMSec, NULL))
 			entryTimerStatus = IPMSG_LISTGETRETRY_TIMER;
 	}
@@ -2319,10 +2383,8 @@ void TMainWin::AddHostList(MsgBuf *msg)
 */
 void TMainWin::LogOpen(void)
 {
-	SHELLEXECUTEINFO	shellExecInfo;
+	SHELLEXECUTEINFO	shellExecInfo = { sizeof(SHELLEXECUTEINFO) };
 
-	memset(&shellExecInfo, 0, sizeof(shellExecInfo));
-	shellExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
 	shellExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
 	shellExecInfo.hwnd = NULL;
 	shellExecInfo.lpFile = cfg->LogFile;
@@ -2417,411 +2479,34 @@ char *TMainWin::GetNickNameEx(void)
 	static char buf[MAX_LISTBUF];
 
 	if (cfg->AbsenceCheck && *cfg->AbsenceHead[cfg->AbsenceChoice])
-		wsprintf(buf, "%s[%s]", *cfg->NickNameStr ? cfg->NickNameStr : msgMng->GetLocalHost()->userName, cfg->AbsenceHead[cfg->AbsenceChoice]);
+		wsprintf(buf, "%s[%s]", *cfg->NickNameStr ? cfg->NickNameStr : msgMng->GetOrgLocalHost()->userName, cfg->AbsenceHead[cfg->AbsenceChoice]);
 	else
-		strcpy(buf, *cfg->NickNameStr ? cfg->NickNameStr : msgMng->GetLocalHost()->userName);
+		strcpy(buf, *cfg->NickNameStr ? cfg->NickNameStr : msgMng->GetOrgLocalHost()->userName);
 
 	return	buf;
 }
 
-/* VC4 で CryptoAPI を使用可能にする */
-BOOL TMainWin::SetupCryptAPI(void)
-{
-	if (pCryptProtectData == NULL) {
-		for (int i=KEY_1024; i < MAX_KEY; i++) {
-			if (cfg->priv[i].encryptType == PRIV_BLOB_DPAPI)
-				cfg->priv[i].encryptType = PRIV_BLOB_RAW;
-		}
-	}
-
-	if (pCryptAcquireContext == NULL)
-		return	GetLastErrorMsg("CryptAcquireContext"), FALSE;
-
-	SetupCryptAPICore();
-
-// 起動直後に、まれにコケる環境があるらしいので、わずかにリトライ...
-#define MAX_RETRY	3
-	int	cnt = 0;
-	while (1)
-	{
-		BOOL	need_retry = FALSE;
-		int		i;
-
-		for (i=0; i < MAX_KEY; i++) {
-			if (cfg->priv[i].hCsp && cfg->pub[i].Key() == 0) {
-				need_retry = TRUE;
-				break;
-			}
-		}
-
-		if (++cnt > MAX_RETRY || !need_retry)
-			break;
-
-		for (i=0; i < MAX_KEY; i++) {
-			if (cfg->priv[i].hCsp) {
-				pCryptReleaseContext(cfg->priv[i].hCsp, 0);
-				cfg->priv[i].hCsp = NULL;
-			}
-		}
-		::Sleep(1000);
-		SetupCryptAPICore(cnt == MAX_RETRY ? KEY_DIAG : 0);
-	}
-	if (cnt > MAX_RETRY || !cfg->pub[0].Key() && !cfg->pub[1].Key() && !cfg->pub[2].Key())
-	{
-		if (MessageBoxU8("RSA failed. Create New RSA key?", "msg", MB_OKCANCEL) == IDOK)
-			SetupCryptAPICore(KEY_REBUILD|KEY_DIAG);
-	}
-
-	if (cfg->pub[KEY_2048].Key()) {
-		HostSub *host;
-		host = msgMng->GetLocalHost();
-		GenUserNameDigest(host->userName, cfg->pub[KEY_2048].Key(), host->userName);
-		host = msgMng->GetLocalHostA();
-		GenUserNameDigest(host->userName, cfg->pub[KEY_2048].Key(), host->userName);
-	}
-
-	return	cfg->pub[0].Key() || cfg->pub[1].Key() || cfg->pub[2].Key();
-}
-
-BOOL TMainWin::SetupCryptAPICore(int ctl_flg)
-{
-	BYTE	data[MAX_BUF_EX];
-	int		len = sizeof(data);
-	BOOL	ret = FALSE;
-	int		i;
-
-// RSA 鍵の生成
-	for (i=KEY_512; i < MAX_KEY; i++) {
-		SetupRSAKey((KeyType)i, ctl_flg);
-	}
-
-	for (i=0; i <= KEY_2048; i++) {
-		if (!cfg->pub[i].Key()) continue;
-
-		BOOL		ret = FALSE;
-		HCRYPTKEY	hKey = 0, hExKey = 0;
-		BYTE		tmp[MAX_BUF];
-		DWORD		tmplen = MAX_BUF / 2;
-
-		cfg->pub[i].KeyBlob(data, sizeof(data), &len);
-		if (i == KEY_512) {		// Self Check 512bit
-			if (pCryptImportKey(cfg->priv[i].hCsp, data, len, 0, 0, &hExKey)) {
-				if (pCryptGenKey(cfg->priv[i].hCsp, CALG_RC2, CRYPT_EXPORTABLE, &hKey)) {
-					pCryptExportKey(hKey, hExKey, SIMPLEBLOB, 0, NULL, (DWORD *)&len);
-					if (pCryptExportKey(hKey, hExKey, SIMPLEBLOB, 0, data, (DWORD *)&len)) {
-						if (pCryptEncrypt(hKey, 0, TRUE, 0, tmp, &tmplen, MAX_BUF)) ret = TRUE;
-						else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptEncrypt test512");
-					}
-					else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptExportKey test512");
-					pCryptDestroyKey(hKey);
-				}
-				else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptGenKey test512");
-				pCryptDestroyKey(hExKey);
-			}
-			else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptImportKey test512");
-
-			if (ret) {
-				ret = FALSE;
-				if (pCryptImportKey(cfg->priv[i].hCsp, data, len, cfg->priv[i].hKey, 0, &hKey)) {
-					if (pCryptDecrypt(hKey, 0, TRUE, 0, (BYTE *)tmp, (DWORD *)&tmplen)) ret = TRUE;
-					else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptDecrypt test512");
-					pCryptDestroyKey(hKey);
-				}
-				else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptImportKey test512");
-			}
-		}
-		else {					// Self Check 1024/2048 bits
-			if (pCryptImportKey(cfg->priv[i].hCsp, data, len, 0, 0, &hExKey)) {
-				len = 128/8;
-				if (pCryptEncrypt(hExKey, 0, TRUE, 0, data, (DWORD *)&len, MAX_BUF)) ret = TRUE;
-				else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptEncrypt test1024/2048");
-				pCryptDestroyKey(hExKey);
-			}
-			else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptImportKey test1024/2048");
-
-			if (ret) {
-				ret = FALSE;
-				if (pCryptDecrypt(cfg->priv[i].hKey, 0, TRUE, 0, (BYTE *)data, (DWORD *)&len)) ret = TRUE;
-				else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptDecrypt test1024/2048");
-			}
-		}
-		if (!ret) cfg->pub[i].UnSet();
-	}
-
-	for (i=0; i < MAX_KEY; i++) {
-		if (cfg->pub[i].Key()) {
-			ret = TRUE;
-		}
-		else if (cfg->priv[i].hKey) {
-			pCryptDestroyKey(cfg->priv[i].hKey);
-			cfg->priv[i].hKey = NULL;
-		}
-	}
-
-	return	ret;
-}
-
-BOOL MakeDefaultRSAKey()
-{
-	HCRYPTPROV	hCsp = NULL;
-	int			flags[] = { CRYPT_NEWKEYSET|CRYPT_MACHINE_KEYSET, CRYPT_NEWKEYSET, -1 };
-	const char	*csp_name[] = { MS_DEF_PROV, MS_ENHANCED_PROV, NULL };
-	BOOL		ret = TRUE;
-	int			i, j;
-
-	for (i=0; csp_name[i]; i++) {
-		for (j=0; csp_name[j]; j++) {
-			if (pCryptAcquireContext(&hCsp, NULL, csp_name[j], PROV_RSA_FULL, flags[j])) {
-				 pCryptReleaseContext(hCsp, 0);
-				 hCsp = 0;
-			}
-		}
-		if (csp_name[j] == NULL) ret = FALSE;
-	}
-	return	ret;
-}
-
-/*
-BOOL TMainDlg::RunAsAdmin(DWORD flg)
-{
-	SHELLEXECUTEINFO	sei = {0};
-	char				buf[MAX_PATH];
-
-	char	self[MAX_PATH];
-	GetModuleFileName(NULL, self, sizeof(self));
-	ShellExecute(hWnd, "runas", self, "/runas", "", SW_NORMAL);
-
-	sei.cbSize = sizeof(SHELLEXECUTEINFO);
-	sei.lpVerb = "runas";
-	sei.lpFile = self;
-	sei.lpDirectory = "";
-	sei.nShow = SW_NORMAL;
-	sei.lpParameters = "/runas";
-	return	::ShellExecuteEx(&sei);
-}		   
-*/
-
-BOOL TMainWin::SetupRSAKey(KeyType kt, int ctl_flg)
-{
-	BYTE		data[MAX_BUF_EX];
-	char		contName[MAX_BUF];
-	int			len = sizeof(data), i;
-	HCRYPTPROV&	hCsp     = cfg->priv[kt].hCsp;
-	HCRYPTKEY&	hPrivKey = cfg->priv[kt].hKey;
-	PubKey&		pubKey   = cfg->pub[kt];
-	const char	*csp_name = kt == KEY_512 ? MS_DEF_PROV : MS_ENHANCED_PROV;
-	int			key_bits  = kt == KEY_512 ? 512 : kt == KEY_1024 ? 1024 : 2048;
-
-	if (kt == KEY_2048 && !IsWinXP()) return FALSE; // Win2000 can't be trusted for RSA2048...
-
-	int	cap =	kt == KEY_512  ? IPMSG_RSA_512 |IPMSG_RC2_40 :
-				kt == KEY_1024 ? IPMSG_RSA_1024|IPMSG_BLOWFISH_128|IPMSG_PACKETNO_IV :
-				kt == KEY_2048 ? IPMSG_RSA_2048|IPMSG_AES_256|IPMSG_SIGN_SHA1|IPMSG_PACKETNO_IV : 0;
-	int	AcqFlgs[] = { CRYPT_MACHINE_KEYSET, 0, CRYPT_NEWKEYSET|CRYPT_MACHINE_KEYSET, CRYPT_NEWKEYSET, -1 };
-
-	if (pCryptStringToBinary && pCryptBinaryToString) {
-		cap |= IPMSG_ENCODE_BASE64;
-	}
-
-	wsprintf(contName, "ipmsg.rsa%d.%s", key_bits, msgMng->GetLocalHostA()->userName);
-
-	if (hCsp) {
-		pCryptReleaseContext(hCsp, 0);
-		hCsp = NULL;
-	}
-
-// デフォルトキーセットを作成しておく
-	if (TIsEnableUAC() && TIsUserAnAdmin()) {
-		MakeDefaultRSAKey();
-	}
-
-// rebuld 時には、事前に公開鍵を消去
-	if ((ctl_flg & KEY_REBUILD) && pubKey.Key() == NULL) {
-		if (!pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET|CRYPT_MACHINE_KEYSET))
-			if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptAcquireContext(destroy)");
-		pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET);
-	}
-
-// open key cotainer
-	for (i=0; AcqFlgs[i] != -1; i++) {
-		hCsp = NULL;
-		if (pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, AcqFlgs[i]))
-			break;
-	}
-	if (hCsp == NULL) {
-		if (kt == KEY_512 && (ctl_flg & KEY_DIAG))
-			GetLastErrorMsg("CryptAcquireContext");
-		return	FALSE;
-	}
-
-// プライベート鍵をimport (1024/2048bit)
-	if (cfg->priv[kt].blob) {
-		if (LoadPrivBlob(&cfg->priv[kt], data, &len)
-			&& !pCryptImportKey(hCsp, data, len, 0, CRYPT_EXPORTABLE, &hPrivKey))
-		{	// import is fail...
-			if (ctl_flg & KEY_DIAG)
-				GetLastErrorMsg("CryptImportKey(blob)");
-			// コケた場合、再Acquireしないと副作用が残ることがある...
-			pCryptReleaseContext(hCsp, 0), hCsp = NULL;
-			if (!pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_MACHINE_KEYSET))
-				pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, 0);
-		}
-		if (hPrivKey == NULL) {
-			if (cfg->priv[kt].encryptType == PRIV_BLOB_USER && cfg->priv[kt].encryptSeed) {
-				TaskBar(NIM_DELETE);
-				::ExitProcess(0xffffffff);		// パスワードが一致しない場合、即終了
-			}
-			delete [] cfg->priv[kt].blob;
-			cfg->priv[kt].blob = NULL;
-		}
-	}
-
-// 初回 or 512bit 鍵の場合は、hCsp からプライベート鍵ハンドルを取得
-	if (hPrivKey == NULL) {
-		if (!pCryptGetUserKey(hCsp, AT_KEYEXCHANGE, &hPrivKey)
-		&& !pCryptGenKey(hCsp, CALG_RSA_KEYX, (key_bits << 16) | CRYPT_EXPORTABLE, &hPrivKey))
-			if (ctl_flg & KEY_DIAG)
-				GetLastErrorMsg("CryptGenKey");
-	}
-
-// 公開鍵を export
-	if (pCryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, data, (DWORD *)&len)) {
-		if (len < key_bits / 8) {	// 鍵長の短いキーペア（v2.50b14 で発生する可能性）
-			pCryptDestroyKey(hPrivKey);
-			hPrivKey = NULL;
-			pCryptReleaseContext(hCsp, 0);
-			hCsp = NULL;
-			pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET|CRYPT_MACHINE_KEYSET);
-			pCryptAcquireContext(&hCsp, contName, csp_name, PROV_RSA_FULL, CRYPT_DELETEKEYSET);
-			return	(ctl_flg & KEY_INTERNAL) ? FALSE : SetupRSAKey(kt, ctl_flg | KEY_INTERNAL);
-		}
-		pubKey.SetByBlob(data, cap);
-	}
-	else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptExportKey");
-
-// プライベート鍵を保存
-	if (kt != KEY_512 && cfg->priv[kt].blob == NULL && hPrivKey) {
-		len = sizeof(data);
-		if (pCryptExportKey(hPrivKey, 0, PRIVATEKEYBLOB, 0, data, (DWORD *)&len))
-			StorePrivBlob(&cfg->priv[kt], data, len);
-	}
-	return	TRUE;
-}
-
-BOOL TMainWin::LoadPrivBlob(PrivKey *priv, BYTE *rawBlob, int *rawBlobLen)
-{
-	if (priv->blob == NULL) return	FALSE;
-
-	BYTE	key[MAX_BUF_EX];
-
-	if (priv->encryptType == PRIV_BLOB_RAW) {
-		memcpy(rawBlob, priv->blob, *rawBlobLen = priv->blobLen);
-		return	TRUE;
-	}
-	else if (priv->encryptType == PRIV_BLOB_USER)
-	{
-		if (priv->encryptSeed == NULL)
-			return	FALSE;
-		while (1)
-		{
-			TPasswordDlg	dlg((char *)key, this);
-			if (!dlg.Exec())
-				return	FALSE;
-			CBlowFish	bl(key, strlen((char *)key));
-			if (bl.Decrypt(priv->encryptSeed, key, priv->encryptSeedLen) == PRIV_SEED_LEN && memcmp(key, PRIV_SEED_HEADER, PRIV_SEED_HEADER_LEN) == 0)
-				break;
-		}
-	}
-	else if (priv->encryptType == PRIV_BLOB_DPAPI)
-	{
-		if (priv->encryptSeed == NULL)
-			return	FALSE;
-		DATA_BLOB	in = { priv->encryptSeedLen, priv->encryptSeed }, out;
-		if (!pCryptUnprotectData(&in, 0, 0, 0, 0,
-				CRYPTPROTECT_LOCAL_MACHINE|CRYPTPROTECT_UI_FORBIDDEN, &out))
-			return	FALSE;
-		memcpy(key, out.pbData, out.cbData);
-		::LocalFree(out.pbData);
-		if (out.cbData != PRIV_SEED_LEN)
-			return	FALSE;
-	}
-	else return	FALSE;
-
-	CBlowFish	bl(key + PRIV_SEED_HEADER_LEN, 128/8);
-	return (*rawBlobLen = bl.Decrypt(priv->blob, rawBlob, priv->blobLen)) != 0;
-}
-
-BOOL TMainWin::StorePrivBlob(PrivKey *priv, BYTE *rawBlob, int rawBlobLen)
-{
-	delete	priv->blob;
-	priv->blob = NULL;
-	delete	priv->encryptSeed;
-	priv->encryptSeed = NULL;
-	priv->blobLen = priv->encryptSeedLen = 0;
-
-	BYTE	data[MAX_BUF_EX], *encodeBlob = data;
-
-	if (priv->encryptType == PRIV_BLOB_RAW) {
-		encodeBlob = rawBlob;
-		priv->blobLen = rawBlobLen;
-	}
-	else {
-		BYTE	seed[PRIV_SEED_LEN], *seedCore = seed + PRIV_SEED_HEADER_LEN;
-		// seed の作成
-		memcpy(seed, PRIV_SEED_HEADER, PRIV_SEED_HEADER_LEN);
-		pCryptGenRandom(priv->hCsp, 128/8, seedCore);
-
-		if (priv->encryptType == PRIV_BLOB_USER) {
-			TPasswordDlg	dlg((char *)data, this);
-			if (!dlg.Exec())
-				return	FALSE;
-			// seed の暗号化
-			CBlowFish	bl(data, strlen((char *)data));
-			priv->encryptSeedLen = bl.Encrypt(seed, data, PRIV_SEED_LEN);
-			priv->encryptSeed = new BYTE [priv->encryptSeedLen];
-			memcpy(priv->encryptSeed, data, priv->encryptSeedLen);
-		}
-		else if (priv->encryptType == PRIV_BLOB_DPAPI) {
-			// seed の暗号化
-			DATA_BLOB in = { PRIV_SEED_LEN, seed }, out;
-			if (!pCryptProtectData(&in, L"ipmsg", 0, 0, 0, CRYPTPROTECT_LOCAL_MACHINE|CRYPTPROTECT_UI_FORBIDDEN, &out))
-				return	FALSE;
-			priv->encryptSeed = new BYTE [priv->encryptSeedLen = out.cbData];
-			memcpy(priv->encryptSeed, out.pbData, out.cbData);
-			::LocalFree(out.pbData);
-		}
-		else return	FALSE;
-		// seed による、暗号化blob の作成
-		CBlowFish	bl(seedCore, 128/8);
-		priv->blobLen = bl.Encrypt(rawBlob, encodeBlob, rawBlobLen);
-	}
-
-	priv->blob = new BYTE [priv->blobLen];
-	memcpy(priv->blob, encodeBlob, priv->blobLen);
-	cfg->WriteRegistry(CFG_CRYPT);
-	return	TRUE;
-}
-
 void TMainWin::ControlIME(TWin *win, BOOL open)
 {
-	HWND	targetWnd = (win && win->hWnd) ? win->GetDlgItem(SEND_EDIT) : hWnd;
+//	HWND	targetWnd = (win && win->hWnd) ? win->GetDlgItem(SEND_EDIT) : hWnd;
+//
+//	if (!targetWnd) targetWnd = hWnd;
+//
+//	if (win && win->hWnd && !open)
+//		::SetFocus(targetWnd);		// ATOK残像 暫定対策...
 
-	if (win && win->hWnd && !open)
-		::SetFocus(targetWnd);		// ATOK残像 暫定対策...
+	if (!cfg->ControlIME) return;
 
-	if (!cfg->ControlIME)
-		return;
-
-	if (!open)
-	{
-		for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg; sendDlg = (TSendDlg *)sendList.NextObj(sendDlg))
-			if (sendDlg != win && !sendDlg->IsSending())
-				return;
+	if (!open) {
+		for (TSendDlg *sendDlg = (TSendDlg *)sendList.TopObj(); sendDlg;
+				sendDlg = (TSendDlg *)sendList.NextObj(sendDlg)) {
+			if (sendDlg != win && !sendDlg->IsSending()) return;
+		}
 	}
 
-//	SetImeOpenStatus(targetWnd, open);
-	if (GetImeOpenStatus(targetWnd) != open)
-		SetImeOpenStatus(targetWnd, open);
+	if (GetImeOpenStatus(hWnd) != open) {
+		SetImeOpenStatus(hWnd, open);
+	}
 }
 
 void TMainWin::MakeBrListEx()
@@ -2832,12 +2517,12 @@ void TMainWin::MakeBrListEx()
 	AddrInfo	*info = cfg->ExtendBroadcast > 0 ? GetIPAddrs(TRUE, &num) : NULL;
 	TBrObj		*obj;
 
-	if ((cfg->ExtendBroadcast & 0x1) == 0 || !info || num == 0) {
-		brListEx.SetHostRaw(NULL, ~0);
+	if (info && num > 0) {
+		for (i=num-1; i >= 0; i--) brListEx.SetHostRaw(NULL, info[i].br_addr);
 	}
 
-	if (info && num > 0) {
-		for (i=0; i < num; i++) brListEx.SetHostRaw(NULL, info[i].br_addr);
+	if ((cfg->ExtendBroadcast & 0x1) == 0 || !info || num == 0) {
+		brListEx.SetHostRaw(NULL, ~0);
 	}
 
 	for (obj=cfg->brList.Top(); obj; obj=cfg->brList.Next(obj)) {
@@ -2861,127 +2546,29 @@ void TMainWin::MakeBrListEx()
 }
 
 /*
+BOOL TMainDlg::RunAsAdmin(DWORD flg)
+{
+	SHELLEXECUTEINFO	sei = { sizeof(SHELLEXECUTEINFO) };
+	char				buf[MAX_PATH];
+
+	char	self[MAX_PATH];
+	GetModuleFileName(NULL, self, sizeof(self));
+	ShellExecute(hWnd, "runas", self, "/runas", "", SW_NORMAL);
+
+	sei.lpVerb = "runas";
+	sei.lpFile = self;
+	sei.lpDirectory = "";
+	sei.nShow = SW_NORMAL;
+	sei.lpParameters = "/runas";
+	return	::ShellExecuteEx(&sei);
+}
+*/
+
+/*
 	MainWindow を教えてあげる。
 */
 HWND GetMainWnd(void)
 {
 	return	hMainWnd;
 }
-
-BOOL GenUserNameDigestVal(const BYTE *key, BYTE *digest)
-{
-	TDigest	d;
-	BYTE	data[SHA1_SIZE + 8];
-
-	unsigned _int64	*in1 = (unsigned _int64 *)(data +  0);
-	unsigned _int64	*in2 = (unsigned _int64 *)(data +  8);
-	unsigned _int64	*in3 = (unsigned _int64 *)(data + 16);
-	unsigned _int64	*out = (unsigned _int64 *)(digest);
-
-	*in3 = 0; // 160bitを超える領域は初期化が必要
-
-	if (!d.Init() || !d.Update((void *)key, 2048/8) || !d.GetRevVal((void *)data)) return FALSE;
-
-	*out = *in1 ^ *in2 ^ *in3;
-	return	TRUE;
-}
-
-BOOL GenUserNameDigest(char *org_name, const BYTE *key, char *new_name)
-{
-	if (org_name != new_name) strncpyz(new_name, org_name, MAX_NAMEBUF);
-
-	BYTE	val[8];
-	int		len = strlen(new_name);
-
-	if (!GenUserNameDigestVal(key, val)) return	FALSE;
-
-	if (len + 20 > MAX_NAMEBUF) len = MAX_NAMEBUF - 20;
-
-	new_name += len;
-	*new_name++ = '-';
-	*new_name++ = '<';
-	new_name += bin2hexstr(val, 8, new_name);
-	*new_name++ = '>';
-	*new_name   = 0;
-
-	return	TRUE;
-}
-
-const char *GetUserNameDigestField(const char *user)
-{
-	const char	*p = NULL;
-	char		c;
-	int			len = 0;
-	int			state = 0;
-
-	while ((c = *user)) {
-		switch (state) {
-		case 0:
-			if (c == '-') {
-				len = 0;
-				state = 1;
-				p = user;
-			}
-			break;
-
-		case 1:
-			if (c == '<')	state = 2;
-			else			state = 0;
-			break;
-
-		case 2:
-			if (c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
-				len++;
-			}
-			else if (len == 16 && c == '>') {
-				state = 3;
-			}
-			else {
-				state = 0;
-			}
-			break;
-		}
-		user++;
-	}
-
-	return	state == 3 ? p : NULL;
-}
-
-/*
-  1: success
-  0: verify_error
- -1: no_digest_user
-*/
-int VerifyUserNameDigest(const char *user, const BYTE *key)
-{
-	BYTE		val1[8];
-	BYTE		val2[8];
-	int			len = 0;
-	const char	*p;
-
-	if (!(p = GetUserNameDigestField(user)) || !hexstr2bin(p+2, val1, 8, &len) || len != 8) {
-		return -1;
-	}
-
-	if (!GenUserNameDigestVal(key, val2)) {
-		return -1;
-	}
-
-	return	memcmp(val1, val2, 8) == 0 ? 1 : 0;
-}
-
-/*
-*/
-BOOL VerifyUserNameExtension(Cfg *cfg, MsgBuf *msg)
-{
-	return	!IsUserNameExt(cfg) ||
-			!GetUserNameDigestField(msg->hostSub.userName) || (msg->command & IPMSG_ENCRYPTOPT)
-			? TRUE : FALSE;
-}
-
-BOOL IsUserNameExt(Cfg *cfg)
-{
-	return	cfg->pub[KEY_2048].Capa() ? TRUE : FALSE;
-}
-
 

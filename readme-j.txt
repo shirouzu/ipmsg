@@ -1,5 +1,5 @@
 ======================================================================
-        IP Messenger for Win 全ソース 取り扱い説明書    2011/04/20
+        IP Messenger for Win 全ソース 取り扱い説明書    2011/05/11
 
                                                H.Shirouzu（白水啓章）
                                                http://ipmsg.org
@@ -12,7 +12,7 @@
   3. サポートについて
   4. コンパイル方法（VC6 版）
   5. ディレクトリ構成
-
+  6. 自己展開インストーラ形式について
 
 ■ 1. 概要
 
@@ -100,4 +100,34 @@
 		+-Obj------+-Release-+-
 		           |
 		           +-Debug---+-
+
+■ 6. 自己展開インストーラ形式について
+
+・v3.10より、自己展開形式インストーラをサポートしています。
+　これはソースよりビルドされた install.exe の末尾に、以下のような
+　フォーマットで、ipmsg.exe setup.exe ipmsg.chm を付加したものです。
+　 \n===(70個)===\n
+　 ファイルサイズ ファイル名\n
+　 ZLIB圧縮ファイル
+
+・具体的には、以下のような python script で作成しています。
+
+----------------------------------------------------
+import sys, zlib
+
+def add_file(f, fname):
+	data = zlib.compress(open(fname, "rb").read())
+	f.write("\n%s\n" % ("=" * 70))
+	f.write("%d %s\n" % (len(data), fname))
+	f.write(data)
+
+def gen_inst(installer_name, installer_base, files):
+	f = open(installer_name, "wb")
+	f.write(open(installer_base, "rb").read())
+	for i in files:
+		add_file(f, i)
+	f.close()
+
+gen_inst("ipmsgXXX_installer.exe", "install.exe", ["ipmsg.exe", "ipmsg.chm", "setup.exe"])
+----------------------------------------------------
 

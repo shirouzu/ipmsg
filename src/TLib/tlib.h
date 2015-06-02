@@ -281,6 +281,7 @@ public:
 	virtual BOOL	EvNotify(UINT ctlID, NMHDR *pNmHdr);
 	virtual BOOL	EvContextMenu(HWND childWnd, POINTS pos);
 	virtual BOOL	EvHotKey(int hotKey);
+	virtual BOOL	EvChar(WCHAR code, LPARAM keyData);
 
 	virtual BOOL	EventActivateApp(BOOL fActivate, DWORD dwThreadID);
 	virtual BOOL	EventActivate(BOOL fActivate, DWORD fMinimized, HWND hActiveWnd);

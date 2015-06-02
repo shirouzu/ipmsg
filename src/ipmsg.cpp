@@ -69,7 +69,7 @@ void TMsgApp::InitWindow(void)
 		if (nicAddr == 0)
 		{
 			if (diag)
-				MessageBox(0, "ipmsg.exe [portno] [/MSG [/LOG] [/SEAL] <hostname or IP addr> <message>]\r\nipmsg.exe [portno] [/NIC nic_addr]", MSG_STR, MB_OK);
+				MessageBox(0, "ipmsg.exe [portno] [/MSG [/LOG] [/SEAL] <hostname or IP addr> <message>]\r\nipmsg.exe [portno] [/NIC nic_addr]", IP_MSG, MB_OK);
 			::ExitProcess(status);
 			return;
 		}
