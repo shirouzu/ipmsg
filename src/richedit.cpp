@@ -408,12 +408,14 @@ BOOL TEditSub::AttachWnd(HWND _hWnd)
 {
 	// Protection for Visual C++ Resource editor problem...
 	// RICHEDIT20W is correct, but VC++ changes to RICHEDIT20A, sometimes.
-//#define RICHED20A_TEST
+#ifdef _DEBUG
+#define RICHED20A_TEST
 #ifdef RICHED20A_TEST
 	char	cname[64];
-	if (GetClassName(_hWnd, cname, sizeof(cname)) && stricmp(cname, "RICHEDIT20A") == 0) {
+	if (::GetClassName(_hWnd, cname, sizeof(cname)) && stricmp(cname, "RICHEDIT20A") == 0) {
 		MessageBox("Change RichEdit20A to RichEdit20W in ipmsg.rc", "IPMSG Resource file problem");
 	}
+#endif
 #endif
 
 	if (!TSubClassCtl::AttachWnd(_hWnd)) return	FALSE;
@@ -664,7 +666,7 @@ BOOL TEditSub::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if ((url_ptr = strstr(u8buf, URL_STR))) {
 				char	proto[MAX_NAMEBUF];
 
-				strncpyz(proto, u8buf, min(url_ptr - u8buf + 1, sizeof(proto)));
+				strncpyz(proto, u8buf, int(min(url_ptr - u8buf + 1, sizeof(proto))));
 				for (int i=0; proto[i]; i++) {
 					if ((obj = SearchUrlObj(&cfg->urlList, proto + i))) {
 						url_ptr = u8buf + i;

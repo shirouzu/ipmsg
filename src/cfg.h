@@ -68,6 +68,7 @@ public:
 	BOOL	NoTcp;
 	BOOL	OneClickPopup;
 	BOOL	BalloonNotify;
+	BOOL	TrayIcon;
 	int		DelayTime;
 	BOOL	LogCheck;
 	BOOL	LogUTF8;

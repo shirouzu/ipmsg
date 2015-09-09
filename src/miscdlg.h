@@ -61,6 +61,15 @@ class TListDlg : public TDlg, public TListObj {
 public:
 	TListDlg(UINT	resid, TWin *_parent = NULL) : TDlg(resid, _parent) {}
 	virtual bool IsSame(const void *id) { return (DWORD)id == twinId; }
+	virtual void ActiveDlg(BOOL active=TRUE) {
+		if (!hWnd) return;
+		if (active) {
+			Show();
+			SetForegroundWindow();
+		} else {
+			Show(SW_HIDE);
+		}
+	}
 };
 
 

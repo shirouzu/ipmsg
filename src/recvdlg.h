@@ -49,8 +49,7 @@ struct RecvFileObj {
 	char		u8fname[MAX_PATH_U8];	// for dirinfo buffer
 };
 
-class ClipBuf : public TListObj {
-public:
+struct ClipBuf : public TListObj {
 	VBuf	vbuf;
 	int		pos;
 	BOOL	finished;

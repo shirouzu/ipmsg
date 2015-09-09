@@ -3,7 +3,7 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-04-06(Mon)
+	Update					: 2015-06-22(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -88,14 +88,15 @@ extern DWORD TWinVersion;	// define in tmisc.cpp
 #define IsWinVista()	(LOBYTE(LOWORD(TWinVersion)) >= 6 && TWinVersion < 0x80000000)
 #define IsWin7()		((LOBYTE(LOWORD(TWinVersion)) >= 7 || LOBYTE(LOWORD(TWinVersion)) == 6 \
 							&& HIBYTE(LOWORD(TWinVersion)) >= 1) && TWinVersion < 0x80000000)
+#define IsWin8()		((LOBYTE(LOWORD(TWinVersion)) >= 7 || LOBYTE(LOWORD(TWinVersion)) == 6 \
+							&& HIBYTE(LOWORD(TWinVersion)) >= 2) && TWinVersion < 0x80000000)
+/* manifest に supported OS の記述が必須 */
+#define IsWin81()		((LOBYTE(LOWORD(TWinVersion)) >= 7 || LOBYTE(LOWORD(TWinVersion)) == 6 \
+							&& HIBYTE(LOWORD(TWinVersion)) >= 3) && TWinVersion < 0x80000000)
+#define IsWin10()		(LOBYTE(LOWORD(TWinVersion)) >= 10 && TWinVersion < 0x80000000)
 
 #define IsLang(lang)	(PRIMARYLANGID(LANGIDFROMLCID(GetThreadLocale())) == lang)
 #define wsizeof(x)		(sizeof(x) / sizeof(WCHAR))
-
-#define ALIGN_SIZE(all_size, block_size) (((all_size) + (block_size) -1) \
-										 / (block_size) * (block_size))
-
-#define ALIGN_BLOCK(size, align_size) (((size) + (align_size) -1) / (align_size))
 
 #define BUTTON_CLASS		"BUTTON"
 #define COMBOBOX_CLASS		"COMBOBOX"
@@ -490,77 +491,97 @@ public:
 	static DWORD  GenTWinID() { return tapp ? tapp->twinId++ : 0; }
 };
 
-class TListObj {
-public:
+struct TListObj {
 	TListObj	*prev, *next;
-	virtual ~TListObj() {}
-	virtual bool IsSame(const void *id) { return id == (void *)this; }
 };
 
-class TList {
+template <class T>
+class TListEx {
 protected:
 	TListObj	top;
 	int			num;
 
 public:
-	TList(void);
-	void		Init(void);
-	void		AddObj(TListObj *obj);
-	void		DelObj(TListObj *obj);
-	TListObj*	TopObj(void) { return top.next == &top ? NULL : top.next; }
-	TListObj*	EndObj(void) { return top.next == &top ? NULL : top.prev; }
-	TListObj*	NextObj(TListObj *obj) { return obj->next == &top ? NULL : obj->next; }
-	TListObj*	PrevObj(TListObj *obj) { return obj->prev == &top ? NULL : obj->prev; }
-	BOOL		IsEmpty() { return	top.next == &top; }
-	void		MoveList(TList *from_list);
-	int			Num() { return num; }
-	TListObj*	Search(void *id) {
-					for (TListObj *obj=TopObj(); obj; obj=NextObj(obj)) {
-						if (obj->IsSame(id)) return obj;
-					}
-					return	NULL;
-				}
-};
+	TListEx() { Init(); }
+	void Init() { top.prev = top.next = &top; num = 0; }
+	void AddObj(T *obj) { // add to last
+		obj->prev = (T *)top.prev; obj->next = (T *)&top;
+		top.prev->next = obj;      top.prev = obj;
+		num++;
+	}
+	void DelObj(T *obj) {
+		if (obj->next) obj->next->prev = obj->prev;
+		if (obj->prev) obj->prev->next = obj->next;
+		obj->next = obj->prev = NULL;
+		num--;
+	}
+	void PushObj(T *obj) { // add to top
+		obj->next = top.next;
+		obj->prev = &top;
+		top.next->prev = obj;
+		top.next = obj;
+		num++;
+	}
+	T *TopObj(void)     { return (T*)(top.next  == &top ? NULL : top.next);  }
+	T *EndObj(void)     { return (T*)(top.next  == &top ? NULL : top.prev);  } 
+	T *NextObj(T *obj)  { return (T*)(obj->next == &top ? NULL : obj->next); } 
+	T *PrevObj(T *obj)  { return (T*)(obj->prev == &top ? NULL : obj->prev); } 
 
-template <class T>
-class TListEx : public TList {
-public:
-	TListEx() {}
-	T *TopObj(void)     { return (T *)TList::TopObj(); }
-	T *EndObj(void)     { return (T *)TList::EndObj(); }
-	T *NextObj(T *obj)  { return (T *)TList::NextObj(obj); }
-	T *PrevObj(T *obj)  { return (T *)TList::PrevObj(obj); }
-	T *Search(void *id) { return (T *)TList::Search(id); }
-	T *Search(DWORD id) { return (T *)TList::Search((void *)id); }
+	void MoveList(TListEx<T> *from_list) {
+		if (from_list->top.next == &from_list->top) return;	// from_list is empty
+		if (top.next == &top) {	// empty
+			top = from_list->top;
+			top.next->prev = top.prev->next = &top;
+		}
+		else {
+			top.prev->next = from_list->top.next;
+			from_list->top.next->prev = top.prev;
+			from_list->top.prev->next = &top;
+			top.prev = from_list->top.prev;
+		}
+		num += from_list->num;
+		from_list->Init();
+	}
+	int  Num() { return num; }
+	BOOL IsEmpty() { return top.next == &top; }
 };
 
 #define FREE_LIST	0
 #define USED_LIST	1
-#define	RLIST_MAX	2
-class TRecycleList {
-protected:
-	char	*data;
-	TList	list[RLIST_MAX];
-
-public:
-	TRecycleList(int init_cnt, int size);
-	~TRecycleList();
-	TListObj *GetObj(int list_type);
-	void PutObj(int list_type, TListObj *obj);
-};
-
+#define LOCK_LIST	2
+#define	RLIST_MAX	3
 template <class T>
-class TRecycleListEx : public TRecycleList {
-public:
-	TRecycleListEx(int init_cnt) : TRecycleList(init_cnt, sizeof(T)) {}
-	T *GetObj(int list_type)           { return (T *)TRecycleList::GetObj(list_type); }
-	void PutObj(int list_type, T *obj) { TRecycleList::PutObj(list_type, obj);        }
+class TRecycleListEx {
+	TListEx<T>	list[RLIST_MAX];
+	T *data;
 
-	T *TopObj(int list_type)           { return (T *)list[list_type].TopObj();        }
-	T *EndObj(int list_type)           { return (T *)list[list_type].EndObj();        }
-	T *NextObj(int list_type, T *obj)  { return (T *)list[list_type].NextObj(obj);    }
-	T *PrevObj(int list_type, T *obj)  { return (T *)list[list_type].PrevObj(obj);    }
-	TList *List(int list_type)         { return &list[list_type];                     }
+public:
+	TRecycleListEx(int init_cnt=0) { data = NULL; if (init_cnt) Init(init_cnt); }
+	virtual ~TRecycleListEx()      { delete [] data; }
+	BOOL Init(int init_cnt) {
+		UnInit();
+		data = new T[init_cnt];
+		for (int i=0; i < init_cnt; i++) list[FREE_LIST].AddObj(&data[i]);
+		return TRUE;
+	}
+	void UnInit() {
+		if (data) delete [] data;
+		data = NULL;
+		for (int i=0; i < RLIST_MAX; i++) list[i].Init();
+	}
+	T *GetObj(int list_type) {
+		T *d = list[list_type].TopObj();
+		if (d) list[list_type].DelObj(d);
+		return d;
+	}
+	void PutObj(int list_type, T *obj)  { list[list_type].AddObj(obj);         }
+	void DelObj(int list_type, T *obj)  { list[list_type].DelObj(obj);         }
+	T	*TopObj(int list_type)          { return list[list_type].TopObj();     }
+	T	*EndObj(int list_type)          { return list[list_type].EndObj();     }
+	T	*NextObj(int list_type, T *obj) { return list[list_type].NextObj(obj); }
+	T	*PrevObj(int list_type, T *obj) { return list[list_type].PrevObj(obj); }
+	BOOL IsEmpty(int list_type)         { return list[list_type].IsEmpty();    }
+	TListEx<T> *List(int list_type)     { return &list[list_type];             }
 };
 
 
@@ -688,6 +709,13 @@ public:
 		}
 		return	TRUE;
 	}
+	BOOL KeyToTop(const char *key_name) {
+		TIniKey	*key = key_name ? SearchKey(key_name) : NULL;
+		if (!key) return FALSE;
+		DelObj(key);
+		PushObj(key);
+		return	TRUE;
+	}
 	BOOL DelKey(const char *key_name) {
 		TIniKey	*key = SearchKey(key_name);
 		if (!key) return FALSE;
@@ -700,11 +728,11 @@ public:
 
 class TInifile: public TListEx<TIniSection> {
 protected:
-	char		*ini_file;
-	TIniSection	*cur_sec;
-	TIniSection	*root_sec;
-	FILETIME	ini_ft;
-	int			ini_size;
+	WCHAR		*iniFile;
+	TIniSection	*curSec;
+	TIniSection	*rootSec;
+//	FILETIME	iniFt;
+//	DWORD		iniSize;
 	HANDLE		hMutex;
 
 	BOOL Strip(const char *s, char *d=NULL, const char *strip_chars=" \t\r\n",
@@ -715,11 +743,13 @@ protected:
 	BOOL WriteIni();
 	BOOL Lock();
 	void UnLock();
+	void InitCore(WCHAR *_ini);
 
 public:
-	TInifile(const char *ini_name=NULL);
+	TInifile(const WCHAR *ini=NULL);
 	~TInifile();
-	void Init(const char *ini_name=NULL);
+	void Init(const WCHAR *_ini);
+	void Init(const char *_ini);
 	void UnInit();
 	void SetSection(const char *section);
 	BOOL CurSection(char *section);
@@ -732,9 +762,14 @@ public:
 	BOOL SetInt(const char *key, int val);
 	BOOL DelSection(const char *section);
 	BOOL DelKey(const char *key);
+	BOOL KeyToTop(const char *key);
 	int GetInt(const char *key, int default_val=-1);
 	int64 GetInt64(const char *key, int64 default_val=-1);
-	const char *GetIniFileName(void) { return	ini_file; }
+	void SetIniFileNameW(const WCHAR *ini) {
+		if (iniFile) free(iniFile);
+		iniFile = wcsdup(ini);
+	}
+	const WCHAR *GetIniFileNameW(void) { return	iniFile; }
 };
 
 

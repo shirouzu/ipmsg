@@ -11,8 +11,7 @@
 #ifndef MAINWIN_H
 #define MAINWIN_H
 
-class SendFileObj : public TListObj {
-public:
+struct SendFileObj : public TListObj {
 	SendFileObj() { Init(); }
 	void Init() {
 		memset(&conInfo, 0, offsetof(SendFileObj, path) - offsetof(SendFileObj, header));
@@ -49,11 +48,33 @@ public:
 	WIN32_FIND_DATA_U8	fdata;
 };
 
-class AnsQueueObj : public TListObj {
-public:
+struct AnsQueueObj : public TListObj {
 	AnsQueueObj() { command = 0; }
 	HostSub	hostSub;
 	int		command;
+};
+
+template<class T>
+class TDlgListEx : public TListEx<T> {
+public:
+	T *Search(DWORD id) {
+		for (T *d=TopObj(); d; d=NextObj(d)) {
+			if (d->twinId == id) return d;
+		}
+		return NULL;
+	}
+	void ActiveListDlg(BOOL active=TRUE) {
+		for (T *dlg = TopObj(); dlg; dlg = NextObj(dlg)) {
+			dlg->ActiveDlg(active);
+		}
+	}
+	void DeleteListDlg() {
+		T	*dlg;
+		while ((dlg = TopObj())) {
+			DelObj(dlg);
+			delete dlg;
+		}
+	}
 };
 
 class TMainWin : public TWin {
@@ -62,11 +83,11 @@ protected:
 	static HICON	hRevIcon;
 	static TMainWin	*mainWin;	// for thread proc
 
-	TListEx<TSendDlg>		sendList;
-	TListEx<TRecvDlg>		recvList;
-	TListEx<TMsgDlg>		msgList;
-	TListEx<SendFileObj>	sendFileList;
-	TListEx<ConnectInfo>	connList;
+	TDlgListEx<TSendDlg>	sendList;
+	TDlgListEx<TRecvDlg>	recvList;
+	TDlgListEx<TMsgDlg>		msgList;
+	TDlgListEx<SendFileObj>	sendFileList;
+	TDlgListEx<ConnectInfo>	connList;
 	THosts					hosts;
 
 	TSetupDlg		*setupDlg;
@@ -161,9 +182,9 @@ protected:
 	void	SendHostList(MsgBuf *msg);
 	void	AddHostList(MsgBuf *msg);
 	ULONG	HostStatus(void);
-	void	ActiveListDlg(TList *dlgList, BOOL active = TRUE);
-	void	DeleteListDlg(TList *dlgList);
+
 	void	ActiveDlg(TDlg *dlg, BOOL active = TRUE);
+
 	char	*GetNickNameEx(void);
 	void	InitIcon(void);
 	void	ControlIME(TWin *win, BOOL on);

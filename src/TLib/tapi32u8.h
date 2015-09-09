@@ -1,9 +1,9 @@
-﻿/* @(#)Copyright (C) 1996-2014 H.Shirouzu		tapi32u8.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2015 H.Shirouzu		tapi32u8.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 2005-04-10(Sun)
-	Update					: 2014-04-14(Mon)
+	Update					: 2015-06-22(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

@@ -1,9 +1,9 @@
-﻿/* @(#)Copyright (C) 1996-2014 H.Shirouzu		tlib.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2015 H.Shirouzu		tlib.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2014-04-14(Mon)
+	Update					: 2015-06-22(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -11,43 +11,108 @@
 #ifndef TLIBMISC_H
 #define TLIBMISC_H
 
-class THashTbl;
+#define ALIGN_SIZE(all_size, block_size) (((all_size) + (block_size) -1) \
+										 / (block_size) * (block_size))
+#define ALIGN_BLOCK(size, align_size) (((size) + (align_size) -1) / (align_size))
 
-class THashObj {
+template<class T> class THashTblT;
+
+template<class T>
+class THashObjT {
 public:
-	THashObj	*prevHash;
-	THashObj	*nextHash;
-	u_int		hashId;
+	THashObjT	*prevHash;
+	THashObjT	*nextHash;
+	T				hashId;
 
 public:
-	THashObj() { prevHash = nextHash = NULL; hashId = 0; }
-	virtual ~THashObj() { if (prevHash && prevHash != this) UnlinkHash(); }
+	THashObjT() { prevHash = nextHash = NULL; hashId = 0; }
+	virtual ~THashObjT() { if (prevHash && prevHash != this) UnlinkHash(); }
 
-	virtual BOOL LinkHash(THashObj *top);
-	virtual BOOL UnlinkHash();
-	friend THashTbl;
+	virtual BOOL LinkHash(THashObjT *top) {
+		if (prevHash) return FALSE;
+		this->nextHash = top->nextHash;
+		this->prevHash = top;
+		top->nextHash->prevHash = this;
+		top->nextHash = this;
+		return TRUE;
+	}
+	virtual BOOL UnlinkHash() {
+		if (!prevHash) return FALSE;
+		prevHash->nextHash = nextHash;
+		nextHash->prevHash = prevHash;
+		prevHash = nextHash = NULL;
+		return TRUE;
+	}
+	friend THashTblT<T>;
 };
 
-class THashTbl {
+template<class T>
+class THashTblT {
 protected:
-	THashObj	*hashTbl;
-	int			hashNum;
-	int			registerNum;
-	BOOL		isDeleteObj;
-
-	virtual BOOL	IsSameVal(THashObj *, const void *val) = 0;
+	THashObjT<T>	*hashTbl;
+	int				hashNum;
+	int				registerNum;
+	BOOL			isDeleteObj;
+	virtual BOOL	IsSameVal(THashObjT<T> *, const void *val) = 0;
 
 public:
-	THashTbl(int _hashNum=0, BOOL _isDeleteObj=TRUE);
-	virtual ~THashTbl();
-	virtual BOOL	Init(int _hashNum);
-	virtual void	UnInit();
-	virtual void	Register(THashObj *obj, u_int hash_id);
-	virtual void	UnRegister(THashObj *obj);
-	virtual THashObj *Search(const void *data, u_int hash_id);
+	THashTblT(int _hashNum=0, BOOL _isDeleteObj=TRUE) {
+		hashTbl = NULL;
+		registerNum = 0;
+		isDeleteObj = _isDeleteObj;
+		if ((hashNum = _hashNum) > 0) Init(hashNum);
+	}
+	virtual ~THashTblT() { UnInit(); }
+	virtual BOOL Init(int _hashNum) {
+		if ((hashTbl = new THashObjT<T> [hashNum = _hashNum]) == NULL) {
+			return	FALSE;	// VC4's new don't occur exception
+		}
+		for (int i=0; i < hashNum; i++) {
+			THashObjT<T>	*obj = hashTbl + i;
+			obj->prevHash = obj->nextHash = obj;
+		}
+		registerNum = 0;
+		return	TRUE;
+	}
+	virtual void UnInit() {
+		if (!hashTbl) return;
+		if (isDeleteObj) {
+			for (int i=0; i < hashNum && registerNum > 0; i++) {
+				THashObjT<T>	*start = hashTbl + i;
+				for (THashObjT<T> *obj=start->nextHash; obj != start; ) {
+					THashObjT<T> *next = obj->nextHash;
+					delete obj;
+					obj = next;
+					registerNum--;
+				}
+			}
+		}
+		delete [] hashTbl;
+		hashTbl = NULL;
+		registerNum = 0;
+	}
+	virtual void Register(THashObjT<T> *obj, T hash_id) {
+		obj->hashId = hash_id;
+		if (obj->LinkHash(hashTbl + (hash_id % hashNum))) registerNum++;
+	}
+	virtual void UnRegister(THashObjT<T> *obj) {
+		if (obj->UnlinkHash()) registerNum--;
+	}
+	virtual THashObjT<T> *Search(const void *data, T hash_id) {
+		THashObjT<T> *top = hashTbl + (hash_id % hashNum);
+		for (THashObjT<T> *obj=top->nextHash; obj != top; obj=obj->nextHash) {
+			if (obj->hashId == hash_id && IsSameVal(obj, data)) return obj;
+		}
+		return	NULL;
+	}
 	virtual int		GetRegisterNum() { return registerNum; }
-//	virtual u_int	MakeHashId(const void *data) = 0;
+//	virtual T		MakeHashId(const void *data) = 0;
 };
+
+typedef THashObjT<u_int>	THashObj;
+typedef THashTblT<u_int>	THashTbl;
+typedef THashObjT<uint64> THashObj64;
+typedef THashTblT<uint64> THashTbl64;
 
 /* for internal use start */
 struct TResHashObj : THashObj {
@@ -71,28 +136,34 @@ public:
 
 class Condition {
 protected:
-	enum WaitEvent { CLEAR_EVENT=0, DONE_EVENT, WAIT_EVENT };
-	CRITICAL_SECTION	cs;
-	HANDLE				*hEvents;
-	WaitEvent			*waitEvents;
-	int					max_threads;
-	int					waitCnt;
+	enum Kind { INIT_EVENT=0, WAIT_EVENT, DONE_EVENT };
+
+	struct Event {
+		HANDLE	hEvent;
+		u_int	kind;	// Kind が入るが compare and swap用に u_int に。
+		Event() { hEvent = 0; kind = INIT_EVENT; }
+	};
+	static Event			*gEvents;
+	static volatile LONG	gEventMap;
+	static BOOL				InitGlobalEvents();
+	static const int		MaxThreads = 32;
+
+	BOOL			isInit;
+	CRITICAL_SECTION cs;
+	u_int			waitBits;
 
 public:
 	Condition(void);
 	~Condition();
 
-	BOOL Initialize(int _max_threads);
+	BOOL Initialize(void);
 	void UnInitialize(void);
 
 	void Lock(void)		{ ::EnterCriticalSection(&cs); }
 	void UnLock(void)	{ ::LeaveCriticalSection(&cs); }
 
 	// ロックを取得してから利用すること
-	int  WaitThreads()	{ return waitCnt; }
-	int  IsWait()		{ return waitCnt ? TRUE : FALSE; }
-	void DetachThread() { max_threads--; }
-	int  MaxThreads()   { return max_threads; }
+	int  IsWait()	{ return waitBits ? TRUE : FALSE; }
 
 	BOOL Wait(DWORD timeout=INFINITE);
 	void Notify(void);
@@ -128,6 +199,66 @@ public:
 	void	SetUsedSize(size_t _used_size) { usedSize = _used_size; }
 	size_t	AddUsedSize(size_t _used_size) { return usedSize += _used_size; }
 	size_t	RemainSize(void) { return	size - usedSize; }
+};
+
+template <class T>
+class VBVec : public VBuf {
+	size_t	growSize;
+	int		usedNum;
+
+public:
+	VBVec() {}
+	BOOL Init(int min_num, int max_num, int grow_num=0) {
+		size_t min_size = ALIGN_SIZE(min_num * sizeof(T), PAGE_SIZE);
+		size_t max_size = ALIGN_SIZE(min_num * sizeof(T), PAGE_SIZE);
+		growSize = grow_num ? ALIGN_SIZE(grow_num * sizeof(T), PAGE_SIZE) : min_size;
+		usedNum  = 0;
+		return AllocBuf(min_size, max_size);
+	}
+	T& operator [](int idx) {
+		Aquire(idx);
+		return	Get(idx);
+	}
+	bool Aquire(int idx) {
+		int		need_num = idx + 1;
+		if (need_num <= usedNum) return true;
+
+		size_t	need_size = need_num * sizeof(T);
+		if (need_size > size) {
+			if (need_size > maxSize) return false;
+			if (need_size > size && !Grow(growSize)) return false;
+		}
+		usedSize = need_size;
+		usedNum  = need_num;
+		return	true;
+	}
+	bool Set(int idx, const T& d) {
+		if (!Aquire(idx)) return false;
+		Get(idx) = d;
+		return	true;
+	}
+	T& Get(int idx) {
+		return *(T *)(buf + (sizeof(T) * idx));
+	}
+	int UsedNum() {
+		return usedNum;
+	}
+	int SetUsedNum(int num) {
+		usedNum  = num;
+		usedSize = num * sizeof(T);
+		return UsedNum();
+	}
+	bool Push(const T& d) {
+		return	Set(UsedNum(), d); // usedNum will be increment in Aquire
+	}
+	bool Pop() {
+		if (usedNum <= 0) return false;
+		usedSize -= sizeof(T);
+		usedNum--;
+		return	true;
+	}
+	T& Top()  { return Get(0); }
+	T& Last() { return Get(UsedNum()-1); }
 };
 
 class GBuf {
@@ -239,8 +370,33 @@ void rev_order(const BYTE *src, BYTE *dst, int size);
 char *strdupNew(const char *_s, int max_len=-1);
 WCHAR *wcsdupNew(const WCHAR *_s, int max_len=-1);
 
-int strncmpi(const char *str1, const char *str2, size_t num);
-char *strncpyz(char *dest, const char *src, size_t num);
+int strcpyz(char *dest, const char *src);
+int wcscpyz(WCHAR *dest, const WCHAR *src);
+int strncpyz(char *dest, const char *src, int num);
+int wcsncpyz(WCHAR *dest, const WCHAR *src, int num);
+
+inline int get_ntz64(uint64 val) {
+#ifdef _WIN64
+	u_long	ret = 0;
+	_BitScanForward64(&ret, val);
+	return	ret;
+#else
+	u_long	ret = 0;
+	if (_BitScanForward(&ret, (u_int)val)) return ret;
+
+	u_int sval = (u_int)(val >> 32);
+	_BitScanForward(&ret, sval);
+	ret += 32;
+	return	ret;
+#endif
+}
+
+inline int get_ntz(u_int val) {
+	u_long	ret = 0;
+	_BitScanForward(&ret, val);
+	return	ret;
+}
+
 
 int LocalNewLineToUnix(const char *src, char *dest, int maxlen);
 int UnixNewLineToLocal(const char *src, char *dest, int maxlen);
@@ -259,11 +415,11 @@ BOOL TChangeWindowMessageFilter(UINT msg, DWORD flg);
 void TSwitchToThisWindow(HWND hWnd, BOOL flg);
 
 BOOL InstallExceptionFilter(const char *title, const char *info, const char *fname=NULL);
-void Debug(char *fmt,...);
-void DebugW(WCHAR *fmt,...);
-void DebugU8(char *fmt,...);
-const char *Fmt(char *fmt,...);
-const WCHAR *FmtW(WCHAR *fmt,...);
+void Debug(const char *fmt,...);
+void DebugW(const WCHAR *fmt,...);
+void DebugU8(const char *fmt,...);
+const char *Fmt(const char *fmt,...);
+const WCHAR *FmtW(const WCHAR *fmt,...);
 
 BOOL SymLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg=L"");
 BOOL ReadLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg=NULL);
@@ -271,6 +427,9 @@ BOOL DeleteLinkW(WCHAR *path);
 BOOL GetParentDirW(const WCHAR *srcfile, WCHAR *dir);
 HWND ShowHelpW(HWND hOwner, WCHAR *help_dir, WCHAR *help_file, WCHAR *section=NULL);
 HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const char *section=NULL);
+HWND CloseHelpAll();
+
+BOOL ForceSetTrayIcon(HWND hWnd, UINT id, DWORD pref=2);
 
 #endif
 

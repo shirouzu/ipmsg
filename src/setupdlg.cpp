@@ -81,8 +81,7 @@ BOOL TSetupSheet::CheckData()
 		}
 	}
 	else if (resId == SENDRECV_SHEET) {
-		GetDlgItemTextU8(LRUUSER_EDIT, buf, sizeof(buf));
-		if ((val = atoi(buf)) > MAX_LRUUSER || val < 0) {
+		if ((val = GetDlgItemInt(LRUUSER_EDIT)) > MAX_LRUUSER || val < 0) {
 			MessageBox(Fmt(GetLoadStr(IDS_TOOMANYLRU), MAX_LRUUSER));
 			return	FALSE;
 		}
@@ -402,8 +401,7 @@ BOOL TSetupSheet::GetData()
 		cfg->QuoteCheck = IsDlgButtonChecked(QUOTE_CHECK);
 		cfg->SecretCheck = IsDlgButtonChecked(SECRET_CHECK);
 		cfg->OneClickPopup = IsDlgButtonChecked(ONECLICK_CHECK);
-		GetDlgItemTextU8(LRUUSER_EDIT, buf, sizeof(buf));
-		cfg->lruUserMax = atoi(buf);
+		cfg->lruUserMax = GetDlgItemInt(LRUUSER_EDIT);
 	// ControlIME ... 0:off, 1:senddlg on (finddlg:off), 2:always on
 		cfg->ControlIME = IsDlgButtonChecked(CONTROLIME_CHECK);
 		if (cfg->ControlIME && !IsDlgButtonChecked(FINDDLGIME_CHECK)) {

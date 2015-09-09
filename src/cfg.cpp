@@ -82,6 +82,7 @@
 #define RECVIPADDRCHECK_STR	"RecvIPAddrCheck"
 #define ONECLICKPOPUP_STR	"OneClickPopup2"
 #define BALLOONNOTIFY_STR	"BalloonNotify"
+#define TRAYICON_STR		"TrayIcon"
 #define ABNORMALBTN_STR		"AbnormalButton"
 #define DIALUPCHECK_STR		"DialUpCheck"
 #define LOGONLOG_STR		"LogonLog"
@@ -315,6 +316,7 @@ BOOL Cfg::ReadRegistry(void)
 	RecvIPAddr = TRUE;
 	OneClickPopup = FALSE;
 	BalloonNotify = TRUE;
+	TrayIcon = TRUE;
 	AbnormalButton = FALSE;
 	DialUpCheck = FALSE;
 	*NickNameStr = 0;
@@ -574,6 +576,7 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(RECVIPADDRCHECK_STR, &RecvIPAddr);
 	reg.GetInt(ONECLICKPOPUP_STR, &OneClickPopup);
 	reg.GetInt(BALLOONNOTIFY_STR, &BalloonNotify);
+	reg.GetInt(TRAYICON_STR, &TrayIcon);
 	reg.GetInt(ABNORMALBTN_STR, &AbnormalButton);
 	reg.GetInt(DIALUPCHECK_STR, &DialUpCheck);
 	reg.GetInt(ABSENCENONPOPUP_STR, &AbsenceNonPopup);
@@ -958,7 +961,8 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(IPADDRCHECK_STR, IPAddrCheck);
 		reg.SetInt(RECVIPADDRCHECK_STR, RecvIPAddr);
 		reg.SetInt(ONECLICKPOPUP_STR, OneClickPopup);
-		reg.SetInt(BALLOONNOTIFY_STR, BalloonNotify);
+		reg.SetInt(BALLOONNOTIFY_STR, BalloonNotify);		
+		//reg.SetInt(TRAYICON_STR, TrayIcon);
 		reg.SetInt(ABNORMALBTN_STR, AbnormalButton);
 		reg.SetInt(DIALUPCHECK_STR, DialUpCheck);
 		reg.SetInt(ABSENCENONPOPUP_STR, AbsenceNonPopup);

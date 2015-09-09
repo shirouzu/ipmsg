@@ -1,10 +1,10 @@
 ﻿static char *tapp_id = 
-	"@(#)Copyright (C) 1996-2011 H.Shirouzu		tapp.cpp	Ver0.99";
+	"@(#)Copyright (C) 1996-2015 H.Shirouzu		tapp.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2011-04-10(Sun)
+	Update					: 2015-06-22(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

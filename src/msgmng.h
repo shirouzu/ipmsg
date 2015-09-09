@@ -50,8 +50,7 @@ struct RecvBuf {
 	char	msgBuf[MAX_UDPBUF];
 };
 
-class ConnectInfo : public TListObj {
-public:
+struct ConnectInfo : public TListObj {
 	ConnectInfo() { Init(); }
 	void Init() { sd=0; port=0; server=complete=FALSE; startTick=lastTick=0; }
 	SOCKET	sd;

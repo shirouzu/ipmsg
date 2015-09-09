@@ -1,10 +1,10 @@
 ﻿static char *ipmsg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2015   ipmsg.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   ipmsg.cpp	Ver3.51";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Application Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-06-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -82,13 +82,17 @@ void TMsgApp::InitWindow(void)
 	char		class_name[MAX_PATH_U8] = IPMSG_CLASS, *tok, *p;
 	char		*class_ptr = NULL;
 	Addr		nicAddr = 0;
-	int			port_no = atoi(cmdLine);
+	int			port_no = 0;
 	BOOL		show_history = FALSE;
 	enum Stat { ST_NORMAL, ST_TASKBARUI_MSG, ST_EXIT, ST_ERR } status = ST_NORMAL;
 	int			taskbar_msg = 0;
 	int			taskbar_cmd = 0;
 
-	if (port_no == 0) port_no = IPMSG_DEFAULT_PORT;
+	if (*cmdLine == '"') cmdLine = strchr(cmdLine+1, '"');
+	if (cmdLine)         cmdLine = strchr(cmdLine, ' ');
+	if (!cmdLine)        cmdLine = "";
+
+	if ((port_no = atoi(cmdLine)) == 0) port_no = IPMSG_DEFAULT_PORT;
 
 	MsgMng::WSockStartup(); // for Addr::ToStr and other sock functions
 

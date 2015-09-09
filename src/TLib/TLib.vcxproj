@@ -210,7 +210,6 @@
     <ClCompile Include="tapp.cpp" />
     <ClCompile Include="tdlg.cpp" />
     <ClCompile Include="tini.cpp" />
-    <ClCompile Include="tlist.cpp" />
     <ClCompile Include="tmisc.cpp" />
     <ClCompile Include="tregist.cpp" />
     <ClCompile Include="twin.cpp" />

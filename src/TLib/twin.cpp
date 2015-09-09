@@ -1,10 +1,10 @@
 ﻿static char *twin_id = 
-	"@(#)Copyright (C) 1996-2012 H.Shirouzu		twin.cpp	Ver0.99";
+	"@(#)Copyright (C) 1996-2015 H.Shirouzu		twin.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Window Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2012-04-02(Mon)
+	Update					: 2015-06-22(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

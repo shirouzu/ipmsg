@@ -1,10 +1,10 @@
 ﻿static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2015   mainwin.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   mainwin.cpp	Ver3.51";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-06-21(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -108,9 +108,9 @@ void TMainWin::Terminate(void)
 		return;
 
 	ExitHost();
-	DeleteListDlg(&sendList);
-	DeleteListDlg(&recvList);
-	DeleteListDlg(&msgList);
+	sendList.DeleteListDlg();
+	recvList.DeleteListDlg();
+	msgList.DeleteListDlg();
 	//delete logView;
 	delete histDlg;
 	delete shareStatDlg;
@@ -390,11 +390,11 @@ BOOL TMainWin::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		return	TRUE;
 
 	case MENU_HELP:
-		ShowHelpU8(hWnd, cfg->execDir, GetLoadStrU8(IDS_IPMSGHELP), "#usage");
+		ShowHelpU8(0, cfg->execDir, GetLoadStrU8(IDS_IPMSGHELP), "#usage");
 		return	TRUE;
 
 	case MENU_HELP_HISTORY:
-		ShowHelpU8(hWnd, cfg->execDir, GetLoadStrU8(IDS_IPMSGHELP), "#history");
+		ShowHelpU8(0, cfg->execDir, GetLoadStrU8(IDS_IPMSGHELP), "#history");
 		return	TRUE;
 
 	case HIDE_ACCEL:
@@ -402,7 +402,7 @@ BOOL TMainWin::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		return	TRUE;
 
 	case MISC_ACCEL:
-		DeleteListDlg(&msgList);
+		msgList.DeleteListDlg();
 		return	TRUE;
 
 	case MENU_OPENHISTDLG:
@@ -527,7 +527,7 @@ BOOL TMainWin::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 //			return	PostMessage(WM_COMMAND, MENU_ABSENCE, 0), TRUE;
 		if (shift_on && !menu_on) return PostMessage(WM_COMMAND, MENU_ACTIVEWIN, 0), TRUE;
 
-		if (cfg->TaskbarUI) ActiveListDlg(&msgList);
+		if (cfg->TaskbarUI) msgList.ActiveListDlg();
 
 		for (TSendDlg *dlg = sendList.TopObj(); dlg; dlg = sendList.NextObj(dlg)) {
 			if (dlg->IsSending()) dlg->SetForegroundWindow();	// 再送信確認ダイアログを前に
@@ -663,7 +663,7 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			LockWorkStation();
 		}
 		else if (msgList.TopObj()) {
-			DeleteListDlg(&msgList);
+			msgList.DeleteListDlg();
 		}
 		return	TRUE;
 
@@ -1798,7 +1798,7 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 		TMsgDlg	*msgDlg = new TMsgDlg(cfg->TaskbarUI ? 0 : this);
 		msgDlg->Create(msg_text, title, show_mode);
 		if (cmd == IPMSG_SENDINFO || cmd == IPMSG_SENDABSENCEINFO)
-			ActiveDlg(msgDlg);
+			msgDlg->ActiveDlg();
 		msgList.AddObj(msgDlg);
 	}
 }
@@ -2010,6 +2010,23 @@ void TMainWin::MiscDlgOpen(TDlg *dlg)
 }
 
 /*
+	Dlg を Active or Hideに
+*/
+void TMainWin::ActiveDlg(TDlg *dlg, BOOL active)
+{
+	if (dlg->hWnd != 0) {
+		if (active) {
+			dlg->Show();
+			dlg->SetForegroundWindow();
+		}
+		else {
+			dlg->Show(SW_HIDE);
+		}
+	}
+}
+
+
+/*
 	TaskTrayに指定iconを登録
 */
 BOOL TMainWin::TaskTray(int nimMode, HICON hSetIcon, LPCSTR tip)
@@ -2025,7 +2042,13 @@ BOOL TMainWin::TaskTray(int nimMode, HICON hSetIcon, LPCSTR tip)
 		U8toW(tip, tn.szTip, sizeof(tn.szTip) / sizeof(WCHAR));
 	}
 
-	return	::Shell_NotifyIconW(nimMode, &tn);
+	BOOL ret = ::Shell_NotifyIconW(nimMode, &tn);
+
+	if (nimMode != NIM_DELETE && cfg->TrayIcon) {
+		static BOOL once_result = ForceSetTrayIcon(hWnd, WM_NOTIFY_TRAY);
+	}
+
+	return	ret;
 }
 
 inline int strcharcount(const char *s, char c) {
@@ -2038,7 +2061,7 @@ inline int strcharcount(const char *s, char c) {
 */
 BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWORD timer)
 {
-	NOTIFYICONDATAW	tn = { sizeof(tn) };
+	NOTIFYICONDATAW	tn = { IsWinVista() ? sizeof(tn) : NOTIFYICONDATA_V2_SIZE };
 
 	tn.hWnd = hWnd;
 	tn.uID = WM_NOTIFY_TRAY;
@@ -2175,9 +2198,9 @@ void TMainWin::ActiveChildWindow(BOOL active)
 	ActiveDlg(absenceDlg, active);
 	ActiveDlg(shareStatDlg, active);
 	ActiveDlg(histDlg, active);
-	ActiveListDlg(&recvList, active);
-	ActiveListDlg(&sendList, active);
-	ActiveListDlg(&msgList, active);
+	recvList.ActiveListDlg(active);
+	sendList.ActiveListDlg(active);
+	msgList.ActiveListDlg(active);
 
 	if (!active) SetForegroundWindow();
 }
@@ -2674,47 +2697,6 @@ HICON TMainWin::GetIPMsgIcon(void)
 	return	hMainIcon;
 }
 
-/*
-	ListDlg を Active or Hideに（単なる簡易ルーチン）
-*/
-void TMainWin::ActiveListDlg(TList *_list, BOOL active)
-{
-	TListEx<TListDlg>	*list = (TListEx<TListDlg> *)_list;
-
-	for (TListDlg *dlg = list->TopObj(); dlg; dlg = list->NextObj(dlg)) {
-		ActiveDlg(dlg, active);
-	}
-}
-
-/*
-	ListDlg を Delete する（単なる簡易ルーチン）
-*/
-void TMainWin::DeleteListDlg(TList *_list)
-{
-	TListEx<TListDlg>	*list = (TListEx<TListDlg> *)_list;
-	TListDlg			*dlg;
-
-	while ((dlg = list->TopObj())) {
-		list->DelObj(dlg);
-		delete dlg;
-	}
-}
-
-/*
-	Dlg を Active or Hideに
-*/
-void TMainWin::ActiveDlg(TDlg *dlg, BOOL active)
-{
-	if (dlg->hWnd != 0) {
-		if (active) {
-			dlg->Show();
-			dlg->SetForegroundWindow();
-		}
-		else {
-			dlg->Show(SW_HIDE);
-		}
-	}
-}
 
 /*
 	Extend NickName

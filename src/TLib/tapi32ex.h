@@ -1,9 +1,9 @@
-﻿/* @(#)Copyright (C) 1996-2012 H.Shirouzu		tapi32ex.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2015 H.Shirouzu		tapi32ex.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 2005-04-10(Sun)
-	Update					: 2012-04-02(Mon)
+	Update					: 2015-06-22(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -106,11 +106,15 @@ typedef struct _FILE_STREAM_INFORMATION {
   WCHAR         StreamName[1];
 } FILE_STREAM_INFORMATION, *PFILE_STREAM_INFORMATION;
 
-extern NTSTATUS (WINAPI *pNtQueryInformationFile)(HANDLE FileHandle,
-				PIO_STATUS_BLOCK IoStatusBlock, PVOID FileInformation, ULONG Length,
-				FILE_INFORMATION_CLASS FileInformationClass);
+extern NTSTATUS (WINAPI *pNtQueryInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG,
+	FILE_INFORMATION_CLASS);
 
-u_int MakeHash(const void *data, int size, DWORD iv=0);
+extern NTSTATUS (WINAPI *pZwFsControlFile)(HANDLE, HANDLE, void *, PVOID, PIO_STATUS_BLOCK,
+	ULONG, PVOID, ULONG, PVOID, ULONG);
+#define IOCTL_LMR_DISABLE_LOCAL_BUFFERING 0x140390
+
+u_int  MakeHash(const void *data, int size, u_int iv=0);
+uint64 MakeHash64(const void *data, int size, uint64 iv=0);
 
 class TDigest {
 protected:

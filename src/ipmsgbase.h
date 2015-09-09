@@ -176,25 +176,21 @@ public:
 	int		PriorityHostCnt(int priority, int range=1);
 };
 
-class AddrObj : public TListObj {
-public:
+struct AddrObj : public TListObj {
 	Addr	addr;
 	int		portNo;
 };
 
-class UrlObj : public TListObj {
-public:
+struct UrlObj : public TListObj {
 	char	protocol[MAX_NAMEBUF];
 	char	program[MAX_PATH_U8];
 };
 
-class UserObj : public TListObj {
-public:
+struct UserObj : public TListObj {
 	HostSub	hostSub;
 };
 
-class UsersObj : public TListObj {
-public:
+struct UsersObj : public TListObj {
 	TListEx<UserObj>	users;
 	~UsersObj() {
 		UserObj *obj;
@@ -204,8 +200,7 @@ public:
 
 Addr ResolveAddr(const char *_host);
 
-class TBrObj : public TListObj {
-public:
+struct TBrObj : public TListObj {
 	char	*host;
 	Addr	addr;
 

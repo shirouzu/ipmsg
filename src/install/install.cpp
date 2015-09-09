@@ -346,9 +346,6 @@ BOOL TInstDlg::Install(void)
 //		msg = Fmt("%s%s", msg, GetLoadStr(IDS_COMPLETE_UACADD));
 //		flg |= MB_DEFBUTTON2;
 //	}
-	if (IsWin7()) {
-		msg = Fmt("%s%s", msg, GetLoadStr(IDS_COMPLETE_WIN7));
-	}
 	TLaunchDlg	dlg(msg, this);
 	if (dlg.Exec() == IDOK) {
 		if (runasWnd) {
@@ -402,7 +399,7 @@ BOOL RemoveSameLink(const char *dir, char *remove_path)
 			int		dest_len = (int)strlen(dest);
 			int		ipmsg_len = (int)strlen(IPMSG_EXENAME);
 			if (dest_len > ipmsg_len &&
-					strncmpi(dest + dest_len - ipmsg_len, IPMSG_EXENAME, ipmsg_len) == 0) {
+					strnicmp(dest + dest_len - ipmsg_len, IPMSG_EXENAME, ipmsg_len) == 0) {
 				ret = DeleteFileU8(path);
 				if (remove_path)
 					strcpy(remove_path, path);
@@ -446,7 +443,7 @@ BOOL CALLBACK TerminateIPMsgProc(HWND hWnd, LPARAM lParam)
 	char	buf[MAX_BUF];
 
 	if (::GetClassName(hWnd, buf, sizeof(buf)) != 0) {
-		if (strncmpi(IPMSG_CLASS, buf, strlen(IPMSG_CLASS)) == 0) {
+		if (strnicmp(IPMSG_CLASS, buf, strlen(IPMSG_CLASS)) == 0) {
 			if (lParam) {
 				*(BOOL *)lParam = TRUE;		// existFlg;
 			}
@@ -797,9 +794,6 @@ TLaunchDlg::~TLaunchDlg()
 BOOL TLaunchDlg::EvCreate(LPARAM lParam)
 {
 	SetDlgItemText(MESSAGE_STATIC, msg);
-	if (IsWin7()) {
-		::ShowWindow(GetDlgItem(NOTIFYAREA_CHECK), SW_SHOW);
-	}
 	HBITMAP	hBmp = ::LoadBitmap(TApp::GetInstance(), (LPCSTR)PAYPAL_BITMAP);
 
 	Show();
@@ -817,10 +811,6 @@ BOOL TLaunchDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		return	TRUE;
 
 	case IDOK:
-		if (IsDlgButtonChecked(NOTIFYAREA_CHECK)) {
-			ShellExecuteW(NULL, L"open", L"rundll32.exe", NOTIFY_SETTINGS, 0, SW_SHOW);
-			//ShellExecuteU8(NULL, NULL, GetLoadStr(IDS_TRAYURL), 0, 0, SW_SHOW);
-		}
 		EndDialog(wID);
 		return	TRUE;
 	}

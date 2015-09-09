@@ -260,7 +260,7 @@ BOOL RemoveSameLink(const char *dir, char *remove_path)
 		if (ReadLinkU8(path, dest, arg) && *arg == 0) {
 			int		dest_len = (int)strlen(dest);
 			int		ipmsg_len = (int)strlen(IPMSG_EXENAME);
-			if (dest_len > ipmsg_len && strncmpi(dest + dest_len - ipmsg_len, IPMSG_EXENAME, ipmsg_len) == 0) {
+			if (dest_len > ipmsg_len && strnicmp(dest + dest_len - ipmsg_len, IPMSG_EXENAME, ipmsg_len) == 0) {
 				ret = DeleteFileU8(path);
 				if (remove_path)
 					strcpy(remove_path, path);
@@ -303,7 +303,7 @@ BOOL CALLBACK TerminateIPMsgProc(HWND hWnd, LPARAM lParam)
 	char	buf[MAX_BUF];
 
 	if (::GetClassName(hWnd, buf, sizeof(buf)) != 0) {
-		if (strncmpi(IPMSG_CLASS, buf, strlen(IPMSG_CLASS)) == 0) {
+		if (strnicmp(IPMSG_CLASS, buf, strlen(IPMSG_CLASS)) == 0) {
 			if (lParam)
 				*(BOOL *)lParam = TRUE;		// existFlg;
 			else {

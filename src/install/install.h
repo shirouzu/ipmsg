@@ -79,7 +79,7 @@ public:
 #define WM_IPMSG_INSTALL		(WM_APP + 102)
 
 #define IPMSG_CLASS				"ipmsg_class"
-#define IPMSG_NAME				"IPMSG for Win32"
+#define IPMSG_NAME				"IPMSG for Win"
 #define IPMSG_FULLNAME			"IP Messenger for Win"
 #define IPMSG_STR				"IPMsg"
 #define HSTOOLS_STR				"HSTools"
