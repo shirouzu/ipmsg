@@ -3,13 +3,15 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-06-22(Mon)
+	Update					: 2015-08-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
 #ifndef TLIBMISC_H
 #define TLIBMISC_H
+
+typedef SSIZE_T	ssize_t;
 
 #define ALIGN_SIZE(all_size, block_size) (((all_size) + (block_size) -1) \
 										 / (block_size) * (block_size))
@@ -175,42 +177,42 @@ class VBuf {
 protected:
 	BYTE	*buf;
 	VBuf	*borrowBuf;
-	size_t	size;
-	size_t	usedSize;
-	size_t	maxSize;
+	ssize_t	size;
+	ssize_t	usedSize;
+	ssize_t	maxSize;
 	void	Init();
 
 public:
-	VBuf(size_t _size=0, size_t _max_size=0, VBuf *_borrowBuf=NULL);
+	VBuf(ssize_t _size=0, ssize_t _max_size=0, VBuf *_borrowBuf=NULL);
 	~VBuf();
-	BOOL	AllocBuf(size_t _size, size_t _max_size=0, VBuf *_borrowBuf=NULL);
+	BOOL	AllocBuf(ssize_t _size, ssize_t _max_size=0, VBuf *_borrowBuf=NULL);
 	BOOL	LockBuf();
 	void	FreeBuf();
-	BOOL	Grow(size_t grow_size);
+	BOOL	Grow(ssize_t grow_size);
 	operator bool() { return buf ? true : false; }
 	operator void *() { return buf; }
 	operator BYTE *() { return buf; }
 	operator char *() { return (char *)buf; }
 	BYTE	*Buf() { return	buf; }
 	WCHAR	*WBuf() { return (WCHAR *)buf; }
-	size_t	Size() { return size; }
-	size_t	MaxSize() { return maxSize; }
-	size_t	UsedSize() { return usedSize; }
-	void	SetUsedSize(size_t _used_size) { usedSize = _used_size; }
-	size_t	AddUsedSize(size_t _used_size) { return usedSize += _used_size; }
-	size_t	RemainSize(void) { return	size - usedSize; }
+	ssize_t	Size() { return size; }
+	ssize_t	MaxSize() { return maxSize; }
+	ssize_t	UsedSize() { return usedSize; }
+	void	SetUsedSize(ssize_t _used_size) { usedSize = _used_size; }
+	ssize_t	AddUsedSize(ssize_t _used_size) { return usedSize += _used_size; }
+	ssize_t	RemainSize(void) { return	size - usedSize; }
 };
 
 template <class T>
 class VBVec : public VBuf {
-	size_t	growSize;
+	ssize_t	growSize;
 	int		usedNum;
 
 public:
 	VBVec() {}
 	BOOL Init(int min_num, int max_num, int grow_num=0) {
-		size_t min_size = ALIGN_SIZE(min_num * sizeof(T), PAGE_SIZE);
-		size_t max_size = ALIGN_SIZE(min_num * sizeof(T), PAGE_SIZE);
+		ssize_t min_size = ALIGN_SIZE(min_num * sizeof(T), PAGE_SIZE);
+		ssize_t max_size = ALIGN_SIZE(max_num * sizeof(T), PAGE_SIZE);
 		growSize = grow_num ? ALIGN_SIZE(grow_num * sizeof(T), PAGE_SIZE) : min_size;
 		usedNum  = 0;
 		return AllocBuf(min_size, max_size);
@@ -223,7 +225,7 @@ public:
 		int		need_num = idx + 1;
 		if (need_num <= usedNum) return true;
 
-		size_t	need_size = need_num * sizeof(T);
+		ssize_t	need_size = need_num * sizeof(T);
 		if (need_size > size) {
 			if (need_size > maxSize) return false;
 			if (need_size > size && !Grow(growSize)) return false;
@@ -347,6 +349,7 @@ void TSetDefaultLCID(LCID id=0);
 HMODULE TLoadLibrary(LPSTR dllname);
 HMODULE TLoadLibraryW(WCHAR *dllname);
 int MakePath(char *dest, const char *dir, const char *file);
+int MakePathU8(char *dest, const char *dir, const char *file);
 int MakePathW(WCHAR *dest, const WCHAR *dir, const WCHAR *file);
 
 int64 hex2ll(char *buf);
@@ -409,7 +412,7 @@ BOOL TWow64RevertWow64FsRedirection(void *oldval);
 BOOL TIsEnableUAC();
 BOOL TIsVirtualizedDirW(WCHAR *path);
 BOOL TMakeVirtualStorePathW(WCHAR *org_path, WCHAR *buf);
-BOOL TSetPrivilege(LPSTR pszPrivilege, BOOL bEnable);
+BOOL TSetPrivilege(LPSTR privName, BOOL bEnable);
 BOOL TSetThreadLocale(int lcid);
 BOOL TChangeWindowMessageFilter(UINT msg, DWORD flg);
 void TSwitchToThisWindow(HWND hWnd, BOOL flg);
@@ -425,6 +428,7 @@ BOOL SymLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg=L"");
 BOOL ReadLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg=NULL);
 BOOL DeleteLinkW(WCHAR *path);
 BOOL GetParentDirW(const WCHAR *srcfile, WCHAR *dir);
+BOOL GetParentDirU8(const char *srcfile, char *dir);
 HWND ShowHelpW(HWND hOwner, WCHAR *help_dir, WCHAR *help_file, WCHAR *section=NULL);
 HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const char *section=NULL);
 HWND CloseHelpAll();

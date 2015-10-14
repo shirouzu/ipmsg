@@ -23,6 +23,7 @@
 #include "resource.h"
 #include <vector>
 #include <map>
+#include <list>
 
 /*  IP Messenger for Windows  internal define  */
 #define IPMSG_REVERSEICON			0x0100
@@ -47,6 +48,7 @@
 #define IPMSG_IMAGERECT_TIMER		0x010e
 #define IPMSG_KEYCHECK_TIMER		0x010f
 #define IPMSG_DELAYFOCUS_TIMER		0x0110
+#define IPMSG_AUTOSAVE_TIMER		0x0111
 
 
 #define IPMSG_NICKNAME			1
@@ -136,17 +138,11 @@ typedef long	Time_t;		// size of time_t is 64bit in VS2005 or later
 #define PRIORITY_OFFSET		10
 #define DEFAULT_PRIORITYMAX	5
 
-#define CLIP_ENABLE			0x1
-#define CLIP_SAVE			0x2
-#define CLIP_CONFIRM_NORMAL	0x4
-#define CLIP_CONFIRM_STRICT	0x8
-#define CLIP_CONFIRM_ALL	(CLIP_CONFIRM_NORMAL|CLIP_CONFIRM_STRICT)
-
 #include "aes.h"
 #include "pubkey.h"
 #include "ipmsgbase.h"
-#include "cfg.h"
 #include "msgmng.h"
+#include "cfg.h"
 #include "richedit.h"
 #include "miscdlg.h"
 #include "share.h"

@@ -27,8 +27,8 @@ struct RecvFileObj {
 	BOOL		isClip;
 	FileInfo	curFileInfo;
 
-	_int64		offset;
-	_int64		woffset;
+	_int64		offset;		// read offset
+	_int64		woffset;	// written offset
 	char		*recvBuf;
 	HANDLE		hFile;
 	HANDLE		hThread;
@@ -72,20 +72,21 @@ public:
 protected:
 	static int		createCnt;
 	static HBITMAP	hDummyBmp;
-	MsgMng		*msgMng;
-	MsgBuf		msg;
-	THosts		*hosts;
-	char		head[MAX_LISTBUF];
-	RECT		headRect;
-	Cfg			*cfg;
-	LogMng		*logmng;
-	BOOL		openFlg;
-	SYSTEMTIME	recvTime;
+	MsgMng			*msgMng;
+	MsgBuf			msg;
+	THosts			*hosts;
+	char			head[MAX_LISTBUF];
+	RECT			headRect;
+	Cfg				*cfg;
+	LogMng			*logmng;
+	BOOL			openFlg;
+	BOOL			isRep;	// reproduction
 	static HFONT	hHeadFont;
 	static HFONT	hEditFont;
 	static LOGFONT	orgFont;
-	TEditSub	editSub;
-	SelfStatus	status;
+	TEditSub		editSub;
+	SelfStatus		status;
+	BOOL			isAutoSave;
 
 	RecvFileObj		*fileObj;
 	ShareInfo		*shareInfo;
@@ -115,7 +116,7 @@ protected:
 	BOOL	StartRecvFile(void);
 	BOOL	ConnectRecvFile(void);
 	static UINT WINAPI RecvFileThread(void *_recvDlg);
-	BOOL	SaveFile(void);
+	BOOL	SaveFile(BOOL auto_save=FALSE);
 	BOOL	OpenRecvFile(void);
 	BOOL	RecvFile(void);
 	BOOL	RecvDirFile(void);
@@ -124,11 +125,14 @@ protected:
 	void	SetTransferButtonText(void);
 	BOOL	CheckSpecialCommand();
 	BOOL	DecodeDirEntry(char *buf, FileInfo *info, char *u8fname);
+	BOOL	LoadClipFromFile(void);
+	BOOL	AutoSaveCheck(void);
 
 public:
-	TRecvDlg(MsgMng *_msgmng, MsgBuf *_msg, THosts *hosts, Cfg *cfg, LogMng *logmng, TWin *_parent=NULL);
+	TRecvDlg(MsgMng *_msgmng, THosts *hosts, Cfg *cfg, LogMng *logmng, TWin *_parent=NULL);
 	virtual ~TRecvDlg();
 
+	virtual SelfStatus Init(MsgBuf *_msg, const char *rep_head=NULL, ULONG clipBase=0);
 	virtual BOOL	IsClosable(void) {
 						return openFlg &&
 							(!fileObj || !fileObj->conInfo) && !clipList.TopObj() && !recvEndDlg;
@@ -153,12 +157,13 @@ public:
 	virtual void	Show(int mode = SW_NORMAL);
 	virtual BOOL	InsertImages(void);
 	SelfStatus		Status() { return status; }
-	void			SetStatus(SelfStatus _status) { status = _status; }
+	void			SetStatus(SelfStatus _status);
 	static int		GetCreateCnt(void) { return createCnt; }
-	SYSTEMTIME		GetRecvTime() { return recvTime; }
+	Time_t			GetRecvTime() { return msg.timestamp; }
 	MsgBuf			*GetMsgBuf() { return &msg; }
 
 	int				UseClipboard() { return useClipBuf; }
+	BOOL			FileAttached() { return !!shareInfo; }
 };
 
 #endif

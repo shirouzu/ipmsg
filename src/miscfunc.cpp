@@ -12,6 +12,7 @@
 #include "resource.h"
 #include "ipmsg.h"
 #include "blowfish.h"
+#include <time.h>
 
 /*
 	URL検索ルーチン
@@ -350,26 +351,6 @@ void ForcePathToFname(const char *org_path, char *target_fname)
 }
 
 /*
-	2byte文字系でもきちんと動作させるためのルーチン
-	 (*strrchr(path, "\\")=0 だと '表'などで問題を起すため)
-*/
-BOOL PathToDir(const char *org_path, char *target_dir)
-{
-	char	path[MAX_BUF], *fname=NULL;
-
-	if (GetFullPathNameU8(org_path, sizeof(path), path, &fname) == 0 || fname == NULL)
-		return	strncpyz(target_dir, org_path, MAX_PATH_U8), FALSE;
-
-	if (fname - path > 3 || path[1] != ':')
-		*(fname - 1) = 0;
-	else
-		*fname = 0;		// C:\ の場合
-
-	strncpyz(target_dir, path, MAX_PATH_U8);
-	return	TRUE;
-}
-
-/*
 	fname にファイル名以外の要素が含まれていないことを確かめる
 */
 BOOL IsSafePath(const char *fullpath, const char *fname)
@@ -432,19 +413,33 @@ Time_t Time(void)
 	ctime() の代わり
 	ただし、改行なし
 */
-char *Ctime(SYSTEMTIME *st)
+const char *Ctime(SYSTEMTIME *st)
 {
 	static char	buf[] = "Mon Jan 01 00:00:00 2999";
 	static char *wday = "SunMonTueWedThuFriSat";
 	static char *mon  = "JanFebMarAprMayJunJulAugSepOctNovDec";
 	SYSTEMTIME	_st;
 
-	if (st == NULL)
-	{
+	if (st == NULL) {
 		st = &_st;
 		::GetLocalTime(st);
 	}
-	wsprintf(buf, "%.3s %.3s %02d %02d:%02d:%02d %04d", &wday[st->wDayOfWeek * 3], &mon[(st->wMonth - 1) * 3], st->wDay, st->wHour, st->wMinute, st->wSecond, st->wYear);
+	wsprintf(buf, "%.3s %.3s %02d %02d:%02d:%02d %04d", &wday[st->wDayOfWeek * 3],
+		&mon[(st->wMonth - 1) * 3], st->wDay, st->wHour, st->wMinute, st->wSecond, st->wYear);
+	return	buf;
+}
+
+/*
+	ctime() の代わり
+	ただし、改行なし
+*/
+const char *Ctime(Time_t *t)
+{
+	static char	buf[] = "Mon Jan 01 00:00:00 2999";
+	time_t	tt = t ? *t : 0;
+
+	strcpy(buf, ctime(t ? &tt : 0));
+	buf[24] = 0;
 	return	buf;
 }
 
@@ -618,8 +613,42 @@ BOOL MakeImageFolderName(Cfg *cfg, char *dir)
 {
 	char	*fname = NULL;
 
-	if (!GetFullPathNameU8(cfg->LogFile, MAX_PATH_U8, dir, &fname) && fname) return FALSE;
+	if (!GetFullPathNameU8(cfg->LogFile, MAX_PATH_U8, dir, &fname) || !fname) return FALSE;
 	strcpy(fname, IPMSG_CLIPBOARD_STOREDIR);
+	return	TRUE;
+}
+
+BOOL MakeNonExistFileName(const char *dir, char *fname)
+{
+	char	buf[MAX_PATH_U8], ext[MAX_PATH_U8];
+
+	char	*body_end = strrchr(fname, '.');
+	if (body_end) {
+		strcpy(ext, body_end);
+	} else {
+		*ext = 0;
+		body_end = fname + strlen(fname);
+	}
+
+	for (int i=1; i < 1000; i++) {
+		MakePathU8(buf, dir, fname);
+		if (::GetFileAttributesU8(buf) == 0xffffffff) {
+			return TRUE;
+		}
+		sprintf(body_end, "(%d)%s", i, ext);
+	}
+	return	FALSE;
+}
+
+BOOL MakeAutoSaveDir(Cfg *cfg, char *dir)
+{
+	if (*cfg->autoSaveDir) {
+		strcpy(dir, cfg->autoSaveDir);
+	} else {
+		char	buf[MAX_PATH_U8];
+		if (!GetParentDirU8(cfg->LogFile, buf)) return FALSE;
+		MakePathU8(buf, "AutoSave", dir);
+	}
 	return	TRUE;
 }
 
@@ -645,10 +674,21 @@ BOOL SaveImageFile(Cfg *cfg, const char *fname, VBuf *buf)
 
 VBuf *LoadImageFile(Cfg *cfg, const char *fname)
 {
+	VBuf *vbuf = new VBuf();
+
+	if (!LoadImageFile(cfg, fname, vbuf)) {
+		delete vbuf;
+		vbuf = NULL;
+	}
+	return vbuf;
+}
+
+BOOL LoadImageFile(Cfg *cfg, const char *fname, VBuf *vbuf)
+{
 	char	path[MAX_PATH_U8] = "";
 	HANDLE	hFile = INVALID_HANDLE_VALUE;
 	DWORD	size, high;
-	VBuf	*vbuf = NULL;
+	BOOL	ret = FALSE;
 
 	if (cfg) {
 		if (!MakeImageFolderName(cfg, path)) return FALSE;
@@ -658,19 +698,16 @@ VBuf *LoadImageFile(Cfg *cfg, const char *fname)
 
 	if ((hFile = CreateFileU8(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
 		/*FILE_FLAG_NO_BUFFERING|*/FILE_FLAG_SEQUENTIAL_SCAN, 0)) == INVALID_HANDLE_VALUE)
-		return NULL;
+		return ret;
 
 	if ((size = ::GetFileSize(hFile, &high)) <= 0 || high > 0) goto END; // I don't know over 2GB.
 
-	vbuf = new VBuf(size);
-	if (!vbuf || !vbuf->Buf() || !ReadFile(hFile, vbuf->Buf(), size, &size, 0)) {
-		delete vbuf;
-		vbuf = NULL;
-	}
+	vbuf->AllocBuf(size);
+	ret = vbuf && vbuf->Buf() && ReadFile(hFile, vbuf->Buf(), size, &size, 0);
 
 END:
 	CloseHandle(hFile);
-	return	vbuf;
+	return	ret;
 }
 
 int GetColorDepth()
@@ -839,13 +876,13 @@ HBITMAP FinishBmp(VBuf *vbuf)
 	return	hBmp;
 }
 
-BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info)
+BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info, BOOL isAutoSave)
 {
-	char	buf[MAX_BUF] = "", fname[MAX_PATH_U8] = "";
+	char	buf[MAX_BUF] = "";
+	char	fname[MAX_PATH_U8] = "";
 	int		offset = 0;
 
-	for (int cnt=0; cnt < info->fileCnt; cnt++)
-	{
+	for (int cnt=0; cnt < info->fileCnt; cnt++) {
 		if (dlg->ResId() == SEND_DIALOG)
 			ForcePathToFname(info->fileInfo[cnt]->Fname(), fname);
 		else
@@ -854,9 +891,13 @@ BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info)
 		if (offset + MAX_PATH_U8 >= sizeof(buf))
 			break;
 	}
+	if (info->fileCnt == 0 && isAutoSave) {
+		strcpy(buf, GetLoadStrU8(IDS_AUTOSAVEDONE));
+	}
+
 	dlg->SetDlgItemTextU8(buttonID, buf);
-	::ShowWindow(dlg->GetDlgItem(buttonID), info->fileCnt ? SW_SHOW : SW_HIDE);
-	::EnableWindow(dlg->GetDlgItem(buttonID), info->fileCnt ? TRUE : FALSE);
+	::ShowWindow(dlg->GetDlgItem(buttonID), info->fileCnt || isAutoSave ? SW_SHOW : SW_HIDE);
+	::EnableWindow(dlg->GetDlgItem(buttonID), info->fileCnt || isAutoSave ? TRUE : FALSE);
 	return	TRUE;
 }
 

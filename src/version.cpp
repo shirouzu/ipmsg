@@ -1,5 +1,5 @@
 ﻿static char *version_id = 
-	"@(#)Copyright (C) H.Shirouzu 2010-2015   version.cpp	Ver3.52"
+	"@(#)Copyright (C) H.Shirouzu 2010-2015   version.cpp	Ver3.60b1"
 #ifdef _WIN64
 "(x64)"
 #endif

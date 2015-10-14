@@ -361,7 +361,7 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			for (int cnt=0; cnt < 5; cnt++)
 			{
 				if (*cfg->lastOpenDir && GetFileAttributesU8(cfg->lastOpenDir) == 0xffffffff)
-					if (PathToDir(cfg->lastOpenDir, cfg->lastOpenDir) == FALSE)
+					if (GetParentDirU8(cfg->lastOpenDir, cfg->lastOpenDir) == FALSE)
 						break;
 			}
 			if (BrowseDirDlg(this, GetLoadStrU8(IDS_FOLDERATTACH), cfg->lastOpenDir, cfg->lastOpenDir))
@@ -1120,11 +1120,11 @@ void TSendDlg::SetQuoteStr(LPSTR str, LPCSTR quoteStr)
 	WCHAR	*s = wbuf.Buf();
 	WCHAR	*d = (WCHAR *)vbuf.Buf();
 	BOOL	is_quote = TRUE;
-	int		quote_len = (int)wcslen(wquote);
+	int		quote_len = (int)wcslen(wquote.s());
 
 	for (int i=0; i < MAX_UDPBUF && *s; i++) {
 		if (is_quote) {
-			wcscpy(d, wquote);
+			wcscpy(d, wquote.s());
 			d += quote_len;
 			is_quote = FALSE;
 		}
@@ -1617,7 +1617,7 @@ BOOL TSendDlg::SendMsg(void)
 
 	if (ctl_on && shift_on)
 		command = rbutton_on ? IPMSG_GETINFO : IPMSG_GETABSENCEINFO;
-	else if (ctl_on || shift_on || rbutton_on)
+	else if (ctl_on || rbutton_on)
 		return	FALSE;
 	else if (!shareInfo && editSub.GetWindowTextLengthW() <= 0) {
 		if (MessageBoxU8(GetLoadStrU8(IDS_EMPTYMSG), IP_MSG,
@@ -1651,6 +1651,7 @@ BOOL TSendDlg::SendMsg(void)
 
 	if (findDlg && findDlg->hWnd) findDlg->Destroy();
 	TWin::Show(SW_HIDE);
+	if (shift_on) recvId = 0; // 返信Windowを閉じさせない
 	::PostMessage(GetMainWnd(), WM_SENDDLG_HIDE, 0, twinId);
 
 	if (is_clip_enable && msgMng->IsAvailableTCP()) {
@@ -1662,20 +1663,19 @@ BOOL TSendDlg::SendMsg(void)
 			VBuf	*vbuf = editSub.GetPngByte(i, &pos);
 			char	fname[MAX_PATH_U8];
 
-			if (vbuf) {
-				if (!shareInfo) {
-					shareInfo = shareMng->CreateShare(packetNo);
-					is_bmp_only = TRUE;
-				}
-				MakeClipFileName(file_base, pos, TRUE, fname);
-				if (shareMng->AddMemShare(shareInfo, fname, vbuf->Buf(), (DWORD)vbuf->Size(), pos)) {
-					if (cfg->LogCheck && (cfg->ClipMode & CLIP_SAVE)) {
-						FileInfo *fileInfo = shareInfo->fileInfo[shareInfo->fileCnt -1];
-						SaveImageFile(cfg, fileInfo->Fname(), vbuf);
-					}
-				}
-				delete vbuf;
+			if (!vbuf) continue;
+			if (!shareInfo) {
+				shareInfo = shareMng->CreateShare(packetNo);
+				is_bmp_only = TRUE;
 			}
+			MakeClipFileName(file_base, pos, TRUE, fname);
+			if (shareMng->AddMemShare(shareInfo, fname, vbuf->Buf(), (DWORD)vbuf->Size(), pos)) {
+				if (cfg->LogCheck && (cfg->ClipMode & CLIP_SAVE)) {
+					FileInfo *fileInfo = shareInfo->fileInfo[shareInfo->fileCnt -1];
+					SaveImageFile(cfg, fileInfo->Fname(), vbuf);
+				}
+			}
+			delete vbuf;
 		}
 		SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
 	}

@@ -50,6 +50,9 @@
 #define IPMSG_DEFAULT_HWSDATE_WIDTH	 10
 #define IPMSG_DEFAULT_HWID_WIDTH	 10
 
+#define IPMSG_DEFAULT_AUTOSAVE_TOUT	 120
+#define IPMSG_DEFAULT_AUTOSAVE_MAX	 500
+
 #define LCID_KEY			"lcid"
 #define NOBEEP_STR			"NoBeep"
 #define NOTCP_STR			"NoTcp"
@@ -149,6 +152,13 @@
 #define REVICON_STR			"RevIcon"
 #define LASTOPEN_STR		"lastOpen"
 #define LASTSAVE_STR		"lastSave"
+
+#define AUTOSAVEDIR_STR		"autoSaveDir"
+#define AUTOSAVETOUT_STR	"autoSaveTout"
+#define AUTOSAVEMAX_STR		"autoSaveMax"
+#define AUTOSAVELEVEL_STR	"autoSaveLevel"
+#define AUTOSAVEFLAGS_STR	"autoSaveFlags"
+
 #define LRUUSERMAX_STR		"lruUserMax"
 #define LRUUSERKEY_STR		"lruUser"
 
@@ -419,6 +429,13 @@ BOOL Cfg::ReadRegistry(void)
 	*IconFile = 0;
 	*RevIconFile = 0;
 	*lastSaveDir = *lastOpenDir = 0;
+
+	*autoSaveDir  = 0;
+	autoSaveTout  = IPMSG_DEFAULT_AUTOSAVE_TOUT;
+	autoSaveLevel = 0;
+	autoSaveFlags = 0;
+	autoSaveMax   = IPMSG_DEFAULT_AUTOSAVE_MAX;
+
 	memset(&SendEditFont, 0, sizeof(SendEditFont));
 	memset(&SendListFont, 0, sizeof(SendListFont));
 	memset(&RecvHeadFont, 0, sizeof(RecvHeadFont));
@@ -510,11 +527,11 @@ BOOL Cfg::ReadRegistry(void)
 		{
 			char	key[MAX_PATH_U8];
 
-			wsprintf(key, "%s%d", ABSENCESTR_STR, i);
+			sprintf(key, "%s%d", ABSENCESTR_STR, i);
 			if (!reg.GetStr(key, AbsenceStr[i], sizeof(AbsenceStr[i])))
 				strncpyz(AbsenceStr[i], DefaultAbsence[i < IPMSG_DEFAULT_ABSENCEMAX ? i : 0], MAX_PATH_U8);
 
-			wsprintf(key, "%s%d", ABSENCEHEAD_STR, i);
+			sprintf(key, "%s%d", ABSENCEHEAD_STR, i);
 			if (!reg.GetStr(key, AbsenceHead[i], sizeof(AbsenceHead[i])))
 				strcpy(AbsenceHead[i], DefaultAbsenceHead[i < IPMSG_DEFAULT_ABSENCEMAX ? i : 0]);
 		}
@@ -531,7 +548,7 @@ BOOL Cfg::ReadRegistry(void)
 		for (i=0; i < FindMax; i++)
 		{
 			char	key[MAX_PATH_U8];
-			wsprintf(key, "%d", i);
+			sprintf(key, "%d", i);
 			if (!reg.GetStr(key, FindStr[i], sizeof(FindStr[i])))
 				FindStr[i][0] = '\0';
 		}
@@ -545,11 +562,11 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(LRUUSERMAX_STR, &lruUserMax);
 	if (reg.OpenKey(LRUUSERKEY_STR)) {
 		for (i=0; ; i++) {
-			wsprintf(buf, "%d", i);
+			sprintf(buf, "%d", i);
 			if (!reg.OpenKey(buf)) break;
 			UsersObj *obj = new UsersObj;
 			for (int j=0; ; j++) {
-				wsprintf(buf, "%d", j);
+				sprintf(buf, "%d", j);
 				if (!reg.OpenKey(buf)) break;
 				UserObj *u = new UserObj;
 				if (reg.GetStr(USERNAME_STR, u->hostSub.userName, sizeof(u->hostSub.userName)) &&
@@ -619,6 +636,12 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetStr(LASTOPEN_STR, lastOpenDir, sizeof(lastOpenDir));
 	reg.GetStr(LASTSAVE_STR, lastSaveDir, sizeof(lastSaveDir));
 
+	reg.GetStr(AUTOSAVEDIR_STR,   autoSaveDir, sizeof(autoSaveDir));
+	reg.GetInt(AUTOSAVETOUT_STR,  &autoSaveTout);
+	reg.GetInt(AUTOSAVEMAX_STR,   &autoSaveMax);
+	reg.GetInt(AUTOSAVEFLAGS_STR, &autoSaveFlags);
+	reg.GetInt(AUTOSAVELEVEL_STR, &autoSaveLevel);
+
 // Send/Recv Window Location
 	if (reg.CreateKey(WINSIZE_STR))
 	{
@@ -633,7 +656,7 @@ BOOL Cfg::ReadRegistry(void)
 		{
 			for (i=0; i < MAX_SENDWIDTH; i++)
 			{
-				wsprintf(buf, "%d", i);
+				sprintf(buf, "%d", i);
 				reg.GetInt(buf, &SendOrder[i]);
 			}
 			reg.CloseKey();
@@ -693,7 +716,7 @@ BOOL Cfg::ReadRegistry(void)
 		i = 0;
 		while (1)
 		{
-			wsprintf(buf, "%d", i++);
+			sprintf(buf, "%d", i++);
 			if (!reg.GetStr(buf, val, sizeof(val)))
 				break;
 			brList.SetHostRaw(val, (ResolveOpt & RS_REALTIME) ? 0 : ResolveAddr(val));
@@ -739,7 +762,7 @@ BOOL Cfg::ReadRegistry(void)
 		PrioritySound = new char *[PriorityMax];
 		for (int i=0; i < PriorityMax; i++)
 		{
-			wsprintf(buf, "%d", i);
+			sprintf(buf, "%d", i);
 
 			if (reg.CreateKey(buf))
 			{
@@ -940,9 +963,9 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 			for (i=0; i < AbsenceMax; i++)
 			{
 				char	key[MAX_PATH_U8];
-				wsprintf(key, "%s%d", ABSENCESTR_STR, i);
+				sprintf(key, "%s%d", ABSENCESTR_STR, i);
 				reg.SetStr(key, AbsenceStr[i]);
-				wsprintf(key, "%s%d", ABSENCEHEAD_STR, i);
+				sprintf(key, "%s%d", ABSENCEHEAD_STR, i);
 				reg.SetStr(key, AbsenceHead[i]);
 			}
 		}
@@ -962,7 +985,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(RECVIPADDRCHECK_STR, RecvIPAddr);
 		reg.SetInt(ONECLICKPOPUP_STR, OneClickPopup);
 		reg.SetInt(BALLOONNOTIFY_STR, BalloonNotify);		
-		//reg.SetInt(TRAYICON_STR, TrayIcon);
+		reg.SetInt(TRAYICON_STR, TrayIcon);
 		reg.SetInt(ABNORMALBTN_STR, AbnormalButton);
 		reg.SetInt(DIALUPCHECK_STR, DialUpCheck);
 		reg.SetInt(ABSENCENONPOPUP_STR, AbsenceNonPopup);
@@ -996,6 +1019,12 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetStr(LASTOPEN_STR, lastOpenDir);
 		reg.SetStr(LASTSAVE_STR, lastSaveDir);
 		reg.SetInt(LRUUSERMAX_STR, lruUserMax);
+
+		reg.SetStr(AUTOSAVEDIR_STR,   autoSaveDir);
+		reg.SetInt(AUTOSAVETOUT_STR,  autoSaveTout);
+		reg.SetInt(AUTOSAVEMAX_STR,   autoSaveMax);
+		reg.SetInt(AUTOSAVELEVEL_STR, autoSaveLevel);
+		reg.SetInt(AUTOSAVEFLAGS_STR, autoSaveFlags);
 	}
 
 	if ((ctl_flg & CFG_WINSIZE) && reg.CreateKey(WINSIZE_STR))
@@ -1012,7 +1041,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		{
 			for (i=0; i < MAX_SENDWIDTH; i++)
 			{
-				wsprintf(buf, "%d", i);
+				sprintf(buf, "%d", i);
 				reg.SetInt(buf, SendOrder[i]);
 			}
 			reg.CloseKey();
@@ -1056,12 +1085,12 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		i = 0;
 		for (TBrObj *obj=brList.TopObj(); obj; obj=brList.NextObj(obj))
 		{
-			wsprintf(buf, "%d", i++);
+			sprintf(buf, "%d", i++);
 			reg.SetStr(buf, obj->Host());
 		}
 		while (1)
 		{
-			wsprintf(buf, "%d", i++);
+			sprintf(buf, "%d", i++);
 			if (!reg.GetStr(buf, val, sizeof(val)))
 				break;
 			if (!reg.DeleteValue(buf))
@@ -1090,7 +1119,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 #if 0
 		for (i=0; i < PriorityMax; i++)
 		{
-			wsprintf(buf, "%d", i);
+			sprintf(buf, "%d", i);
 
 			if (reg.CreateKey(buf))
 			{
@@ -1115,7 +1144,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		{
 			Host	*host = priorityHosts.GetHost(i);
 			int		to_store_size = 2048 / 8; // 2048bits RSA key
-			wsprintf(buf, "%s:%s", host->hostSub.userName, host->hostSub.hostName);
+			sprintf(buf, "%s:%s", host->hostSub.userName, host->hostSub.hostName);
 
 			if (host->updateTime + KeepHostTime < now_time ||
 				(host->pubKey.KeyLen() < to_store_size && host->priority == DEFAULT_PRIORITY))
@@ -1153,7 +1182,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		for (i=0; i < FindMax; i++)
 		{
 			char	key[MAX_PATH_U8];
-			wsprintf(key, "%d", i);
+			sprintf(key, "%d", i);
 			reg.SetStr(key, FindStr[i]);
 		}
 		reg.CloseKey();
@@ -1164,11 +1193,11 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		if (reg.CreateKey(LRUUSERKEY_STR)) {
 			UsersObj *obj=lruUserList.TopObj();
 			for (i=0; obj; i++) {
-				wsprintf(buf, "%d", i);
+				sprintf(buf, "%d", i);
 				if (!reg.CreateKey(buf)) break;
 				UserObj *u = obj->users.TopObj();
 				for (int j=0; u; j++) {
-					wsprintf(buf, "%d", j);
+					sprintf(buf, "%d", j);
 					if (!reg.CreateKey(buf)) break;
 					reg.SetStr(USERNAME_STR, u->hostSub.userName);
 					reg.SetStr(HOSTNAME_STR, u->hostSub.hostName);
@@ -1226,9 +1255,9 @@ BOOL Cfg::WriteFontRegistry(TRegistry *reg, char *key, LOGFONT *font)
 
 void Cfg::GetRegName(char *buf, Addr nic_addr, int port_no)
 {
-	buf += wsprintf(buf, "%s", GetLoadStr(IDS_IPMSG));
+	buf += sprintf(buf, "%s", GetLoadStr(IDS_IPMSG));
 	if (port_no != IPMSG_DEFAULT_PORT) {
-		buf += wsprintf(buf, "%d", port_no);
+		buf += sprintf(buf, "%d", port_no);
 	}
 	if (nic_addr.IsEnabled()) {
 		*buf++ = '_';
@@ -1239,5 +1268,81 @@ void Cfg::GetRegName(char *buf, Addr nic_addr, int port_no)
 void Cfg::GetSelfRegName(char *buf)
 {
 	GetRegName(buf, nicAddr, portNo);
+}
+
+#define SAVEPACKETKEY_STR	"SavePackets"
+#define MSGHEADKEY_STR		"msg_head"
+#define MSGBUFKEY_STR		"msg_buf"
+#define MSGEXBUFKEY_STR		"msg_exbuf"
+#define MSGPKTNOKEY_STR		"msg_pktno"
+#define HEADKEY_STR			"head"
+#define IMGBASEKEY_STR		"img_base"
+
+BOOL Cfg::SavePacket(const MsgBuf *msg, const char *head, ULONG img_base)
+{
+	char	key[MAX_LISTBUF];
+	GetRegName(key, nicAddr, portNo);
+	TRegistry	reg(HS_TOOLS, key);
+
+	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return FALSE;
+
+	sprintf(key, "%x:%s", msg->packetNo, msg->hostSub.userName);
+	if (!reg.CreateKey(key)) return FALSE;
+
+	reg.SetByte(MSGHEADKEY_STR, (BYTE *)msg, (int)offsetof(MsgBuf, msgBuf));
+	reg.SetByte(MSGBUFKEY_STR, (BYTE *)msg->msgBuf, (int)strlen(msg->msgBuf)+1);
+	reg.SetByte(MSGEXBUFKEY_STR, (BYTE *)msg->exBuf, (int)strlen(msg->exBuf)+1);
+	reg.SetByte(MSGPKTNOKEY_STR, (BYTE *)msg->packetNoStr, (int)strlen(msg->packetNoStr)+1);
+	reg.SetByte(HEADKEY_STR, (BYTE *)head, (int)strlen(head)+1);
+	reg.SetInt(IMGBASEKEY_STR, (int)img_base);
+
+	return TRUE;
+}
+
+BOOL Cfg::LoadPacket(int idx, MsgBuf *msg, char *head, ULONG *img_base)
+{
+	char	key[MAX_LISTBUF];
+	GetRegName(key, nicAddr, portNo);
+	TRegistry	reg(HS_TOOLS, key);
+
+	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return FALSE;
+	if (!reg.EnumKey(idx, key, sizeof(key))) return FALSE;
+	if (!reg.OpenKey(key)) return FALSE;
+
+	int	size = (int)offsetof(MsgBuf, msgBuf);
+	reg.GetByte(MSGHEADKEY_STR, (BYTE *)msg, &size);
+
+	size = (int)sizeof(msg->msgBuf);
+	reg.GetByte(MSGBUFKEY_STR, (BYTE *)msg->msgBuf, &size);
+	size = (int)sizeof(msg->exBuf);
+	reg.GetByte(MSGEXBUFKEY_STR, (BYTE *)msg->exBuf, &size);
+	size = (int)sizeof(msg->packetNoStr);
+	reg.GetByte(MSGPKTNOKEY_STR, (BYTE *)msg->packetNoStr, &size);
+	size = MAX_LISTBUF;
+	reg.GetByte(HEADKEY_STR, (BYTE *)head, &size);
+	reg.GetInt(IMGBASEKEY_STR, (int *)img_base);
+
+	return TRUE;
+}
+
+BOOL Cfg::DeletePacket(ULONG packetNo, const char *userName)
+{
+	char	key[MAX_LISTBUF];
+	GetRegName(key, nicAddr, portNo);
+	TRegistry	reg(HS_TOOLS, key);
+
+	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return FALSE;
+
+	sprintf(key, "%x:%s", packetNo, userName);
+	return	reg.DeleteKey(key);
+}
+
+BOOL Cfg::CleanupPackets()
+{
+	char	key[MAX_LISTBUF];
+	GetRegName(key, nicAddr, portNo);
+	TRegistry	reg(HS_TOOLS, key);
+
+	return	reg.DeleteChildTree(SAVEPACKETKEY_STR);
 }
 

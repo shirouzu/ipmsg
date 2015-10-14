@@ -594,7 +594,7 @@ BOOL TBrowseDirDlg::SetFileBuf(LPARAM list)
 	Wstr	wbuf(MAX_PATH);
 	BOOL	ret = ::SHGetPathFromIDListW((LPITEMIDLIST)list, wbuf.Buf());
 	if (ret) {
-		WtoU8(wbuf, fileBuf, MAX_PATH_U8);
+		WtoU8(wbuf.s(), fileBuf, MAX_PATH_U8);
 	}
 	return	ret;
 }
@@ -656,9 +656,9 @@ BOOL SymLink(LPCSTR src, LPSTR dest, LPCSTR arg)
 		shellLink->SetWorkingDirectory((char *)U8toWs(buf));
 
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
-			if (SUCCEEDED(persistFile->Save(wdest, TRUE))) {
+			if (SUCCEEDED(persistFile->Save(wdest.s(), TRUE))) {
 				ret = TRUE;
-				GetParentDirU8(WtoU8(wdest), buf);
+				GetParentDirU8(WtoU8(wdest.s()), buf);
 				::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH|SHCNF_FLUSH, U8toAs(buf), NULL);
 			}
 			persistFile->Release();

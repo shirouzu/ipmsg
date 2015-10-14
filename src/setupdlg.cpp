@@ -96,6 +96,8 @@ BOOL TSetupSheet::CheckData()
 			return	FALSE;
 		}
 	}
+	else if (resId == AUTOSAVE_SHEET) {
+	}
 	else if (resId == PASSWORD_SHEET) {
 		char	buf1[MAX_NAMEBUF], buf2[MAX_NAMEBUF], buf3[MAX_NAMEBUF];
 		GetDlgItemTextU8(OLDPASSWORD_EDIT,  buf1, sizeof(buf1));
@@ -234,6 +236,7 @@ BOOL TSetupSheet::SetData()
 
 		SetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile);
 		SetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile);
+		CheckDlgButton(TRAYICON_CHECK, cfg->TrayIcon);
 	}
 	else if (resId == SENDRECV_SHEET) {
 		CheckDlgButton(QUOTE_CHECK, cfg->QuoteCheck);
@@ -278,6 +281,24 @@ BOOL TSetupSheet::SetData()
 		CheckDlgButton(LOGUTF8_CHECK, cfg->LogUTF8);
 		CheckDlgButton(PASSWDLOG_CHECK, cfg->PasswdLogCheck);
 		SetDlgItemTextU8(LOG_EDIT, cfg->LogFile);
+	}
+	else if (resId == AUTOSAVE_SHEET) {
+		CheckDlgButton(AUTOSAVE_CHECK, !!(cfg->autoSaveFlags & AUTOSAVE_ENABLED));
+		SetDlgItemText(DIR_EDIT, cfg->autoSaveDir);
+		SetDlgItemInt(TOUT_EDIT, cfg->autoSaveTout);
+
+		SendDlgItemMessage(PRIORITY_COMBO, CB_ADDSTRING, 0,
+			(LPARAM)GetLoadStr(IDS_DISPPRI_NOLIMIT));
+		for (int i=1; i < cfg->PriorityMax; i++) {
+			char	buf[MAX_BUF], *fmt = GetLoadStr(IDS_DISPPRI_LIMIT);
+			sprintf(buf, fmt, i);
+			SendDlgItemMessage(PRIORITY_COMBO, CB_ADDSTRING, 0, (LPARAM)buf);
+		}
+		SendDlgItemMessage(PRIORITY_COMBO, CB_SETCURSEL, cfg->autoSaveLevel, 0);
+
+		SetDlgItemInt(PRIORITY_COMBO, cfg->autoSaveLevel);
+		SetDlgItemInt(SIZE_EDIT, cfg->autoSaveMax);
+		CheckDlgButton(DIR_CHECK, !!(cfg->autoSaveFlags & AUTOSAVE_INCDIR));
 	}
 	else if (resId == PASSWORD_SHEET) {
 		if (*cfg->PasswordStr == 0)
@@ -392,6 +413,8 @@ BOOL TSetupSheet::GetData()
 
 		GetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile, sizeof(cfg->IconFile));
 		GetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile, sizeof(cfg->RevIconFile));
+		cfg->TrayIcon = IsDlgButtonChecked(TRAYICON_CHECK);
+
 		::SendMessage(GetMainWnd(), WM_IPMSG_INITICON, 0, 0);
 		SetDlgIcon(hWnd);
 		ReflectDisp();
@@ -448,6 +471,16 @@ BOOL TSetupSheet::GetData()
 
 		GetDlgItemTextU8(LOG_EDIT, cfg->LogFile, sizeof(cfg->LogFile));
 		if (cfg->LogCheck) LogMng::StrictLogFile(cfg->LogFile);
+	}
+	else if (resId == AUTOSAVE_SHEET) {
+		if (IsDlgButtonChecked(AUTOSAVE_CHECK))	cfg->autoSaveFlags |= AUTOSAVE_ENABLED;
+		else									cfg->autoSaveFlags &= ~AUTOSAVE_ENABLED;
+		GetDlgItemTextU8(DIR_EDIT, cfg->autoSaveDir, sizeof(cfg->autoSaveDir));
+		cfg->autoSaveTout = GetDlgItemInt(TOUT_EDIT);
+		cfg->autoSaveLevel = (int)SendDlgItemMessage(PRIORITY_COMBO, CB_GETCURSEL, 0, 0);
+		cfg->autoSaveMax = GetDlgItemInt(SIZE_EDIT);
+		if (IsDlgButtonChecked(DIR_CHECK))	cfg->autoSaveFlags |= AUTOSAVE_INCDIR;
+		else								cfg->autoSaveFlags &= ~AUTOSAVE_INCDIR;
 	}
 	else if (resId == PASSWORD_SHEET) {
 		char	buf[MAX_NAMEBUF];
@@ -581,8 +614,19 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	else if (resId == LOG_SHEET) {
 		switch (wID) {
 		case LOGFILE_BUTTON:
-			OpenFileDlg(this, OpenFileDlg::SAVE).Exec(LOG_EDIT, GetLoadStrU8(IDS_OPENFILELOG),
-													GetLoadStrAsFilterU8(IDS_OPENFILELOGFLTR));
+			OpenFileDlg(this, OpenFileDlg::SAVE).Exec(LOG_EDIT,
+				GetLoadStrU8(IDS_OPENFILELOG), GetLoadStrAsFilterU8(IDS_OPENFILELOGFLTR));
+			return	TRUE;
+		}
+	}
+	else if (resId == AUTOSAVE_SHEET) {
+		char buf[MAX_PATH];
+		switch (wID) {
+		case DIR_BUTTON:
+			strcpy(buf, *cfg->autoSaveDir ? cfg->autoSaveDir : cfg->LogFile);
+			if (BrowseDirDlg(this, GetLoadStrU8(IDS_FOLDERATTACH), buf, buf)) {
+				SetDlgItemText(DIR_EDIT, buf);
+			}
 			return	TRUE;
 		}
 	}

@@ -3,7 +3,7 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 2005-04-10(Sun)
-	Update					: 2015-06-22(Mon)
+	Update					: 2015-08-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -22,8 +22,9 @@ DEFINE_GUID(IID_IShellLinkW, 0x000214F9, \
 #define MD5_SIZE  16
 
 #ifndef REGSTR_SHELLFOLDERS
-#define REGSTR_SHELLFOLDERS			REGSTR_PATH_EXPLORER "\\Shell Folders"
-#define REGSTR_MYDOCUMENT			"Personal"
+#define REGSTR_SHELLFOLDERS		REGSTR_PATH_EXPLORER "\\Shell Folders"
+#define REGSTR_MYDOCUMENT		"Personal"
+#define REGSTR_MYDOCUMENT_W		L"Personal"
 #endif
 
 /* NTDLL */
@@ -120,7 +121,8 @@ class TDigest {
 protected:
 	HCRYPTPROV	hProv;
 	HCRYPTHASH	hHash;
-	int64		updateSize;
+	bool		updated;
+	bool		used;
 
 public:
 	enum Type { SHA1, MD5 /*, SHA1_LOCAL */ } type;

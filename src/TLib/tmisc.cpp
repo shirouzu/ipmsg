@@ -4,7 +4,7 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-06-22(Mon)
+	Update					: 2015-08-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -56,6 +56,7 @@ BOOL Condition::Initialize()
 	if (!isInit) {
 		::InitializeCriticalSection(&cs);
 		waitBits = 0;
+		isInit = TRUE;
 	}
 	return	TRUE;
 }
@@ -201,7 +202,7 @@ void Condition::Notify(void)	// 現状では、眠っているスレッド全員
   説  明 ： 
   注  意 ： 
 =========================================================================*/
-VBuf::VBuf(size_t _size, size_t _max_size, VBuf *_borrowBuf)
+VBuf::VBuf(ssize_t _size, ssize_t _max_size, VBuf *_borrowBuf)
 {
 	Init();
 
@@ -221,8 +222,10 @@ void VBuf::Init(void)
 	size = usedSize = maxSize = 0;
 }
 
-BOOL VBuf::AllocBuf(size_t _size, size_t _max_size, VBuf *_borrowBuf)
+BOOL VBuf::AllocBuf(ssize_t _size, ssize_t _max_size, VBuf *_borrowBuf)
 {
+	if (buf) FreeBuf();
+
 	if (_max_size == 0)
 		_max_size = _size;
 	maxSize = _max_size;
@@ -262,7 +265,7 @@ void VBuf::FreeBuf(void)
 	Init();
 }
 
-BOOL VBuf::Grow(size_t grow_size)
+BOOL VBuf::Grow(ssize_t grow_size)
 {
 	if (size + grow_size > maxSize)
 		return	FALSE;
@@ -358,7 +361,7 @@ HMODULE TLoadLibraryW(WCHAR *dllname)
 int MakePath(char *dest, const char *dir, const char *file)
 {
 	BOOL	separetor = TRUE;
-	size_t	len;
+	ssize_t	len;
 
 	if ((len = strlen(dir)) == 0)
 		return	wsprintf(dest, "%s", file);
@@ -379,11 +382,24 @@ int MakePath(char *dest, const char *dir, const char *file)
 }
 
 /*=========================================================================
+	パス合成（UTF-8 版）
+=========================================================================*/
+int MakePathU8(char *dest, const char *dir, const char *file)
+{
+	ssize_t	len;
+
+	if ((len = strlen(dir)) == 0)
+		return	wsprintf(dest, "%s", file);
+
+	return	wsprintf(dest, "%s%s%s", dir, dir[len -1] ? "\\" : "", file);
+}
+
+/*=========================================================================
 	パス合成（UNICODE 版）
 =========================================================================*/
 int MakePathW(WCHAR *dest, const WCHAR *dir, const WCHAR *file)
 {
-	size_t	len;
+	ssize_t	len;
 
 	if ((len = wcslen(dir)) == 0)
 		return	wsprintfW(dest, L"%s", file);
@@ -549,7 +565,7 @@ int bin2urlstr(const BYTE *bindata, int len, char *str)
 
 BOOL urlstr2bin(const char *str, BYTE *bindata, int maxlen, int *len)
 {
-	size_t	size = strlen(str);
+	ssize_t	size = strlen(str);
 	char	*b64 = new char [size + 4];
 
 	strcpy(b64, str);
@@ -678,12 +694,47 @@ const WCHAR *FmtW(const WCHAR *fmt,...)
 static char *ExceptionTitle;
 static char *ExceptionLogFile;
 static char *ExceptionLogInfo;
-#define STACKDUMP_SIZE		256
-#define MAX_STACKDUMP_SIZE	8192
+#define STACKDUMP_SIZE			256
+#ifdef _WIN64
+#define MAX_STACKDUMP_SIZE		2048
+#define MAX_DUMPBUF_SIZE		4096
+#else
+#define MAX_STACKDUMP_SIZE		1024
+#define MAX_DUMPBUF_SIZE		2048
+#endif
+#define MAX_PRE_STACKDUMP_SIZE	256
+
+inline int reg_info_core(char *buf, const u_char *s, int size, const char *name)
+{
+	const u_char	*e = s + size;
+	int				len = strcpyz(buf, name);
+
+	for ( ; s < e; s+=4) {
+		if (!::IsBadReadPtr(s, 4)) {
+			len += sprintf(buf+len, " %02x%02x%02x%02x", s[0], s[1], s[2], s[3]);
+		}
+	}
+	if (len < 10) len += strcpyz(buf+len, " ........"); // nameしか出力がない場合
+
+	len += strcpyz(buf+len, "\r\n");
+	return	len;
+}
+
+inline int reg_info(char *buf, DWORD_PTR target, const char *name)
+{
+	int len = 0;
+
+	len += reg_info_core(buf+len, (const u_char *)target - 32, 32, "   ");
+	len += reg_info_core(buf+len, (const u_char *)target -  0, 32, name);
+	len += reg_info_core(buf+len, (const u_char *)target + 32, 32, "   ");
+	len += strcpyz(buf+len, "\r\n");
+
+	return	len < 50 ? 0 : len;	// target データがない場合は 0 に
+}
 
 LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 {
-	static char			buf[MAX_STACKDUMP_SIZE];
+	static char			buf[MAX_DUMPBUF_SIZE];
 	static HANDLE		hFile;
 	static SYSTEMTIME	tm;
 	static CONTEXT		*context;
@@ -704,7 +755,7 @@ LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 		" SI/DI/BP/SP : %p / %p / %p / %p\r\n"
 		" 08/09/10/11 : %p / %p / %p / %p\r\n"
 		" 12/13/14/15 : %p / %p / %p / %p\r\n"
-		"------- stack info -----\r\n"
+		"------- pre stack info -----\r\n"
 		, ExceptionTitle
 		, tm.wYear, tm.wMonth, tm.wDay, tm.wHour, tm.wMinute, tm.wSecond
 		, info->ExceptionRecord->ExceptionCode, info->ExceptionRecord->ExceptionAddress
@@ -718,7 +769,7 @@ LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 		" Code/Addr   : %X / %p\r\n"
 		" AX/BX/CX/DX : %08x / %08x / %08x / %08x\r\n"
 		" SI/DI/BP/SP : %08x / %08x / %08x / %08x\r\n"
-		"------- stack info -----\r\n"
+		"----- pre stack info ---\r\n"
 		, ExceptionTitle
 		, tm.wYear, tm.wMonth, tm.wDay, tm.wHour, tm.wMinute, tm.wSecond
 		, info->ExceptionRecord->ExceptionCode, info->ExceptionRecord->ExceptionAddress
@@ -734,6 +785,19 @@ LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 		esp = (char *)context->Esp;
 #endif
 
+	for (i=0; i < MAX_PRE_STACKDUMP_SIZE / STACKDUMP_SIZE; i++) {
+		stack = (esp - MAX_PRE_STACKDUMP_SIZE) + (i * STACKDUMP_SIZE);
+		if (::IsBadReadPtr(stack, STACKDUMP_SIZE)) continue;
+		len = 0;
+		for (j=0; j < STACKDUMP_SIZE / sizeof(DWORD_PTR); j++)
+			len += sprintf(buf + len, "%p%s", ((DWORD_PTR *)stack)[j],
+							((j+1)%(32/sizeof(DWORD_PTR))) ? " " : "\r\n");
+		::WriteFile(hFile, buf, len, &len, 0);
+	}
+
+	len = sprintf(buf, "------- stack info -----\r\n");
+	::WriteFile(hFile, buf, len, &len, 0);
+
 	for (i=0; i < MAX_STACKDUMP_SIZE / STACKDUMP_SIZE; i++) {
 		stack = esp + (i * STACKDUMP_SIZE);
 		if (::IsBadReadPtr(stack, STACKDUMP_SIZE))
@@ -745,7 +809,26 @@ LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 		::WriteFile(hFile, buf, len, &len, 0);
 	}
 
-	len = sprintf(buf, "------------------------\r\n\r\n");
+	len = sprintf(buf, "---- reg point info ----\r\n");
+#ifdef _WIN64
+	len += reg_info(buf+len, context->Rax, "Rax"); len += reg_info(buf+len, context->Rbx, "Rbx");
+	len += reg_info(buf+len, context->Rcx, "Rcx"); len += reg_info(buf+len, context->Rdx, "Rdx");
+	len += reg_info(buf+len, context->Rsi, "Rsi"); len += reg_info(buf+len, context->Rdi, "Rdi");
+	len += reg_info(buf+len, context->Rbp, "Rbp"); len += reg_info(buf+len, context->Rsp, "Rsp");
+	len += reg_info(buf+len, context->R8 , "R8 "); len += reg_info(buf+len, context->R9 , "R9 ");
+	len += reg_info(buf+len, context->R10, "R10"); len += reg_info(buf+len, context->R11, "R11");
+	len += reg_info(buf+len, context->R12, "R12"); len += reg_info(buf+len, context->R13, "R13");
+	len += reg_info(buf+len, context->R14, "R14"); len += reg_info(buf+len, context->R15, "R15");
+	len += reg_info(buf+len, context->Rip, "Rip");
+#else
+	len += reg_info(buf+len, context->Eax, "Eax"); len += reg_info(buf+len, context->Ebx, "Ebx");
+	len += reg_info(buf+len, context->Ecx, "Ecx"); len += reg_info(buf+len, context->Edx, "Edx");
+	len += reg_info(buf+len, context->Esi, "Esi"); len += reg_info(buf+len, context->Edi, "Edi");
+	len += reg_info(buf+len, context->Ebp, "Ebp"); len += reg_info(buf+len, context->Esp, "Esp");
+	len += reg_info(buf+len, context->Eip, "Eip");
+#endif
+
+	len += sprintf(buf+len, "------------------------\r\n\r\n");
 	::WriteFile(hFile, buf, len, &len, 0);
 	::CloseHandle(hFile);
 
@@ -984,7 +1067,7 @@ BOOL TIsVirtualizedDirW(WCHAR *path)
 
 	for (int i=0; csidl[i] != 0xffffffff; i++) {
 		if (SHGetSpecialFolderPathW(NULL, buf, csidl[i], FALSE)) {
-			size_t	len = wcslen(buf);
+			ssize_t	len = wcslen(buf);
 			if (wcsnicmp(buf, path, len) == 0) {
 				WCHAR	ch = path[len];
 				if (ch == 0 || ch == '\\' || ch == '/') {
@@ -1012,31 +1095,25 @@ BOOL TMakeVirtualStorePathW(WCHAR *org_path, WCHAR *buf)
 	return	TRUE;
 }
 
-BOOL TSetPrivilege(LPSTR pszPrivilege, BOOL bEnable)
+BOOL TSetPrivilege(LPSTR privName, BOOL bEnable)
 {
-    HANDLE           hToken;
-    TOKEN_PRIVILEGES tp;
+	HANDLE				hToken;
+	TOKEN_PRIVILEGES	tp = {1};
 
-    if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
-        return FALSE;
+	if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
+		return FALSE;
 
-    if (!::LookupPrivilegeValue(NULL, pszPrivilege, &tp.Privileges[0].Luid))
-        return FALSE;
+	BOOL ret = ::LookupPrivilegeValue(NULL, privName, &tp.Privileges[0].Luid);
 
-    tp.PrivilegeCount = 1;
+	if (ret) {
+		if (bEnable) tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+		else		 tp.Privileges[0].Attributes = 0;
 
-    if (bEnable)
-         tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-    else
-         tp.Privileges[0].Attributes = 0;
+		ret = ::AdjustTokenPrivileges(hToken, FALSE, &tp, 0, 0, 0);
+	}
+	::CloseHandle(hToken);
 
-    if (!::AdjustTokenPrivileges(hToken, FALSE, &tp, 0, (PTOKEN_PRIVILEGES)NULL, 0))
-         return FALSE;
-
-    if (!::CloseHandle(hToken))
-         return FALSE;
-
-    return TRUE;
+	return	ret;
 }
 
 BOOL TSetThreadLocale(int lcid)
@@ -1092,6 +1169,17 @@ void TSwitchToThisWindow(HWND hWnd, BOOL flg)
 		pSwitchToThisWindow(hWnd, flg);
 	}
 }
+/*
+float GetMonitorScaleFactor()
+{
+	MONITORINFOEX mie = { sizeof(MONITORINFOEX) };
+
+	GetMonitorInfo(hMonitor, &LogicalMonitorInfo);
+	LogicalMonitorWidth = LogicalMonitorInfo.rcMonitor.right – LogicalMonitorInfo.rcMonitor.left;
+	LogicalDesktopWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+
+}*/
+
 
 /*
 	リンク
@@ -1185,6 +1273,25 @@ BOOL GetParentDirW(const WCHAR *srcfile, WCHAR *dir)
 	return	TRUE;
 }
 
+/*
+	2byte文字系でもきちんと動作させるためのルーチン
+	 (*strrchr(path, "\\")=0 だと '表'などで問題を起すため)
+*/
+BOOL GetParentDirU8(const char *org_path, char *target_dir)
+{
+	char	path[MAX_PATH_U8], *fname=NULL;
+
+	if (GetFullPathNameU8(org_path, sizeof(path), path, &fname) == 0 || fname == NULL)
+		return	strncpyz(target_dir, org_path, MAX_PATH_U8), FALSE;
+
+	if (fname - path > 3 || path[1] != ':')
+		*(fname - 1) = 0;
+	else
+		*fname = 0;		// C:\ の場合
+
+	strncpyz(target_dir, path, MAX_PATH_U8);
+	return	TRUE;
+}
 
 
 // HtmlHelp WorkShop をインストールして、htmlhelp.h を include path に
@@ -1277,16 +1384,16 @@ HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const 
 #undef free
 
 extern "C" {
-void *malloc(size_t);
-void *realloc(void *, size_t);
+void *malloc(ssize_t);
+void *realloc(void *, ssize_t);
 void free(void *);
 }
 
-inline size_t align_size(size_t size, size_t grain) {
+inline ssize_t align_size(ssize_t size, ssize_t grain) {
 	return (size + grain -1) / grain * grain;
 }
 
-inline size_t alloc_size(size_t size) {
+inline ssize_t alloc_size(ssize_t size) {
 	return	align_size((align_size(size, ALLOC_ALIGN) + 16 + PAGE_SIZE), PAGE_SIZE);
 }
 inline void *valloc_base(void *d)
@@ -1298,20 +1405,20 @@ inline void *valloc_base(void *d)
 
 	return	(void *)base;
 }
-inline size_t valloc_size(void *d)
+inline ssize_t valloc_size(void *d)
 {
 	d = valloc_base(d);
 
 	if (((DWORD *)d)[0] != VALLOC_SIG) {
-		return	(size_t)-1;
+		return	(ssize_t)-1;
 	}
-	return	((size_t *)d)[1];
+	return	((ssize_t *)d)[1];
 }
 
 
-void *valloc(size_t size)
+void *valloc(ssize_t size)
 {
-	size_t	s = alloc_size(size);
+	ssize_t	s = alloc_size(size);
 	void	*d = VirtualAlloc(0, s, MEM_RESERVE, PAGE_NOACCESS);
 
 	if (!d || !VirtualAlloc(d, s - PAGE_SIZE, MEM_COMMIT, PAGE_READWRITE)) {
@@ -1320,16 +1427,16 @@ void *valloc(size_t size)
 	}
 
 	((DWORD *)d)[0]  = VALLOC_SIG;
-	((size_t *)d)[1] = size;
+	((ssize_t *)d)[1] = size;
 
 	Debug("valloc (%x %d %d)\n", d, s, size);
 
 	return (void *)((u_char *)d + s - PAGE_SIZE - align_size(size, ALLOC_ALIGN));
 }
 
-void *vcalloc(size_t num, size_t ele)
+void *vcalloc(ssize_t num, ssize_t ele)
 {
-	size_t	size = num * ele;
+	ssize_t	size = num * ele;
 	void	*d = valloc(size);
 
 	if (d) {
@@ -1338,9 +1445,9 @@ void *vcalloc(size_t num, size_t ele)
 	return	d;
 }
 
-void *vrealloc(void *d, size_t size)
+void *vrealloc(void *d, ssize_t size)
 {
-	size_t	old_size = 0;
+	ssize_t	old_size = 0;
 
 	if (d) {
 		if ((old_size = valloc_size(d)) == -1) {
@@ -1365,7 +1472,7 @@ void vfree(void *d)
 {
 	if (!d) return;
 
-	size_t	size = valloc_size(d);
+	ssize_t	size = valloc_size(d);
 
 	if (size == -1) {
 		Debug("vfree non vfree (%x)\n", d);
@@ -1383,7 +1490,7 @@ void vfree(void *d)
 
 char *vstrdup(const char *s)
 {
-	size_t	size = strlen(s) + 1;
+	ssize_t	size = strlen(s) + 1;
 	void	*d = valloc(size);
 	if (d) {
 		memcpy(d, s, size);
@@ -1393,7 +1500,7 @@ char *vstrdup(const char *s)
 
 WCHAR *vwcsdup(const WCHAR *s)
 {
-	size_t	size = (wcslen(s) + 1) * sizeof(WCHAR);
+	ssize_t	size = (wcslen(s) + 1) * sizeof(WCHAR);
 	void	*d = valloc(size);
 	if (d) {
 		memcpy(d, s, size);
@@ -1401,7 +1508,7 @@ WCHAR *vwcsdup(const WCHAR *s)
 	return	(WCHAR *)d;
 }
 
-void *operator new(size_t size)
+void *operator new(ssize_t size)
 {
 	return	valloc(size);
 }
@@ -1412,7 +1519,7 @@ void operator delete(void *d)
 }
 
 #if _MSC_VER >= 1200
-void *operator new [](size_t size)
+void *operator new [](ssize_t size)
 {
 	return	valloc(size);
 }

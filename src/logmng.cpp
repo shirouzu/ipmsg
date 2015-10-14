@@ -147,8 +147,8 @@ BOOL LogMng::Write(LPCSTR str)
 	HANDLE		fh;
 	DWORD		size;
 
-	if ((fh = CreateFileU8(cfg->LogFile, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)) != INVALID_HANDLE_VALUE)
-	{
+	if ((fh = CreateFileU8(cfg->LogFile, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
+		NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)) != INVALID_HANDLE_VALUE) {
 		::SetFilePointer(fh, 0, 0, FILE_END);
 		str = cfg->LogUTF8 ? str : U8toAs(str);
 		ret = ::WriteFile(fh, str, (DWORD)strlen(str), &size, NULL);
@@ -163,15 +163,17 @@ void LogMng::StrictLogFile(char *logFile)
 	if (strncmp(logFile, "\\\\", 2) == 0 || logFile[0] == 0 || logFile[1] == ':')
 		return;
 
-	char	orgPath[MAX_PATH_U8], buf[MAX_PATH_U8], *tmp=NULL;
+	char	orgPath[MAX_PATH_U8], *tmp=NULL;
+	WCHAR	wbuf[MAX_PATH_U8];
 
 	strcpy(orgPath, logFile);
 
 	if (strchr(logFile, '\\') == NULL) {
 		TRegistry	reg(HKEY_CURRENT_USER);
 		if (reg.OpenKey(REGSTR_SHELLFOLDERS)) {
-			if (reg.GetStr(REGSTR_MYDOCUMENT, buf, sizeof(buf))) {
-				MakePath(logFile, buf, orgPath);
+			if (reg.GetStrW(REGSTR_MYDOCUMENT_W, wbuf, sizeof(wbuf))) {
+				U8str	buf(wbuf);
+				MakePathU8(logFile, buf.s(), orgPath);
 				return;
 			}
 		}

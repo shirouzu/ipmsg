@@ -565,6 +565,8 @@ BOOL MsgMng::ResolveMsg(char *buf, int size, MsgBuf *msg)
 	strncpyz(msg->hostSub.hostName, is_utf8 ? hostName : AtoU8s(hostName),
 			 sizeof(msg->hostSub.hostName));
 
+	msg->timestamp = Time();
+
 	int		cnt = 0;
 	*msg->msgBuf = 0;
 	if ((tok = separate_token(NULL, 0, &p))) { // 改行をUNIX形式からDOS形式に変換

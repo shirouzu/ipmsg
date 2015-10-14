@@ -639,7 +639,7 @@ TRect TImageWin::DrawMarkerMemo(HDC hDc, const ColPts& col, POINT *pt, TRect max
 
 	Wstr	wstr(col.memo.c_str());
 	SIZE	size = {};
-	::GetTextExtentPoint32W(hDc, wstr, (int)wcslen(wstr), &size);
+	::GetTextExtentPoint32W(hDc, wstr.s(), (int)wcslen(wstr.s()), &size);
 	size.cx += RC_MARGIN * 2;
 	size.cy += RC_MARGIN * 2;
 	TRect	rc(pt->x - size.cx/2 + RC_MARGIN, pt->y + RC_MARGIN, size.cx, size.cy);
@@ -679,7 +679,7 @@ TRect TImageWin::DrawMarkerMemo(HDC hDc, const ColPts& col, POINT *pt, TRect max
 	::InflateRect(&rc, RC_MARGIN, RC_MARGIN);
 	RoundRect(hDc, rc.left, rc.top, rc.right, rc.bottom, 6, 6);
 
-	::DrawTextW(hDc, wstr, -1, &trc, DT_LEFT);
+	::DrawTextW(hDc, wstr.s(), -1, &trc, DT_LEFT);
 
 	::SelectObject(hDc, hOldBrush);
 	::SelectObject(hDc, hOldFont);

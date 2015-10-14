@@ -474,7 +474,7 @@ void TEditSub::SaveSelectedImage()
 		if (hFile != INVALID_HANDLE_VALUE) {
 			WriteFile(hFile, vbuf->Buf(), (DWORD)vbuf->Size(), &size, 0);
 			CloseHandle(hFile);
-			PathToDir(fname, cfg->lastSaveDir);
+			GetParentDirU8(fname, cfg->lastSaveDir);
 		}
 	}
 	delete vbuf;
@@ -490,7 +490,7 @@ void TEditSub::InsertImage()
 
 	if (dlg.Exec(fname, sizeof(fname), NULL,
 		"Image\0*.png;*.jpg;*.jpeg;*.gif;*.tiff;*.ico;*.bmp;*.wmf;*.wmz;*.emf;*.emz\0\0", dir)) {
-		Bitmap	*bmp = Bitmap::FromFile(Wstr(fname));
+		Bitmap	*bmp = Bitmap::FromFile(Wstr(fname).s());
 		HBITMAP	hBmp = NULL;
 		if (bmp && !bmp->GetHBITMAP(0, &hBmp) && hBmp) {
 			InsertBitmapByHandle(hBmp, -1);

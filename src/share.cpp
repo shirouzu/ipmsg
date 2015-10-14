@@ -102,7 +102,7 @@ FileInfo *ShareMng::SetFileInfo(char *fname)
 	}
 	else {
 		info->SetSize((_int64)fdat.nFileSizeHigh << 32 | fdat.nFileSizeLow);
-		PathToDir(fname, cfg->lastOpenDir);
+		GetParentDirU8(fname, cfg->lastOpenDir);
 	}
 	info->SetMtime(FileTime2UnixTime(&fdat.ftLastWriteTime));
 	info->SetCrtime(FileTime2UnixTime(&fdat.ftCreationTime));
@@ -436,7 +436,7 @@ BOOL TShareDlg::AddList(int idx)
 		MakeSizeString(buf, shareInfo->fileInfo[idx]->Size(), MSS_SPACE);
 	shareListView.SetSubItem(idx, 1, buf);
 
-	PathToDir(shareInfo->fileInfo[idx]->Fname(), buf);
+	GetParentDirU8(shareInfo->fileInfo[idx]->Fname(), buf);
 	shareListView.SetSubItem(idx, 2, buf);
 
 	return	TRUE;
@@ -521,9 +521,9 @@ BOOL TShareDlg::FileAddDlg(TDlg *dlg, ShareMng *shareMng, ShareInfo *shareInfo, 
 		return	shareMng->AddFileShare(shareInfo, buf.Buf());
 	}
 
-	for (const char *fname=buf+dirlen+1; *fname; fname += strlen(fname) +1)
+	for (const char *fname = buf.s() + dirlen + 1; *fname; fname += strlen(fname) + 1)
 	{
-		if (MakePath(path.Buf(), buf, fname) >= MAX_PATH_U8)
+		if (MakePath(path.Buf(), buf.s(), fname) >= MAX_PATH_U8)
 			continue;
 		shareMng->AddFileShare(shareInfo, path.Buf());
 	}
@@ -702,23 +702,6 @@ TSaveCommonDlg::TSaveCommonDlg(ShareInfo *_shareInfo, Cfg *_cfg, ULONG _hostStat
 	}
 }
 
-BOOL GetParentDir(const char *srcfile, char *dir)
-{
-	char	path[MAX_BUF], *fname=NULL;
-
-	if (GetFullPathNameU8(srcfile, sizeof(path), path, &fname) == 0 || fname == NULL)
-		return	strcpy(dir, srcfile), FALSE;
-
-	if (fname - path > 3 || path[1] != ':')
-		*(fname - 1) = 0;
-	else
-		*fname = 0;		// C:\ の場合
-
-	strcpy(dir, path);
-	return	TRUE;
-}
-
-
 int TSaveCommonDlg::Exec(void)
 {
 	modalFlg = TRUE;
@@ -728,7 +711,7 @@ int TSaveCommonDlg::Exec(void)
 	// 最終保存ディレクトリが無くなっている場合、少しさかのぼる
 	for (int i=0; i < 5; i++) {
 		if (*cfg->lastSaveDir && GetFileAttributesU8(cfg->lastSaveDir) == 0xffffffff)
-			if (!PathToDir(cfg->lastSaveDir, cfg->lastSaveDir))
+			if (!GetParentDirU8(cfg->lastSaveDir, cfg->lastSaveDir))
 				break;
 	}
 
@@ -755,14 +738,14 @@ int TSaveCommonDlg::Exec(void)
 			char	arg[MAX_BUF];
 			if (ReadLinkU8(fname, last_dir, arg)) {
 				if ((GetFileAttributesU8(last_dir) & FILE_ATTRIBUTE_DIRECTORY) == 0)
-					GetParentDir(last_dir, last_dir);
+					GetParentDirU8(last_dir, last_dir);
 			}
 			continue;
 		}
 
 		fileInfo = shareInfo->fileInfo[offset];
 
-		PathToDir(fname, last_dir);
+		GetParentDirU8(fname, last_dir);
 		ForcePathToFname(fname, fname);
 		fileInfo->SetSelected(TRUE);
 
@@ -774,7 +757,8 @@ int TSaveCommonDlg::Exec(void)
 			MakePath(buf, last_dir, offset == i ? fname : shareInfo->fileInfo[i]->Fname());
 			if (GetFileAttributesU8(buf) != 0xffffffff)
 			{
-				ret = parentWin->MessageBoxU8(GetLoadStrU8(IDS_OVERWRITE), GetLoadStrU8(IDS_ATTENTION), MB_OKCANCEL|MB_ICONEXCLAMATION);
+				ret = parentWin->MessageBoxU8(GetLoadStrU8(IDS_OVERWRITE),
+					GetLoadStrU8(IDS_ATTENTION), MB_OKCANCEL|MB_ICONEXCLAMATION);
 				if (ret != IDOK) {
 					for (int j=0; j < shareInfo->fileCnt; j++)
 						shareInfo->fileInfo[j]->SetSelected(FALSE);
@@ -919,7 +903,8 @@ BOOL TSaveCommonDlg::SetInfo(void)
 	else
 		MakeSizeString(sizestr, shareInfo->fileInfo[offset]->Size());
 
-	wsprintf(buf, GetLoadStrU8(IDS_FILEINFO), offset + 1, shareInfo->fileCnt, shareInfo->fileInfo[offset]->Fname(), sizestr);
+	wsprintf(buf, GetLoadStrU8(IDS_FILEINFO), offset + 1, shareInfo->fileCnt,
+		shareInfo->fileInfo[offset]->Fname(), sizestr);
 	SetDlgItemTextU8(RESULT_STATIC, buf);
 
 	_int64	total_size = 0;

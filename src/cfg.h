@@ -36,6 +36,7 @@ inline void SetItem(UINT *columnItems, int sw, BOOL on) {
 #define CFG_DELHOST		0x00002000
 #define CFG_DELCHLDHOST	0x00004000
 #define CFG_CRYPT		0x00008000
+#define CFG_SAVEMSG		0x00010000
 
 #define FT_STRICTDATE	0x00000001
 //#define FT_DISABLEENC	0x00000002
@@ -45,6 +46,15 @@ inline void SetItem(UINT *columnItems, int sw, BOOL on) {
 enum HistWidth {
 	HW_USER, HW_ODATE, HW_SDATE, HW_ID, MAX_HISTWIDTH
 };
+
+#define	AUTOSAVE_ENABLED	0x1
+#define AUTOSAVE_INCDIR		0x2
+
+#define CLIP_ENABLE			0x1
+#define CLIP_SAVE			0x2
+#define CLIP_CONFIRM_NORMAL	0x4
+#define CLIP_CONFIRM_STRICT	0x8
+#define CLIP_CONFIRM_ALL	(CLIP_CONFIRM_NORMAL|CLIP_CONFIRM_STRICT)
 
 struct Cfg {
 protected:
@@ -145,6 +155,13 @@ public:
 	char	RevIconFile[MAX_PATH_U8];
 	char	lastSaveDir[MAX_PATH_U8];
 	char	lastOpenDir[MAX_PATH_U8];
+
+	char	autoSaveDir[MAX_PATH_U8];
+	int		autoSaveFlags; // 0x1: disable 0x2: inc_folder
+	int		autoSaveTout;
+	int		autoSaveLevel;
+	int		autoSaveMax;
+
 	ULONG	Sort;
 	int		UpdateTime;
 	int		KeepHostTime;
@@ -207,6 +224,11 @@ public:
 	BOOL	WriteRegistry(int ctl_flg = CFG_ALL);
 	void	GetRegName(char *buf, Addr nic_addr, int port_no);
 	void	GetSelfRegName(char *buf);
+
+	BOOL	SavePacket(const MsgBuf *msg, const char *head, ULONG img_base);
+	BOOL	LoadPacket(int idx, MsgBuf *msg, char *head, ULONG *img_base);
+	BOOL	DeletePacket(ULONG packetNo, const char *userName);
+	BOOL	CleanupPackets();
 };
 
 inline int GetLocalCapa(Cfg *cfg) {

@@ -969,7 +969,7 @@ BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, ch
 	brInfo.hwndOwner = parentWin->hWnd;
 	brInfo.pidlRoot = 0;
 	brInfo.pszDisplayName = buf_w.Buf();
-	brInfo.lpszTitle = title_w;
+	brInfo.lpszTitle = title_w.s();
 	brInfo.ulFlags = BIF_RETURNONLYFSDIRS;
 	brInfo.lpfn = BrowseDirDlgProc;
 	brInfo.lParam = (LPARAM)defaultDir_w.Buf();
@@ -980,7 +980,7 @@ BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, ch
 		ret = SHGetPathFromIDListW(pidlBrowse, buf_w.Buf());
 		iMalloc->Free(pidlBrowse);
 		if (ret) {
-			WtoU8(buf_w, buf, MAX_PATH_U8);
+			WtoU8(buf_w.s(), buf, MAX_PATH_U8);
 		}
 	}
 

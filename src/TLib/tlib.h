@@ -3,7 +3,7 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-06-22(Mon)
+	Update					: 2015-08-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -25,9 +25,9 @@
 #define strdup  vstrdup
 #define wcsdup  vwcsdup
 extern "C" {
-void *valloc(size_t size);
-void *vcalloc(size_t num, size_t ele);
-void *vrealloc(void *d, size_t size);
+void *valloc(ssize_t size);
+void *vcalloc(ssize_t num, ssize_t ele);
+void *vrealloc(void *d, ssize_t size);
 void vfree(void *d);
 char *vstrdup(const char *s);
 //unsigned short *vwcsdup(const unsigned short *s);
@@ -339,7 +339,7 @@ public:
 	virtual BOOL	EnableWindow(BOOL is_enable);
 
 	virtual	int		MessageBox(LPCSTR msg, LPCSTR title="msg", UINT style=MB_OK);
-	virtual	int		MessageBoxW(LPCWSTR msg, LPCWSTR title=L"", UINT style=MB_OK);
+	virtual	int		MessageBoxW(LPCWSTR msg, LPCWSTR title=L"msg", UINT style=MB_OK);
 	virtual	int		MessageBoxU8(LPCSTR msg, LPCSTR title="msg", UINT style=MB_OK);
 	virtual BOOL	BringWindowToTop(void);
 	virtual BOOL	SetForegroundWindow(void);
@@ -375,6 +375,7 @@ public:
 	virtual BOOL	FitMoveWindow(int x, int y);
 	virtual BOOL	Sleep(UINT mSec);
 	virtual BOOL	Idle(void);
+	virtual TWin	*Parent() { return parent; }
 
 	virtual	BOOL	PreProcMsg(MSG *msg);
 	virtual	LRESULT	WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -466,7 +467,6 @@ protected:
 	HINSTANCE	hI;
 	DWORD		twinId;
 
-	TWin	*SearchWnd(HWND hWnd) { return (TWin *)hash->Search(&hWnd, hash->MakeHashId(hWnd)); }
 	virtual BOOL	InitApp(void);
 
 public:
@@ -483,6 +483,7 @@ public:
 			win->hWnd = hWnd; hash->Register(win, hash->MakeHashId(hWnd));
 	}
 	void	DelWin(TWin *win) { hash->UnRegister(win); }
+	TWin	*SearchWnd(HWND hWnd) { return (TWin *)hash->Search(&hWnd, hash->MakeHashId(hWnd)); }
 
 	static TApp *GetApp() { return tapp; }
 	static void Idle(DWORD timeout=0);

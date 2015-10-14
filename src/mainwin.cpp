@@ -220,6 +220,15 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 	}
 #endif
 
+	for (int i=0; i < 500; i++) {	// 暫定...
+		MsgBuf	msg;
+		char	head[MAX_LISTBUF];
+		ULONG	img_base;
+
+		if (!cfg->LoadPacket(i, &msg, head, &img_base)) break;
+		RecvDlgOpen(&msg, head, img_base);
+	}
+
 	::SetTimer(hWnd, IPMSG_CLEANUP_TIMER, 10000, NULL); // 10sec
 //	::SetTimer(hWnd, 0x0200, 1000, NULL);
 	return	TRUE;
@@ -1245,7 +1254,7 @@ BOOL TMainWin::SendDirFile(SendFileObj *obj)
 		if (!find) {
 			if (--obj->dirCnt >= 0 && obj->isDir) {
 				::FindClose(obj->hDir[obj->dirCnt]);
-				if (!PathToDir(obj->path, obj->path) && obj->dirCnt > 0) {
+				if (!GetParentDirU8(obj->path, obj->path) && obj->dirCnt > 0) {
 					return	FALSE;
 				}
 			}
@@ -1765,10 +1774,10 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 			return;
 		}
 		else {
-			char *p =  strchr(Ctime(), ' ');
-			if (p) p++;
-			sprintf(msg_text, "%s\r\n%s", GetLoadStrU8(IDS_OPENFIN), p);
-			if ((p = strrchr(msg_text, ' '))) *p = 0;
+			const char *c =  strchr(Ctime(), ' ');
+			if (c) c++;
+			sprintf(msg_text, "%s\r\n%s", GetLoadStrU8(IDS_OPENFIN), c);
+			if (char *p = strrchr(msg_text, ' ')) *p = 0;
 		}
 		break;
 
@@ -1902,15 +1911,15 @@ void TMainWin::SendDlgExit(DWORD sendid)
 /*
 	受信Dialogを生成
 */
-BOOL TMainWin::RecvDlgOpen(MsgBuf *msg)
+BOOL TMainWin::RecvDlgOpen(MsgBuf *msg, const char *rep_head, ULONG img_base)
 {
 	TRecvDlg *recvDlg;
 
-	if (!(recvDlg = new TRecvDlg(msgMng, msg, &hosts, cfg, logmng, cfg->TaskbarUI ? this : 0))) {
+	if (!(recvDlg = new TRecvDlg(msgMng, &hosts, cfg, logmng, cfg->TaskbarUI ? this : 0))) {
 		return	FALSE;
 	}
 
-	switch (recvDlg->Status()) {
+	switch (recvDlg->Init(msg, rep_head, img_base)) {
 	case TRecvDlg::ERR: case TRecvDlg::REMOTE:	// 暗号文の復号に失敗 or 遠隔コマンドメッセージ
 		delete recvDlg;
 		return	FALSE;
@@ -1945,12 +1954,13 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg)
 				strcpy(buf1, host->alterName);
 			}
 			else {
-				MakeListString(cfg, &(msg->hostSub), &hosts, buf1);
+				if (rep_head)	strcpy(buf1, rep_head);
+				else			MakeListString(cfg, &(msg->hostSub), &hosts, buf1);
 			}
 			if (cfg->BalloonNoInfo) strcpy(buf1, " ");
 
-			SYSTEMTIME rt = recvDlg->GetRecvTime();
-			wsprintf(buf2, "at %s", Ctime(&rt));
+			Time_t	t = recvDlg->GetRecvTime();
+			wsprintf(buf2, "at %s", Ctime(&t));
 			wsprintf(buf3, "%s%s%s", buf1, cfg->BalloonNoInfo ? "" : "\n", buf2);
 			BalloonWindow(TRAY_RECV, buf3, GetLoadStrU8(IDS_RECVMSG), cfg->RecvMsgTime);
 		}
@@ -1961,7 +1971,10 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg)
 				reverseTimerStatus = IPMSG_REVERSEICON;
 			}
 		}
-		if (recvDlg->UseClipboard()) recvDlg->Create();
+		if (recvDlg->UseClipboard() ||
+			(recvDlg->FileAttached() && (cfg->autoSaveFlags & AUTOSAVE_ENABLED))) {
+			recvDlg->Create();
+		}
 	}
 	else {
 		recvDlg->Create();

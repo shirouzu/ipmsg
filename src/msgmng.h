@@ -17,6 +17,7 @@ struct MsgBuf {
 	int		portNo;
 	ULONG	packetNo;
 	ULONG	command;
+	Time_t	timestamp;
 	char	msgBuf[MAX_UDPBUF];
 	char	exBuf[MAX_UDPBUF];
 	char	packetNoStr[256/8]; // for IV (256bit)

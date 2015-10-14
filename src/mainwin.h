@@ -165,7 +165,7 @@ protected:
 	BOOL	SendDlgOpen(DWORD recvid=0);
 	void	SendDlgHide(DWORD sendid);
 	void	SendDlgExit(DWORD sendid);
-	BOOL	RecvDlgOpen(MsgBuf *msg);
+	BOOL	RecvDlgOpen(MsgBuf *msg, const char *rep_head=NULL, ULONG clipBase=0);
 	void	RecvDlgExit(DWORD recvid);
 	void	MsgDlgExit(DWORD msgid);
 	void	MiscDlgOpen(TDlg *dlg);

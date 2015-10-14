@@ -12,7 +12,7 @@
 #define MISCFUNC_H
 
 BOOL IsImageInClipboard(HWND hWnd);
-BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info);
+BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info, BOOL isAutoSave=FALSE);
 BOOL PrepareBmp(int cx, int cy, int *_aligned_line_size, VBuf *vbuf);
 HBITMAP FinishBmp(VBuf *vbuf);
 
@@ -30,8 +30,11 @@ int VerifyUserNameDigest(const char *user, const BYTE *key);
 
 void MakeClipFileName(int id, int pos, BOOL is_send, char *buf);
 BOOL MakeImageFolderName(Cfg *, char *dir);
+BOOL MakeNonExistFileName(const char *dir, char *path);
+BOOL MakeAutoSaveDir(Cfg *cfg, char *dir);
 BOOL SaveImageFile(Cfg *cfg, const char *target_fname, VBuf *buf);
 VBuf *LoadImageFile(Cfg *cfg, const char *fname);
+BOOL LoadImageFile(Cfg *cfg, const char *fname, VBuf *vbuf);
 
 
 UrlObj *SearchUrlObj(TListEx<UrlObj> *list, char *protocol);
@@ -54,9 +57,9 @@ inline BOOL IsSameHostEx(HostSub *host, HostSub *host2) {
 
 void RectToWinPos(const RECT *rect, WINPOS *wpos);
 Time_t Time(void);
-char *Ctime(SYSTEMTIME *st=NULL);
+const char *Ctime(SYSTEMTIME *st=NULL);
+const char *Ctime(Time_t *t);
 BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, char *buf);
-BOOL PathToDir(const char *org_path, char *target_dir);
 BOOL PathToFname(const char *org_path, char *target_fname);
 void ForcePathToFname(const char *org_path, char *target_fname);
 void ConvertShareMsgEscape(char *str);
