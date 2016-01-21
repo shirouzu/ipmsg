@@ -1,16 +1,17 @@
 ﻿static char *recvdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2015   recvdlg.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   recvdlg.cpp	Ver3.60";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Receive Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
 #include "ipmsg.h"
 #include <process.h>
+#include <map>
 
 int		TRecvDlg::createCnt	= 0;
 HBITMAP	TRecvDlg::hDummyBmp	= 0;
@@ -38,12 +39,39 @@ TRecvDlg::TRecvDlg(MsgMng *_msgMng, THosts *_hosts, Cfg *_cfg, LogMng *_logmng, 
 	useDummyBmp	= 0;
 	isRep		= FALSE;
 	isAutoSave	= FALSE;
+	*autoSaves	= 0;
 	createCnt++;
 
 	if (!hDummyBmp) hDummyBmp = LoadBitmap(TApp::GetInstance(), (LPCSTR)DUMMYPIC_BITMAP);
 }
 
-TRecvDlg::SelfStatus TRecvDlg::Init(MsgBuf *_msg, const char *rep_head, ULONG clipBase)
+TRecvDlg::~TRecvDlg()
+{
+	if (shareInfo) {
+		if (shareInfo->fileCnt > 0 &&
+			!cfg->IsSavedPacket(msg.packetNo, msg.hostSub.userName)) {
+			msgMng->Send(&msg.hostSub, IPMSG_RELEASEFILES, msg.packetNo);
+		}
+		// あとで受信終了通知のコードを入れる
+		delete shareInfo;
+		shareInfo = NULL;
+	}
+	if (fileObj) {
+		delete fileObj->conInfo;
+		delete fileObj;
+	}
+
+	ClipBuf *clipBuf;
+	while ((clipBuf = clipList.TopObj())) {
+		clipList.DelObj(clipBuf);
+		delete clipBuf;
+	}
+
+	createCnt--;
+}
+
+TRecvDlg::SelfStatus TRecvDlg::Init(MsgBuf *_msg, const char *rep_head, ULONG clipBase,
+	const char *auto_saved)
 {
 	msg.Init(_msg);
 
@@ -83,40 +111,11 @@ TRecvDlg::SelfStatus TRecvDlg::Init(MsgBuf *_msg, const char *rep_head, ULONG cl
 	}
 
 	if (shareInfo && (cfg->ClipMode & CLIP_ENABLE)) {
-		int		clip_num = 0;
-		int		noclip_num = 0;
-		if (clipBase == 0) clipBase = msgMng->MakePacketNo();
+		InitCliped(clipBase);
+	}
 
-		for (int i=0; i < shareInfo->fileCnt; i++) {
-			if (GET_MODE(shareInfo->fileInfo[i]->Attr()) == IPMSG_FILE_CLIPBOARD) {
-				const char *ext = strrchr(shareInfo->fileInfo[i]->Fname(), '.');
-				if (ext && strcmpi(ext, ".png") == 0 && clip_num++ < cfg->ClipMax) {
-					int		cur_pos = shareInfo->fileInfo[i]->Pos();
-					char	buf[MAX_PATH_U8];
-
-					for (int j=0; j < i; ) {	// pos が被った場合、次のposに
-						if (cur_pos == shareInfo->fileInfo[j]->Pos()) {
-							cur_pos++;
-							j = 0;	// 最初から確認しなおし
-						} else j++;
-					}
-					shareInfo->fileInfo[i]->SetPos(cur_pos);
-					MakeClipFileName(clipBase, cur_pos, FALSE, buf);
-					shareInfo->fileInfo[i]->SetFname(buf);
-					shareInfo->fileInfo[i]->SetSelected(TRUE);
-				}
-				else {
-					shareInfo->RemoveFileInfo(i);
-					i--;
-				}
-			}
-			else {
-				noclip_num++;
-			}
-		}
-		if (clip_num) {
-			useClipBuf = noclip_num ? 2 : 1;
-		}
+	if (shareInfo && fileObj && auto_saved && *auto_saved) {
+		InitAutoSaved(auto_saved);
 	}
 
 	if (!VerifyUserNameExtension(cfg, &msg)) {
@@ -132,34 +131,75 @@ TRecvDlg::SelfStatus TRecvDlg::Init(MsgBuf *_msg, const char *rep_head, ULONG cl
 	}
 
 	if (!isRep && status != ERR && status != REMOTE) {
-		cfg->SavePacket(_msg, head, clipBase);
+		if (cfg->ReproMsg) cfg->SavePacket(_msg, head, clipBase);
 	}
 
 	return	status;
 }
 
-TRecvDlg::~TRecvDlg()
+BOOL TRecvDlg::InitCliped(ULONG clipBase)
 {
-	if (shareInfo) {
-		if (shareInfo->fileCnt > 0 && openFlg) {
-			msgMng->Send(&msg.hostSub, IPMSG_RELEASEFILES, msg.packetNo);
+	int		clip_num = 0;
+	int		noclip_num = 0;
+	if (clipBase == 0) clipBase = msgMng->MakePacketNo();
+
+	for (int i=0; i < shareInfo->fileCnt; i++) {
+		if (GET_MODE(shareInfo->fileInfo[i]->Attr()) == IPMSG_FILE_CLIPBOARD) {
+			const char *ext = strrchr(shareInfo->fileInfo[i]->Fname(), '.');
+			if (ext && strcmpi(ext, ".png") == 0 && clip_num++ < cfg->ClipMax) {
+				int		cur_pos = shareInfo->fileInfo[i]->Pos();
+				char	buf[MAX_PATH_U8];
+
+				for (int j=0; j < i; ) {	// pos が被った場合、次のposに
+					if (cur_pos == shareInfo->fileInfo[j]->Pos()) {
+						cur_pos++;
+						j = 0;	// 最初から確認しなおし
+					} else j++;
+				}
+				shareInfo->fileInfo[i]->SetPos(cur_pos);
+				MakeClipFileName(clipBase, cur_pos, FALSE, buf);
+				shareInfo->fileInfo[i]->SetFname(buf);
+				shareInfo->fileInfo[i]->SetSelected(TRUE);
+			}
+			else {
+				shareInfo->RemoveFileInfo(i);
+				i--;
+			}
 		}
-		// あとで受信終了通知のコードを入れる
-		delete shareInfo;
-		shareInfo = NULL;
+		else {
+			noclip_num++;
+		}
 	}
-	if (fileObj) {
-		delete fileObj->conInfo;
-		delete fileObj;
+	if (clip_num) {
+		useClipBuf = noclip_num ? 2 : 1;
+	}
+	return	TRUE;
+}
+
+BOOL TRecvDlg::InitAutoSaved(const char *auto_saved)
+{
+	strcpy(autoSaves, auto_saved);
+	std::map<int, char *> fmap;
+
+	for (char *tok=strtok(autoSaves, ":"); tok; tok=strtok(NULL, ":")) {
+		char	*equal = strchr(tok, '=');
+		if (!equal) continue;
+		*equal = 0;
+		fmap[strtol(tok, 0, 16)] = equal + 1;
 	}
 
-	ClipBuf *clipBuf;
-	while ((clipBuf = clipList.TopObj())) {
-		clipList.DelObj(clipBuf);
-		delete clipBuf;
+	for (int i=shareInfo->fileCnt-1; i >= 0; i--) {
+		if (GET_MODE(shareInfo->fileInfo[i]->Attr()) != IPMSG_FILE_CLIPBOARD) {
+			auto itr = fmap.find(shareInfo->fileInfo[i]->Id());
+			if (itr != fmap.end()) {
+				shareInfo->RemoveFileInfo(i);
+			}
+		}
 	}
+	isAutoSave = TRUE;
 
-	createCnt--;
+	strcpy(autoSaves, auto_saved);
+	return	TRUE;
 }
 
 BOOL TRecvDlg::PreProcMsg(MSG *msg)
@@ -224,7 +264,7 @@ BOOL TRecvDlg::EvCreate(LPARAM lParam)
 		::ShowWindow(GetDlgItem(OPEN_BUTTON), SW_HIDE);
 		openFlg = TRUE;
 		if (shareInfo) {
-			SetFileButton(this, FILE_BUTTON, shareInfo, isAutoSave);
+			SetFileButton(this, FILE_BUTTON, shareInfo, autoSaves);
 		}
 	}
 
@@ -289,8 +329,19 @@ BOOL TRecvDlg::EvCreate(LPARAM lParam)
 	if (cfg->TaskbarUI) { // これがないと、なぜか開封にフォーカスが当たらない？
 		SetTimer(hWnd, IPMSG_DELAYFOCUS_TIMER, IPMSG_DELAYFOCUS_TIME, NULL);
 	}
+
 	if (shareInfo && (cfg->autoSaveFlags & AUTOSAVE_ENABLED)) {
-		SetTimer(hWnd, IPMSG_AUTOSAVE_TIMER, cfg->autoSaveTout * 1000, NULL);
+		BOOL	auto_save = TRUE;
+		if (cfg->autoSaveLevel > 0) {
+			Host	*host = cfg->priorityHosts.GetHostByName(&msg.hostSub);
+			int		level = (cfg->PriorityMax - (host->priority / PRIORITY_OFFSET)) + 1;
+			if (!host || level > cfg->autoSaveLevel) {
+				auto_save = FALSE;
+			}
+		}
+		if (auto_save) {
+			SetTimer(hWnd, IPMSG_AUTOSAVE_TIMER, cfg->autoSaveTout * 1000, NULL);
+		}
 	}
 
 	return	TRUE;
@@ -331,6 +382,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		else if (!openFlg) {
 			if (MessageBoxU8(GetLoadStrU8(IDS_OPENDESTROY), IP_MSG, MB_OKCANCEL) != IDOK)
 				return TRUE;
+			cfg->DeletePacket(msg.packetNo, msg.hostSub.userName);
 		}
 
 		if (timerID == 0) {
@@ -376,7 +428,7 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		::EnableWindow(GetDlgItem(OPEN_BUTTON), FALSE);
 
 		if (shareInfo) {
-			SetFileButton(this, FILE_BUTTON, shareInfo, isAutoSave);
+			SetFileButton(this, FILE_BUTTON, shareInfo, autoSaves);
 			EvSize(SIZE_RESTORED, 0, 0);
 		}
 		if (IsShowDirectImage(cfg, &msg.hostSub)) {
@@ -411,9 +463,11 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			}
 		}
 		else if (fileObj) {
-			if (isAutoSave && (!shareInfo || shareInfo->fileCnt == 0)) {
+			if (*autoSaves && (!shareInfo || shareInfo->fileCnt == 0)) {
+				MakeAutoSaveDir(cfg, fileObj->saveDir);
 				ShellExecuteU8(NULL, NULL, fileObj->saveDir, 0, 0, SW_SHOW);
 				isAutoSave = FALSE;
+				*autoSaves = 0;
 				SetFileButton(this, FILE_BUTTON, shareInfo);
 				EvSize(SIZE_RESTORED, 0, 0);
 			}
@@ -509,7 +563,7 @@ BOOL TRecvDlg::LoadClipFromFile(void)
 			shareInfo->RemoveFileInfo(cnt);
 		}
 	}
-	SetFileButton(this, FILE_BUTTON, shareInfo, isAutoSave);
+	SetFileButton(this, FILE_BUTTON, shareInfo, autoSaves);
 	EvSize(SIZE_RESTORED, 0, 0);
 
 	return	TRUE;
@@ -583,18 +637,14 @@ BOOL TRecvDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 BOOL TRecvDlg::AutoSaveCheck()
 {
-	if (status != INIT || !shareInfo || !shareInfo->fileCnt || !fileObj) {
+	if ((status != INIT && (status != SHOW || openFlg))
+		|| !shareInfo || !shareInfo->fileCnt || !fileObj) {
 		return FALSE;
 	}
 	for (int i=0; i < shareInfo->fileCnt; i++) {	// clip board download waiting...
 		if (GET_MODE(shareInfo->fileInfo[i]->Attr()) == IPMSG_FILE_CLIPBOARD) {
 			SetTimer(hWnd, IPMSG_AUTOSAVE_TIMER, 5000, NULL);
 			return	TRUE;
-		}
-		if (shareInfo->fileInfo[i]->Size() > cfg->autoSaveMax * 1000 * 1000 ||
-			(GET_MODE(shareInfo->fileInfo[i]->Attr()) == IPMSG_FILE_DIR &&
-			((cfg->autoSaveFlags & AUTOSAVE_INCDIR) == 0))) {
-			return FALSE;
 		}
 	}
 
@@ -604,6 +654,11 @@ BOOL TRecvDlg::AutoSaveCheck()
 	BOOL	is_save = FALSE;
 
 	for (int i=0; i < shareInfo->fileCnt; i++) {
+		if (shareInfo->fileInfo[i]->Size() > (int64)cfg->autoSaveMax * 1000 * 1000 ||
+			(GET_MODE(shareInfo->fileInfo[i]->Attr()) == IPMSG_FILE_DIR &&
+			((cfg->autoSaveFlags & AUTOSAVE_INCDIR) == 0))) {
+			continue;
+		}
 		char	path[MAX_PATH];
 		strcpy(path, shareInfo->fileInfo[i]->Fname());
 		if (MakeNonExistFileName(fileObj->saveDir, path)) {
@@ -831,8 +886,8 @@ void TRecvDlg::SetFont(BOOL force_reset)
 		if (*cfg->RecvEditFont.lfFaceName) hEditFont = ::CreateFontIndirect(&cfg->RecvEditFont);
 	}
 
-	SendDlgItemMessage(RECV_HEAD, WM_SETFONT, (UINT)hHeadFont, 0L);
-	SendDlgItemMessage(RECV_HEAD2, WM_SETFONT, (UINT)hHeadFont, 0L);
+	SendDlgItemMessage(RECV_HEAD, WM_SETFONT, (WPARAM)hHeadFont, 0L);
+	SendDlgItemMessage(RECV_HEAD2, WM_SETFONT, (WPARAM)hHeadFont, 0L);
 
 	editSub.SetFont(&cfg->RecvEditFont);
 	editSub.ExSetText(msg.msgBuf);
@@ -968,8 +1023,8 @@ void TRecvDlg::PopupContextMenu(POINTS pos)
 
 void TRecvDlg::SetMainMenu(HMENU hMenu)
 {
-	AppendMenuU8(hMenu, MF_POPUP, (UINT)::LoadMenu(TApp::GetInstance(), (LPCSTR)RECVFONT_MENU), GetLoadStrU8(IDS_FONTSET));
-	AppendMenuU8(hMenu, MF_POPUP, (UINT)::LoadMenu(TApp::GetInstance(), (LPCSTR)SIZE_MENU), GetLoadStrU8(IDS_SIZESET));
+	AppendMenuU8(hMenu, MF_POPUP, (UINT_PTR)::LoadMenu(TApp::GetInstance(), (LPCSTR)RECVFONT_MENU), GetLoadStrU8(IDS_FONTSET));
+	AppendMenuU8(hMenu, MF_POPUP, (UINT_PTR)::LoadMenu(TApp::GetInstance(), (LPCSTR)SIZE_MENU), GetLoadStrU8(IDS_SIZESET));
 	AppendMenuU8(hMenu, MF_STRING, MENU_SAVEPOS, GetLoadStrU8(IDS_SAVEPOS));
 }
 
@@ -1633,6 +1688,11 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 				SaveImageFile(cfg, fileObj->fileInfo->Fname(), &clipBuf->vbuf);
 			}
 		}
+		if (!fileObj->isClip && isAutoSave) {
+			int	len = (int)strlen(autoSaves);
+			_snprintf(autoSaves + len, sizeof(autoSaves) - len - 1,
+				"%x=%s:", fileObj->fileInfo->Id(), fileObj->fileInfo->Fname());
+		}
 		BOOL	is_clip_finish = TRUE;
 		for (int cnt=0; cnt < shareInfo->fileCnt; cnt++) {
 			if (shareInfo->fileInfo[cnt] != fileInfo) {
@@ -1650,6 +1710,9 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 				isInsertImage = TRUE;
 			}
 		}
+	}
+	if (cfg->ReproMsg && *autoSaves) {
+		cfg->UpdatePacket(&msg, autoSaves);
 	}
 
 	int ret;
@@ -1682,7 +1745,7 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 		shareInfo->RemoveFileInfo(target);
 	}
 
-	SetFileButton(this, FILE_BUTTON, shareInfo, isAutoSave);
+	SetFileButton(this, FILE_BUTTON, shareInfo, autoSaves);
 	EvSize(SIZE_RESTORED, 0, 0);
 
 	if (isInsertImage) {

@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2015   recvdlg.h	Ver3.50 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2015   recvdlg.h	Ver3.60 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Receive Dialog
 	Create					: 2013-03-03(Sun)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -87,6 +87,7 @@ protected:
 	TEditSub		editSub;
 	SelfStatus		status;
 	BOOL			isAutoSave;
+	char			autoSaves[MAX_BUF];
 
 	RecvFileObj		*fileObj;
 	ShareInfo		*shareInfo;
@@ -107,6 +108,9 @@ protected:
 				ok_item, cancel_item, quote_item, file_item, max_recvitem
 			};
 	WINPOS	item[max_recvitem];
+
+	BOOL	InitCliped(ULONG clipBase);
+	BOOL	InitAutoSaved(const char *auto_saved);
 
 	void	SetFont(BOOL force_reset=FALSE);
 	void	SetSize(void);
@@ -132,7 +136,8 @@ public:
 	TRecvDlg(MsgMng *_msgmng, THosts *hosts, Cfg *cfg, LogMng *logmng, TWin *_parent=NULL);
 	virtual ~TRecvDlg();
 
-	virtual SelfStatus Init(MsgBuf *_msg, const char *rep_head=NULL, ULONG clipBase=0);
+	virtual SelfStatus Init(MsgBuf *_msg, const char *rep_head=NULL, ULONG clipBase=0,
+		const char *auto_saved=NULL);
 	virtual BOOL	IsClosable(void) {
 						return openFlg &&
 							(!fileObj || !fileObj->conInfo) && !clipList.TopObj() && !recvEndDlg;

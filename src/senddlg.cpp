@@ -179,7 +179,7 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 
 	static HICON hCameraIcon;
 	if (!hCameraIcon) hCameraIcon = ::LoadIcon(TApp::GetInstance(),
-											(LPCSTR)(IsWinVista() ? CAMERA_ICON : CAMERAXP_ICON));
+											(LPCSTR)(LONG_PTR)(IsWinVista() ? CAMERA_ICON : CAMERAXP_ICON));
 	SendDlgItemMessage(CAPTURE_BUTTON, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hCameraIcon);
 
 	static HICON hRefreshIcon;
@@ -2129,7 +2129,7 @@ void TSendDlg::PopupContextMenu(POINTS pos)
 	}
 	InsertMenuU8(hMenu, 1 + (cfg->lruUserMax > 0 ? 1 : 0),
 				MF_POPUP|(::GetMenuItemCount(hGroupMenu) ? 0 : MF_GRAYED)|MF_BYPOSITION,
-				(UINT)hGroupMenu, GetLoadStrU8(IDS_GROUPSELECT));
+				(UINT)(UINT_PTR)hGroupMenu, GetLoadStrU8(IDS_GROUPSELECT));
 
 // priority menu
 	for (cnt=cfg->PriorityMax; cnt >= 0; cnt--) {
@@ -2160,7 +2160,7 @@ void TSendDlg::PopupContextMenu(POINTS pos)
 				GetLoadStrU8(IDS_TMPNODISPDISP));
 	AppendMenuU8(hPriorityMenu, MF_STRING, MENU_PRIORITY_RESET, GetLoadStrU8(IDS_RESETPRIORITY));
 	InsertMenuU8(hMenu, 2 + (cfg->lruUserMax > 0 ? 1 : 0),
-				MF_POPUP|MF_BYPOSITION, (UINT)hPriorityMenu, GetLoadStrU8(IDS_SORTFILTER));
+				MF_POPUP|MF_BYPOSITION, (UINT)(UINT_PTR)hPriorityMenu, GetLoadStrU8(IDS_SORTFILTER));
 
 	::TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, pos.x, pos.y, 0, hWnd, NULL);
 	::DestroyMenu(hMenu);
@@ -2199,7 +2199,7 @@ void TSendDlg::SetMainMenu(HMENU hMenu)
 							MENU_LRUUSER + i++, buf);
 		}
 		i = min(cfg->lruUserList.Num(), cfg->lruUserMax);
-		AppendMenuU8(hMenu, MF_POPUP, (UINT)hLruMenu, Fmt(GetLoadStrU8(IDS_LRUUSER), i));
+		AppendMenuU8(hMenu, MF_POPUP, (UINT)(UINT_PTR)hLruMenu, Fmt(GetLoadStrU8(IDS_LRUUSER), i));
 	}
 	AppendMenuU8(hMenu, MF_STRING, MENU_FINDDLG, GetLoadStrU8(IDS_FINDDLG));
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
@@ -2215,9 +2215,9 @@ void TSendDlg::SetMainMenu(HMENU hMenu)
 	AppendMenuU8(hMenu, MF_STRING, WM_INSERT_IMAGE, GetLoadStrU8(IDS_INSERT_IMAGE));
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 
-	AppendMenuU8(hMenu, MF_POPUP, (UINT)::LoadMenu(TApp::GetInstance(), (LPCSTR)SENDFONT_MENU),
+	AppendMenuU8(hMenu, MF_POPUP, (UINT)(UINT_PTR)::LoadMenu(TApp::GetInstance(), (LPCSTR)SENDFONT_MENU),
 						GetLoadStrU8(IDS_FONTSET));
-	AppendMenuU8(hMenu, MF_POPUP, (UINT)::LoadMenu(TApp::GetInstance(), (LPCSTR)SENDSIZE_MENU),
+	AppendMenuU8(hMenu, MF_POPUP, (UINT)(UINT_PTR)::LoadMenu(TApp::GetInstance(), (LPCSTR)SENDSIZE_MENU),
 						GetLoadStrU8(IDS_SIZESET));
 	AppendMenuU8(hMenu, MF_STRING, MENU_SAVECOLUMN, GetLoadStrU8(IDS_SAVECOLUMN));
 	AppendMenuU8(hMenu, MF_STRING, MENU_SAVEPOS, GetLoadStrU8(IDS_SAVEPOS));

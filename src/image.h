@@ -20,6 +20,7 @@ typedef VPts::iterator			VPtsItr;
 
 struct ColPts{
 	COLORREF	color;
+	COLORREF	bgColor;
 	DWORD		mode;	// MARKER_PEN/RECT/ARROW
 	VPts		pts;
 	std::string	memo; // for arrow
@@ -32,6 +33,11 @@ typedef VColPts::iterator	VColPtsItr;
 #define COLOR_GREEN		RGB(0,255,0)
 #define COLOR_BLUE		RGB(0,0,255)
 #define COLOR_YELLOW	RGB(255,255,0)
+
+#define BGCOLOR_RED		RGB(255,255,255)
+#define BGCOLOR_GREEN	RGB( 21,108, 48)
+#define BGCOLOR_BLUE	RGB(255,255,255)
+#define BGCOLOR_YELLOW	RGB(130,123,  0)
 
 #define MARKER_OFFSET    3000
 #define MARKER_UNDO      (MARKER_OFFSET + 0)
@@ -54,6 +60,7 @@ protected:
 	BOOL		*withSave;
 	BOOL		reEdit;
 	COLORREF	color;
+	COLORREF	bgColor;
 	DWORD		mode;
 
 public:
@@ -64,7 +71,8 @@ public:
 	virtual BOOL		EvNotify(UINT ctlID, NMHDR *pNmHdr);
 
 	virtual COLORREF	GetColor() { return color; }
-	virtual void		SetColor(COLORREF _color);
+	virtual COLORREF	GetBgColor() { return bgColor; }
+	virtual void		SetColor(COLORREF _color, COLORREF _bg_color);
 	virtual DWORD		GetMode() { return mode; }
 	virtual void		Notify();
 };

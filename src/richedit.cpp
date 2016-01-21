@@ -492,7 +492,7 @@ void TEditSub::InsertImage()
 		"Image\0*.png;*.jpg;*.jpeg;*.gif;*.tiff;*.ico;*.bmp;*.wmf;*.wmz;*.emf;*.emz\0\0", dir)) {
 		Bitmap	*bmp = Bitmap::FromFile(Wstr(fname).s());
 		HBITMAP	hBmp = NULL;
-		if (bmp && !bmp->GetHBITMAP(0, &hBmp) && hBmp) {
+		if (bmp && !bmp->GetHBITMAP(Color::White, &hBmp) && hBmp) {
 			InsertBitmapByHandle(hBmp, -1);
 			::DeleteObject(hBmp);
 		}
@@ -675,7 +675,7 @@ BOOL TEditSub::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			if (obj && *obj->program) {
-				if ((int)ShellExecuteU8(NULL, NULL, obj->program, url_ptr ? url_ptr : u8buf, NULL, SW_SHOW) <= WINEXEC_ERR_MAX)
+				if ((int)(INT_PTR)ShellExecuteU8(NULL, NULL, obj->program, url_ptr ? url_ptr : u8buf, NULL, SW_SHOW) <= WINEXEC_ERR_MAX)
 					MessageBoxU8(obj->program, GetLoadStrU8(IDS_CANTEXEC), MB_OK|MB_ICONINFORMATION);
 			}
 			else if (!url_ptr && cfg->ShellExec || url_ptr && cfg->DefaultUrl) {

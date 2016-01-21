@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 3.52
-			H.Shirouzu Aug 06, 2015
+	Source code of IP Messenger for Win version 3.64
+			H.Shirouzu Dec 24, 2015
 
 		Copyright (C) 1996-2015 SHIROUZU Hiroaki
 			All Rights Reserved.
@@ -69,12 +69,12 @@ Index.
 ----------------------------------------------------------------------
 3. Requirements
 
- - VS2013 or later
+ - VS2015 or later
 
 ----------------------------------------------------------------------
 4. Directory
 
-	IPMsg----+-IPMsg.sln ... Project file for VS2005 or later
+	IPMsg----+-IPMsg.sln ... Project file for VS2015 or later
 		|
 		+-Src------+-ipmsg.cpp
 		|          |     :

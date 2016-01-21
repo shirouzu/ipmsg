@@ -80,7 +80,7 @@ HBITMAP PngByteToBmpHandle(VBuf *vbuf)
 		is->Release();
 
 		if (bmp) {
-			bmp->GetHBITMAP(0, &hBmp);
+			bmp->GetHBITMAP(Color::White, &hBmp);
 			delete bmp;
 		}
 	}
@@ -216,7 +216,7 @@ BOOL TAreaConfirmDlg::EvCreate(LPARAM lParam)
 
 	// 赤・緑・青・黄色のビットマップを追加 (iBitmap 1-16)
 	for (int i=0; i < 4; i++) {
-		TBADDBITMAP tab = { TApp::GetInstance(), MARKERRED_BITMAP + i };
+		TBADDBITMAP tab = { TApp::GetInstance(), UINT_PTR(MARKERRED_BITMAP + i) };
 		::SendMessage(hToolBar, TB_ADDBITMAP, 4, (LPARAM)&tab);
 	}
 
@@ -228,7 +228,7 @@ BOOL TAreaConfirmDlg::EvCreate(LPARAM lParam)
 		::SendMessage(hToolBar, TB_INSERTBUTTON, i, (LPARAM)&tb);
 	}
 	// デフォルトで赤色選択
-	SetColor(COLOR_RED);
+	SetColor(COLOR_RED, BGCOLOR_RED);
 
 	TBBUTTON tb_sep = {0, 0, TBSTATE_ENABLED, TBSTYLE_SEP, 0, 0};
 	::SendMessage(hToolBar, TB_INSERTBUTTON, 3, (LPARAM)&tb_sep);
@@ -260,10 +260,10 @@ BOOL TAreaConfirmDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 
 	case MARKER_COLOR:
 		switch (color) {
-		case COLOR_RED:		SetColor(COLOR_GREEN);	break;
-		case COLOR_GREEN:	SetColor(COLOR_BLUE);	break;
-		case COLOR_BLUE:	SetColor(COLOR_YELLOW);	break;
-		default:			SetColor(COLOR_RED);	break;
+		case COLOR_RED:		SetColor(COLOR_GREEN,	BGCOLOR_GREEN);	break;
+		case COLOR_GREEN:	SetColor(COLOR_BLUE,	BGCOLOR_BLUE);	break;
+		case COLOR_BLUE:	SetColor(COLOR_YELLOW,	BGCOLOR_YELLOW); break;
+		default:			SetColor(COLOR_RED,		BGCOLOR_RED);	break;
 		}
 		break;
 
@@ -288,11 +288,12 @@ BOOL TAreaConfirmDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 	return	TRUE;
 }
 
-void TAreaConfirmDlg::SetColor(COLORREF _color)
+void TAreaConfirmDlg::SetColor(COLORREF _color, COLORREF _bg_color)
 {
 	int	image_base = 0;
 
 	color = _color;
+	bgColor = _bg_color;
 
 	switch (color) {
 	case COLOR_GREEN:	image_base = 1;	break;
@@ -383,7 +384,7 @@ void TImageWin::UnInit()
 		::DeleteObject(hDarkBmp);
 		hDarkBmp = NULL;
 	}
-	if (cursorMap[ARROW_ID]) ::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[ARROW_ID]);
+	if (cursorMap[ARROW_ID]) ::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[ARROW_ID]));
 }
 
 BOOL TImageWin::Create(TEditSub *_reEdit)
@@ -443,7 +444,7 @@ BOOL TImageWin::EvCreate(LPARAM lParam)
 {
 	status = INIT;
 	::SetTimer(hWnd, 100, 10, NULL);
-	if (!reEdit) ::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[CROSS_ID]);
+	if (!reEdit) ::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[CROSS_ID]));
 
 	return	TRUE;
 }
@@ -500,7 +501,7 @@ BOOL TImageWin::EvChar(WCHAR code, LPARAM keyData)
 BOOL TImageWin::MakeDarkBmp(int level)
 {
 	::BitBlt(hDarkDc, 0, 0, sCx, sCy, hSelfDc, 0, 0, BLACKNESS);
-	BLENDFUNCTION	bf = { AC_SRC_OVER, 0, level, 0 };
+	BLENDFUNCTION	bf = { AC_SRC_OVER, 0, (BYTE)level, 0 };
 	::AlphaBlend(hDarkDc, 0, 0, sCx, sCy, hSelfDc, 0, 0, sCx, sCy, bf);
 	return	TRUE;
 }
@@ -666,14 +667,10 @@ TRect TImageWin::DrawMarkerMemo(HDC hDc, const ColPts& col, POINT *pt, TRect max
 
 	TRect	trc(rc.x()+RC_MARGIN, rc.y()+RC_MARGIN, rc.cx(), rc.cy());
 
-//	COLORREF bkcol = (col.color == COLOR_RED || col.color == COLOR_BLUE) ?
-//						RGB(255,255,255) : RGB(128,128,128);
-//	int		 bkobj = (bkcol == RGB(255,255,255)) ? WHITE_BRUSH : GRAY_BRUSH;
+	HBRUSH	hBrush = ::CreateSolidBrush(col.bgColor);
 
 	::SetBkMode(hDc, TRANSPARENT);
-	HBRUSH	 hOldBrush = (HBRUSH)::SelectObject(hDc, (HGDIOBJ)GetStockObject(NULL_BRUSH));
-//	HBRUSH	 hOldBrush = (HBRUSH)::SelectObject(hDc, (HGDIOBJ)GetStockObject(bkobj));
-//	::SetBkColor(hDc, bkcol);
+	HBRUSH	 hOldBrush = (HBRUSH)::SelectObject(hDc, (HGDIOBJ)hBrush);
 	::SetTextColor(hDc, col.color);
 
 	::InflateRect(&rc, RC_MARGIN, RC_MARGIN);
@@ -682,8 +679,8 @@ TRect TImageWin::DrawMarkerMemo(HDC hDc, const ColPts& col, POINT *pt, TRect max
 	::DrawTextW(hDc, wstr.s(), -1, &trc, DT_LEFT);
 
 	::SelectObject(hDc, hOldBrush);
-	::SelectObject(hDc, hOldFont);
-
+	if (hOldFont) ::SelectObject(hDc, hOldFont);
+	::DeleteObject(hBrush);
 
 	return	rc;
 }
@@ -792,6 +789,7 @@ BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts) // クライア
 			drawPts.push_back(ColPts());
 			drawPts.back().mode  = areaDlg.GetMode();
 			drawPts.back().color = areaDlg.GetColor();
+			drawPts.back().bgColor = areaDlg.GetBgColor();
 			drawPts.back().pts.push_back(pts);
 			areaDlg.Notify();
 			DrawMarker();
@@ -847,7 +845,7 @@ void TImageWin::Notify(int result)
 			SetMode(TRUE);
 		}
 		else {
-			::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[CROSS_ID]);
+			::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[CROSS_ID]));
 			status = INIT;
 			MakeDarkBmp(200);
 		}
@@ -875,12 +873,12 @@ void TImageWin::SetMode(BOOL is_draw)
 		COLORREF		color = areaDlg.GetColor();
 		CursorMapItr	itr = cursorMap.find(CURSOR_IDX(color, areaDlg.GetMode() != MARKER_PEN));
 		if (itr != cursorMap.end()) {
-			::SetClassLong(hWnd, GCL_HCURSOR, (LONG)itr->second);
+			::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(itr->second));
 		}
 	}
 	else {
 		status = END;
-		::SetClassLong(hWnd, GCL_HCURSOR, (LONG)cursorMap[ARROW_ID]);
+		::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[ARROW_ID]));
 	}
 }
 

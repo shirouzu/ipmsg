@@ -619,25 +619,6 @@ BOOL TInputDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 }
 
 /*
-	親ディレクトリ取得（必ずフルパスであること。UNC対応）
-*/
-BOOL GetParentDirU8(const char *srcfile, char *dir)
-{
-	char	path[MAX_BUF], *fname=NULL;
-
-	if (GetFullPathNameU8(srcfile, sizeof(path), path, &fname) == 0 || fname == NULL)
-		return	strcpy(dir, srcfile), FALSE;
-
-	if (fname - path > 3 || path[1] != ':')
-		*(fname - 1) = 0;
-	else
-		*fname = 0;		// C:\ の場合
-
-	strcpy(dir, path);
-	return	TRUE;
-}
-
-/*
 	リンク
 	あらかじめ、CoInitialize(NULL); を実行しておくこと
 */

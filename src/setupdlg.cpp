@@ -1,10 +1,10 @@
 ﻿static char *setupdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2015   setupdlg.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   setupdlg.cpp	Ver3.60";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Setup Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -253,6 +253,7 @@ BOOL TSetupSheet::SetData()
 		CheckDlgButton(RECVLOGON_CHECK, cfg->RecvLogonDisp);
 		CheckDlgButton(RECVIPADDR_CHECK, cfg->RecvIPAddr);
 		CheckDlgButton(NOERASE_CHECK, cfg->NoErase);
+		CheckDlgButton(REPROMSG_CHECK, cfg->ReproMsg);
 
 		SetDlgItemTextU8(SOUND_EDIT, cfg->SoundFile);
 	}
@@ -284,7 +285,7 @@ BOOL TSetupSheet::SetData()
 	}
 	else if (resId == AUTOSAVE_SHEET) {
 		CheckDlgButton(AUTOSAVE_CHECK, !!(cfg->autoSaveFlags & AUTOSAVE_ENABLED));
-		SetDlgItemText(DIR_EDIT, cfg->autoSaveDir);
+		SetDlgItemTextU8(DIR_EDIT, cfg->autoSaveDir);
 		SetDlgItemInt(TOUT_EDIT, cfg->autoSaveTout);
 
 		SendDlgItemMessage(PRIORITY_COMBO, CB_ADDSTRING, 0,
@@ -430,12 +431,13 @@ BOOL TSetupSheet::GetData()
 		if (cfg->ControlIME && !IsDlgButtonChecked(FINDDLGIME_CHECK)) {
 			cfg->ControlIME = 2;
 		}
-		cfg->NoPopupCheck = IsDlgButtonChecked(NOPOPUP_CHECK);
+		if (cfg->NoPopupCheck != 2) cfg->NoPopupCheck = IsDlgButtonChecked(NOPOPUP_CHECK);
 		cfg->NoBeep = IsDlgButtonChecked(NOBEEP_CHECK);
 		cfg->AbsenceNonPopup = IsDlgButtonChecked(ABSENCENONPOPUP_CHECK);
 		cfg->RecvLogonDisp = IsDlgButtonChecked(RECVLOGON_CHECK);
 		cfg->RecvIPAddr = IsDlgButtonChecked(RECVIPADDR_CHECK);
 		cfg->NoErase = IsDlgButtonChecked(NOERASE_CHECK);
+		cfg->ReproMsg = IsDlgButtonChecked(REPROMSG_CHECK);
 
 		GetDlgItemTextU8(SOUND_EDIT, cfg->SoundFile, sizeof(cfg->SoundFile));
 	}
@@ -623,10 +625,16 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		char buf[MAX_PATH];
 		switch (wID) {
 		case DIR_BUTTON:
-			strcpy(buf, *cfg->autoSaveDir ? cfg->autoSaveDir : cfg->LogFile);
+			MakeAutoSaveDir(cfg, buf);
+			CreateDirectoryU8(buf, 0);
 			if (BrowseDirDlg(this, GetLoadStrU8(IDS_FOLDERATTACH), buf, buf)) {
-				SetDlgItemText(DIR_EDIT, buf);
+				SetDlgItemTextU8(DIR_EDIT, buf);
 			}
+			return	TRUE;
+		case OPEN_BUTTON:
+			MakeAutoSaveDir(cfg, buf);
+			CreateDirectoryU8(buf, 0);
+			ShellExecuteU8(NULL, NULL, buf, 0, 0, SW_SHOW);
 			return	TRUE;
 		}
 	}

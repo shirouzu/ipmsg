@@ -1,10 +1,10 @@
 ﻿static char *pubkey_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2015   pubkey.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 2011-2015   pubkey.cpp	Ver3.60";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Public Key Encryption
 	Create					: 2011-05-03(Tue)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -69,13 +69,14 @@ BOOL SetupCryptAPICore(Cfg *cfg, MsgMng *msgMng, int ctl_flg)
 	int		len = sizeof(data);
 	BOOL	ret = FALSE;
 	int		i;
+	int		start_key_idx = cfg->Wine ? KEY_1024 : KEY_512;
 
 // RSA 鍵の生成
-	for (i=KEY_512; i < MAX_KEY; i++) {
+	for (i=start_key_idx; i < MAX_KEY; i++) {
 		SetupRSAKey(cfg, msgMng, (KeyType)i, ctl_flg);
 	}
 
-	for (i=0; i <= KEY_2048; i++) {
+	for (i=start_key_idx; i <= KEY_2048; i++) {
 		if (!cfg->pub[i].Key()) continue;
 
 		BOOL		ret = FALSE;
@@ -119,6 +120,20 @@ BOOL SetupCryptAPICore(Cfg *cfg, MsgMng *msgMng, int ctl_flg)
 			}
 			else if (ctl_flg & KEY_DIAG) GetLastErrorMsg("CryptImportKey test1024/2048");
 
+			if (i == KEY_2048) {
+				BOOL		sign_capa = FALSE;
+				HCRYPTHASH	hHash;
+				if (::CryptCreateHash(cfg->priv[i].hCsp, CALG_SHA, 0, 0, &hHash)) {
+					tmplen = 512;
+					if (::CryptHashData(hHash, tmp, 1, 0)) {
+						if (::CryptSignHash(hHash, AT_KEYEXCHANGE, 0, 0, tmp+16, &tmplen)) {
+							sign_capa = TRUE;
+						}
+					}
+					::CryptDestroyHash(hHash);
+				}
+				if (!sign_capa) cfg->pub[i].SetCapa(cfg->pub[i].Capa() & ~IPMSG_SIGN_SHA1);
+			}
 			if (ret) {
 				ret = FALSE;
 				if (::CryptDecrypt(cfg->priv[i].hKey, 0, TRUE, 0, (BYTE *)data, (DWORD *)&len)) ret = TRUE;
@@ -299,7 +314,7 @@ BOOL LoadPrivBlob(PrivKey *priv, BYTE *rawBlob, int *rawBlobLen)
 	{
 		if (priv->encryptSeed == NULL) return FALSE;
 
-		DATA_BLOB	in = { priv->encryptSeedLen, priv->encryptSeed }, out;
+		DATA_BLOB	in = { (DWORD)priv->encryptSeedLen, priv->encryptSeed }, out;
 		if (!::CryptUnprotectData(&in, 0, 0, 0, 0,
 								  CRYPTPROTECT_LOCAL_MACHINE|CRYPTPROTECT_UI_FORBIDDEN, &out))
 			return	FALSE;

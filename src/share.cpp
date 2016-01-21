@@ -822,12 +822,12 @@ BOOL TSaveCommonDlg::EvCreate(LPARAM lParam)
 	HFONT	hDlgFont = (HFONT)::SendDlgItemMessage(pWnd, IDOK, WM_GETFONT, 0, 0L);
 	if (hDlgFont)
 	{
-		SendDlgItemMessage(RESULT_STATIC, WM_SETFONT, (UINT)hDlgFont, 0L);
-		SendDlgItemMessage(PRIOR_BUTTON, WM_SETFONT, (UINT)hDlgFont, 0L);
-		SendDlgItemMessage(NEXT_BUTTON, WM_SETFONT, (UINT)hDlgFont, 0L);
-		SendDlgItemMessage(LUMP_CHECK, WM_SETFONT, (UINT)hDlgFont, 0L);
+		SendDlgItemMessage(RESULT_STATIC, WM_SETFONT, (WPARAM)hDlgFont, 0L);
+		SendDlgItemMessage(PRIOR_BUTTON, WM_SETFONT, (WPARAM)hDlgFont, 0L);
+		SendDlgItemMessage(NEXT_BUTTON, WM_SETFONT, (WPARAM)hDlgFont, 0L);
+		SendDlgItemMessage(LUMP_CHECK, WM_SETFONT, (WPARAM)hDlgFont, 0L);
 		if (hostStatus & IPMSG_CAPFILEENCOPT) {
-			SendDlgItemMessage(ENCTRANS_CHECK, WM_SETFONT, (UINT)hDlgFont, 0L);
+			SendDlgItemMessage(ENCTRANS_CHECK, WM_SETFONT, (WPARAM)hDlgFont, 0L);
 		}
 	}
 	SetInfo();

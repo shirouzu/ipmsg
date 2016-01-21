@@ -1,10 +1,10 @@
 ﻿static char *cfg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2015   cfg.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   cfg.cpp	Ver3.60";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration
 	Create					: 1996-09-27(Sat)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -51,7 +51,7 @@
 #define IPMSG_DEFAULT_HWID_WIDTH	 10
 
 #define IPMSG_DEFAULT_AUTOSAVE_TOUT	 120
-#define IPMSG_DEFAULT_AUTOSAVE_MAX	 500
+#define IPMSG_DEFAULT_AUTOSAVE_MAX	 1000
 
 #define LCID_KEY			"lcid"
 #define NOBEEP_STR			"NoBeep"
@@ -63,6 +63,7 @@
 #define RECVMAXNT_STR		"RecvMaxNT"
 #define RECVMAX95_STR		"RecvMax95"
 #define NOERASE_STR			"NoErase"
+#define REPROMSG_STR		"ReproMsg"
 #define DEBUG_STR			"Debug"
 #define BROADCAST_STR		"BroadCast"
 #define CLICKABLEURL_STR	"ClickableUrl"
@@ -240,6 +241,8 @@
 #define PRIVSEED_STR		"PrivEncryptSeed"
 #define PRIVSEEDLEN_STR		"PrivEncryptSeedLen"
 
+#define WINE_STR			"Wine"	// for Wine environment
+
 char	*DefaultUrlProtocol[] = { "HTTP", "HTTPS", "FTP", "FILE", "TELNET", NULL };
 char	*DefaultAbsence[IPMSG_DEFAULT_ABSENCEMAX];
 char	*DefaultAbsenceHead[IPMSG_DEFAULT_ABSENCEMAX];
@@ -308,8 +311,9 @@ BOOL Cfg::ReadRegistry(void)
 	RetryMax = IPMSG_DEFAULT_RETRYMAX;
 	RecvMax = IsWinNT() ? IPMSG_DEFAULT_RECVMAX_NT : IPMSG_DEFAULT_RECVMAX_95;
 	NoErase = FALSE;
+	ReproMsg = TRUE;
 	Debug = FALSE;
-	NoPopupCheck = TRUE;
+	NoPopupCheck = 1;
 	OpenCheck = 1;
 	AbsenceSave = FALSE;
 	AbsenceCheck = FALSE;
@@ -378,6 +382,8 @@ BOOL Cfg::ReadRegistry(void)
 	LumpCheck = FALSE;
 	EncTransCheck = TRUE;
 	lruUserMax = IPMSG_DEFAULT_LRUUSERMAX;
+
+	Wine = 0;
 
 	// CryptProtectData is available only Win2K/XP
 	for (i=0; i < MAX_KEY; i++) {
@@ -451,6 +457,7 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(RETRYMAX_STR, (int *)&RetryMax);
 	reg.GetInt(IsWinNT() ? RECVMAXNT_STR : RECVMAX95_STR, (int *)&RecvMax);
 	reg.GetInt(NOERASE_STR, &NoErase);
+	reg.GetInt(REPROMSG_STR, &ReproMsg);
 	reg.GetInt(DEBUG_STR, &Debug);
 	reg.GetInt(NOPOPUPCHECK_STR, &NoPopupCheck);
 	reg.GetInt(OPENCHECK_STR, &OpenCheck);
@@ -482,6 +489,7 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(BALLOONNOINFO_STR, &BalloonNoInfo);
 	reg.GetInt(TASKBARUI_STR, &TaskbarUI);
 	reg.GetInt(MARKERTHICK_STR, &MarkerThick);
+	reg.GetInt(WINE_STR, &Wine);
 
 	reg.GetStr(IPV6MULITCAST, IPv6Multicast, sizeof(IPv6Multicast));
 	if (IsWinVista()) {
@@ -915,6 +923,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(RETRYMAX_STR, (int)RetryMax);
 		reg.SetInt(IsWinNT() ? RECVMAXNT_STR : RECVMAX95_STR, (int)RecvMax);
 		reg.SetInt(NOERASE_STR, NoErase);
+		reg.SetInt(REPROMSG_STR, ReproMsg);
 //		reg.SetInt(DEBUG_STR, Debug);
 		reg.SetInt(NOPOPUPCHECK_STR, NoPopupCheck);
 		reg.SetInt(OPENCHECK_STR, OpenCheck);
@@ -1277,6 +1286,7 @@ void Cfg::GetSelfRegName(char *buf)
 #define MSGPKTNOKEY_STR		"msg_pktno"
 #define HEADKEY_STR			"head"
 #define IMGBASEKEY_STR		"img_base"
+#define AUTOSAVED_STR		"auto_saved"
 
 BOOL Cfg::SavePacket(const MsgBuf *msg, const char *head, ULONG img_base)
 {
@@ -1299,7 +1309,20 @@ BOOL Cfg::SavePacket(const MsgBuf *msg, const char *head, ULONG img_base)
 	return TRUE;
 }
 
-BOOL Cfg::LoadPacket(int idx, MsgBuf *msg, char *head, ULONG *img_base)
+BOOL Cfg::UpdatePacket(const MsgBuf *msg, const char *auto_saved)
+{
+	char	key[MAX_LISTBUF];
+	GetRegName(key, nicAddr, portNo);
+	TRegistry	reg(HS_TOOLS, key);
+
+	if (!reg.OpenKey(SAVEPACKETKEY_STR)) return FALSE;
+
+	sprintf(key, "%x:%s", msg->packetNo, msg->hostSub.userName);
+	if (!reg.OpenKey(key)) return FALSE;
+	return	reg.SetStr(AUTOSAVED_STR, auto_saved);
+}
+
+BOOL Cfg::LoadPacket(int idx, MsgBuf *msg, char *head, ULONG *img_base, char *auto_saved)
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
@@ -1321,6 +1344,8 @@ BOOL Cfg::LoadPacket(int idx, MsgBuf *msg, char *head, ULONG *img_base)
 	size = MAX_LISTBUF;
 	reg.GetByte(HEADKEY_STR, (BYTE *)head, &size);
 	reg.GetInt(IMGBASEKEY_STR, (int *)img_base);
+	*auto_saved = 0;
+	reg.GetStr(AUTOSAVED_STR, auto_saved, MAX_PATH);
 
 	return TRUE;
 }
@@ -1335,6 +1360,18 @@ BOOL Cfg::DeletePacket(ULONG packetNo, const char *userName)
 
 	sprintf(key, "%x:%s", packetNo, userName);
 	return	reg.DeleteKey(key);
+}
+
+BOOL Cfg::IsSavedPacket(ULONG packetNo, const char *userName)
+{
+	char	key[MAX_LISTBUF];
+	GetRegName(key, nicAddr, portNo);
+	TRegistry	reg(HS_TOOLS, key);
+
+	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return FALSE;
+
+	sprintf(key, "%x:%s", packetNo, userName);
+	return	reg.OpenKey(key);
 }
 
 BOOL Cfg::CleanupPackets()

@@ -1,10 +1,10 @@
 ﻿static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2015   mainwin.cpp	Ver3.51";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   mainwin.cpp	Ver3.60";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-06-21(Sun)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -198,7 +198,9 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 
 	SetIcon(cfg->AbsenceCheck ? hRevIcon : hMainIcon);
 	SetCaption();
-	if (!SetupCryptAPI(cfg, msgMng)) MessageBoxU8("CryptoAPI can't be used. Setup New version IE");
+	if (!SetupCryptAPI(cfg, msgMng)) {
+		MessageBoxU8("CryptoAPI can't be used. Setup New version IE");
+	}
 
 	msgMng->AsyncSelectRegister(hWnd);
 	SetHotKey(cfg);
@@ -223,10 +225,11 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 	for (int i=0; i < 500; i++) {	// 暫定...
 		MsgBuf	msg;
 		char	head[MAX_LISTBUF];
+		char	auto_saved[MAX_PATH];
 		ULONG	img_base;
 
-		if (!cfg->LoadPacket(i, &msg, head, &img_base)) break;
-		RecvDlgOpen(&msg, head, img_base);
+		if (!cfg->LoadPacket(i, &msg, head, &img_base, auto_saved)) break;
+		RecvDlgOpen(&msg, head, img_base, auto_saved);
 	}
 
 	::SetTimer(hWnd, IPMSG_CLEANUP_TIMER, 10000, NULL); // 10sec
@@ -577,7 +580,7 @@ BOOL TMainWin::AddAbsenceMenu(HMENU hTargetMenu, int insertOffset)
 	}
 	AppendMenuU8(hSubMenu, MF_SEPARATOR, 0, 0);
 	AppendMenuU8(hSubMenu, MF_STRING, MENU_ABSENCEEX, GetLoadStrU8(IDS_ABSENCESET));
-	InsertMenuU8(hTargetMenu, index++, MF_BYPOSITION|MF_POPUP, (UINT)hSubMenu,
+	InsertMenuU8(hTargetMenu, index++, MF_BYPOSITION|MF_POPUP, (UINT_PTR)hSubMenu,
 					GetLoadStrU8(IDS_ABSENCEMENU));
 
 	if (cfg->AbsenceCheck) {
@@ -1492,11 +1495,12 @@ void TMainWin::MsgBrExit(MsgBuf *msg)
 		host->updateTime = Time();
 	DelHost(&msg->hostSub);
 
+/*
 	for (ShareInfo *info=shareMng->TopObj(),*next; info; info = next)
 	{
 		next = shareMng->NextObj(info);
 		shareMng->EndHostShare(info->packetNo, &msg->hostSub);
-	}
+	} */
 }
 
 /*
@@ -1911,7 +1915,8 @@ void TMainWin::SendDlgExit(DWORD sendid)
 /*
 	受信Dialogを生成
 */
-BOOL TMainWin::RecvDlgOpen(MsgBuf *msg, const char *rep_head, ULONG img_base)
+BOOL TMainWin::RecvDlgOpen(MsgBuf *msg, const char *rep_head, ULONG img_base,
+	const char *auto_saved)
 {
 	TRecvDlg *recvDlg;
 
@@ -1919,7 +1924,7 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg, const char *rep_head, ULONG img_base)
 		return	FALSE;
 	}
 
-	switch (recvDlg->Init(msg, rep_head, img_base)) {
+	switch (recvDlg->Init(msg, rep_head, img_base, auto_saved)) {
 	case TRecvDlg::ERR: case TRecvDlg::REMOTE:	// 暗号文の復号に失敗 or 遠隔コマンドメッセージ
 		delete recvDlg;
 		return	FALSE;
@@ -1947,7 +1952,13 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg, const char *rep_head, ULONG img_base)
 	}
 
 	if (cfg->NoPopupCheck || (cfg->AbsenceNonPopup && cfg->AbsenceCheck)) {
-		if (cfg->BalloonNotify) {
+		if (cfg->NoPopupCheck == 2) {
+			recvDlg->Create();
+			recvDlg->ShowWindow(SW_MINIMIZE);
+			recvDlg->SetStatus(TRecvDlg::SHOW);
+			recvDlg->Show(SW_MINIMIZE);
+		}
+		else if (cfg->BalloonNotify) {
 			Host *host = cfg->priorityHosts.GetHostByName(&msg->hostSub);
 			char buf1[MAX_LISTBUF], buf2[MAX_LISTBUF], buf3[MAX_LISTBUF*2 + 1];
 			if (host && *host->alterName) {
@@ -1973,7 +1984,7 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg, const char *rep_head, ULONG img_base)
 		}
 		if (recvDlg->UseClipboard() ||
 			(recvDlg->FileAttached() && (cfg->autoSaveFlags & AUTOSAVE_ENABLED))) {
-			recvDlg->Create();
+			if (!recvDlg->hWnd) recvDlg->Create();
 		}
 	}
 	else {
@@ -2074,7 +2085,7 @@ inline int strcharcount(const char *s, char c) {
 */
 BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWORD timer)
 {
-	NOTIFYICONDATAW	tn = { IsWinVista() ? sizeof(tn) : NOTIFYICONDATA_V2_SIZE };
+	NOTIFYICONDATAW	tn = { IsWinVista() ? sizeof(tn) : NOTIFYICONDATAW_V2_SIZE };
 
 	tn.hWnd = hWnd;
 	tn.uID = WM_NOTIFY_TRAY;
@@ -2125,11 +2136,11 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 		DWORD	val = 5;
 		::SystemParametersInfo(SPI_GETMESSAGEDURATION, 0, (void *)&val, 0);
 		if (timer + 4000 > val * 1000) {
-			::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)((timer + 4999) / 1000), 0);
+			::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)(INT_PTR)((timer + 4999) / 1000), 0);
 		}
 		BOOL	ret = ::Shell_NotifyIconW(NIM_MODIFY, &tn);
 		if (timer + 4000 > val * 1000) {
-			::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)val, 0);
+			::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)(INT_PTR)val, 0);
 		}
 		return	ret;
 	}
@@ -2142,7 +2153,7 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 */
 void TMainWin::Popup(UINT resId)
 {
-	HMENU	hMenu = ::LoadMenu(TApp::GetInstance(), (LPCSTR)resId);
+	HMENU	hMenu = ::LoadMenu(TApp::GetInstance(), (LPCSTR)(INT_PTR)resId);
 	HMENU	hSubMenu = ::GetSubMenu(hMenu, 0);	//かならず、最初の項目に定義
 	POINT	pt = {};
 	char	buf[MAX_LISTBUF];
@@ -2514,7 +2525,7 @@ void TMainWin::ReverseIcon(BOOL startFlg)
 void TMainWin::SetIcon(HICON hSetIcon)
 {
 	if (cfg->TaskbarUI) {
-		::SetClassLong(hWnd, GCL_HICON, (LONG)hSetIcon);
+		::SetClassLong(hWnd, GCL_HICON, (LONG)(LONG_PTR)hSetIcon);
 //		::FlashWindow(hWnd, FALSE);
 	}
 	TaskTray(NIM_MODIFY, hSetIcon);
@@ -2657,8 +2668,9 @@ void TMainWin::LogOpen(void)
 	shellExecInfo.lpFile = cfg->LogFile;
 	shellExecInfo.nShow = SW_SHOWNORMAL;
 
-	if (!ShellExecuteExU8(&shellExecInfo) || (int)shellExecInfo.hInstApp <= WINEXEC_ERR_MAX) {
-		switch ((int)shellExecInfo.hInstApp) {
+	if (!ShellExecuteExU8(&shellExecInfo) ||
+		(int)(INT_PTR)shellExecInfo.hInstApp <= WINEXEC_ERR_MAX) {
+		switch ((int)(INT_PTR)shellExecInfo.hInstApp) {
 		case SE_ERR_NOASSOC: case SE_ERR_ASSOCINCOMPLETE:
 			MessageBoxU8(GetLoadStrU8(IDS_FILEEXTERR));
 			break;

@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2013-2015   cfg.h	Ver3.50 */
+/*	@(#)Copyright (C) H.Shirouzu 2013-2015   cfg.h	Ver3.60 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration Manager
 	Create					: 2013-03-03(Sun)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -71,9 +71,10 @@ public:
 	Addr	nicAddr;
 	int		portNo;
 	int		lcid;
-	BOOL	NoPopupCheck;
+	int		NoPopupCheck;
 	int		OpenCheck;
 	BOOL	NoErase;
+	BOOL	ReproMsg;
 	BOOL	NoBeep;
 	BOOL	NoTcp;
 	BOOL	OneClickPopup;
@@ -171,6 +172,7 @@ public:
 	int		ExtendBroadcast;
 	char	QuoteStr[MAX_NAMEBUF];
 	int		Debug;
+	int		Wine;
 
 	int		RemoteGraceSec;
 	char	RemoteReboot[MAX_NAMEBUF];
@@ -226,8 +228,10 @@ public:
 	void	GetSelfRegName(char *buf);
 
 	BOOL	SavePacket(const MsgBuf *msg, const char *head, ULONG img_base);
-	BOOL	LoadPacket(int idx, MsgBuf *msg, char *head, ULONG *img_base);
+	BOOL	UpdatePacket(const MsgBuf *msg, const char *auto_saved);
+	BOOL	LoadPacket(int idx, MsgBuf *msg, char *head, ULONG *img_base, char *auto_saved);
 	BOOL	DeletePacket(ULONG packetNo, const char *userName);
+	BOOL	IsSavedPacket(ULONG packetNo, const char *userName);
 	BOOL	CleanupPackets();
 };
 

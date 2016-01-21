@@ -60,7 +60,7 @@ public:
 class TListDlg : public TDlg, public TListObj {
 public:
 	TListDlg(UINT	resid, TWin *_parent = NULL) : TDlg(resid, _parent) {}
-	virtual bool IsSame(const void *id) { return (DWORD)id == twinId; }
+	virtual bool IsSame(const void *id) { return DWORD_RDC(id) == twinId; }
 	virtual void ActiveDlg(BOOL active=TRUE) {
 		if (!hWnd) return;
 		if (active) {

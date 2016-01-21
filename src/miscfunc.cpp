@@ -1,10 +1,10 @@
 ﻿static char *miscfunc_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2015   miscfunc.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 2011-2015   miscfunc.cpp	Ver3.60";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc functions
 	Create					: 2011-05-03(Tue)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -36,7 +36,7 @@ void SetDlgIcon(HWND hWnd)
 	if (oldHIcon != TMainWin::GetIPMsgIcon())
 	{
 		oldHIcon = TMainWin::GetIPMsgIcon();
-		::SetClassLong(hWnd, GCL_HICON, (LONG)oldHIcon);
+		::SetClassLong(hWnd, GCL_HICON, (LONG)(LONG_PTR)oldHIcon);
 	}
 }
 
@@ -304,14 +304,14 @@ BOOL THosts::PriorityHostCnt(int priority, int range)
 	return	member;
 }
 
-BOOL GetLastErrorMsg(char *msg, TWin *win)
+BOOL GetLastErrorMsg(const char *msg, TWin *win)
 {
 	char	buf[MAX_BUF];
 	wsprintf(buf, "%s error = %x", msg ? msg : "", GetLastError());
 	return	MessageBox(win ? win->hWnd : NULL, buf, IP_MSG, MB_OK);
 }
 
-BOOL GetSockErrorMsg(char *msg, TWin *win)
+BOOL GetSockErrorMsg(const char *msg, TWin *win)
 {
 	char	buf[MAX_BUF];
 	wsprintf(buf, "%s error = %d", msg ? msg : "", ::WSAGetLastError());
@@ -647,7 +647,7 @@ BOOL MakeAutoSaveDir(Cfg *cfg, char *dir)
 	} else {
 		char	buf[MAX_PATH_U8];
 		if (!GetParentDirU8(cfg->LogFile, buf)) return FALSE;
-		MakePathU8(buf, "AutoSave", dir);
+		MakePathU8(dir, buf, "AutoSave");
 	}
 	return	TRUE;
 }
@@ -876,11 +876,12 @@ HBITMAP FinishBmp(VBuf *vbuf)
 	return	hBmp;
 }
 
-BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info, BOOL isAutoSave)
+BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info, const char *auto_saved)
 {
 	char	buf[MAX_BUF] = "";
 	char	fname[MAX_PATH_U8] = "";
 	int		offset = 0;
+	BOOL	is_autosaved = (auto_saved && *auto_saved) ? TRUE : FALSE;
 
 	for (int cnt=0; cnt < info->fileCnt; cnt++) {
 		if (dlg->ResId() == SEND_DIALOG)
@@ -891,13 +892,30 @@ BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info, BOOL isAutoSave)
 		if (offset + MAX_PATH_U8 >= sizeof(buf))
 			break;
 	}
-	if (info->fileCnt == 0 && isAutoSave) {
-		strcpy(buf, GetLoadStrU8(IDS_AUTOSAVEDONE));
+	if (is_autosaved) {
+		char	disp[MAX_BUF] = "";
+		char	tmp[MAX_BUF];
+
+		// 内部表現→表示表現変換 (ID=fname:...)
+		strncpyz(tmp, auto_saved, sizeof(tmp));
+		for (char *p=strtok(tmp, ":"); p; p=strtok(NULL, ":")) {
+			char *equal = strchr(p, '=');
+			if (equal) {
+				if (*disp) strncatz(disp, " ", sizeof(disp));
+				strncatz(disp, equal+1, sizeof(disp));
+			}
+		}
+		if (info->fileCnt > 0) {
+			strncatz(buf, GetLoadStrU8(IDS_AUTOSAVEPARTIAL), sizeof(buf));
+		} else {
+			strcpyz(buf, GetLoadStrU8(IDS_AUTOSAVEDONE));
+		}
+		strncatz(buf, disp, sizeof(buf));
 	}
 
 	dlg->SetDlgItemTextU8(buttonID, buf);
-	::ShowWindow(dlg->GetDlgItem(buttonID), info->fileCnt || isAutoSave ? SW_SHOW : SW_HIDE);
-	::EnableWindow(dlg->GetDlgItem(buttonID), info->fileCnt || isAutoSave ? TRUE : FALSE);
+	::ShowWindow(dlg->GetDlgItem(buttonID), info->fileCnt || is_autosaved ? SW_SHOW : SW_HIDE);
+	::EnableWindow(dlg->GetDlgItem(buttonID), info->fileCnt || is_autosaved ? TRUE : FALSE);
 	return	TRUE;
 }
 
@@ -922,14 +940,10 @@ BOOL IsImageInClipboard(HWND hWnd)
 int CALLBACK EditNoWordBreakProc(LPTSTR str, int cur, int len, int action)
 {
 	switch (action) {
-	case WB_LEFT:
-		return	cur + 1;
-	case WB_RIGHT:
-		return	cur - 1;
 	case WB_ISDELIMITER:
-		return	TRUE;
+		return	0;
 	}
-	return	0;
+	return	cur;
 }
 
 void GenRemoteKey(char *key)

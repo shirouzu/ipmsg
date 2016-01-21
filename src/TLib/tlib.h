@@ -3,7 +3,7 @@
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-08-12(Wed)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -39,16 +39,18 @@ char *vstrdup(const char *s);
 #define _WIN32_WINNT 0x0600
 #endif
 
-/* for new version VC */
 #if _MSC_VER >= 1400
 #pragma warning ( disable : 4996 )
-#else
-#define LONG_PTR LONG
 #endif
-#pragma warning ( disable : 4355 )
+#pragma warning ( disable : 4018 )
 
 typedef signed _int64 int64;
 typedef unsigned _int64 uint64;
+#define DWORD_RDC(x) ((DWORD)(DWORD_PTR)(x)) // REDUCE
+#define LONG_RDC(x)  ((LONG)(LONG_PTR)(x))   // REDUCE
+#define UINT_RDC(x)  ((UINT)(UINT_PTR)(x))   // REDUCE
+#define INT_RDC(x)   ((INT)(INT_PTR)(x))     // REDUCE
+
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -228,25 +230,86 @@ enum StrMode { BY_UTF8, BY_MBCS };
 /* for internal use end */
 
 struct TRect : public RECT {
-	TRect(long x=0, long y=0, long cx=0, long cy=0) { left=x, top=y, right=x+cx, bottom=y+cy; }
+	TRect(long x=0, long y=0, long cx=0, long cy=0) { Init(x, y, cx, cy); }
 	TRect(const RECT &rc) { *this = rc; }
-	TRect(const POINT &tl, const POINT &br) { left=tl.x, top=tl.y, right=br.x, bottom=br.y; }
-	TRect(const POINTS &tl, const POINTS &br) { left=tl.x, top=tl.y, right=br.x, bottom=br.y; }
-	TRect(const POINT &tl, long cx, long cy) { left=tl.x, top=tl.y, right=left+cx, bottom=top+cy; }
-	TRect(const POINTS &tl, long cx, long cy) { left=tl.x, top=tl.y, right=left+cx, bottom=top+cy;}
+	TRect(const POINT &tl, const POINT &br) {
+		left   = tl.x;
+		top    = tl.y;
+		right  = br.x;
+		bottom = br.y;
+	}
+	TRect(const POINTS &tl, const POINTS &br) {
+		left   = tl.x;
+		top    = tl.y;
+		right  = br.x;
+		bottom = br.y;
+	}
+	TRect(const POINT &tl, long cx, long cy) {
+		left   = tl.x;
+		top    = tl.y;
+		right  = left + cx;
+		bottom = top  + cy;
+	}
+	TRect(const POINTS &tl, long cx, long cy) {
+		left   = tl.x;
+		top    = tl.y;
+		right  = left + cx;
+		bottom = top  + cy;
+	}
 
+	void	Init(long x=0, long y=0, long cx=0, long cy=0) {
+		left   = x;
+		top    = y;
+		right  = x + cx;
+		bottom = y + cy;
+	}
 	long&	x() { return left; }
 	long&	y() { return top; }
-	long	cx() { return right - left; }
-	long	cy() { return bottom - top; }
+	long	cx() const { return right - left; }
+	long	cy() const { return bottom - top; }
 	void	set_x(long  x) { left = x; }
 	void	set_y(long  y) { top = y; }
 	void	set_cx(long v) { right = left + v; }
 	void	set_cy(long v) { bottom = top + v; }
-	void	Regular() { if (left > right) { long t=left; left=right; right=t; }
-	                    if (top > bottom) { long t=top; top=bottom; bottom=t; } }
-	void	Infrate(long cx, long cy) { left-=cx; right+=cx; top-=cy; bottom+=cy; }
-	void	Size(long cx, long cy) { right = left + cx; bottom = top + cy; }
+	void	Regular() {
+		if (left > right) {
+			long t = left;
+			left  = right;
+			right = t;
+		}
+		if (top > bottom) {
+			long t = top;
+			top    = bottom;
+			bottom = t;
+		}
+	}
+	void	Inflate(long cx, long cy) {
+		left   -= cx;
+		right  += cx;
+		top    -= cy;
+		bottom += cy;
+	}
+	void	Size(long cx, long cy) {
+		right  = left + cx;
+		bottom = top  + cy;
+	}
+	bool operator ==(const TRect &rc) {
+		return	(left  == rc.left)  && (top    == rc.top) &&
+				(right == rc.right) && (bottom == rc.bottom);
+	}
+	bool operator !=(const TRect &rc) { return !(*this == rc); }
+};
+
+struct TSize : public SIZE {
+	TSize(long _cx=0, long _cy=0) {
+		cx = _cx;
+		cy = _cy;
+	}
+	TSize(const SIZE &sz) { *this = sz; }
+	void	Inflate(long x, long y) {
+		cx += x;
+		cy += y;
+	}
 };
 
 class TWin : public THashObj {
@@ -450,7 +513,7 @@ public:
 	TWinHashTbl(int _hashNum) : THashTbl(_hashNum) {}
 	virtual ~TWinHashTbl() {}
 
-	u_int	MakeHashId(HWND hWnd) { return (u_int)hWnd * 0xf3f77d13; }
+	u_int	MakeHashId(HWND hWnd) { return DWORD_RDC(hWnd) * 0xf3f77d13; }
 };
 
 class TApp {
@@ -480,10 +543,13 @@ public:
 	LPCWSTR	GetDefaultClassW() { return defaultClassW; }
 	void	AddWin(TWin *win) { preWnd = win; }
 	void	AddWinByWnd(TWin *win, HWND hWnd) {
-			win->hWnd = hWnd; hash->Register(win, hash->MakeHashId(hWnd));
+		win->hWnd = hWnd;
+		hash->Register(win, hash->MakeHashId(hWnd));
 	}
 	void	DelWin(TWin *win) { hash->UnRegister(win); }
-	TWin	*SearchWnd(HWND hWnd) { return (TWin *)hash->Search(&hWnd, hash->MakeHashId(hWnd)); }
+	TWin	*SearchWnd(HWND hWnd) {
+		return (TWin *)hash->Search(&hWnd, hash->MakeHashId(hWnd));
+	}
 
 	static TApp *GetApp() { return tapp; }
 	static void Idle(DWORD timeout=0);
@@ -493,7 +559,13 @@ public:
 };
 
 struct TListObj {
-	TListObj	*prev, *next;
+	TListObj	*prev;
+	TListObj	*next;
+
+	TListObj() {
+		prev = NULL;
+		next = NULL;
+	}
 };
 
 template <class T>
@@ -504,10 +576,15 @@ protected:
 
 public:
 	TListEx() { Init(); }
-	void Init() { top.prev = top.next = &top; num = 0; }
+	void Init() {
+		top.prev = top.next = &top;
+		num = 0;
+	}
 	void AddObj(T *obj) { // add to last
-		obj->prev = (T *)top.prev; obj->next = (T *)&top;
-		top.prev->next = obj;      top.prev = obj;
+		obj->prev = (T *)top.prev;
+		obj->next = (T *)&top;
+		top.prev->next = obj;
+		top.prev = obj;
 		num++;
 	}
 	void DelObj(T *obj) {
@@ -557,22 +634,37 @@ class TRecycleListEx {
 	T *data;
 
 public:
-	TRecycleListEx(int init_cnt=0) { data = NULL; if (init_cnt) Init(init_cnt); }
-	virtual ~TRecycleListEx()      { delete [] data; }
+	TRecycleListEx(int init_cnt=0) {
+		data = NULL;
+		if (init_cnt) {
+			Init(init_cnt);
+		}
+	}
+	virtual ~TRecycleListEx() {
+		delete [] data;
+	}
 	BOOL Init(int init_cnt) {
 		UnInit();
 		data = new T[init_cnt];
-		for (int i=0; i < init_cnt; i++) list[FREE_LIST].AddObj(&data[i]);
+		for (int i=0; i < init_cnt; i++) {
+			list[FREE_LIST].AddObj(&data[i]);
+		}
 		return TRUE;
 	}
 	void UnInit() {
-		if (data) delete [] data;
+		if (data) {
+			delete [] data;
+		}
 		data = NULL;
-		for (int i=0; i < RLIST_MAX; i++) list[i].Init();
+		for (int i=0; i < RLIST_MAX; i++) {
+			list[i].Init();
+		}
 	}
 	T *GetObj(int list_type) {
 		T *d = list[list_type].TopObj();
-		if (d) list[list_type].DelObj(d);
+		if (d) {
+			list[list_type].DelObj(d);
+		}
 		return d;
 	}
 	void PutObj(int list_type, T *obj)  { list[list_type].AddObj(obj);         }

@@ -1,10 +1,10 @@
 ﻿static char *msgmng_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2015   msgmng.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 1996-2015   msgmng.cpp	Ver3.60";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Message Manager
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-05-03(Sun)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -24,7 +24,7 @@ MsgMng::MsgMng(Addr nicAddr, int portNo, Cfg *_cfg, THosts *_hosts)
 	local.portNo = ::htons(portNo);
 	cfg = _cfg;
 	hosts = _hosts;
-	isV6 = !cfg || cfg->IPv6Mode;
+	isV6 = cfg && cfg->IPv6Mode;
 
 	if (!WSockInit()) return;
 
@@ -377,6 +377,8 @@ BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_e
 {
 	HCRYPTKEY	hExKey = 0, hKey = 0;
 	BYTE		skey[MAX_BUF];
+	BYTE		sign[MAX_BUF];
+	DWORD		sigLen = 0;
 	DynBuf		data(MAX_UDPBUF);
 	DynBuf		msg_data(MAX_UDPBUF);
 	BYTE		iv[256/8];
@@ -489,25 +491,29 @@ BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_e
 			return GetLastErrorMsg("CryptEncrypt RC2"), FALSE;
 		::CryptDestroyKey(hKey);
 	}
-	len =  wsprintf(buf, "%X:%s:", capa, skey);
-	len += bin2str(data, (int)encMsgLen, buf + len);
-
 	::CryptDestroyKey(hExKey);
 
-	// 電子署名の追加
+	// 電子署名の作成
 	if (capa & IPMSG_SIGN_SHA1) {
 		HCRYPTHASH	hHash;
 		if (::CryptCreateHash(target_csp, CALG_SHA, 0, 0, &hHash)) {
 			if (::CryptHashData(hHash, msg_data, msgLen, 0)) {
-				DWORD		sigLen = 0;
-				::CryptSignHash(hHash, AT_KEYEXCHANGE, 0, 0, 0, &sigLen);
-				if (::CryptSignHash(hHash, AT_KEYEXCHANGE, 0, 0, data, &sigLen)) {
-					buf[len++] = ':';
-					len += bin2str_revendian(data, (int)sigLen, buf + len);
+				if (::CryptSignHash(hHash, AT_KEYEXCHANGE, 0, 0, 0, &sigLen)) {
+					if (!::CryptSignHash(hHash, AT_KEYEXCHANGE, 0, 0, sign, &sigLen)) {
+						sigLen = 0;
+					}
 				}
 			}
 			::CryptDestroyHash(hHash);
 		}
+		if (sigLen == 0) capa &= ~IPMSG_SIGN_SHA1;
+	}
+	len =  wsprintf(buf, "%X:%s:", capa, skey);
+	len += bin2str(data, (int)encMsgLen, buf + len);
+
+	if (capa & IPMSG_SIGN_SHA1) {	// 電子署名の追加
+		buf[len++] = ':';
+		len += bin2str_revendian(sign, (int)sigLen, buf + len);
 	}
 
 	return TRUE;

@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2014   pubkey.h	Ver3.50 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2015   pubkey.h	Ver3.60 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Public Key
 	Create					: 2013-03-03(Sun)
-	Update					: 2014-04-14(Mon)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -105,6 +105,7 @@ public:
 		capa = _capa;
 	}
 	int Capa(void) { return capa; }
+	void SetCapa(int _capa) { capa = _capa; }
 
 	int Serialize(BYTE *buf, int size) {
 		int	offset = offsetof(PubKey, key);

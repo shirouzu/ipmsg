@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2014   miscfunc.h	Ver3.50 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2015   miscfunc.h	Ver3.60 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc functions
 	Create					: 2013-03-03(Sun)
-	Update					: 2014-04-14(Mon)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -12,7 +12,7 @@
 #define MISCFUNC_H
 
 BOOL IsImageInClipboard(HWND hWnd);
-BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info, BOOL isAutoSave=FALSE);
+BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info, const char *auto_saved=NULL);
 BOOL PrepareBmp(int cx, int cy, int *_aligned_line_size, VBuf *vbuf);
 HBITMAP FinishBmp(VBuf *vbuf);
 
@@ -65,8 +65,8 @@ void ForcePathToFname(const char *org_path, char *target_fname);
 void ConvertShareMsgEscape(char *str);
 BOOL IsSafePath(const char *fullpath, const char *fname);
 
-BOOL GetLastErrorMsg(char *msg=NULL, TWin *win=NULL);
-BOOL GetSockErrorMsg(char *msg=NULL, TWin *win=NULL);
+BOOL GetLastErrorMsg(const char *msg=NULL, TWin *win=NULL);
+BOOL GetSockErrorMsg(const char *msg=NULL, TWin *win=NULL);
 int MakePath(char *dest, const char *dir, const char *file);
 
 

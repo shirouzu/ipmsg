@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2013-2015   mainwin.h	Ver3.50 */
+/*	@(#)Copyright (C) H.Shirouzu 2013-2015   mainwin.h	Ver3.60 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 2013-03-03(Sun)
-	Update					: 2015-06-02(Tue)
+	Update					: 2015-11-01(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -165,7 +165,8 @@ protected:
 	BOOL	SendDlgOpen(DWORD recvid=0);
 	void	SendDlgHide(DWORD sendid);
 	void	SendDlgExit(DWORD sendid);
-	BOOL	RecvDlgOpen(MsgBuf *msg, const char *rep_head=NULL, ULONG clipBase=0);
+	BOOL	RecvDlgOpen(MsgBuf *msg, const char *rep_head=NULL, ULONG clipBase=0,
+		const char *auto_saved=NULL);
 	void	RecvDlgExit(DWORD recvid);
 	void	MsgDlgExit(DWORD msgid);
 	void	MiscDlgOpen(TDlg *dlg);
