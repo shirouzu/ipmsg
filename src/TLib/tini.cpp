@@ -1,10 +1,10 @@
 ﻿static char *tini_id = 
-	"@(#)Copyright (C) 1996-2015 H.Shirouzu		tini.cpp	Ver0.99";
+	"@(#)Copyright (C) 1996-2017 H.Shirouzu		tini.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Registry Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-06-22(Mon)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -112,7 +112,8 @@ BOOL TInifile::Lock()
 
 		key = key ? key+1 : iniFile;
 
-		swprintf(buf, L"%s_%x", key, MakeHash(iniFile, int(wcslen(iniFile) * sizeof(WCHAR)), 0));
+		snwprintfz(buf, wsizeof(buf), L"%s_%x", key, MakeHash(iniFile,
+			int(wcslen(iniFile) * sizeof(WCHAR)), 0));
 
 		if (!(hMutex = ::CreateMutexW(NULL, FALSE, buf))) return FALSE;
 	}
@@ -127,7 +128,7 @@ void TInifile::UnLock()
 
 void TInifile::UnInit()
 {
-	for (TIniSection *sec; (sec = TopObj()); ) {
+	while (auto sec = TopObj()) {
 		DelObj(sec);
 		delete sec;
 	}
@@ -192,7 +193,7 @@ void TInifile::InitCore(WCHAR *_ini_file)
 	UnLock();
 }
 
-char *NextBuf(VBuf *vbuf, ssize_t len, ssize_t require_min, ssize_t chunk_size)
+char *NextBuf(VBuf *vbuf, size_t len, size_t require_min, size_t chunk_size)
 {
 	vbuf->AddUsedSize(len);
 	if (vbuf->RemainSize() < require_min) {
@@ -216,21 +217,20 @@ BOOL TInifile::WriteIni()
 		VBuf	vbuf(MIN_INI_ALLOC, MAX_INI_ALLOC);
 		char	*p = (char *)vbuf.Buf();
 
-		for (TIniSection *sec = TopObj(); sec && p; sec = NextObj(sec)) {
-			TIniKey *key = sec->TopObj();
-			int		len = 0;
+		for (auto sec = TopObj(); sec && p; sec = NextObj(sec)) {
+			auto key = sec->TopObj();
 			if (key) {
 				if (sec->Name()) {
-					len = sprintf(p, "[%s]\r\n", sec->Name());
+					int len = sprintf(p, "[%s]\r\n", sec->Name());
 					p = NextBuf(&vbuf, len, MIN_LINE_SIZE, MIN_INI_ALLOC);
 				}
 				while (key) {
 					if (key->Key())	{
-						len = sprintf(p, "%s=\"%s\"\r\n", key->Key(), key->Val());
+						int len = sprintf(p, "%s=\"%s\"\r\n", key->Key(), key->Val());
 						p = NextBuf(&vbuf, len, MIN_LINE_SIZE, MIN_INI_ALLOC);
 					}
 					else {
-						len = sprintf(p, "%s\r\n", key->Val());
+						int len = sprintf(p, "%s\r\n", key->Val());
 						p = NextBuf(&vbuf, len, MIN_LINE_SIZE, MIN_INI_ALLOC);
 					}
 					key = sec->NextObj(key);
@@ -267,7 +267,7 @@ TIniSection *TInifile::SearchSection(const char *section)
 {
 	if (!section || !*section) return rootSec;
 
-	for (TIniSection *sec = rootSec; sec; sec = NextObj(sec)) {
+	for (auto sec = rootSec; sec; sec = NextObj(sec)) {
 		if (sec->Name() && strcmpi(sec->Name(), section) == 0) return sec;
 	}
 	return	NULL;
@@ -299,9 +299,11 @@ BOOL TInifile::DelSection(const char *section)
 
 	if (!sec) return FALSE;
 
+	if (sec == curSec) {
+		curSec = NULL;
+	}
 	DelObj(sec);
 	delete sec;
-	if (sec == curSec) curSec = NULL;
 	return	TRUE;
 }
 
@@ -348,10 +350,17 @@ int TInifile::GetInt(const char *key, int default_val)
 	return	atoi(buf);
 }
 
+BOOL TInifile::SetInt64(const char *key, int64 val)
+{
+	char	buf[100];
+	sprintf(buf, "%lld", val);
+	return	SetStr(key, buf);
+}
+
 int64 TInifile::GetInt64(const char *key, int64 default_val)
 {
 	char	buf[100];
 	if (GetStr(key, buf, sizeof(buf), "") <= 0) return default_val;
-	return	_atoi64(buf);
+	return	strtoll(buf, 0, 10);
 }
 

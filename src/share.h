@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2013-2015   share.h	Ver3.50 */
+/*	@(#)Copyright (C) H.Shirouzu 2013-2017   share.h	Ver4.50 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: File Sharing
 	Create					: 2013-03-03(Sun)
-	Update					: 2015-05-03(Sun)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -11,134 +11,81 @@
 #ifndef SHARE_H
 #define SHARE_H
 
-class FileInfo : public TListObj {
-	int			id;
-	char		*fname;
-	BYTE		*memData;
-	UINT		attr;
-	int			pos;
-	_int64		size;
-	Time_t		mtime;
-	Time_t		atime;
-	Time_t		crtime;
-	BOOL		isSelected;		// for recvdlg
-
-public:
-	FileInfo(int _id=0) {
-		id = _id;
-		fname = NULL;
-		memData = NULL;
-		attr = 0;
-		pos = -1;
-		size = 0;
-		mtime = 
-		atime = 0;
-		crtime = 0;
-		isSelected = FALSE;
-	}
-	FileInfo(const FileInfo& org) {
-		fname	= NULL;
-		memData	= NULL;
-		*this = org;
-	}
-	~FileInfo() {
-		free(fname);
-		free(memData);
-	}
-
-	int Id() { return id; }
-	void SetId(int _id) { id = _id; }
-	const char *Fname() { return fname; }
-	void SetFname(const char *_fname) {
-		free(fname);
-		fname = (char *)strdup(_fname);
-	}
-	const BYTE *MemData() { return memData; }
-	void SetMemData(const BYTE *_memData, _int64 _size) {
-		free(memData);
-		if ((memData = (BYTE *)malloc((int)_size))) {
-			memcpy(memData, _memData, (int)_size);
-			size = _size;
-		}
-	}
-	_int64 Size() { return size; }
-	void SetSize(_int64 _size) { size = _size; }
-	Time_t Mtime() { return mtime; }
-	void SetMtime(Time_t _mtime) { mtime = _mtime; }
-	Time_t Atime() { return atime; }
-	void SetAtime(Time_t _atime) { atime = _atime; }
-	Time_t Crtime() { return crtime; }
-	void SetCrtime(Time_t _crtime) { crtime = _crtime; }
-	UINT Attr() { return attr; }
-	void SetAttr(UINT _attr) { attr = _attr; }
-	int  Pos() { return pos; }
-	void SetPos(UINT _pos) { pos = _pos; }
-	BOOL IsSelected() { return isSelected; }
-	void SetSelected(BOOL _isSelected) { isSelected = _isSelected; }
-	FileInfo& operator =(const FileInfo& org) {
-		id = org.id;
-		if (org.fname) SetFname(org.fname);
-		if (org.memData) SetMemData(org.memData, org.size);
-		attr = org.attr;
-		pos = org.pos;
-		size = org.size;
-		mtime = org.mtime;
-		atime = org.atime;
-		crtime = org.crtime;
-		isSelected = org.isSelected;
-		return *this;
-	}
-};
-
 class ShareInfo : public TListObj {
 public:
-	int			packetNo;		// not use recvdlg
+	UINT		packetNo;		// not use recvdlg
 	Host		**host;			// allow host list, not use recvdlg
 	int			hostCnt;		// not use recvdlg
 	char		*transStat;		// not use recvdlg
+	UINT		*lastPkt;		// not use recvdlg
 	FileInfo	**fileInfo;		// allow file list
-	int			fileCnt;
-	FILETIME	attachTime;
+	int			fileCnt;		// include clipCnt
+	int			clipCnt;
+	time_t		attachTime;
+	BOOL		needSave;
+	enum Flags { SI_NONE=0, SI_FILE=1, SI_CLIP=2, SI_ALL=3 };
 
 	ShareInfo(int packetNo=0) {
 		Init(packetNo);
 	}
-	ShareInfo(char *msg, BOOL enable_clip);
+	ShareInfo(char *msg, DWORD flags=SI_ALL);
+	ShareInfo(const IPDict &dict, DWORD flags=SI_ALL);
 
 	~ShareInfo() {
-		while (fileCnt-- > 0) {
-			delete fileInfo[fileCnt];
-		}
-		free(fileInfo);
+		UnInit();
 	}
 	void Init(int _packetNo=0) {
 		packetNo = _packetNo;
 		host = NULL;
 		transStat = NULL;
 		fileInfo = NULL;
-		hostCnt = fileCnt = 0;
-		memset(&attachTime, 0, sizeof(attachTime));
+		lastPkt = NULL;
+		hostCnt = 0;
+		fileCnt = 0;
+		clipCnt = 0;
+		needSave = FALSE;
+		attachTime = 0;
 	}
+	void UnInit() {
+		while (fileCnt > 0) {
+			delete fileInfo[--fileCnt];
+		}
+		free(fileInfo);
+		fileInfo = NULL;
+
+		delete [] host;
+		delete [] lastPkt;
+		delete [] transStat;
+		host = NULL;
+		lastPkt = NULL;
+		transStat = NULL;
+		needSave = FALSE;
+	}
+
 	BOOL RemoveFileInfo(int idx) {
-		if (idx >= fileCnt) return FALSE;
+		if (idx >= fileCnt || fileCnt <= 0) return FALSE;
 		delete fileInfo[idx];
 		--fileCnt;
 		memmove(fileInfo + idx, fileInfo + idx +1, sizeof(FileInfo *) * (fileCnt - idx));
 		return	TRUE;
 	}
-	BOOL EncodeMsg(char *buf, int bufsize, BOOL incMem=FALSE);
+	BOOL EncodeMsg(char *buf, int bufsize, IPDictList *dlist, int *share_len);
+
+	BOOL Pack(IPDict *dict);
+	BOOL UnPack(Cfg *cfg, const IPDict &dict);
 };
 
 struct AcceptFileInfo {
 	FileInfo	*fileInfo;
 	Host		*host;
-	_int64		offset;
+	int64		offset;
 	int			packetNo;
 	UINT		command;
 	UINT		logOpt; // decode status
+	UINT		fileCapa;
 	int			ivPacketNo;
 	BYTE		aesKey[256/8];
-	FILETIME	attachTime;
+	time_t		attachTime;
 };
 
 struct ShareCntInfo {
@@ -148,7 +95,7 @@ struct ShareCntInfo {
 	int		transferCnt;
 	int		doneCnt;
 	int		packetCnt;
-	_int64	totalSize;
+	int64	totalSize;
 };
 
 class TShareStatDlg;
@@ -162,7 +109,8 @@ protected:
 	Cfg				*cfg;
 	MsgMng			*msgMng;
 	FileInfo		*SetFileInfo(char *fname);
-	BOOL			AddShareCore(ShareInfo *info, FileInfo	*fileInfo);
+	BOOL			AddShareCore(ShareInfo *info, FileInfo	*fileInfo, BOOL isClip=FALSE);
+	TListEx<ShareInfo>	delayList;
 
 public:
 	ShareMng(Cfg *_cfg, MsgMng *_msgMng);
@@ -173,33 +121,43 @@ public:
 	BOOL	AddMemShare(ShareInfo *info, char *dummy_name, BYTE *data, int size, int pos);
 	BOOL	DelFileShare(ShareInfo *info, int fileNo);
 
-	BOOL	EndHostShare(int packetNo, HostSub *hostSub, FileInfo *fileInfo=NULL, BOOL done=TRUE);
 	BOOL	AddHostShare(ShareInfo *info, SendEntry *entry, int entryNum);
+	BOOL	EndHostShare(int packetNo, HostSub *hostSub, FileInfo *fileInfo=NULL, BOOL done=TRUE);
+
 	ShareInfo	*Search(int packetNo);
+	ShareInfo	*SearchDelayList(int packetNo);
+
 	BOOL	GetShareCntInfo(ShareCntInfo *info, ShareInfo *shareInfo=NULL);
-	BOOL	GetAcceptableFileInfo(ConnectInfo *info, char *buf, int size, AcceptFileInfo *fileInfo);
+	BOOL	GetAcceptableFileInfo(ConnectInfo *info, MsgBuf *msg, AcceptFileInfo *fileInfo);
 	void	RegisterShareStatDlg(TShareStatDlg *_dlg) { statDlg = _dlg; }
 	void	Cleanup();
+
+	void	LoadShare();
+	void	SaveShare(ShareInfo *info);
+
 	static int GetFileInfoNo(ShareInfo *info, FileInfo *fileInfo);
 };
 
 class TShareDlg : public TDlg {
 	ShareMng	*shareMng;
 	ShareInfo	*shareInfo;
+	TSendDlg	*parentDlg;
 	Cfg			*cfg;
 	BOOL		AddList(int idx);
 	BOOL		DelList(int idx);
 	TListViewEx	shareListView;
 
 public:
-	TShareDlg(ShareMng *_shareMng, ShareInfo *_shareInfo, Cfg *_cfg, TWin *_parent = NULL);
+	TShareDlg(ShareMng *_shareMng, ShareInfo *_shareInfo, Cfg *_cfg, TSendDlg *_parent = NULL);
 	~TShareDlg();
 //	virtual int		Exec(void);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvDropFiles(HDROP hDrop);
-static BOOL FileAddDlg(TDlg *dlg, ShareMng *sharMng, ShareInfo *shareInfo, Cfg *cfg);
 };
+
+BOOL ShareFileAddDlg(TSendDlg *sendDlg, TDlg *parent, ShareMng *sharMng, ShareInfo *shareInfo,
+	Cfg *cfg);
 
 class TSaveCommonDlg : public TDlg {
 protected:

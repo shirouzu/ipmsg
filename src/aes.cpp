@@ -24,6 +24,9 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ *  Add CBC & CTR mode by H.Shirouzu
+ */
 #include <assert.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -819,12 +822,12 @@ static int rijndaelKeySetupEnc(u32 rk[/*4*(Nr + 1)*/], const u8 cipherKey[], int
  */
 static int rijndaelKeySetupDec(u32 rk[/*4*(Nr + 1)*/], const u8 cipherKey[], int keyBits) {
 	int Nr, i, j;
-	u32 temp;
 
 	/* expand the cipher key: */
 	Nr = rijndaelKeySetupEnc(rk, cipherKey, keyBits);
 	/* invert the order of the round keys: */
 	for (i = 0, j = 4*Nr; i < j; i += 4, j -= 4) {
+		u32 temp;
 		temp = rk[i    ]; rk[i    ] = rk[j    ]; rk[j    ] = temp;
 		temp = rk[i + 1]; rk[i + 1] = rk[j + 1]; rk[j + 1] = temp;
 		temp = rk[i + 2]; rk[i + 2] = rk[j + 2]; rk[j + 2] = temp;
@@ -1259,7 +1262,7 @@ static void block_xor(const u8 *in1, const u8 *in2, u8 *out)
 	*o++ = *i1++ ^ *i2++;
 }
 
-static void byte_xor(const u8 *in1, const u8 *in2, u8 *out, int len)
+static void byte_xor(const u8 *in1, const u8 *in2, u8 *out, size_t len)
 {
 	while (len-- > 0) {
 		*out++ = *in1++ ^ *in2++;
@@ -1281,16 +1284,20 @@ void AES::Init(const u8 *key, int key_len, const u8 *_iv)
 
 void AES::InitIv(const u8 *_iv)
 {
-	if (_iv) memcpy(iv, _iv, sizeof(iv));
-	else	 memset(iv, 0, sizeof(iv));
+	if (_iv) {
+		memcpy(iv, _iv, sizeof(iv));
+	}
+	else {
+		 memset(iv, 0, sizeof(iv));
+	}
 	offset = 0;
 }
 
-int AES::EncryptCBC(const u8 *in, u8 *out, int size, PaddingMode pm)
+size_t AES::EncryptCBC(const u8 *in, u8 *out, size_t size, PaddingMode pm)
 {
 	u8			buf[AES_BLOCK_SIZE];
-	int			enc_len   = GetCBCLength(size, pm);
-	int			align_len = enc_len - ((pm == AES::PKCS5) ? AES_BLOCK_SIZE : 0);
+	size_t		enc_len   = GetCBCLength(size, pm);
+	size_t		align_len = enc_len - ((pm == AES::PKCS5) ? AES_BLOCK_SIZE : 0);
 	const u8	*end      = in + align_len;
 	u8			*cur_iv   = iv;
 
@@ -1302,50 +1309,68 @@ int AES::EncryptCBC(const u8 *in, u8 *out, int size, PaddingMode pm)
 		out += AES_BLOCK_SIZE;
 	}
 	if (pm == AES::PKCS5) {
-		int	val = enc_len - size;
-		memset(buf + AES_BLOCK_SIZE - val, val, val);
+		size_t	val = enc_len - size;
+		memset(buf + AES_BLOCK_SIZE - val, (u8)val, val);
 		memcpy(buf, in, size - align_len);
 		block_xor(buf, cur_iv, buf);
 		rijndaelEncrypt(as.ek, as.rounds, buf, out);
 	}
 	else {	// save iv for next call
-		if (iv != cur_iv) memcpy(iv, cur_iv, AES_BLOCK_SIZE);
+		if (iv != cur_iv) {
+			memcpy(iv, cur_iv, AES_BLOCK_SIZE);
+		}
 	}
 	return	enc_len;
 }
 
-int AES::EncryptCTR(const u8 *in, u8 *out, int size)
+size_t AES::EncryptCTR(const u8 *in, u8 *out, size_t size)
 {
-	int		remain     = size;
-	int		mod_offset = (int)(offset % AES_BLOCK_SIZE);
+	size_t	remain     = size;
+	size_t	mod_offset = (size_t)(offset % AES_BLOCK_SIZE);
 
 	if (mod_offset) {
-		int	mod_size  = AES_BLOCK_SIZE - mod_offset;
-		if (mod_size > remain) mod_size = remain;
+		size_t	mod_size  = AES_BLOCK_SIZE - mod_offset;
+
+		if (mod_size > remain) {
+			mod_size = remain;
+		}
+
 		byte_xor(xor + mod_offset, in, out, mod_size);
+
 		remain -= mod_size;
 		in     += mod_size;
 		out    += mod_size;
 	}
 	if (remain > 0) {
 		const u8	*end = in + remain;
+
 		while (in < end) {
 			rijndaelEncrypt(as.ek, as.rounds, iv, xor);
-			for (int i=16; i >= 0; i--) if (++iv[i]) break; // countup nonce
 
-			if (remain < AES_BLOCK_SIZE) break;
+			for (int i=15; i >= 0; i--) {
+				if (++iv[i]) {
+					break; // countup nonce
+				}
+			}
+			if (remain < AES_BLOCK_SIZE) {
+				break;
+			}
+
 			block_xor(in, xor, out);
+
 			in     += AES_BLOCK_SIZE;
 			out    += AES_BLOCK_SIZE;
 			remain -= AES_BLOCK_SIZE;
 		}
-		if (remain) byte_xor(in, xor, out, remain);
+		if (remain) {
+			byte_xor(in, xor, out, remain);
+		}
 	}
 	offset += size;
 	return	size;
 }
 
-int AES::DecryptCBC(const u8 *in, u8 *out, int size, PaddingMode pm)
+size_t AES::DecryptCBC(const u8 *in, u8 *out, size_t size, PaddingMode pm)
 {
 	u8			buf[AES_BLOCK_SIZE];
 	u8			next_iv[AES_BLOCK_SIZE];
@@ -1353,7 +1378,9 @@ int AES::DecryptCBC(const u8 *in, u8 *out, int size, PaddingMode pm)
 
 	while (in < end) {
 		memcpy(next_iv, in, AES_BLOCK_SIZE);
+
 		rijndaelDecrypt(as.dk, as.rounds, in, buf);
+
 		block_xor(buf, iv, out);
 		memcpy(iv, next_iv, AES_BLOCK_SIZE);
 		in  += AES_BLOCK_SIZE;
@@ -1361,45 +1388,64 @@ int AES::DecryptCBC(const u8 *in, u8 *out, int size, PaddingMode pm)
 	}
 	if (pm == AES::PKCS5) {
 		u32	val = out[-1];
-		if (val >= 1 && val <= AES_BLOCK_SIZE) size -= val;
+		if (val >= 1 && val <= AES_BLOCK_SIZE) {
+			size -= val;
+		}
 	}
 	return	size;
 }
 
-int AES::DecryptCTR(const u8 *in, u8 *out, int size)
+size_t AES::DecryptCTR(const u8 *in, u8 *out, size_t size)
 {
-	int		remain     = size;
-	int		mod_offset = (int)(offset % AES_BLOCK_SIZE);
+	size_t	remain     = size;
+	size_t	mod_offset = (size_t)(offset % AES_BLOCK_SIZE);
 
 	if (mod_offset) {
-		int	mod_size  = AES_BLOCK_SIZE - mod_offset;
-		if (mod_size > remain) mod_size = remain;
+		size_t	mod_size  = AES_BLOCK_SIZE - mod_offset;
+
+		if (mod_size > remain) {
+			mod_size = remain;
+		}
+
 		byte_xor(xor + mod_offset, in, out, mod_size);
+
 		remain -= mod_size;
 		in     += mod_size;
 		out    += mod_size;
 	}
+
 	if (remain > 0) {
 		const u8	*end = in + remain;
+
 		while (in < end) {
 			rijndaelEncrypt(as.ek, as.rounds, iv, xor);
-			for (int i=16; i >= 0; i--) if (++iv[i]) break; // countup nonce
 
-			if (remain < AES_BLOCK_SIZE) break;
+			for (int i=15; i >= 0; i--) {
+				if (++iv[i]) break; // countup nonce
+			}
+			if (remain < AES_BLOCK_SIZE) {
+				break;
+			}
+
 			block_xor(in, xor, out);
+
 			in     += AES_BLOCK_SIZE;
 			out    += AES_BLOCK_SIZE;
 			remain -= AES_BLOCK_SIZE;
 		}
-		if (remain) byte_xor(in, xor, out, remain);
+		if (remain) {
+			byte_xor(in, xor, out, remain);
+		}
 	}
 	offset += size;
 	return	size;
 }
 
-int AES::GetCBCLength(int size, PaddingMode pm)
+size_t AES::GetCBCLength(size_t size, PaddingMode pm)
 {
-	if (pm == PKCS5) size++;
+	if (pm == PKCS5) {
+		size++;
+	}
 	return	ALIGN_SIZE(size, AES_BLOCK_SIZE);
 }
 

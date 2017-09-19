@@ -1,9 +1,9 @@
-﻿/* @(#)Copyright (C) 1996-2015 H.Shirouzu		tapi32u8.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2017 H.Shirouzu		tapi32u8.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 2005-04-10(Sun)
-	Update					: 2015-11-01(Sun)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -62,7 +62,10 @@ UINT GetDriveTypeU8(const char *path);
 class Wstr {
 	WCHAR		*str;
 	mutable int	len;
-	void FirstInit() { str=NULL; len=-1; }
+	void FirstInit() {
+		str = NULL;
+		len = -1;
+	}
 
 public:
 	Wstr(const char *_str=NULL, StrMode mode=BY_UTF8) {
@@ -77,9 +80,9 @@ public:
 		FirstInit();
 		Init(w);
 	}
-	Wstr(int len) {
+	Wstr(int _len) {
 		FirstInit();
-		Init(len);
+		Init(_len);
 	}
 	~Wstr() { UnInit(); }
 
@@ -87,9 +90,9 @@ public:
 		Init(w.str);
 		len = w.len;
 	}
-	void Init(const WCHAR *_str, int len=-1) {
+	void Init(const WCHAR *_str, int _len=-1) {
 		UnInit();
-		str = (_str ? wcsdupNew(_str, len) : NULL);
+		str = (_str ? wcsdupNew(_str, _len) : NULL);
 		len = -1;
 	}
 	void Init(const char *_str, StrMode mode=BY_UTF8) {
@@ -97,10 +100,10 @@ public:
 		str = _str ? mode == BY_UTF8 ? U8toW(_str) : AtoW(_str) : NULL;
 		len = -1;
 	}
-	void Init(int _len) {
+	void Init(int _len=0) {
 		UnInit();
 		if (_len) {
-			str = new WCHAR [_len];
+			str = new WCHAR [_len + 1];
 			*str=0;
 		} else {
 			str=NULL;
@@ -122,35 +125,144 @@ public:
 		Init(w);
 		return *this;
 	}
+	Wstr &operator +=(const WCHAR *_str) {
+		if (_str && *_str) {
+			int		len_l = Len();
+			int		len_s = int(wcslen(_str));
+			WCHAR	*buf  = new WCHAR [len_l + len_s + 1];
+			if (str) {
+				memcpy(buf, str, len_l * sizeof(WCHAR));
+				delete [] str;
+			}
+			str = buf;
+			memcpy(str + len_l, _str, (len_s + 1) * sizeof(WCHAR));
+			len = len_l + len_s;
+		}
+		return	*this;
+	}
 	bool operator ==(const WCHAR *_str) const {
-		if (!_str) return IsEmpty();
+		if (!_str) {
+			return IsEmpty();
+		}
 		return	wcscmp(s(), _str) == 0;
 	}
-	operator bool() { return !IsEmpty(); }
-	bool operator ==(const Wstr &_w) const { return _w == s(); }
-	bool operator !=(const WCHAR *_str) const { return !(*this == _str); }
-	bool operator !=(const Wstr &_w) const { return !(_w == str); }
-	WCHAR &operator [](int idx) { return str[idx]; }
-	WCHAR	*Buf() { len = -1; return str; }
-	void UnBuf() { len = -1; }
-	const WCHAR *s() const { return str ? str : L""; }
-	bool IsEmpty() const { return !str || *str == 0; }
+	operator bool() {
+		return !IsEmpty();
+	}
+	bool operator ==(const Wstr &_w) const {
+		return _w == s();
+	}
+	bool operator !=(const WCHAR *_str) const {
+		return !(*this == _str);
+	}
+	bool operator !=(const Wstr &_w) const {
+		return !(_w == str);
+	}
+	bool operator <(const Wstr &_w) const {
+		return wcscmp(s(), _w.s()) < 0;
+	}
+	WCHAR &operator [](int idx) {
+		return str[idx];
+	}
+	WCHAR	*Buf() {
+		len = -1;
+		return str;
+	}
+	void UnBuf() {
+		len = -1;
+	}
+	const WCHAR *s() const {
+		return str ? str : L"";
+	}
+	bool IsEmpty() const {
+		return !str || *str == 0;
+	}
 	int	Len() const {
-		if (len >= 0) return len;
-		if (!str) return 0;
+		if (len >= 0) {
+			return len;
+		}
+		if (!str) {
+			return 0;
+		}
 		return (len = (int)wcslen(str));
+	}
+	int StripLen() const {
+		if (len < 0) {
+			Len();
+		}
+		int	strip_len = len;
+		for ( ; strip_len > 0; strip_len--) {
+			WCHAR	ch = str[strip_len-1];
+			if (ch != '\n' && ch != '\r') {
+				break;
+			}
+		}
+		return	strip_len;
+	}
+	BOOL GetLine(int idx, Wstr *ln, BOOL is_strip=TRUE) {
+		ln->Init();
+		if (!str || !*str) return FALSE;
+
+		int	cnt=0;
+		const WCHAR *p = str;
+		while (p && *p) {
+			const WCHAR *next = wcschr(p, '\n');
+			if (next) next++;
+			if (cnt == idx) {
+				if (next) {
+					ln->Init(p, int(next - p));
+				} else {
+					*ln = p;
+				}
+				if (is_strip) ln->Strip();
+				return TRUE;
+			}
+			cnt++;
+			p = next;
+		}
+		return	FALSE;
+	}
+	void Strip(const WCHAR *strips=L"\r\n") {
+		int len = Len();
+		while (wcschr(strips, *str)) {
+			memmove(str, str+1, (len--) * sizeof(WCHAR));
+		}
+		while (wcschr(strips, str[len-1])) {
+			len--;
+		}
+		str[len] = 0;
+	}
+	int LineNum() {
+		int	lines = 0;
+
+		const WCHAR *p = str;
+		while (p && *p) {
+			lines++;
+			if ((p = wcschr(p, '\n'))) {
+				p++;
+			}
+		}
+		if (p && *p) lines++;
+		return	lines;
 	}
 };
 
 class U8str {
 	char	*str;
 	mutable int	len;
-	void FirstInit() { str=NULL; len=-1; }
+	void FirstInit() {
+		str = NULL;
+		len = -1;
+	}
 
 public:
-	U8str(const char *_str=NULL, StrMode mode=BY_UTF8) {
+	U8str(const char *_str, StrMode mode=BY_UTF8, int _len=-1) {
 		FirstInit();
-		Init(_str, mode);
+		Init(_str, mode, _len);
+	}
+	U8str() {
+		FirstInit();
+		Init(NULL, BY_UTF8, -1);
 	}
 	U8str(const WCHAR *_str, int _len=-1) {
 		FirstInit();
@@ -160,30 +272,32 @@ public:
 		FirstInit();
 		Init(u.str);
 	}
-	U8str(int len) {
+	U8str(int _len) {
 		FirstInit();
-		Init(len);
+		Init(_len);
 	}
-	~U8str() { UnInit(); }
+	~U8str() {
+		UnInit();
+	}
 
 	void Init(const Wstr &w) {
 		Init(w.s());
 		len = w.Len();
 	}
-	void Init(const WCHAR *_str, int len=-1) {
+	void Init(const WCHAR *_str, int _len=-1) {
 		UnInit();
-		str = _str ? WtoU8(_str, len) : NULL;
+		str = _str ? WtoU8(_str, _len) : NULL;
 		len = -1;
 	}
-	void Init(const char *_str, StrMode mode=BY_UTF8) {
+	void Init(const char *_str, StrMode mode=BY_UTF8, int _len=-1) {
 		UnInit();
-		str = _str ? (mode == BY_UTF8) ? strdupNew(_str) : AtoU8(_str) : NULL;
+		str = _str ? (mode == BY_UTF8) ? strdupNew(_str, _len) : AtoU8(_str) : NULL;
 		len = -1;
 	}
-	void Init(int _len) {
+	void Init(int _len=0) {
 		UnInit();
 		if (_len) {
-			str = new char [_len];
+			str = new char [_len + 1];
 			*str=0;
 		} else {
 			str=NULL;
@@ -209,30 +323,122 @@ public:
 		Init(w);
 		return *this;
 	}
+	U8str &operator +=(const char *_str) {
+		if (_str && *_str) {
+			int		len_l = Len();
+			int		len_s = int(strlen(_str));
+			char	*buf  = new char [len_l + len_s + 1];
+			if (str) {
+				memcpy(buf, str, len_l * sizeof(char));
+				delete [] str;
+			}
+			str = buf;
+			memcpy(str + len_l, _str, (len_s + 1) * sizeof(char));
+			len = len_l + len_s;
+		}
+		return	*this;
+	}
 	bool operator ==(const char *_str) const {
-		if (!str || !_str) return str == _str;
+		if (!str || !_str) {
+			return str == _str;
+		}
 		return	strcmp(str, _str) == 0;
 	}
-	operator bool() { return !IsEmpty(); }
-	bool operator ==(const U8str &_u) const { return _u == str; }
-	bool operator !=(const char *_str) const { return !(*this == _str); }
-	bool operator !=(const U8str &_u) const { return !(_u == str); }
-	char &operator [](int idx) { return str[idx]; }
-	char *Buf() { len = -1; return str; }
-	void UnBuf() { len = -1; }
-	const char *s() const { return str ? str : ""; }
-	bool IsEmpty() const { return !str || *str == 0; }
+	operator bool() {
+		return !IsEmpty();
+	}
+	bool operator ==(const U8str &_u) const {
+		return _u == str;
+	}
+	bool operator !=(const char *_str) const {
+		return !(*this == _str);
+	}
+	bool operator !=(const U8str &_u) const {
+		return !(_u == str);
+	}
+	bool operator <(const U8str &_u) const {
+		return strcmp(s(), _u.s()) < 0;
+	}
+	char &operator [](int idx) {
+		return str[idx];
+	}
+	char *Buf() {
+		len = -1;
+		return str;
+	}
+	void UnBuf() {
+		len = -1;
+	}
+	const char *s() const {
+		return str ? str : "";
+	}
+	bool IsEmpty() const {
+		return !str || *str == 0;
+	}
 	int	Len() const {
-		if (len >= 0) return len;
-		if (!str) return 0;
+		if (len >= 0) {
+			return len;
+		}
+		if (!str) {
+			return 0;
+		}
 		return (len = (int)strlen(str));
+	}
+	BOOL GetLine(int idx, U8str *ln, BOOL is_strip=TRUE) {
+		ln->Init();
+		if (!str || !*str) return FALSE;
+
+		int	cnt=0;
+		const char *p = str;
+		while (p && *p) {
+			const char *next = strchr(p, '\n');
+			if (next) next++;
+			if (cnt == idx) {
+				if (next) {
+					ln->Init(p, BY_UTF8, int(next - p));
+				} else {
+					*ln = p;
+				}
+				if (is_strip) ln->Strip();
+				return TRUE;
+			}
+			cnt++;
+			p = next;
+		}
+		return	FALSE;
+	}
+	int LineNum() {
+		int	lines = 0;
+
+		const char *p = str;
+		while (p && *p) {
+			lines++;
+			if ((p = strchr(p, '\n'))) {
+				p++;
+			}
+		}
+		if (p && *p) lines++;
+		return	lines;
+	}
+	void Strip(const char *strips="\r\n") {
+		int len = Len();
+		while (strchr(strips, *str)) {
+			memmove(str, str+1, len--);
+		}
+		while (strchr(strips, str[len-1])) {
+			len--;
+		}
+		str[len] = 0;
 	}
 };
 
 class MBCSstr {
 	char	*str;
 	mutable int	len;
-	void FirstInit() { str=NULL; len=-1; }
+	void FirstInit() {
+		str = NULL;
+		len = -1;
+	}
 
 public:
 	MBCSstr(const char *_str=NULL, StrMode mode=BY_MBCS) {
@@ -243,13 +449,13 @@ public:
 		FirstInit();
 		Init(_str, _len);
 	}
-	MBCSstr(const MBCSstr& u) {
+	MBCSstr(const MBCSstr& m) {
 		FirstInit();
-		Init(u.str);
+		Init(m.str);
 	}
-	MBCSstr(int len) {
+	MBCSstr(int _len) {
 		FirstInit();
-		Init(len);
+		Init(_len);
 	}
 	~MBCSstr() { UnInit(); }
 
@@ -257,9 +463,9 @@ public:
 		Init(w.s());
 		len = w.Len();
 	}
-	void Init(const WCHAR *_str, int len=-1) {
+	void Init(const WCHAR *_str, int _len=-1) {
 		UnInit();
-		str = _str ? WtoU8(_str) : NULL;
+		str = _str ? WtoA(_str, _len) : NULL;
 		len = -1;
 	}
 	void Init(const char *_str, StrMode mode=BY_MBCS) {
@@ -267,10 +473,10 @@ public:
 		str = _str ? (mode == BY_MBCS) ? strdupNew(_str) : U8toA(_str) : NULL;
 		len = -1;
 	}
-	void Init(int _len) {
+	void Init(int _len=0) {
 		UnInit();
 		if (_len) {
-			str = new char [_len];
+			str = new char [_len + 1];
 			*str=0;
 		} else {
 			str=NULL;
@@ -288,8 +494,8 @@ public:
 		Init(_str);
 		return *this;
 	}
-	MBCSstr &operator =(const MBCSstr &u) {
-		Init(u.str);
+	MBCSstr &operator =(const MBCSstr &m) {
+		Init(m.str);
 		return *this;
 	}
 	MBCSstr &operator =(const WCHAR *w) {
@@ -297,21 +503,49 @@ public:
 		return *this;
 	}
 	bool operator ==(const char *_str) const {
-		if (!str || !_str) return str == _str;
+		if (!str || !_str) {
+			return str == _str;
+		}
 		return	strcmp(str, _str) == 0;
 	}
-	operator bool() { return !IsEmpty(); }
-	bool operator ==(const MBCSstr &_u) const { return _u == str; }
-	bool operator !=(const char *_str) const { return !(*this == _str); }
-	bool operator !=(const MBCSstr &_u) const { return !(_u == str); }
-	char &operator [](int idx) { return str[idx]; }
-	char *Buf() { len = -1; return str; }
-	void UnBuf() { len = -1; }
-	const char *s() const { return str ? str : ""; }
-	bool IsEmpty() const { return !str || *str == 0; }
+	operator bool() {
+		return !IsEmpty();
+	}
+	bool operator ==(const MBCSstr &_m) const {
+		return _m == str;
+	}
+	bool operator !=(const char *_str) const {
+		return !(*this == _str);
+	}
+	bool operator !=(const MBCSstr &_m) const {
+		return !(_m == str);
+	}
+	bool operator <(const MBCSstr &_m) const {
+		return strcmp(s(), _m.s()) < 0;
+	}
+	char &operator [](int idx) {
+		return str[idx];
+	}
+	char *Buf() {
+		len = -1;
+		return str;
+	}
+	void UnBuf() {
+		len = -1;
+	}
+	const char *s() const {
+		return str ? str : "";
+	}
+	bool IsEmpty() const {
+		return !str || *str == 0;
+	}
 	int	Len() const {
-		if (len >= 0) return len;
-		if (!str) return 0;
+		if (len >= 0) {
+			return len;
+		}
+		if (!str) {
+			return 0;
+		}
 		return (len = (int)strlen(str));
 	}
 };
@@ -328,11 +562,56 @@ inline int AtoU8(const char *src, char *dst, int bufsize) {
 	return	(int)strlen(dst);
 }
 
-BOOL IsUTF8(const char *s, BOOL *is_ascii=NULL, char **invalid_point=NULL);
+BOOL IsUTF8(const char *s, BOOL *is_ascii=NULL, char **invalid_point=NULL, int max_len=INT_MAX);
 BOOL StrictUTF8(char *s);
+int u8cpyz(char *d, const char *s, int max_len);
 
 BOOL StrictUTF8(char *s);
 int U8Len(const char *s, int max_size=-1);
+
+inline BOOL IsSurrogate(WCHAR ch) {
+	return (ch >= 0xd800 && ch < 0xe000);
+}
+
+inline BOOL IsSurrogateL(WCHAR ch) {
+	return (ch >= 0xd800 && ch < 0xdc00);
+}
+
+inline BOOL IsSurrogateR(WCHAR ch) {
+	return (ch >= 0xdc00 && ch < 0xe000);
+}
+
+inline BOOL IsSurrogatePair(const WCHAR *s) {
+	return IsSurrogateL(*s) && IsSurrogateR(*(s+1));
+}
+
+inline BOOL IsIVSL(const WCHAR ch) {
+	return ch == 0xdb40;
+}
+
+inline BOOL IsIVSR(const WCHAR ch) {
+	return (ch >= 0xdd00 && ch < 0xddff);
+}
+
+inline BOOL IsIVSOne(WCHAR ch) {
+	return	(ch >= 0x180b && ch < 0x180e || ch >= 0xfe00 && ch < 0xfe10);
+}
+
+inline BOOL IsIVSAny(WCHAR ch) {
+	return	IsIVSL(ch) || IsIVSR(ch) || IsIVSOne(ch);
+}
+
+inline BOOL IsIVS(const WCHAR *s, int *len=NULL) {
+	if (IsIVSOne(*s)) {
+		if (len) *len = 1;
+		return	TRUE;
+	}
+	else if (IsIVSL(*s) && IsIVSR(*(s+1))) {
+		if (len) *len = 2;
+		return	TRUE;
+	}
+	return	FALSE;
+}
 
 HWND CreateWindowU8(const char *class_name, const char *window_name, DWORD style,
 	int x, int y, int width, int height, HWND hParent, HMENU hMenu, HINSTANCE hInst, void *param);
@@ -342,6 +621,7 @@ BOOL InsertMenuU8(HMENU hMenu, UINT idItem, UINT flags, UINT_PTR idNewItem, cons
 BOOL ModifyMenuU8(HMENU hMenu, UINT idItem, UINT flags, UINT_PTR idNewItem, const char *item_str);
 DWORD GetFileAttributesU8(const char *path);
 BOOL SetFileAttributesU8(const char *path, DWORD attr);
+BOOL MoveFileExU8(const char *src, const char *dst, DWORD flags);
 
 UINT DragQueryFileU8(HDROP hDrop, UINT iFile, char *buf, UINT cb);
 void WIN32_FIND_DATA_WtoU8(const WIN32_FIND_DATAW *fdat_w, WIN32_FIND_DATA_U8 *fdat_u8,
@@ -363,8 +643,8 @@ DWORD GetWindowsDirectoryU8(char *dir, DWORD size);
 BOOL SetCurrentDirectoryU8(char *dir);
 BOOL GetOpenFileNameU8(LPOPENFILENAME ofn);
 BOOL GetSaveFileNameU8(LPOPENFILENAME ofn);
-BOOL ReadLinkU8(LPCSTR src, LPSTR dest, LPSTR arg);
 BOOL PlaySoundU8(const char *path, HMODULE hmod, DWORD flg);
+BOOL SHGetSpecialFolderPathU8(HWND hWnd, char *path, int csidl, BOOL fCreate=FALSE);
 
 inline int TMessageBox(LPCSTR msg, LPCSTR title="msg", UINT style=MB_OK) {
 	return	::MessageBox(0, msg, title, style);

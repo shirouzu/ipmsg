@@ -1,10 +1,10 @@
 ﻿static char *image_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2015   image.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 2011-2017   image.cpp	Ver4.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Image
 	Create					: 2011-07-24(Mon)
-	Update					: 2015-06-02(Tue)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -15,6 +15,7 @@
 using namespace Gdiplus;
 
 #pragma comment (lib, "msimg32.lib")
+#pragma comment (lib, "gdiplus.lib")
 
 //bool GetEncoderClsid(const WCHAR* mime, CLSID* pClsid)
 //{
@@ -91,7 +92,9 @@ BITMAPINFO *BmpHandleToInfo(HBITMAP hBmp, int *size)
 {
 	BITMAP		bmp;
 	BITMAPINFO	*bmi;
-	int			palette, header_size, data_size;
+	int			palette;
+	int			header_size;
+	int			data_size;
 	HWND		hWnd = ::GetDesktopWindow();
 	HDC			hDc;
 
@@ -169,6 +172,7 @@ HBITMAP BmpInfoToHandle(BITMAPINFO *bmi, int size)
 TAreaConfirmDlg::TAreaConfirmDlg(Cfg *_cfg, TImageWin *_parentWin)
 	: TDlg(AREACONFIRM_DIALOG, _parentWin)
 {
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 	parentWin	= _parentWin;
 	cfg			= _cfg;
 	useClip		= NULL;
@@ -192,7 +196,7 @@ BOOL TAreaConfirmDlg::Create(BOOL *_useClip, BOOL *_withSave, BOOL _reEdit)
 	BOOL ret = TDlg::Create();
 
 	if (reEdit) {
-		SetWindowTextU8(GetLoadStrU8(IDS_REEDIT_IMAGE));
+		SetWindowTextU8(LoadStrU8(IDS_REEDIT_IMAGE));
 	}
 
 	return ret;
@@ -211,12 +215,12 @@ BOOL TAreaConfirmDlg::EvCreate(LPARAM lParam)
 
 	// 戻るボタンでツールバー作成 (iBitmap: 0)
 	hToolBar = ::CreateToolbarEx(hWnd, WS_CHILD|WS_VISIBLE|TBSTYLE_TOOLTIPS, AREA_TOOLBAR,
-								1, TApp::GetInstance(), MARKERTB_BITMAP, &tb_undo,
+								1, TApp::hInst(), MARKERTB_BITMAP, &tb_undo,
 								1, 0, 0, 16, 16, sizeof(TBBUTTON));
 
 	// 赤・緑・青・黄色のビットマップを追加 (iBitmap 1-16)
 	for (int i=0; i < 4; i++) {
-		TBADDBITMAP tab = { TApp::GetInstance(), UINT_PTR(MARKERRED_BITMAP + i) };
+		TBADDBITMAP tab = { TApp::hInst(), UINT_PTR(MARKERRED_BITMAP + i) };
 		::SendMessage(hToolBar, TB_ADDBITMAP, 4, (LPARAM)&tab);
 	}
 
@@ -318,11 +322,11 @@ BOOL TAreaConfirmDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 			itip->pszText = NULL;
 
 			switch (itip->iItem) {
-			case MARKER_PEN:	itip->pszText = GetLoadStrW(IDS_MARKER_PEN);	break;
-			case MARKER_RECT:	itip->pszText = GetLoadStrW(IDS_MARKER_RECT);	break;
-			case MARKER_ARROW:	itip->pszText = GetLoadStrW(IDS_MARKER_ARROW);	break;
-			case MARKER_COLOR:	itip->pszText = GetLoadStrW(IDS_MARKER_COLOR);	break;
-			case MARKER_UNDO:	itip->pszText = GetLoadStrW(IDS_MARKER_UNDO);	break;
+			case MARKER_PEN:	itip->pszText = LoadStrW(IDS_MARKER_PEN);	break;
+			case MARKER_RECT:	itip->pszText = LoadStrW(IDS_MARKER_RECT);	break;
+			case MARKER_ARROW:	itip->pszText = LoadStrW(IDS_MARKER_ARROW);	break;
+			case MARKER_COLOR:	itip->pszText = LoadStrW(IDS_MARKER_COLOR);	break;
+			case MARKER_UNDO:	itip->pszText = LoadStrW(IDS_MARKER_UNDO);	break;
 			}
 			if (itip->pszText) itip->cchTextMax = (int)wcslen(itip->pszText);
 			return	TRUE;
@@ -333,7 +337,8 @@ BOOL TAreaConfirmDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 
 void TAreaConfirmDlg::Notify()
 {
-	::SendMessage(hToolBar, TB_SETSTATE, MARKER_UNDO, parentWin->DrawHistNum() ? TBSTATE_ENABLED : 0);
+	::SendMessage(hToolBar, TB_SETSTATE, MARKER_UNDO,
+		parentWin->DrawHistNum() ? TBSTATE_ENABLED : 0);
 }
 
 
@@ -384,7 +389,9 @@ void TImageWin::UnInit()
 		::DeleteObject(hDarkBmp);
 		hDarkBmp = NULL;
 	}
-	if (cursorMap[ARROW_ID]) ::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[ARROW_ID]));
+	if (cursorMap[ARROW_ID]) {
+		::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[ARROW_ID]));
+	}
 }
 
 BOOL TImageWin::Create(TEditSub *_reEdit)
@@ -424,16 +431,16 @@ BOOL TImageWin::Create(TEditSub *_reEdit)
 	::ReleaseDC(hDesktop, hDesktopDc);
 
 	if (cursorMap.empty()) {
-		cursorMap[CROSS_ID]						= ::LoadCursor(TApp::GetInstance(), (LPCSTR)CROSS_CUR);
-		cursorMap[ARROW_ID]						= ::LoadCursor(NULL, (LPCSTR)IDC_ARROW);
-		cursorMap[CURSOR_IDX(COLOR_RED)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)RED_CUR);
-		cursorMap[CURSOR_IDX(COLOR_GREEN)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GREEN_CUR);
-		cursorMap[CURSOR_IDX(COLOR_BLUE)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)BLUE_CUR);
-		cursorMap[CURSOR_IDX(COLOR_YELLOW)]		= ::LoadCursor(TApp::GetInstance(), (LPCSTR)YELLOW_CUR);
-		cursorMap[CURSOR_IDX(COLOR_RED,   1)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GENRED_CUR);
-		cursorMap[CURSOR_IDX(COLOR_GREEN, 1)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GENGREEN_CUR);
-		cursorMap[CURSOR_IDX(COLOR_BLUE,  1)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GENBLUE_CUR);
-		cursorMap[CURSOR_IDX(COLOR_YELLOW,1)]	= ::LoadCursor(TApp::GetInstance(), (LPCSTR)GENYELLOW_CUR);
+		cursorMap[CROSS_ID]					  = ::LoadCursor(TApp::hInst(), (LPCSTR)CROSS_CUR);
+		cursorMap[ARROW_ID]					  = ::LoadCursor(NULL, (LPCSTR)IDC_ARROW);
+		cursorMap[CURSOR_IDX(COLOR_RED)]	  = ::LoadCursor(TApp::hInst(), (LPCSTR)RED_CUR);
+		cursorMap[CURSOR_IDX(COLOR_GREEN)]	  = ::LoadCursor(TApp::hInst(), (LPCSTR)GREEN_CUR);
+		cursorMap[CURSOR_IDX(COLOR_BLUE)]	  = ::LoadCursor(TApp::hInst(), (LPCSTR)BLUE_CUR);
+		cursorMap[CURSOR_IDX(COLOR_YELLOW)]	  = ::LoadCursor(TApp::hInst(), (LPCSTR)YELLOW_CUR);
+		cursorMap[CURSOR_IDX(COLOR_RED,   1)] = ::LoadCursor(TApp::hInst(), (LPCSTR)GENRED_CUR);
+		cursorMap[CURSOR_IDX(COLOR_GREEN, 1)] = ::LoadCursor(TApp::hInst(), (LPCSTR)GENGREEN_CUR);
+		cursorMap[CURSOR_IDX(COLOR_BLUE,  1)] = ::LoadCursor(TApp::hInst(), (LPCSTR)GENBLUE_CUR);
+		cursorMap[CURSOR_IDX(COLOR_YELLOW,1)] = ::LoadCursor(TApp::hInst(), (LPCSTR)GENYELLOW_CUR);
 		TRegisterClassU8(IPMSG_CAPTURE_CLASS, CS_DBLCLKS);
 	}
 
@@ -443,7 +450,7 @@ BOOL TImageWin::Create(TEditSub *_reEdit)
 BOOL TImageWin::EvCreate(LPARAM lParam)
 {
 	status = INIT;
-	::SetTimer(hWnd, 100, 10, NULL);
+	SetTimer(100, 10);
 	if (!reEdit) ::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[CROSS_ID]));
 
 	return	TRUE;
@@ -479,7 +486,7 @@ BOOL TImageWin::EvPaint()
 
 BOOL TImageWin::EvTimer(WPARAM _timerID, TIMERPROC proc)
 {
-	KillTimer(hWnd, _timerID);
+	KillTimer(_timerID);
 	SetWindowLong(GWL_STYLE, (GetWindowLong(GWL_STYLE) & ~WS_DISABLED)|WS_VISIBLE);
 	SetWindowPos(HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOREDRAW);
 	InvalidateRect(NULL, TRUE);
@@ -552,38 +559,38 @@ BOOL TImageWin::DrawMarker(HDC hDc)
 			offset.y = rc.top;
 		}
 
-		for (VColPtsItr i=drawPts.begin(); i != drawPts.end(); i++) {
-			HPEN	hPen = ::CreatePen(PS_SOLID, cfg->MarkerThick, i->color);
+		for (auto &p: drawPts) {
+			HPEN	hPen = ::CreatePen(PS_SOLID, cfg->MarkerThick, p.color);
 			HPEN	hOldPen = (HPEN)::SelectObject(hDc, (HGDIOBJ)hPen);
 
-			VPtsItr	vp = i->pts.begin();
+			auto	vp = p.pts.begin();
 			int		x = vp->x - offset.x;
 			int		y = vp->y - offset.y;
 
-			if (i->mode == MARKER_PEN) {
+			if (p.mode == MARKER_PEN) {
 				::MoveToEx(hDc, x, y, NULL);
-				for (vp++; vp != i->pts.end(); vp++) {
+				for (vp++; vp != p.pts.end(); vp++) {
 					::LineTo(hDc, vp->x - offset.x, vp->y - offset.y);
 				}
 			}
-			else if (i->mode == MARKER_RECT) {
+			else if (p.mode == MARKER_RECT) {
 				HBRUSH	hOldBrush = (HBRUSH)::SelectObject(hDc, (HGDIOBJ)GetStockObject(NULL_BRUSH));
-				if (i->pts.size() > 1) {
-					int		end_x = i->pts.back().x - offset.x;
-					int		end_y = i->pts.back().y - offset.y;
+				if (p.pts.size() > 1) {
+					int		end_x = p.pts.back().x - offset.x;
+					int		end_y = p.pts.back().y - offset.y;
 					TRect	rrc(x, y, end_x-x, end_y-y);
 					rrc.Regular();
 					RoundRect(hDc, rrc.left, rrc.top, rrc.right, rrc.bottom, 6, 6);
 				}
 				::SelectObject(hDc, hOldBrush);
 			}
-			else if (i->mode == MARKER_ARROW) {
-				if (i->pts.size() > 1) {
-					POINT	end_pt = {  i->pts.back().x - offset.x,
-										i->pts.back().y - offset.y };
-					if (i->memo.size()) {
+			else if (p.mode == MARKER_ARROW) {
+				if (p.pts.size() > 1) {
+					POINT	end_pt = {  p.pts.back().x - offset.x,
+										p.pts.back().y - offset.y };
+					if (p.memo.size()) {
 						TRect	max_rc(rc.x()-offset.x, rc.y()-offset.y, rc.cx(), rc.cy());
-						TRect	mrc = DrawMarkerMemo(hDc, *i, &end_pt, max_rc);
+						TRect	mrc = DrawMarkerMemo(hDc, p, &end_pt, max_rc);
 
 						if (y > end_pt.y && mrc.bottom > end_pt.y) {
 							double ratio = ((double)x - end_pt.x) / ((double)y - end_pt.y);
@@ -595,8 +602,8 @@ BOOL TImageWin::DrawMarker(HDC hDc)
 							end_pt.x = int(end_pt.x - ratio * (end_pt.y - mrc.top));
 							end_pt.y = mrc.top;
 						}
-						i->pts.back().x = short(end_pt.x + offset.x);
-						i->pts.back().y = short(end_pt.y + offset.y);
+						p.pts.back().x = short(end_pt.x + offset.x);
+						p.pts.back().y = short(end_pt.y + offset.y);
 					}
 					::MoveToEx(hDc, x, y, NULL);
 					::LineTo(hDc, end_pt.x, end_pt.y);
@@ -604,7 +611,7 @@ BOOL TImageWin::DrawMarker(HDC hDc)
 					double	fx = (double)x - end_pt.x;
 					double	fy = (double)y - end_pt.y;
 					double	fv = sqrt(fx*fx + fy*fy);
-					if	(fv == 0.0) 0.001;
+					if	(fv == 0.0) fv = 0.001;
 					double	fux = fx/fv;
 					double	fuy = fy/fv;
 #define AR_W 4
@@ -870,8 +877,8 @@ void TImageWin::SetMode(BOOL is_draw)
 			status = DRAW_INIT;
 			drawPts.clear();
 		}
-		COLORREF		color = areaDlg.GetColor();
-		CursorMapItr	itr = cursorMap.find(CURSOR_IDX(color, areaDlg.GetMode() != MARKER_PEN));
+		auto	color = areaDlg.GetColor();
+		auto	itr = cursorMap.find(CURSOR_IDX(color, areaDlg.GetMode() != MARKER_PEN));
 		if (itr != cursorMap.end()) {
 			::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(itr->second));
 		}
@@ -916,7 +923,8 @@ BOOL TImageWin::CutImage(BOOL use_clip, BOOL with_save)
 	parentWnd->InsertBitmapByHandle(hAreaBmp);
 
 	if (with_save) {
-		char	fname[MAX_PATH_U8] = "";
+		char	fname[MAX_PATH_U8];
+		MakeImageTmpFileName(cfg->lastSaveDir, fname);
 		OpenFileDlg	dlg(this->parent, OpenFileDlg::SAVE, NULL, OFN_OVERWRITEPROMPT);
 
 		if (dlg.Exec(fname, sizeof(fname), NULL, "PNG file(*.png)\0*.png\0\0",
@@ -924,12 +932,14 @@ BOOL TImageWin::CutImage(BOOL use_clip, BOOL with_save)
 			DWORD	size = 0;
 			VBuf	*buf = BmpHandleToPngByte(hAreaBmp);
 			if (buf) {
-				HANDLE	hFile = CreateFileU8(fname, GENERIC_WRITE,
+				HANDLE	hFile = CreateFileWithDirU8(fname, GENERIC_WRITE,
 											 FILE_SHARE_READ|FILE_SHARE_WRITE,
 											 NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 				if (hFile != INVALID_HANDLE_VALUE) {
 					WriteFile(hFile, buf->Buf(), (DWORD)buf->Size(), &size, 0);
 					CloseHandle(hFile);
+					cfg->WriteRegistry(CFG_GENERAL);
+					TOpenExplorerSelOneW(U8toWs(fname));
 				}
 				delete buf;
 			}

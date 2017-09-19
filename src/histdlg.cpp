@@ -1,10 +1,10 @@
 ﻿static char *histdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2015   histdlg.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 2011-2017   histdlg.cpp	Ver4.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: History Dialog
 	Create					: 2011-07-24(Sun)
-	Update					: 2015-05-03(Sun)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -24,7 +24,7 @@ HistHash::~HistHash()
 
 BOOL HistHash::IsSameVal(THashObj *obj, const void *val)
 {
-	return	strcmp(((HistObj *)obj)->info, (const char *)val) == 0;
+	return	strcmp(((HistObj *)obj)->info.s(), (const char *)val) == 0;
 }
 
 void HistHash::Clear()
@@ -108,9 +108,10 @@ void HistHash::UnRegisterLru(HistObj *obj)
 /*
 	THistDlg
 */
-THistDlg::THistDlg(Cfg *_cfg, THosts *_hosts, TWin *_parent) : TDlg(HISTORY_DIALOG, _parent), histListView(this), histListHeader(&histListView)
+THistDlg::THistDlg(Cfg *_cfg, THosts *_hosts, TWin *_parent) : TDlg(HISTORY_DIALOG, _parent),
+	histListView(this), histListHeader(&histListView)
 {
-	hAccel = ::LoadAccelerators(TApp::GetInstance(), (LPCSTR)IPMSG_ACCEL);
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 	cfg = _cfg;
 	hosts = _hosts;
 	hListFont = NULL;
@@ -180,10 +181,14 @@ BOOL THistDlg::EvDestroy()
 
 void THistDlg::SaveColumnInfo()
 {
-	int	col_num = MAX_HISTWIDTH - (openedMode ? 0 : 1);
+	int	offset = 0;
 
-	for (int i=0; i < col_num; i++) {
-		cfg->HistWidth[i] = histListView.GetColumnWidth(i);
+	for (int i=0; i < MAX_HISTWIDTH; i++) {
+		if (!openedMode && i == HW_ODATE) {
+			offset = 1;
+			continue;
+		}
+		cfg->HistWidth[i] = histListView.GetColumnWidth(i - offset);
 	}
 }
 
@@ -200,8 +205,11 @@ BOOL THistDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		return	TRUE;
 
 	case IDOK:
-	case IDCANCEL:
 		EndDialog(wID);
+		return	TRUE;
+
+	case IDCANCEL:
+		EndDialog(IDCANCEL);
 		return	TRUE;
 
 	case OPENED_CHECK:
@@ -211,14 +219,15 @@ BOOL THistDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		return	TRUE;
 
 	case CLEAR_BUTTON:
+		
 		histListView.DeleteAllItems();
 		if (openedMode) {
 			while (histHash.LruTop()) histHash.UnRegister(histHash.LruTop()); // !UnRegisterLRU()
 		}
 		else {
-			for (HistObj *obj=histHash.Top(); obj; ) {
-				HistObj *next = obj->next;
-				if (!*obj->odate) histHash.UnRegister(obj);
+			for (auto obj=histHash.Top(); obj; ) {
+				auto next = obj->next;
+				if (!*obj->odate.s()) histHash.UnRegister(obj);
 				obj = next;
 			}
 			unOpenedNum = 0;
@@ -258,36 +267,38 @@ BOOL THistDlg::Create(HINSTANCE hI)
 
 void THistDlg::SetTitle()
 {
-	SetWindowTextU8(Fmt(GetLoadStrU8(openedMode ? IDS_OPENINFO : IDS_UNOPENINFO),
+	SetWindowTextU8(Fmt(LoadStrU8(openedMode ? IDS_OPENINFO : IDS_UNOPENINFO),
 						openedMode ? (histHash.GetRegisterNum() - unOpenedNum) : unOpenedNum,
 						histHash.GetRegisterNum()));
 }
 
 void THistDlg::SetHeader()
 {
-	int	title_id[] = { IDS_HISTUSER, IDS_HISTODATE, IDS_HISTSDATE, IDS_HISTID };
-	int	i, offset = 0;
-	int	col_num = MAX_HISTWIDTH - (openedMode ? 0 : 1);
+	int	title_id[] = { IDS_HISTUSER, IDS_HISTODATE, IDS_HISTSDATE, IDS_HISTMSG /*, IDS_HISTID*/ };
+	int	offset = 0;
 
-	for (i=0; i < MAX_HISTWIDTH; i++) {
+	for (int i=0; i < MAX_HISTWIDTH; i++) {
 		histListView.DeleteColumn(0);
 	}
 
-	for (i=0; i < MAX_HISTWIDTH; i++) {
+	for (int i=0; i < MAX_HISTWIDTH; i++) {
 		if (!openedMode && i == HW_ODATE) {
 			offset = 1;
 			continue;
 		}
-		histListView.InsertColumn(i-offset, GetLoadStrU8(title_id[i]), cfg->HistWidth[i-offset]);
+		histListView.InsertColumn(i-offset, LoadStrU8(title_id[i]), cfg->HistWidth[i]);
 	}
 }
 
 void THistDlg::SetData(HistObj *obj)
 {
-	histListView.InsertItem(0, obj->user, (LPARAM)obj);
-	if (openedMode) histListView.SetSubItem(0, HW_ODATE, obj->odate);
-	histListView.SetSubItem(0, HW_SDATE - (openedMode ? 0 : 1), obj->sdate);
-	histListView.SetSubItem(0, HW_ID    - (openedMode ? 0 : 1), obj->pktno);
+	histListView.InsertItem(0, obj->user.s(), (LPARAM)obj);
+	if (openedMode) {
+		histListView.SetSubItem(0, HW_ODATE, obj->odate.s());
+	}
+	histListView.SetSubItem(0, HW_SDATE - (openedMode ? 0 : 1), obj->sdate.s());
+	histListView.SetSubItem(0, HW_MSG   - (openedMode ? 0 : 1), obj->msg.s());
+//	histListView.SetSubItem(0, HW_ID    - (openedMode ? 0 : 1), obj->pktnos.s());
 }
 
 void THistDlg::SetAllData()
@@ -297,23 +308,23 @@ void THistDlg::SetAllData()
 	SetTitle();
 
 	if (openedMode) {
-		for (HistObj *obj = histHash.LruEnd(); obj; obj = obj->lruPrev) {
+		for (auto obj = histHash.LruEnd(); obj; obj = obj->lruPrev) {
 			SetData(obj);
 		}
 	}
 	else {
-		for (HistObj *obj = histHash.End(); obj; obj = obj->prev) {
-			if (!*obj->odate) SetData(obj);
+		for (auto obj = histHash.End(); obj; obj = obj->prev) {
+			if (!*obj->odate.s()) SetData(obj);
 		}
 	}
 }
 
 int THistDlg::MakeHistInfo(HostSub *hostSub, ULONG packet_no, char *buf)
 {
-	return	sprintf(buf, "%s:%s:%d", hostSub->userName, hostSub->hostName, packet_no);
+	return	sprintf(buf, "%s:%s:%d", hostSub->u.userName, hostSub->u.hostName, packet_no);
 }
 
-void THistDlg::SendNotify(HostSub *hostSub, ULONG packetNo)
+void THistDlg::SendNotify(HostSub *hostSub, ULONG packetNo, const char *msg)
 {
 #define MAX_OPENHISTORY 500
 	int num = histHash.GetRegisterNum();
@@ -321,22 +332,36 @@ void THistDlg::SendNotify(HostSub *hostSub, ULONG packetNo)
 		if (HistObj *obj = histHash.End()) {
 			if (hWnd) histListView.DeleteItem(num-1);
 			histHash.UnRegister(obj);
-			if (!*obj->odate) unOpenedNum--;
+			if (!*obj->odate.s()) unOpenedNum--;
 			delete obj;
 			num--;
 		}
 	}
 
+	char	buf[MAX_LISTBUF];
 	HistObj	*obj = new HistObj();
-	int		len = MakeHistInfo(hostSub, packetNo, obj->info);
+	int		len = MakeHistInfo(hostSub, packetNo, buf);
+	obj->info = buf;
 
-	histHash.Register(obj, MakeHash(obj->info, len, 0));
+	histHash.Register(obj, MakeHash(obj->info.s(), len, 0));
 
-	MakeListString(cfg, hostSub, hosts, obj->user);
+	MakeListString(cfg, hostSub, hosts, buf);
+	obj->user = buf;
+
 	SYSTEMTIME	st;
 	::GetLocalTime(&st);
-	sprintf(obj->sdate, "%02d/%02d %02d:%02d", st.wMonth, st.wDay, st.wHour, st.wMinute);
-	sprintf(obj->pktno, "%x", packetNo);
+
+	sprintf(buf, "%02d/%02d %02d:%02d", st.wMonth, st.wDay, st.wHour, st.wMinute);
+	obj->sdate = buf;
+
+//	sprintf(buf, "%x", packetNo);
+//	obj->pktnos = buf;
+	obj->packetNo = packetNo;
+
+	if (msg) {
+		u8cpyz(buf, msg, 100);
+		obj->msg = buf;
+	}
 
 	unOpenedNum++;
 
@@ -354,29 +379,30 @@ void THistDlg::OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify)
 	int		len;
 	u_int	hash_val;
 	HistObj	*obj;
-	int		idx;
 
 	len = MakeHistInfo(hostSub, packetNo, buf);
 	hash_val =  MakeHash(buf, len, 0);
 	if (!(obj = (HistObj *)histHash.Search(buf, hash_val))) {
-		SendNotify(hostSub, packetNo);
+		SendNotify(hostSub, packetNo, notify);
 		if (!(obj = (HistObj *)histHash.Search(buf, hash_val))) {
 			return;
 		}
-		sprintf(obj->sdate, GetLoadStrU8(IDS_UNKNOWN));
+		obj->sdate = LoadStrU8(IDS_UNKNOWN);
 	}
 
-	if (*obj->odate) return;
+	if (*obj->odate.s()) return;
 
 	SYSTEMTIME	st;
 	::GetLocalTime(&st);
-	sprintf(obj->odate, "%02d/%02d %02d:%02d", st.wMonth, st.wDay, st.wHour, st.wMinute);
+	sprintf(buf, "%02d/%02d %02d:%02d", st.wMonth, st.wDay, st.wHour, st.wMinute);
+	obj->odate = buf;
+
 	if (--unOpenedNum < 0) unOpenedNum = 0;
 	histHash.RegisterLru(obj);
 
 	if (notify) {
-		strncpyz(obj->sdate, obj->odate, sizeof(obj->sdate));
-		strncpyz(obj->odate, notify, sizeof(obj->odate));
+		obj->sdate = obj->odate;
+		obj->msg = notify;
 	}
 
 	if (hWnd) {
@@ -384,7 +410,8 @@ void THistDlg::OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify)
 			SetData(obj);
 		}
 		else {
-			if ((idx = histListView.FindItem((LPARAM)obj)) >= 0) {
+			int	idx = histListView.FindItem((LPARAM)obj);
+			if (idx >= 0) {
 				histListView.DeleteItem(idx);
 			}
 		}

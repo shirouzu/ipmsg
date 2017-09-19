@@ -1,26 +1,36 @@
 ﻿static char *logview_id = 
-	"@(#)Copyright (C) H.Shirouzu 2015   mainwin.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu and Asahi Net, Inc. 2015-2017   logview.cpp	Ver4.60";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: LogViewer
 	Create					: 2015-04-10(Sat)
-	Update					: 2015-05-03(Sun)
+	Update					: 2017-07-16(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
-#if 0
 #include "ipmsg.h"
-#include <gdiplus.h>
-using namespace Gdiplus;
+#include <vector>
+using namespace std;
 
-static HBITMAP hDummyBmp;
-
-TLogView::TLogView(Cfg *_cfg) : cfg(_cfg), childView(cfg, this), TDlg(LOGVIEW_DIALOG, this)
+/* =====================================================================
+             TLogView
+ ======================================================================*/
+TLogView::TLogView(Cfg *_cfg, LogMng *_logMng, BOOL is_main, TWin *parent) :
+	cfg(_cfg),
+	logMng(_logMng),
+	toolBar(this, LVBASE_CY),
+	childView(cfg, _logMng, is_main, this),
+	userCombo(cfg, this),
+	userComboEx(cfg, this),
+	bodyCombo(cfg, this),
+	statusCtrl(cfg, this),
+	isMain(is_main),
+	TDlg(LOGVIEW_DIALOG, NULL)
 {
-	hToolBar = NULL;
-	hAccel	= ::LoadAccelerators(TApp::GetInstance(), (LPCSTR)LOGVIEW_ACCEL);
-	hDummyBmp = ::LoadBitmap(TApp::GetInstance(), (LPCSTR)DUMMYPIC_BITMAP);
+	hAccel	= ::LoadAccelerators(TApp::hInst(), (LPCSTR)LOGVIEW_ACCEL);
+
+	hMiniFont = NULL;
 }
 
 TLogView::~TLogView()
@@ -32,33 +42,214 @@ BOOL TLogView::Create()
 	return	TDlg::Create();
 }
 
+// [+] [▽] [USERCOMBO] [↓] [Search][✓] (static) [☆][I] [M] […]
+
+BOOL GetStrWidthW(HWND hWnd, const WCHAR *wstr, SIZE *sz, HFONT hFont=NULL, int len=-1)
+{
+	BOOL	ret = FALSE;
+	HDC		hDc = ::GetDC(hWnd);
+	HGDIOBJ	hOldFont = NULL;
+
+	if (hFont) {
+		hOldFont = ::SelectObject(hDc, hFont);
+	}
+
+	ret = ::GetTextExtentPoint32W(hDc, wstr, len == -1 ? (int)wcslen(wstr) : len, sz);
+
+	if (hOldFont) {
+		::SelectObject(hDc, hOldFont);
+	}
+	::ReleaseDC(hWnd, hDc);
+
+	return	ret;
+}
+
+BOOL TLogView::SetupToolbar()
+{
+	HFONT	hFont = (HFONT)SendMessage(WM_GETFONT, 0, 0);
+
+	if (!hMiniFont) {
+		LOGFONT	logFont;
+
+		::GetObject(hFont, sizeof(LOGFONT), &logFont);
+		logFont.lfHeight = lround(logFont.lfHeight * 0.9);
+		hMiniFont = ::CreateFontIndirect(&logFont);
+	}
+
+	ToolBar::BaseInfo bi = {
+		TSize(LVBASE_CX, LVBASE_CY),
+		TSize(LVSTAT_CX, LVSTAT_CY),
+		TSize(LVSTATMINI_CX, LVSTATMINI_CY),
+		LVBASE_BITMAP,
+		{
+			BTNN_BITMAP,
+			BTNF_BITMAP,
+			BTNS_BITMAP,
+			//BTND_BITMAP,
+		},
+		{
+			BTNMN_BITMAP,
+			BTNMF_BITMAP,
+			BTNMS_BITMAP,
+		},
+		hMiniFont,
+	};
+
+	TSize		sz;
+	const WCHAR *find_title   = LoadStrW(IDS_FINDTITLE);
+	GetStrWidthW(hWnd, find_title, &sz, hMiniFont);
+	int			find_width    = sz.cx + (*find_title   > 0xff ? 3 : 6);
+	const WCHAR *filter_title = LoadStrW(IDS_FILTERTITLE);
+	GetStrWidthW(hWnd, filter_title, &sz, hMiniFont);
+	int			filter_width  = sz.cx + (*filter_title > 0xff ? 3 : 4);
+
+	ToolBar::BtnInfo bis[] = {
+		{ BOTTOM_BTN, ToolBar::BTN,  TOPHOT_BITMAP,    TRect(  4, 1,  24, 28), IDS_BOTTOMTIP },
+//		{ REV_BTN,    ToolBar::BTN,  ASC_BITMAP,       TRect(  0, 1,  24, 28), IDS_REVTIP },
+		{ LIST_BTN,   ToolBar::BTN,  TITLEDISP_BITMAP, TRect(  0, 1,  24, 28), IDS_LISTTIP },
+
+		{ USER_COMBO, ToolBar::HOLE, NULL,             TRect( 14, 4, 110, 28) },
+		{ USER_CHK,   ToolBar::BTN,  USERCHK_BITMAP,   TRect(  2, 5,  16, 20), IDS_USERTIP },
+//		{ SEND_BTN,   ToolBar::BTN,  SEND_BITMAP,      TRect(  0, 2,  24, 28), IDS_SENDTIP },
+
+		{ IDS_FINDTITLE, ToolBar::TITLE, NULL,         TRect( 22, 1,  find_width, 28),
+			IDS_FINDTIP, find_title },
+		{ BODY_COMBO, ToolBar::HOLE, NULL,             TRect(  1, 4, 130, 28) },
+		{ NARROW_CHK, ToolBar::BTN,  NARROW_BITMAP,    TRect(  1, 5,  16, 20), IDS_NARROWTIP },
+
+		{ IDS_FILTERTITLE, ToolBar::TITLE, NULL,       TRect( 15, 1,  filter_width, 28),
+			IDS_FILTERTIP, filter_title },
+		{ FAV_CHK,    ToolBar::BTN,  FAVTB_BITMAP,     TRect(  0, 1,  24, 28), IDS_FAVTIP },
+		{ MARK_CHK,   ToolBar::BTN,  MARKTB_BITMAP,    TRect(  0, 1,  24, 28), IDS_MARKTIP },
+		{ CLIP_CHK,   ToolBar::BTN,  CLIPTB_BITMAP,    TRect(  0, 1,  24, 28), IDS_CLIPTIP },
+		{ FILE_CHK,   ToolBar::BTN,  FILETB_BITMAP,    TRect(  0, 1,  24, 28), IDS_FILETIP },
+		{ UNOPENR_CHK, ToolBar::BTN, UNOPENTB_BITMAP,  TRect(  0, 1,  24, 28), IDS_UNOPENTIP },
+
+//		{ MENU_BTN,   ToolBar::BTN,  MISC_BITMAP,      TRect( 17, 2,  24, 28), IDS_MENUTIP },
+//		{ MENU_MEMO,  ToolBar::BTN,  MEMO_BITMAP,      TRect( 19, 2,  24, 28), IDS_MEMOTIP },
+		{ MENU_SENDDLG, ToolBar::BTN, MEMO_BITMAP,     TRect( 19, 1,  24, 28), IDS_SENDTIP },
+		{ STATUS_STATIC, ToolBar::TITLE, NULL,         TRect(  4, 2, 200, 28) },
+	};
+
+	if (toolBar.BtnNum() <= 0) {
+		toolBar.RegisterBaseInfo(&bi);
+		for (int i=0; i < sizeof(bis)/sizeof(bis[0]); i++) {
+			toolBar.RegisterBtn(&bis[i]);
+		}
+	}
+
+	TRect	urc;
+	toolBar.GetRect(USER_COMBO, &urc);
+	HWND hUserCombo = CreateWindow(
+		"COMBOBOX", "",
+		WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | CBS_AUTOHSCROLL| WS_CLIPSIBLINGS | WS_VSCROLL,
+		urc.x(), urc.y(), urc.cx(), 400, hWnd, (HMENU)USER_COMBO, TApp::hInst(), NULL);
+	userCombo.AttachWnd(hUserCombo);
+	userCombo.SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
+
+	HWND hUserComboEx = CreateWindow(
+		"COMBOBOX", "",
+		WS_CHILD | CBS_DROPDOWN | CBS_AUTOHSCROLL| WS_CLIPSIBLINGS | WS_VSCROLL,
+		urc.x(), urc.y(), urc.cx(), 400, hWnd, (HMENU)USEREX_COMBO, TApp::hInst(), NULL);
+	userComboEx.AttachWnd(hUserComboEx);
+	userComboEx.SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
+
+	TRect	brc;
+	toolBar.GetRect(BODY_COMBO, &brc);
+	HWND hBodyCombo = CreateWindow(
+		"COMBOBOX", "",
+		WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | CBS_AUTOHSCROLL| WS_CLIPSIBLINGS | WS_VSCROLL,
+		brc.x(), brc.y(), brc.cx(), 400, hWnd, (HMENU)BODY_COMBO, TApp::hInst(), NULL);
+	bodyCombo.AttachWnd(hBodyCombo);
+	bodyCombo.SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
+
+	return	TRUE;
+}
+
 BOOL TLogView::EvCreate(LPARAM lParam)
 {
 	if (rect.left == CW_USEDEFAULT) {
-		MoveWindow(200, 10, 500, 400, FALSE);
+		TRect	scRect;
+		GetCurrentScreenSize(&scRect);
+
+		int	sx  = scRect.x();
+		int	sy  = scRect.y();
+		int	scx = scRect.cx();
+		int	scy = scRect.cy() - 50;  // 後日、workspace取得＆動的補正に変更
+
+		int	cx = 650;
+		int	cy = 750;
+		int	x  = sx + 150 + (isMain ? 0 : 30);
+		int	y  = sy + 10  + (isMain ? 0 : 30);
+
+		if (x + cx > sx + scx) {
+			x -= (x + cx) - (sx + scx);
+			if (x < sx) {
+				cx -= (sx - x);
+				x = sx;
+			}
+		}
+		if (y + cy > sy + scy) {
+			y -= (y + cy) - (sy + scy);
+			if (y < sy) {
+				cy -= (sy - y);
+				y = sy;
+			}
+		}
+		MoveWindow(x, y, cx, cy, FALSE);
 	}
-	TBBUTTON tb_setting = { 0, LOGVIEW_SETTINGS, TBSTATE_ENABLED, TBSTYLE_BUTTON };
-	hToolBar = ::CreateToolbarEx(hWnd, WS_CHILD|WS_VISIBLE|TBSTYLE_TOOLTIPS, LOGVIEW_TOOLBAR,
-								1, TApp::GetInstance(), LOGVIEWTB_BITMAP, &tb_setting,
-								1, 0, 0, 16, 16, sizeof(TBBUTTON));
 
-//	// 赤・緑・青・黄色のビットマップを追加 (iBitmap 1-16)
-//	for (int i=0; i < 4; i++) {
-//		TBADDBITMAP tab = { TApp::GetInstance(), MARKERRED_BITMAP + i };
-//		::SendMessage(hToolBar, TB_ADDBITMAP, 4, (LPARAM)&tab);
-//	}
-//	TBBUTTON tb_sep = {0, 0, TBSTATE_ENABLED, TBSTYLE_SEP, 0, 0};
-//	::SendMessage(hToolBar, TB_INSERTBUTTON, 3, (LPARAM)&tb_sep);
+	memset(statusMsg, 0, sizeof(statusMsg));
 
-	childView.CreateU8(hToolBar);
+	SetupToolbar();
 
-	userBtn.AttachWnd(::CreateWindow("BUTTON", "Not implement", WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,
-								30,0,100,25,
-								hToolBar, (HMENU)LOGVIEW_USERBTN, TApp::GetInstance(), 0));
-	userBtn.SendMessage(WM_SETFONT, (WPARAM)childView.GetFont(), MAKELPARAM(TRUE, 0));
+	statusCtrl.AttachWnd(::CreateStatusWindowW(WS_CHILD|WS_VISIBLE|CCS_BOTTOM|SBARS_SIZEGRIP,
+		0, hWnd, LOGVIEW_STATUS));
 
-	SetDlgIcon(hWnd);
+	TRect cvrc;
+	childView.CreateU8();
+	childView.GetWindowRect(&cvrc);
+
+//	SetDlgItem(BODY_COMBO, RIGHT_FIT|TOP_FIT);
+//	SetDlgItem(NARROW_CHK, RIGHT_FIT|TOP_FIT);
+//	SetDlgItem(STATUS_STATIC, X_FIT|TOP_FIT);
+
+//	SetDlgIcon(hWnd);
+
+	static HICON hBigIcon;
+	static HICON hSmallIcon;
+
+	if (!hBigIcon) {
+		hBigIcon = (HICON)::LoadImage(TApp::hInst(), (LPCSTR)LOGVIEW_ICON,
+			IMAGE_ICON, 32, 32, LR_DEFAULTCOLOR);
+		hSmallIcon = (HICON)::LoadImage(TApp::hInst(), (LPCSTR)LOGVIEW_ICON,
+			IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	}
+	SendMessage(WM_SETICON, ICON_BIG, (LPARAM)hBigIcon);
+	SendMessage(WM_SETICON, ICON_SMALL, (LPARAM)hSmallIcon);
+
+	if (!isMain) {
+		WCHAR	title[MAX_BUF];
+		GetWindowTextW(title, wsizeof(title));
+		wcscat(title, L" (Sub Window)");
+		SetWindowTextW(title);
+	}
+
+	if (IsWin7()) {
+		SetWinAppId(hWnd, L"ipmsg_logview");
+	}
+	EvSize(SIZE_RESTORED, 0, 0);
 	Show();
+	return	TRUE;
+}
+
+BOOL TLogView::EvNcDestroy(void)
+{
+	::DeleteObject(hMiniFont);
+	hMiniFont = NULL;
+	toolBar.UnInit();
+
+	::PostMessage(GetMainWnd(), WM_LOGVIEW_CLOSE, 0, (LPARAM)this);
 	return	TRUE;
 }
 
@@ -66,21 +257,114 @@ BOOL TLogView::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 {
 	switch (wID) {
 	case IDOK:
+		if (GetFocus() == ::GetWindow(GetDlgItem(BODY_COMBO), GW_CHILD)) {
+			TChildView::FindMode mode = (::GetKeyState(VK_SHIFT) & 0x8000) ? TChildView::PREV_IDX
+				: TChildView::NEXT_IDX;
+			if (childView.SetFindedIdx(mode,
+				TChildView::SF_REDRAW     |
+				TChildView::SF_SAVEHIST   |
+				TChildView::SF_FASTSCROLL)) {
+				childView.SetUserSelected();
+			}
+		}
+		return	TRUE;
+
 	case IDCANCEL:
 		EndDialog(wID);
 		return	TRUE;
 
-	case LOGVIEW_SETTINGS:
-		MessageBox("Not Implemented", "ipmsg", MB_OK);
-		return	TRUE;
+	case LIST_BTN:
+	case UP_BTN:
+	case DOWN_BTN:
+	case NARROW_CHK:
+	case BOTTOM_BTN:
+	case FILE_CHK:
+	case CLIP_CHK:
+	case UNOPENR_CHK:
+	case FAV_CHK:
+	case MARK_CHK:
+	case MENU_BTN:
+	case MENU_MEMO:
+	case RANGE_SCRL:
+	case MENU_REVERSE:
+	case MENU_FETCHDB:
+	case MENU_DBVACUUM:
+	case REV_BTN:
+	case BOTTOM_ACCEL:
+	case NARROW_ACCEL:
+	case LIST_ACCEL:
+	case TOP_ACCEL:
+	case USER_ACCEL:
+		childView.SetFocus();
+		// fall through...
 
-	case LOGVIEW_USERBTN:
-		childView.EvCommand(wNotifyCode, wID, hwndCtl);
-		return	TRUE;
+	case FIND_ACCEL:
+	case USER_COMBO:
+	case USEREX_COMBO:
+	case USER_CHK:
+	case BODY_COMBO:
+	case LOGVIEW_REPLY:
+	case SEND_ACCEL:
+	case MENU_SENDDLG:
+		return	childView.EvCommand(wNotifyCode, wID, hwndCtl);
 
-	case LOGVIEW_COPY:
-		childView.EvCommand(wNotifyCode, wID, hwndCtl);
-		return	TRUE;
+	case COPY_ACCEL:
+	case PASTE_ACCEL:
+		{
+			HWND	hFocus  = ::GetFocus();
+			HWND	hParent = ::GetParent(hFocus);
+
+			if (bodyCombo.hWnd == hParent || userComboEx.hWnd == hParent) {
+				UINT	cmd = (wID == COPY_ACCEL) ? WM_COPY : WM_PASTE;
+				::PostMessage(hFocus, cmd, 0, 0);
+				return	TRUE;
+			}
+			childView.SetFocus();
+			return	childView.EvCommand(wNotifyCode, wID, hwndCtl);
+		}
+
+	case MENU_LOGIMPORT:
+	case MENU_LOGTOFILE:
+	case MENU_FONT:
+	case MENU_FOLDQUOTE:
+		return	childView.EvCommand(wNotifyCode, wID, hwndCtl);
+
+	case MENU_FINDLRUCLEAR:
+		if (TMsgBox(this).Exec(LoadStrU8(IDS_CLEARFINDLRU)) == IDOK) {
+			childView.ClearFindURL();
+			::PostMessage(GetMainWnd(), WM_LOGVIEW_RESETFIND, 0, (LPARAM)this);
+		}
+		return TRUE;
+
+	case MENU_NEWLOGVIEW:
+		::PostMessage(GetMainWnd(), WM_LOGVIEW_OPEN, 1, 0);
+		return TRUE;
+
+	case MENU_HELP:
+		::PostMessage(GetMainWnd(), WM_COMMAND, MENU_HELP_LOGVIEW, 0);
+		return TRUE;
+
+	case MENU_HELP_TIPS:
+		::PostMessage(GetMainWnd(), WM_COMMAND, MENU_HELP_TIPS, 0);
+		return TRUE;
+
+	case MENU_CLOSE:
+		PostMessage(WM_COMMAND, IDCANCEL, 0);
+		return TRUE;
+
+	case MENU_SETUP:
+		::PostMessage(GetMainWnd(), WM_IPMSG_SETUPDLG, LINK_SHEET, 0);
+		return TRUE;
+
+	case HIDE_ACCEL:
+	case MENU_URL:
+	case MENU_SUPPORTBBS:
+	case MENU_LOGOPEN:
+	case MENU_LOGIMGOPEN:
+	case MENU_DLLINKS:
+	case MENU_AUTOSAVE:
+		::PostMessage(GetMainWnd(), WM_COMMAND, wID, 0);
+		return TRUE;
 	}
 	return FALSE;
 }
@@ -89,6 +373,49 @@ BOOL TLogView::EvSysCommand(WPARAM uCmdType, POINTS pos)
 {
 //	if (uCmdType == SC_CLOSE) ::PostMessage(GetMainWnd(), WM_SYSCOMMAND, MENU_EXIT, 0);
 
+//	switch (uCmdType) {
+//	case MENU_LOGIMPORT:
+//	case MENU_DBVACUUM:
+//	case MENU_LOGTOFILE:
+//	case MENU_FONT:
+//	case MENU_FINDLRUCLEAR:
+//	case MENU_NEWLOGVIEW:
+//	case MENU_SENDDLG:
+//	case MENU_HELP:
+//	case MENU_HELP_TIPS:
+//	case MENU_SUPPORTBBS:
+//	case MENU_MEMO:
+//	case MENU_REVERSE:
+//	case MENU_CLOSE:
+//	case MENU_LOGOPEN:
+//	case MENU_LOGIMGOPEN:
+//		return	EvCommand(0, (WORD)uCmdType, 0);
+//	}
+
+	return	FALSE;
+}
+
+BOOL TLogView::EvNotify(UINT ctlID, NMHDR *pNmHdr)
+{
+	if (ctlID == LOGVIEW_TOOLBAR) {
+		if (pNmHdr->code == TBN_GETINFOTIPW) {
+			NMTBGETINFOTIPW	*itip = (NMTBGETINFOTIPW *)pNmHdr;
+			itip->pszText = NULL;
+
+			switch (itip->iItem) {
+			case LOGTB_TITLE:	itip->pszText = L"ヘッダ行のみ";	break;
+			case LOGTB_REV:		itip->pszText = L"逆順";	break;
+			case LOGTB_TAIL:	itip->pszText = L"最新位置にスクロール";	break;
+			case LOGTB_NARROW:	itip->pszText = L"検索結果のみに絞り込み";	break;
+			case LOGTB_FAV:		itip->pszText = L"お気に入り表示";	break;
+			case LOGTB_CLIP:	itip->pszText = L"画像メッセージを表示";	break;
+			case LOGTB_MEMO:	itip->pszText = L"メモを追加";	break;
+			case LOGTB_MENU:	itip->pszText = L"その他メニュー";	break;
+			}
+			if (itip->pszText) itip->cchTextMax = (int)wcslen(itip->pszText);
+			return	TRUE;
+		}
+	}
 	return	FALSE;
 }
 
@@ -104,859 +431,208 @@ BOOL TLogView::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
 
 BOOL TLogView::EvPaint()
 {
-	return	FALSE;
+	PAINTSTRUCT ps;
+	HDC	hDc = BeginPaint(hWnd, &ps);
+
+	TRect	brc;
+	GetClientRect(&brc);
+
+	toolBar.Paint(hDc, &ps, &brc);
+
+	EndPaint(hWnd, &ps);
+
+	return	TRUE;
 }
 
 BOOL TLogView::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 {
-//	if (fwSizeType == SIZE_RESTORED || fwSizeType == SIZE_MAXIMIZED)
-	::SendMessage(hToolBar, TB_AUTOSIZE, sizeof(TBBUTTON), 0);
-	childView.FitSize();
-	InvalidateRect(NULL, TRUE);
+	if (fwSizeType == SIZE_MINIMIZED) {
+		return	FALSE;
+	}
 
+	TRect	rc;
+	GetClientRect(&rc);
+	rc.bottom = toolBar.Cy();
+//	InvalidateRect(&rc, FALSE);
+
+	FitDlgItems();
+
+	statusCtrl.SendMessage(WM_SIZE, fwSizeType, MAKELPARAM(nWidth, nHeight));
+	TRect crc;
+	GetClientRect(&crc);
+	int size[] = { crc.cx() - 250, crc.cx() };
+	statusCtrl.SendMessage(SB_SETPARTS, 2, (LPARAM)size);
+
+	childView.FitSize();
 	return	FALSE;;
 }
 
 BOOL TLogView::EvTimer(WPARAM timerID, TIMERPROC proc)
 {
-	return	TRUE;
+	return	toolBar.Timer(timerID, proc);
 }
 
-/*
-   ==========================  ChildView  =================================
-*/
-TChildView::TChildView(Cfg *_cfg, TLogView *_parent) :
-	TWin(_parent), cfg(_cfg), parentView(_parent)
+BOOL TLogView::EvMouseWheel(WORD fwKeys, short zDelta, short xPos, short yPos)
 {
-	viewPos		= 0;
-	viewLines	= 0;
-	rectLines	= 0;
-	hFont		= NULL;
-	scrTimerID	= 0;
-	lines		= &fullLines;
+	return	childView.EvMouseWheel(fwKeys, zDelta, xPos, yPos);
 }
 
-TChildView::~TChildView()
+BOOL TLogView::EvDrawItem(UINT ctlID, DRAWITEMSTRUCT *lpDis)
 {
+	return	childView.EvDrawItem(ctlID, lpDis);
 }
 
-BOOL TChildView::LoadLog(const char *logname)
+BOOL TLogView::EvMouseMove(UINT fwKeys, POINTS pos)
 {
-//	FILE	*fp = fopen(U8toA(logname), "r");
-//	char	buf[1024 * 64];
-//	while (fgets(buf, sizeof(buf), fp)) {
-//		fullLines.push_back(new LineInfo(U8toWs((char *)buf)));
-//		if (fullLines.size() > 1000) break;
-//	}
-//	fclose(fp);
-
-	DWORD	tick = GetTickCount();
-	BOOL	ret = FALSE;
-	HANDLE	hFile = CreateFileU8(cfg->LogFile, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE,
-									NULL, OPEN_EXISTING, 0, 0);
-	DWORD	size = ::GetFileSize(hFile, 0); // non support 4GB over
-	HANDLE	hMap = ::CreateFileMapping(hFile, 0, PAGE_READONLY, 0, 0, NULL);
-	char	*top = (char *)::MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);
-	char	*end = top + size;
-
-	if (top) {
-		char	*s=top, *e;
-
-		while (s < end && (e = (char *)memchr(s, '\n', end-s))) {
-			int	len = int(e - s);
-			if (len > 0 && e[-1] == '\r') len--;
-			LineInfo	*li = new LineInfo(U8toW(s, len));
-			fullLines.push_back(li);
-			s = e + 1;
-//			if (fullLines.size() > 1000) break;
-		}
-	}
-	fullLines.push_back(new LineInfo(U8toW("", 0)));
-
-	if (top) ::UnmapViewOfFile(top);
-	if (hMap) ::CloseHandle(hMap);
-	if (hFile != INVALID_HANDLE_VALUE) ::CloseHandle(hFile);
-
-	Debug("tick=%d\n", GetTickCount() - tick);
-
-	ParseLog();
-
-	for (int i=0; i < msgs.size(); i++) {
-		LogMsg	*m = msgs[i];
-		//if (i < 1000) {
-			for (int j=0; j < m->num; j++) {
-				fullLines[m->no+j]->msgNo = i;
-				curLines.push_back(fullLines[m->no+j]);
-			}
-		//}
-	}
-	curLines.push_back(new LineInfo(U8toW("", 0)));
-	lines = &curLines;
-
-	return	ret;
+	return	toolBar.MouseMove(fwKeys, pos);
 }
 
-BOOL TChildView::UnloadLog()
+BOOL TLogView::EvNcHitTest(POINTS _ps, LRESULT *result)
 {
-	return TRUE;
+	return	toolBar.NcHitTest(_ps, result);
 }
 
-BOOL TChildView::ParseSender(LineInfo *l, LogMsg *lm)
+BOOL TLogView::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 {
-	LogUser	user;
-
-	if (l->s[1] == 'T') {		// To:
-		lm->isTo = true;
-	}
-	else if (l->s[1] == 'F') {	// From:
-		lm->isTo = false;
-	}
-	else return	FALSE;
-
-	if (l->s[l->len-1] != ')') return false;
-
-	int		pl_num = 1;
-	WCHAR	*p     = l->s + l->len -2;
-	WCHAR	*end   = l->s;
-
-	for ( ; p != end && pl_num > 0; p--) {
-		if      (*p == ')') pl_num++;
-		else if (*p == '(') pl_num--;
-	}
-	if (p == end) return false;
-
-	user.uname.s   = l->s + (lm->isTo ? 5 : 7);
-	user.uname.len = int(p - user.uname.s - 1);
-
-	lm->users.push_back(user);
-	return	true;
+	return	toolBar.Button(uMsg, nHitTest, pos);
 }
 
-BOOL TChildView::ParseDate(LineInfo *l, LogMsg *lm)
+BOOL TLogView::EventInitMenu(UINT uMsg, HMENU hMenu, UINT uPos, BOOL fSystemMenu)
 {
-	static WCHAR *mon_dict[] = { L"Jan", L"Feb", L"Mar", L"Apr", L"Jun", L"Jul", L"Aug", L"Sep", L"Oct", L"Nov", L"Dec", 0 };
+	switch (uMsg) {
+	case WM_INITMENU:
+		::CheckMenuItem(GetSubMenu(hMenu, 1), MENU_REVERSE,
+			MF_BYCOMMAND|((childView.GetDispFlasgs() & TChildView::DISP_REV) ?
+			MF_CHECKED : MF_UNCHECKED));
 
-	if (memcmp(l->s, L"  at ", sizeof(WCHAR)*5)) return FALSE;
+		::CheckMenuItem(GetSubMenu(hMenu, 1), MENU_FOLDQUOTE,
+			MF_BYCOMMAND|((childView.GetDispFlasgs() & TChildView::DISP_FOLD_QUOTE) ?
+			MF_CHECKED : MF_UNCHECKED));
 
-	struct tm tm= {};
-	tm.tm_mon = -1;
-
-	for (int i=0; mon_dict[i]; i++) {
-		if (!memcmp(l->s + 9, mon_dict[i], 3 * sizeof(WCHAR))) {
-			tm.tm_mon = i;
-			break;
-		}
-	}
-	if (tm.tm_mon < 0) return FALSE;
-
-//at Mon Jul 02 12:50:56 2012
-	tm.tm_mday	= _wtoi(l->s+13);
-	tm.tm_hour	= _wtoi(l->s+16);
-	tm.tm_min	= _wtoi(l->s+19);
-	tm.tm_sec	= _wtoi(l->s+22);
-	tm.tm_year	= _wtoi(l->s+25) - 1900;
-	tm.tm_isdst	= -1;
-
-	if ((lm->date = mktime(&tm)) == -1) return	FALSE;
-
-	return	TRUE;
-}
-
-BOOL TChildView::ParseAttach(LineInfo *l, LogMsg *lm)
-{
-	static WCHAR image[]   = L"(画像)";
-	static WCHAR image_e[] = L"(image)";
-	static WCHAR both[]    = L"(添付/画像)";
-	static WCHAR both_e[]  = L"(files/images)";
-
-	LogClip	clip;
-
-	if (memcmp(l->s, L"  (", sizeof(WCHAR)*3)) return FALSE;
-
-	if (memcmp(l->s+2, image,   sizeof(image)  -sizeof(WCHAR)) &&
-		memcmp(l->s+2, image_e, sizeof(image_e)-sizeof(WCHAR)) &&
-		memcmp(l->s+2, both,    sizeof(both)   -sizeof(WCHAR)) &&
-		memcmp(l->s+2, both_e,  sizeof(both_e) -sizeof(WCHAR))) return TRUE;
-
-	for (WCHAR *p=wcsstr(l->s+7, L"ipmsgclip_"); p; p=wcsstr(p+1, L"ipmsgclip_")) {
-		WCHAR *e=wcsstr(p+17, L".png");
-		if (e) {
-			clip.fname.s   = p;
-			clip.fname.len = int(e-p+4);
-			for (int i=0; i < 6; i++) {
-				if (e[-i] >= '0' && e[-i] <= '9') continue;
-				if (e[-i] == '_') {
-					clip.pos = _wtoi(e - i);
-				}
-				else break;
-			}
-			lm->clips.push_back(clip);
-			l->flags |= LOG_CLIP_FLAG;
-//			DebugW(L"image=%s\n", l->s);
-		}
-	}
-	return	TRUE;
-}
-
-#define LOG_HEAD1 L"====================================="
-#define LOG_HEAD2 L"-------------------------------------"
-
-BOOL TChildView::ParseMsg(int idx, LogMsg *lm)
-{
-	bool	is_attach=false;
-	int		i=0;
-
-	if ((*lines)[idx]->len != 37 || memcmp((*lines)[idx]->s, LOG_HEAD1, sizeof(WCHAR)*37)) return FALSE;
-
-	for (i=idx+1; i < lines->size(); i++) {
-		if ((*lines)[i]->s[0] != ' ' || ((*lines)[i]->s[1] != 'T' && (*lines)[i]->s[1] != 'F')) break;
-		if (!ParseSender((*lines)[i], lm)) return FALSE;
-	}
-	if (i == idx+1) return FALSE; // no user
-	if (!ParseDate((*lines)[i++], lm)) return FALSE;
-	if (ParseAttach((*lines)[i], lm)) i++;
-	if ((*lines)[i]->len != 37 || memcmp((*lines)[i]->s, LOG_HEAD2, 37*sizeof(WCHAR))) return FALSE;
-
-	lm->no  = idx;
-	lm->num = i - idx + 1;
-
-	return	TRUE;
-}
-
-BOOL TChildView::ParseLog()
-{
-	int		i   = 0;
-	LogMsg	*lm = NULL;
-	LogMsg	*nm = new LogMsg();
-	int		max = (int)lines->size();
-
-	while (i < max) {
-		LineInfo	*l = (*lines)[i];
-
-		if (ParseMsg(i, nm)) {
-			if (lm) {
-				if (nm->date >= lm->date) {
-					lm->num = i - lm->no;
-					msgs.push_back(lm);
-					lm = nm;
-					nm = new LogMsg;
-				}
-			} else {
-				lm = nm;
-				nm = new LogMsg;
-			}
-			i += lm->num;
-		}
-		else i++;
-	}
-	if (lm && lm->date) {
-		lm->num = int(lines->size() - lm->no - 1);
-		msgs.push_back(lm);
-	} else {
-		delete lm;
-	}
-	delete nm;
-
-	return	TRUE;
-}
-
-BOOL TChildView::CreateU8(HWND _hParentToolBar)
-{
-	hParentToolBar = _hParentToolBar;
-
-	static bool once = false;
-	if (!once) {
-		TRegisterClassU8(VIEWCHILD_CALSS, CS_DBLCLKS, NULL, ::LoadCursor(NULL, IDC_IBEAM),
-						 (HBRUSH)::GetStockObject(WHITE_BRUSH));
-		once = true;
-	}
-
-	LoadLog(cfg->LogFile);
-
-	return	TWin::CreateU8(VIEWCHILD_CALSS, VIEWCHILD_CALSS,
-							WS_CHILD|WS_VISIBLE|WS_TABSTOP/*|WS_HSCROLL*/|WS_VSCROLL);
-}
-
-BOOL TChildView::EvCreate(LPARAM lParam)
-{
-	TRect	trc;
-	::GetWindowRect(hParentToolBar, &trc);
-	toolBarCy = trc.cy();
-
-	SetFont();
-	FitSize();
-
-	return	TRUE;
-}
-
-BOOL TChildView::EvNcDestroy(LPARAM lParam)
-{
-	UnloadLog();
-	return	TRUE;
-}
-
-BOOL TChildView::UserPopupMenu()
-{
-	return TRUE;
-}
-
-
-BOOL TChildView::SetClipBoard()
-{
-	if (!selTopPos.Valid())     return FALSE;
-	if (!::OpenClipboard(hWnd)) return	FALSE;
-	::EmptyClipboard();
-
-	int	size = 0;
-	for (int i=selTopPos.no; i < selEndPos.no && i < lines->size(); i++) {
-		size += (*lines)[i]->len + 1;
-	}
-	GBuf	gbuf(size * sizeof(WCHAR));
-	WCHAR	*p = (WCHAR *)gbuf.Buf();
-
-	if (p) {
-		for (int i=selTopPos.no; i < selEndPos.no && i < lines->size(); i++) {
-			LineInfo	*l = (*lines)[i];
-			memcpy(p, l->s, l->len * sizeof(WCHAR));
-			p[l->len] = '\n';
-			p += l->len + 1;
-		}
-	}
-
-	gbuf.Unlock();
-
-	::SetClipboardData(CF_UNICODETEXT, gbuf.Handle());
-	::CloseClipboard();
-
-	selTopPos.Init();
-	InvalidateRect(0, TRUE);
-
-	return	TRUE;
-}
-
-BOOL TChildView::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
-{
-	switch (wID) {
-	case IDOK:
-	case IDCANCEL:
-//		PostQuitMessage(0);
 		return	TRUE;
-
-	case LOGVIEW_USERBTN:
-		UserPopupMenu();
-		return	TRUE;
-
-	case LOGVIEW_COPY:
-		return	SetClipBoard();
 	}
-	return FALSE;
+	return	FALSE;
 }
 
-BOOL TChildView::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
+BOOL TLogView::SetStatusMsg(int pos, const WCHAR *msg)
 {
-	if (uMsg != WM_KEYDOWN) return	FALSE;
+	if (pos >= MAX_STATUS_MSGNUM) return FALSE;
+
+	if (wcscmp(statusMsg[pos], msg)) {
+		statusCtrl.SendMessageW(SB_SETTEXTW, pos | 0, (LPARAM)msg);
+		wcsncpyz(statusMsg[pos], msg, wsizeof(statusMsg[pos]));
+	}
+	return	TRUE;
+}
+
+BOOL TLogView::SetUser(const Wstr &uid)
+{
+	return	hWnd ? childView.SetUser(uid) : FALSE;
+}
+
+BOOL TLogView::ResetCache()
+{
+	return	hWnd ? childView.ResetCache() : FALSE;
+}
+
+BOOL TLogView::ResetFindBodyCombo()
+{
+	if (!hWnd) {
+		return	FALSE;
+	}
+	bodyCombo.SendMessage(CB_RESETCONTENT, 0, 0);
+	return	TRUE;
+}
+
+BOOL TLogView::SwitchUserCombo()
+{
+	BOOL to_combo = IsUserComboEx();
+
+	userCombo.Show(to_combo ? SW_SHOW : SW_HIDE);
+	userComboEx.Show(to_combo ? SW_HIDE : SW_SHOW);
+
+	userCombo.SendMessage(CB_SETCURSEL, 0, 0);
+	userComboEx.SendMessage(CB_SETCURSEL, 0, 0);
+	userComboEx.SetWindowTextW(L"");
+
+	return	TRUE;
+}
+
+BOOL TUserCombo::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
+{
+	if (uMsg != WM_KEYDOWN) {
+		return	FALSE;
+	}
 
 	switch (nVirtKey) {
-	case VK_UP:
-		EventScroll(WM_VSCROLL, SB_LINEUP, 0, 0);
-		break;
-	case VK_DOWN:
-		EventScroll(WM_VSCROLL, SB_LINEDOWN, 0, 0);
-		break;
-	case VK_PRIOR:
-		EventScroll(WM_VSCROLL, SB_PAGEUP, 0, 0);
-		break;
-	case VK_NEXT:
-		EventScroll(WM_VSCROLL, SB_PAGEDOWN, 0, 0);
-		break;
-	case VK_LEFT:
-		break;
-	case VK_RIGHT:
-		break;
-	}
-	return	FALSE;
-}
-
-BOOL TChildView::EventFocus(UINT uMsg, HWND hFocusWnd)
-{
-	switch (uMsg) {
-	case WM_SETFOCUS:
-		break;
-
-	case WM_KILLFOCUS:
-		break;
-	}
-
-	return	FALSE;
-}
-
-int TChildView::ToLineNo(int view_no)
-{
-	int	min = 0;
-	int	max = (int)lines->size() - 1;
-
-	while (min <= max) {
-		int			i   = (min + max) / 2;
-		LineInfo	*l = (*lines)[i];
-
-		if (l->viewNoEnd < view_no) {
-			min = i + 1;
-		}
-		else if (l->viewNo > view_no) {
-			max = i - 1;
-		}
-		else {
-			return i;
-		}
-	}
-	return	min == lines->size() ? max : 0;
-}
-
-BOOL TChildView::EvPaint()
-{
-	PAINTSTRUCT	ps;
-	HDC			hDc = ::BeginPaint(hWnd, &ps);
- 	HFONT		hOldFont = (HFONT)::SelectObject(hDc, hFont);
-	SIZE		sz = {};
-	TRect		rc;
-	HDC			hBmpDc    = NULL;
-	HBITMAP		hOldBmp   = NULL;
-	HBRUSH		hOldBrush = NULL;
-
-	int		i		= ToLineNo(viewPos);
-	int		y_off	= (viewPos <= (*lines)[i]->viewNoEnd) ? viewPos - (*lines)[i]->viewNo : 0;
-	int		y_total	= 0;
-
-	for ( ; i < lines->size() && y_total < rectLines; i++) {
-		LineInfo	*l	= (*lines)[i];
-		int			len	= 0;
-		int			rlen = 0;
-		int			cx = vrc.cx();
-
-		if ((l->flags & LOG_CLIP_FLAG) && y_off == 0) {
-			if (!hBmpDc) {
-				hBmpDc = ::CreateCompatibleDC(NULL);
-				hOldBmp = (HBITMAP)::SelectObject(hBmpDc, hDummyBmp);
-			}
-			for (int j=0; j < msgs[l->msgNo]->clips.size(); j++) {
-				::BitBlt(hDc, vrc.x() + 16*j + 5, y_total * lineCy + CVW_GAP, 16, 16,
-						 hBmpDc, 0, 0, SRCCOPY);
-			}
-			cx -= int(msgs[l->msgNo]->clips.size()*16 + 5);
-		}
-
-		while (::GetTextExtentExPointW(hDc, l->s+len, l->len-len, cx, &rlen, 0, &sz)) {
-			if (y_off > 0) {
-				y_off--;
-			}
-			else {
-				if (selTopPos.Valid() && i >= selTopPos.no && i < selEndPos.no) {
-					SetTextColor(hDc, 0xffffff);
-					SetBkColor(hDc,   0x000000);
-				}
-				TextOutW(hDc, CVW_GAP + (vrc.cx()-cx), y_total * lineCy + CVW_GAP, l->s+len, rlen);
-				if (selTopPos.Valid() && i >= selTopPos.no && i < selEndPos.no) {
-					SetTextColor(hDc, 0x000000);
-					SetBkColor(hDc,   0xffffff);
-				}
-				cx = vrc.cx();
-				if (++y_total >= rectLines) break;
-			}
-			if ((len += rlen) >= l->len) break;
-		}
-	}
-
-	POINT	pt;
-	::GetCursorPos(&pt);
-	::ScreenToClient(hWnd, &pt);
-	POINTS	pos = { (short)pt.x, (short)pt.y };
-
-	LinePos		lp;
-	PointsToLine(pos, &lp);
-	LineInfo *l = (*lines)[lp.no];
-
-	if (l->flags & LOG_CLIP_FLAG) {
-		int			view_no	= (pos.y / lineCy) + viewPos;
-		int			y_off	= view_no - l->viewNo;
-		LogMsg		*m		= msgs[l->msgNo];
-		int			img_i	= (pos.x - vrc.x() - 5) / 16;
-
-		if (pos.x >= vrc.x() && img_i < m->clips.size()) {
-			char	image_dir[MAX_PATH_U8];
-
-			if (MakeImageFolderName(cfg, image_dir)) {
-				Wstr	image_dirw(image_dir);
-				WCHAR	fname[MAX_PATH], *p=fname;
-
-				p += swprintf(fname, L"%s\\", image_dirw);
-				m->clips[img_i].fname.Get(p);
-
-				Bitmap	*bmp = Bitmap::FromFile(fname);
-				Graphics g(hDc);
-				int y = ((*lines)[m->no]->viewNo - viewPos) * lineCy - bmp->GetHeight();
-				if (y < CVW_GAP) y = CVW_GAP;
-				g.DrawImage(bmp, 30, y);
-				delete bmp;
-			}
-		}
-	}
-
-	::SelectObject(hDc, hOldFont);
-
-	if (hOldBmp) ::SelectObject(hBmpDc, hOldBmp);
-	if (hBmpDc)  ::DeleteDC(hBmpDc);
-
-	::EndPaint(hWnd, &ps);
-
-	return	TRUE;
-}
-
-BOOL TChildView::EventScroll(UINT uMsg, int nScrollCode, int nPos, HWND hScroll)
-{
-	if (uMsg == WM_VSCROLL) {
-		int	svPos = viewPos;
-
-		switch (nScrollCode) {
-		case SB_BOTTOM:
-			viewPos = viewLines - rectLines;
-			break;
-		case SB_TOP:
-			viewPos = 0;
-			break;
-		case SB_LINEDOWN:
-			viewPos++;
-			break;
-		case SB_LINEUP:
-			viewPos--;
-			break;
-		case SB_PAGEDOWN:
-			viewPos += rectLines;
-			break;
-		case SB_PAGEUP:
-			viewPos -= rectLines;
-			break;
-		case SB_THUMBPOSITION:
-			viewPos = nPos;
-			break;
-		case SB_THUMBTRACK:
-			{
-				static DWORD last;
-				DWORD	cur = GetTickCount();
-
-				if (cur - last > 50 || nPos == viewLines - rectLines) {
-					viewPos = nPos;
-					last = cur;
-				}
-			}
-			break;
-//		case SB_ENDSCROLL:
-		}
-		if (viewPos + rectLines > viewLines) viewPos = viewLines - rectLines;
-		if (viewPos <= 0) viewPos = 0;
-
-		int	dy = (svPos - viewPos) * lineCy;
-		if (dy != 0) {
-			::ScrollWindow(hWnd, 0, dy, &vrc, &vrc);
-			::SetScrollPos(hWnd, SB_VERT, viewPos, TRUE);
-
-			TRect	rc = crc;
-			if (dy > 0) {
-				rc.bottom = rc.top + dy + CVW_GAP;
-			}
-			else {
-				rc.top = rc.bottom + dy - CVW_GAP - lineCy;
-			}
-			InvalidateRect(&rc, FALSE);
-
- Debug(" nPos=%d viewPos=%d rectLines=%d viewLines=%d\n", nPos, viewPos, rectLines, viewLines);
-
-		}
-	}
-	return	TRUE;
-}
-
-BOOL TChildView::FitSize()
-{
-	if (lineCy == 0) return FALSE; // not initialized, yet
-
-	TRect	prc;
-	parentView->GetClientRect(&prc);
-	MoveWindow(0, toolBarCy, prc.cx(), prc.cy() - toolBarCy, FALSE);
- 	GetClientRect(&crc);
- 	vrc = crc;
- 	vrc.Infrate(-CVW_GAP, -CVW_GAP);
-
-	rectLines = vrc.cy() / lineCy;
-	if (lines->size() == 0) return TRUE;
-
-	int	line_no	= ToLineNo(viewPos);
-	int	sv_pos	= viewPos;
-
-	int	cx	= vrc.cx();
-	int	cx2	= cx - 5;
-
-	viewLines = 0;
-	for (int i=0; i < lines->size(); i++) {
-		LineInfo	*l = (*lines)[i];
-		int			len = 1;
-
-		int	remain = l->bmpSize - cx;
-		if (remain > 0) {
-			len += (remain + cx2 - 1) / cx2;
-		}
-		l->viewNo	 = viewLines;
-		l->viewNoEnd = viewLines + len - 1;
-		viewLines	+= len;
-	}
-	::SetScrollRange(hWnd, SB_VERT, 0, viewLines, FALSE);
-
-	viewPos = (*lines)[line_no]->viewNo;
-	if (viewPos > viewLines - rectLines) {
-		viewPos = viewLines - rectLines;
-		if (viewPos <= 0) viewPos = 0;
-	}
-
- Debug("max/page/pos=%d/%d/%d  view=%d\n", max(viewLines - 1, 0), rectLines, viewPos, viewLines);
-
-	SCROLLINFO	si = { sizeof(si) };
-	si.fMask		= SIF_POS | SIF_RANGE | SIF_PAGE | SIF_DISABLENOSCROLL;
-	si.nMin			= 0;
-	si.nMax			= max(viewLines - 1, 0);
-	si.nPage		= rectLines;
-	si.nTrackPos	= viewPos;
-	::SetScrollInfo(hWnd, SB_VERT, &si, TRUE);
-	::SetScrollPos(hWnd, SB_VERT, viewPos, TRUE);
-	InvalidateRect(NULL, TRUE);
-
-	return	TRUE;
-}
-
-BOOL TChildView::EvTimer(WPARAM timerID, TIMERPROC proc)
-{
-	if (scrTimerID == timerID) {
-		if (selStart.Valid() && GetForegroundWindow() == parent->hWnd) {
-			POINT	pt;
-			LinePos	lp;
-
-			::GetCursorPos(&pt);
-			::ScreenToClient(hWnd, &pt);
-			POINTS	pos = { (short)pt.x, (short)pt.y };
-			PointsToLine(pos, &lp);
-			Debug("xy=%d/%d lp=%d\n", pos.x, pos.y, lp.no);
-
-			if (pos.y > vrc.bottom) {
-				if (lp.no < lines->size() - 1) {
-					PostMessage(WM_VSCROLL, MAKEWPARAM(SB_LINEDOWN, 0), 0);
-				}
-				return	TRUE;
-			}
-			else if (pos.y < vrc.top) {
-				if (lp.no > 0) {
-					PostMessage(WM_VSCROLL, MAKEWPARAM(SB_LINEUP, 0), 0);
-				}
-				return	TRUE;
-			}
-		}
-		::KillTimer(hWnd, scrTimerID);
-		scrTimerID = 0;
-		Debug("timer end\n");
-
-		return	TRUE;
-	}
-
-	return	FALSE;
-}
-
-
-BOOL TChildView::EventButton(UINT uMsg, int nHitTest, POINTS pos)
-{
-	switch (uMsg) {
-	case WM_LBUTTONDOWN:
-		if (!selStart.Valid()) {
-			PointsToLine(pos, &selStart);
-			selTopPos.Init();
-			::SetCapture(hWnd);
-		}
-		InvalidateRect(0, TRUE);
-		break;
-
-	case WM_LBUTTONUP:
-		if (selStart.Valid()) {
-			::ReleaseCapture();
-			LinePos		lp;
-			PointsToLine(pos, &lp);
-
-			if (selStart.no != lp.no) {
-				if (selStart < lp) {
-					selTopPos = selStart;
-					selEndPos = lp;
-				} else {
-					selTopPos = lp;
-					selEndPos = selStart;
-				}
-				Debug("sel set(%d-%d)\n", selTopPos.no, selEndPos.no);
-			}
-			InvalidateRect(0, TRUE);
-			selStart.Init();
+	case 'U':
+		if (::GetKeyState(VK_CONTROL) & 0x8000) {
+			parent->PostMessage(WM_COMMAND, USER_CHK, 0);
+			return	TRUE;
 		}
 		break;
 	}
 	return	FALSE;
 }
 
-BOOL TChildView::SetFont()
-{
-	// フォントセット
-	HDC hDc = ::GetDC(hWnd);
 
-	if (*cfg->LogViewFont.lfFaceName == 0) {
-		char	*ex_font = GetLoadStrA(IDS_LOGVIEWFONT);
-		if (ex_font) {
-			char	*p;
-			char	*height	= separate_token(ex_font, ':', &p);
-			char	*face	= separate_token(NULL, 0, &p);
-			if (height && face) {
-				strcpy(cfg->LogViewFont.lfFaceName, face);
-				cfg->LogViewFont.lfCharSet = DEFAULT_CHARSET;
-				POINT pt={}, pt2={};
-				pt.y = ::MulDiv(::GetDeviceCaps(hDc, LOGPIXELSY), atoi(height), 72);
-				::DPtoLP(hDc, &pt,  1);
-				::DPtoLP(hDc, &pt2, 1);
-				cfg->LogViewFont.lfHeight = -abs(pt.y - pt2.y);
-			}
-		}
-	}
+#if 0
 
-	if (*cfg->LogViewFont.lfFaceName) {
-		if (hFont) ::DeleteObject(hFont);
-		hFont = ::CreateFontIndirect(&cfg->LogViewFont);
-		::GetObject(hFont, sizeof(LOGFONT), &cfg->LogViewFont);
-	}
+#ifdef USE_TB
+	TBBUTTON tb[] = {
+		{ LOGTBICO_TITLE_OFF, LOGTB_TITLE,  TBSTATE_ENABLED, TBSTYLE_CHECK|BTNS_CHECK },
+		{ LOGTBICO_REV_OFF,   LOGTB_REV,    TBSTATE_ENABLED, TBSTYLE_CHECK|BTNS_CHECK },
+		{ 100, 0, TBSTATE_ENABLED, TBSTYLE_SEP|BTNS_SEP, 0, 0 }, // UserCombo
+		{ LOGTBICO_TAIL_OFF,  LOGTB_TAIL,   TBSTATE_ENABLED, TBSTYLE_CHECK|BTNS_CHECK },
+		{ 100, 0, TBSTATE_ENABLED, TBSTYLE_SEP|BTNS_SEP, 0, 0 }, // SearchCombo
+		{ LOGTBICO_NARROW,    LOGTB_NARROW, TBSTATE_ENABLED, TBSTYLE_CHECK|BTNS_CHECK },
+		{ 100, 0, TBSTATE_ENABLED, TBSTYLE_SEP|BTNS_SEP, 0, 0 }, // StatusStatic
+		{ LOGTBICO_FAV,       LOGTB_FAV,    TBSTATE_ENABLED, TBSTYLE_CHECK|BTNS_CHECK },
+		{ LOGTBICO_CLIP,      LOGTB_CLIP,   TBSTATE_ENABLED, TBSTYLE_CHECK|BTNS_CHECK },
+		{ 3, 0, TBSTATE_ENABLED, TBSTYLE_SEP|BTNS_SEP, 0, 0 },   // Separator
+		{ LOGTBICO_MEMO,      LOGTB_MEMO,   TBSTATE_ENABLED, TBSTYLE_BUTTON|BTNS_BUTTON },
+		{ LOGTBICO_MENU,      LOGTB_MENU,   TBSTATE_ENABLED, TBSTYLE_BUTTON|BTNS_BUTTON },
+	};
 
-	// 設定フォントに基づく、表示行の計算
-	HFONT	hOldFont = (HFONT)::SelectObject(hDc, hFont);
-	SIZE	size	 = {};
-	TEXTMETRIC	tm	 = {};
+	HWND hToolBar = ::CreateToolbarEx(hWnd,
+		WS_CHILD|WS_VISIBLE|TBSTYLE_TOOLTIPS,
+		LOGVIEW_TOOLBAR, LOGTBICO_MAX, TApp::hInst(), LOGVIEWTB_BITMAP,
+		tb, sizeof(tb) / sizeof(TBBUTTON), 0, 0, 16, 18, sizeof(TBBUTTON));
+	toolBar.AttachWnd(hToolBar);
 
- 	GetTextMetrics(hDc, &tm);
- 	lineCy = tm.tmHeight;
+	HFONT	hFont = (HFONT)SendMessage(WM_GETFONT, 0, 0);
 
-	for (int i=0; i < lines->size(); i++) {
-		LineInfo	*l = (*lines)[i];
-		::GetTextExtentPoint32W(hDc, l->s, l->len, &size);
-		l->bmpSize = size.cx;
-		l->viewNo  = i; // not need ...
-		if (l->flags & LOG_CLIP_FLAG) {
-			LogMsg *m = msgs[l->msgNo];
-			l->bmpSize += int(m->clips.size() * 16 + 5); // dummpy bmp is 16px + 2px margin
-		}
-	}
-	::SelectObject(hDc, hOldFont);
-	::ReleaseDC(hWnd, hDc);
+	::DestroyWindow(GetDlgItem(USER_COMBO));
+	HWND hComboWnd = CreateWindow(
+		"COMBOBOX", "",
+		WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | CBS_AUTOHSCROLL| WS_CLIPSIBLINGS | WS_VSCROLL,
+		45, 2, 100, 400, hToolBar, (HMENU)(USER_COMBO), TApp::hInst(), NULL);
+	userCombo.AttachWnd(hComboWnd);
+	userCombo.SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
 
-	return	TRUE;
-}
+	menuButton.AttachWnd(GetDlgItem(MENU_BTN));
 
+	::DestroyWindow(GetDlgItem(BODY_COMBO));
+	HWND bodyWnd = CreateWindow(
+		"COMBOBOX", "",
+		WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | CBS_AUTOHSCROLL| WS_CLIPSIBLINGS | WS_VSCROLL,
+		169, 2, 100, 400, hToolBar, (HMENU)(BODY_COMBO), TApp::hInst(), NULL);
+	bodyCombo.AttachWnd(bodyWnd);
+	bodyCombo.SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
 
-BOOL TChildView::EvMouseMove(UINT fwKeys, POINTS pos)
-{
-	if (selStart.Valid()) {
-		static int	y_top_sv, y_end_sv;
-		LinePos		lp;
-		PointsToLine(pos, &lp);
+	::DestroyWindow(GetDlgItem(STATUS_STATIC));
+	HWND statusWnd = CreateWindow(
+		"STATIC", "",
+		WS_CHILD | WS_VISIBLE | SS_LEFT,
+		295, 4, 90, 18, hToolBar, (HMENU)(STATUS_STATIC), TApp::hInst(), NULL);
+	statusStatic.AttachWnd(statusWnd);
+	statusStatic.SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
+	toolBar.SendMessage(TB_SETPADDING, 0, MAKELPARAM(10, 10));
 
-		if (selStart < lp) {
-			selTopPos = selStart;
-			selEndPos = lp;
-		} else {
-			selTopPos = lp;
-			selEndPos = selStart;
-		}
-
-		int	y_top = (*lines)[selTopPos.no]->viewNo    - viewPos;
-		int	y_end = (*lines)[selEndPos.no]->viewNoEnd - viewPos;
-		if (y_top < 0)         y_top = 0;
-		if (y_end > rectLines) y_end = rectLines;
-		TRect rc(vrc.x(),  vrc.y() + min(y_top, y_top_sv) * lineCy,
-				 vrc.cx(), vrc.y() + max(y_end, y_end_sv) * lineCy);
-		InvalidateRect(&rc, 0);
-		y_top_sv = y_top;
-		y_end_sv = y_end;
-
-		if (pos.y > vrc.bottom || pos.y < vrc.top) {
-			if (scrTimerID == 0) {
-				scrTimerID = ::SetTimer(hWnd, LOGVIEW_TIMER, LOGVIEW_TIMER_TICK, 0);
-				Debug("timer start\n");
-			}
-		}
-	}
-	else {
-		LinePos		lp;
-		PointsToLine(pos, &lp);
-		LineInfo	*l = (*lines)[lp.no];
-		int			view_no	= (pos.y / lineCy) + viewPos;
-		int			y_off	= view_no - l->viewNo;
-		LogMsg		*m		= msgs[l->msgNo];
-		int			img_i	= (pos.x - vrc.x() - 5) / 16;
-		static int	last_idx = -1;
-
-		if ((l->flags & LOG_CLIP_FLAG) && img_i>= 0 && img_i < m->clips.size()) {
-			if (last_idx != img_i) {
-				last_idx = img_i;
-				InvalidateRect(0, TRUE);
-			}
-		}
-		else if (last_idx != -1) {
-			InvalidateRect(0, TRUE);
-			last_idx = -1;
-		}
-	}
-	return	FALSE;
-}
-
-BOOL TChildView::PointsToLine(POINTS pos, LinePos *lp)
-{
-	pos.x -= (short)vrc.x();
-	pos.y -= (short)vrc.y();
-	if (pos.x < 0)			pos.x = 0;
-	if (pos.x > vrc.cx())	pos.x = (short)vrc.cx();
-	if (pos.y < 0)			pos.y = 0;
-	if (pos.y > vrc.cy())	pos.y = (short)vrc.cy();
-	lp->Init();
-
-	HDC		hDc = ::GetDC(hWnd);
- 	HFONT	hOldFont = (HFONT)::SelectObject(hDc, hFont);
-
-	int			view_no	= (pos.y / lineCy) + viewPos;
-	int			line_no	= ToLineNo(view_no);
-	LineInfo	*l		= (*lines)[line_no];
-	int			y_off	= view_no - l->viewNo;
-	int			y_off_sv = y_off;
-	int			len	 = 0;
-	int			rlen = 0;
-	SIZE		sz = {};
-
-	while (y_off > 0 && ::GetTextExtentExPointW(hDc, l->s+len, l->len-len, vrc.cx(), &rlen, 0, &sz)) {
-//		Debug("y=%d rlen=%d cx=%d\n", y_off, rlen, sz.cx);
-		y_off--;
-		if ((len += rlen) >= l->len) break;
-	}
-	if (len < l->len) {
-		if (::GetTextExtentExPointW(hDc, l->s+len, l->len-len, pos.x, &rlen, NULL, &sz)) {
-//			Debug("x=%d len=%d rlen=%d cx=%d\n", pos.x, len, rlen, sz.cx);
-			len += rlen;
-		}
-	}
-	lp->no		= line_no;
-	lp->xOff 	= len;
-
-//	Debug("lp=%d/%d view=%d len=%d/%d yoff=%d\n", lp->no, lp->xOff, view_no, l->len, len, y_off_sv);
-
-	::SelectObject(hDc, hOldFont);
-	::ReleaseDC(hWnd, hDc);
-
-	return	TRUE;
-}
-
+#else
+	userCombo.AttachWnd(GetDlgItem(USER_COMBO));
+	menuButton.AttachWnd(GetDlgItem(MENU_BTN));
+	bodyCombo.AttachWnd(GetDlgItem(BODY_COMBO));
+	statusStatic.AttachWnd(GetDlgItem(STATUS_STATIC));
 #endif
-
+#endif

@@ -1,10 +1,10 @@
 ﻿static char *taskbarui_id = 
-	"@(#)Copyright (C) H.Shirouzu 2012-2014   taskbarui.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 2012-2016   taskbarui.cpp	Ver4.00";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Windows7 Taskbar UI
 	Create					: 2012-01-09(Mon)
-	Update					: 2014-04-14(Mon)
+	Update					: 2016-08-17(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -141,7 +141,7 @@ void CreateJumpList(const char *option)
 {
 	WCHAR	wopt[MAX_BUF];
 
-	_swprintf(wopt, L"/TASKBAR_MSG %s 1", AtoWs(option));
+	swprintfz(wopt, L"/TASKBAR_MSG %s 1", AtoWs(option));
 
 	// Create the custom Jump List object.
 	ICustomDestinationList *pcdl;

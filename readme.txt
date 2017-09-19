@@ -1,9 +1,9 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 3.64
-			H.Shirouzu Dec 24, 2015
+	Source code of IP Messenger for Win version 4.80
+			H.Shirouzu Sep 19, 2017
 
-		Copyright (C) 1996-2015 SHIROUZU Hiroaki
-			All Rights Reserved.
+	Copyright (C) 1996-2017 SHIROUZU Hiroaki All Rights Reserved.
+	Copyright (C) 2015-2017 Asahi Net, Inc. All Rights Reserved.
 ---------------------------------------------------------------------
 
 Index.
@@ -36,7 +36,8 @@ Index.
 2. License (BSD License)
 
  /* ==============================================================
-  Copyright (c) 1996-2015 SHIROUZU Hiroaki All rights reserved.
+  Copyright (c) 1996-2017 SHIROUZU Hiroaki All rights reserved.
+  Copyright (C) 2015-2017 Asahi Net, Inc. All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or
   without modification, are permitted provided that the following
@@ -51,10 +52,10 @@ Index.
      disclaimer in the documentation and/or other materials
      provided with the distribution.
 
-  THIS SOFTWARE IS PROVIDED BY SHIROUZU Hiroaki ``AS IS'' AND ANY
-  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-  PARTICULAR PURPOSE ARE DISCLAIMED.
+  THIS SOFTWARE IS PROVIDED BY SHIROUZU Hiroaki and Asahi Net, Inc.
+  ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
+  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
   IN NO EVENT SHALL SHIROUZU Hiroaki OR CONTRIBUTORS BE LIABLE
   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
   CONSEQUENTIAL DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
@@ -69,12 +70,12 @@ Index.
 ----------------------------------------------------------------------
 3. Requirements
 
- - VS2015 or later
+ - VS2017 or later
 
 ----------------------------------------------------------------------
 4. Directory
 
-	IPMsg----+-IPMsg.sln ... Project file for VS2015 or later
+	IPMsg----+-IPMsg.sln
 		|
 		+-Src------+-ipmsg.cpp
 		|          |     :
@@ -82,7 +83,9 @@ Index.
 		|                    |       :
 		|
 		+-external-+-zlib (for installer)
-		|
+		|          |     :
+		|          +-sqlite3
+		|                :
 		+-Lib
 		|
 		+-Release--+-
@@ -106,32 +109,6 @@ Index.
 ----------------------------------------------------------------------
 6. About self-extract installer
 
- - v3.10 or later, self-extract installer format is supported.
-   This format is install.exe with additional files.
-   Additional files are "ipmsg.exe", "ipmsg.chm", "setup.exe".
-   Additional file format is this.
- 　 \n===(70 characters)===\n
- 　 filesize filename\n
- 　 (Zlib compressed file)
-
- - I have used this python script for generate self-extract installer.
-
-=====================================================
-import sys, zlib
-
-def add_file(f, fname):
-	data = zlib.compress(open(fname, "rb").read())
-	f.write("\n%s\n" % ("=" * 70))
-	f.write("%d %s\n" % (len(data), fname))
-	f.write(data)
-
-def gen_inst(installer_name, installer_base, files):
-	f = open(installer_name, "wb")
-	f.write(open(installer_base, "rb").read())
-	for i in files:
-		add_file(f, i)
-	f.close()
-
-gen_inst("ipmsgXXX_installer.exe", "install.exe", ["ipmsg.exe", "ipmsg.chm", "setup.exe"])
-=====================================================
+ - v4.00 or later, self-extract installer format is supported.
+   (it requires python)
 

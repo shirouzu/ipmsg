@@ -1,9 +1,9 @@
-﻿/* @(#)Copyright (C) 1996-2015 H.Shirouzu		tapi32ex.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2017 H.Shirouzu		tapi32ex.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 2005-04-10(Sun)
-	Update					: 2015-08-12(Wed)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -18,17 +18,23 @@
 DEFINE_GUID(IID_IShellLinkW, 0x000214F9, \
 	0x0000, 0000, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46);
 
-#define SHA1_SIZE 20
-#define MD5_SIZE  16
-
 #ifndef REGSTR_SHELLFOLDERS
 #define REGSTR_SHELLFOLDERS		REGSTR_PATH_EXPLORER "\\Shell Folders"
 #define REGSTR_MYDOCUMENT		"Personal"
 #define REGSTR_MYDOCUMENT_W		L"Personal"
 #endif
 
+#define REGSTR_VAL_UNINSTALLER_PUBLISHER		"Publisher"
+#define REGSTR_VAL_UNINSTALLER_DISPLAYICON		"DisplayIcon"
+#define REGSTR_VAL_UNINSTALLER_DISPLAYVER		"DisplayVersion"
+#define REGSTR_VAL_UNINSTALLER_ESTIMATESIZE		"EstimatedSize"
+#define REGSTR_VAL_UNINSTALLER_HELPLINK			"HelpLink"
+#define REGSTR_VAL_UNINSTALLER_URLUPDATEINFO	"URLUpdateInfo"
+#define REGSTR_VAL_UNINSTALLER_URLINFOABOUT		"URLInfoAbout"
+#define REGSTR_VAL_UNINSTALLER_COMMENTS			"Comments"
+
 /* NTDLL */
-typedef LONG NTSTATUS, *PNTSTATUS;
+//typedef LONG NTSTATUS, *PNTSTATUS;
 
 typedef struct _IO_STATUS_BLOCK {
   union {
@@ -114,18 +120,25 @@ extern NTSTATUS (WINAPI *pZwFsControlFile)(HANDLE, HANDLE, void *, PVOID, PIO_ST
 	ULONG, PVOID, ULONG, PVOID, ULONG);
 #define IOCTL_LMR_DISABLE_LOCAL_BUFFERING 0x140390
 
-u_int  MakeHash(const void *data, int size, u_int iv=0);
-uint64 MakeHash64(const void *data, int size, uint64 iv=0);
+u_int  MakeHash(const void *data, size_t size, u_int iv=0);
+uint64 MakeHash64(const void *data, size_t size, uint64 iv=0);
+
+
+#define SHA256_SIZE   32
+#define SHA1_SIZE     20
+#define MD5_SIZE      16
+#define XXHASH_SIZE    8
 
 class TDigest {
 protected:
-	HCRYPTPROV	hProv;
-	HCRYPTHASH	hHash;
-	bool		updated;
-	bool		used;
+	HCRYPTPROV		hProv;
+	HCRYPTHASH		hHash;
+	bool			updated;
+	bool			used;
+	void			*xxHashState;
 
 public:
-	enum Type { SHA1, MD5 /*, SHA1_LOCAL */ } type;
+	enum Type { SHA1, MD5, SHA256, XXHASH } type;
 
 	TDigest();
 	~TDigest();
@@ -134,14 +147,17 @@ public:
 	BOOL Update(void *data, int size);
 	BOOL GetVal(void *data);
 	BOOL GetRevVal(void *data);
-	int  GetDigestSize() { return type == MD5 ? MD5_SIZE : SHA1_SIZE; }
+	int  GetDigestSize() { return	type == MD5    ? MD5_SIZE    :
+									type == SHA1   ? SHA1_SIZE   :
+									type == SHA256 ? SHA256_SIZE : XXHASH_SIZE;
+									}
 	void GetEmptyVal(void *data);
 };
 
 #ifdef UNICODE
-#define GetLoadStr GetLoadStrW
+#define LoadStr LoadStrW
 #else
-#define GetLoadStr GetLoadStrA
+#define LoadStr LoadStrA
 #endif
 
 #if _MSC_VER != 1200
@@ -172,9 +188,14 @@ typedef struct _REPARSE_DATA_BUFFER {
 } REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
 #endif
 
+#ifndef REPARSE_DATA_BUFFER_HEADER_SIZE
 #define REPARSE_DATA_BUFFER_HEADER_SIZE  FIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
+#endif
+
+#ifndef REPARSE_GUID_DATA_BUFFER_HEADER_SIZE
 #define REPARSE_GUID_DATA_BUFFER_HEADER_SIZE \
 			FIELD_OFFSET(REPARSE_GUID_DATA_BUFFER, GenericReparseBuffer)
+#endif
 
 #define IsReparseTagJunction(r) \
 		(((REPARSE_DATA_BUFFER *)r)->ReparseTag == IO_REPARSE_TAG_MOUNT_POINT)
@@ -190,6 +211,7 @@ typedef struct _REPARSE_DATA_BUFFER {
 #endif
 
 BOOL TLibInit_Ntdll();
-BOOL TGenRandom(void *buf, int len);
+BOOL TGenRandom(void *buf, size_t len);
+BOOL TGenRandomMT(void *buf, size_t len);
 
 #endif

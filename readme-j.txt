@@ -1,8 +1,8 @@
 ======================================================================
-        IP Messenger for Win 全ソース 取り扱い説明書    2015/12/24
+        IP Messenger for Win 全ソース 取り扱い説明書    2017/09/19
 
                                                H.Shirouzu（白水啓章）
-                                               http://ipmsg.org
+                                               https://ipmsg.org
 ======================================================================
 
 目次
@@ -34,7 +34,8 @@
 ・ライセンスは以下の通りです。(BSD License)
 
 /* ==============================================================
-  Copyright (c) 1996-2015 SHIROUZU Hiroaki  All rights reserved.
+  Copyright (c) 1996-2017 SHIROUZU Hiroaki  All rights reserved.
+  Copyright (c) 2015-2017 Asahi Net, Inc. All rights reserved.
 
   ソースとバイナリ形式の再配布および使用は、「変更の有無、商用/
   非商用にかかわらず」、以下の条件を満たす場合に許可されます:
@@ -58,21 +59,30 @@
 ・サポートは下記のURLに記載している掲示板で行っています。
 　また、次期バージョンへ向けての提案なども歓迎です。
  （最新版は常にここにあります）。
-    http://ipmsg.org/
+    https://ipmsg.org/
 
 ・潜在バグの指摘や、よりよいソースコードへのアドバイスを歓迎します。
 
 
-■ 4. コンパイル方法（VS2015以降）
+■ 4. コンパイル方法（VS2017 以降）
 
-  VS2015以降でビルドします。
-　（3.50b7以降、libpng は利用しなくなりました。zlib はインストーラ
-　　のみで利用しています。本体には組み込まれていません）
+  VS2017 以降でビルドします。
+
+  ipmsg本体だけでなく、インストーラ形式としてビルドするためには、
+  下記の準備が必要になります。
+
+  1) Python2.x がインストールされ、python.exe に PATH が通った
+     状態になっていること
+     （instdataプロジェクトのビルド前イベントで使用されます）
+
+  2) ヘルプビルド用 HTML Workshop が
+      C:\Program Files (x86)\HTML Help Workshop\hhc
+     にインストールされていること
 
 
 ■ 5. ディレクトリ構成
 
-	IPMsg----+-IPMsg.sln ... Project file for VS2015以降
+	IPMsg----+-IPMsg.sln ... Project file for VS2017以降
 		|
 		+-Src------+-ipmsg.cpp
 		|          |     :
@@ -80,7 +90,9 @@
 		|                    |       :
 		|
 		+-external-+-zlib (for installer)
-		|
+		|          |     :
+		|          +-sqlite3
+		|                :
 		+-Lib
 		|
 		+-Release--+-
@@ -94,33 +106,27 @@
 		        +-obj---+-Relase
 		                |   :
 
-■ 6. 自己展開インストーラ形式について
+■ 6. 新しい自己展開インストーラ形式について
 
-・v3.10より、自己展開形式インストーラをサポートしています。
-　これはソースよりビルドされた install.exe の末尾に、以下のような
-　フォーマットで、ipmsg.exe setup.exe ipmsg.chm を付加したものです。
-　 \n===(70個)===\n
-　 ファイルサイズ ファイル名\n
-　 ZLIB圧縮ファイル
+・v4.00以降の自己展開形式インストーラは、下記のステップで作成しています。
+　（installプロジェクトのビルド前プロセスに記述されています。要python）
 
-・具体的には、以下のような python script で作成しています。
+　0. （前提）ipmsg.exe, uninst.exe ipmsg.chm が既にビルド済みであること
 
-----------------------------------------------------
-import sys, zlib
+　1. installerプロジェクトのビルド前プロセスにより、
+　   gendat.py files_data(64).dat ipmsg.exe uninst.exe ipmsg.chm が実行
+　   される。files_data(64).dat の中には、ファイル内容が zlib圧縮された、
+　   C言語のstatic BYTE配列データが書かれる。
+　   具体的には、
+　    static BYTE ipmsg_exe[]={...};
+　    static BYTE uninst_exe[]={...};
+　    static BYTE ipmsg_chm[]={...};
+　   といった内容。
 
-def add_file(f, fname):
-	data = zlib.compress(open(fname, "rb").read())
-	f.write("\n%s\n" % ("=" * 70))
-	f.write("%d %s\n" % (len(data), fname))
-	f.write(data)
+  2. install.cpp にある #include "files_data(64).dat" により、それらが
+     static変数として取り込まれ、ビルドされる。
 
-def gen_inst(installer_name, installer_base, files):
-	f = open(installer_name, "wb")
-	f.write(open(installer_base, "rb").read())
-	for i in files:
-		add_file(f, i)
-	f.close()
+  3. それらのデータは、実行時に zlib inflateされ、元のipmsg.exe等として
+     インストール先に展開される。
 
-gen_inst("ipmsgXXX_installer.exe", "install.exe", ["ipmsg.exe", "ipmsg.chm", "setup.exe"])
-----------------------------------------------------
 

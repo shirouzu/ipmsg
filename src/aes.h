@@ -36,11 +36,11 @@ public:
 	AES(const u8 *key, int key_len, const u8 *_iv=NULL);
 	void Init(const u8 *key, int key_len, const u8 *_iv=NULL);
 	void InitIv(const u8 *_iv=NULL);
-	int EncryptCBC(const u8 *in, u8 *out, int size, PaddingMode _pm=PKCS5);
-	int EncryptCTR(const u8 *in, u8 *out, int size);
-	int DecryptCBC(const u8 *in, u8 *out, int size, PaddingMode _pm=PKCS5);
-	int DecryptCTR(const u8 *in, u8 *out, int size);
-	int GetCBCLength(int len, PaddingMode pm);
+	size_t EncryptCBC(const u8 *in, u8 *out, size_t size, PaddingMode _pm=PKCS5);
+	size_t EncryptCTR(const u8 *in, u8 *out, size_t size);
+	size_t DecryptCBC(const u8 *in, u8 *out, size_t size, PaddingMode _pm=PKCS5);
+	size_t DecryptCTR(const u8 *in, u8 *out, size_t size);
+	size_t GetCBCLength(size_t len, PaddingMode pm);
 	bool IsKeySet() { return as.rounds != 0; }
 };
 

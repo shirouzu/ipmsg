@@ -1,10 +1,10 @@
 ﻿static char *tapp_id = 
-	"@(#)Copyright (C) 1996-2015 H.Shirouzu		tapp.cpp	Ver0.99";
+	"@(#)Copyright (C) 1996-2017 H.Shirouzu		tapp.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-06-22(Mon)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -17,18 +17,25 @@ TApp *TApp::tapp = NULL;
 
 TApp::TApp(HINSTANCE _hI, LPSTR _cmdLine, int _nCmdShow)
 {
-	hI				= _hI;
+
+	hInstance		= _hI;
 	cmdLine			= _cmdLine;
 	nCmdShow		= _nCmdShow;
 	mainWnd			= NULL;
 	preWnd			= NULL;
-	defaultClass	= "tapp";
-	defaultClassW	= L"tapp";
+	result			= 0;
+
+	WCHAR	cname[MAX_PATH];
+	snwprintfz(cname, wsizeof(cname), L"tapp_%d", ::GetCurrentProcessId());
+
+	defaultClassW	= wcsdup(cname);
+	defaultClass	= WtoA(cname);
+
 	tapp			= this;
 	hash			= new TWinHashTbl(MAX_TAPPWIN_HASH);
 	twinId			= 1;
 
-	InitInstanceForLoadStr(hI);
+	InitInstanceForLoadStr(hInstance);
 
 #if ENGLISH_TEST
 	TSetDefaultLCID(0x409); // for English Dialog Test
@@ -52,26 +59,39 @@ int TApp::Run(void)
 	InitApp();
 	InitWindow();
 
-	while (::GetMessage(&msg, NULL, 0, 0))
+	while (::GetMessageW(&msg, NULL, 0, 0))
 	{
-		if (PreProcMsg(&msg))
+		if (PreProcMsg(&msg)) {
 			continue;
+		}
 
 		::TranslateMessage(&msg);
-		::DispatchMessage(&msg);
+		::DispatchMessageW(&msg);
 	}
+
+	PostRun();
 
 	return	(int)msg.wParam;
 }
 
+void TApp::Exit(int _result)
+{
+	if (tapp && tapp->mainWnd && ::IsWindow(tapp->mainWnd->hWnd)) {
+		tapp->result = _result;
+		tapp->mainWnd->Destroy();
+	}
+	else {
+		::ExitProcess(_result);
+	}
+}
+
 BOOL TApp::PreProcMsg(MSG *msg)	// for TranslateAccel & IsDialogMessage
 {
-	for (HWND hWnd=msg->hwnd; hWnd; hWnd=::GetParent(hWnd))
+	for (auto hWnd=msg->hwnd; hWnd; hWnd=::GetParent(hWnd))
 	{
-		TWin	*win = SearchWnd(hWnd);
-
-		if (win)
+		if (TWin *win = SearchWnd(hWnd)) {
 			return	win->PreProcMsg(msg);
+		}
 	}
 
 	return	FALSE;
@@ -81,18 +101,25 @@ LRESULT CALLBACK TApp::WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 {
 	TApp	*app = TApp::GetApp();
 	TWin	*win = app->SearchWnd(hWnd);
+	LRESULT	ret = 0;
 
-	if (win)
-		return	win->WinProc(uMsg, wParam, lParam);
-
-	if ((win = app->preWnd))
-	{
+	if (win) {
+		ret = win->WinProc(uMsg, wParam, lParam);
+	}
+	else if ((win = app->preWnd)) {
 		app->preWnd = NULL;
 		app->AddWinByWnd(win, hWnd);
-		return	win->WinProc(uMsg, wParam, lParam);
+		ret = win->WinProc(uMsg, wParam, lParam);
+	}
+	else {
+		ret = ::DefWindowProcW(hWnd, uMsg, wParam, lParam);
 	}
 
-	return	::DefWindowProc(hWnd, uMsg, wParam, lParam);
+	if (uMsg == WM_DESTROY && app->mainWnd && hWnd == app->mainWnd->hWnd) {
+		::PostQuitMessage(app->result);
+	}
+
+	return	ret;
 }
 
 BOOL TApp::InitApp(void)	// reference kwc
@@ -104,17 +131,16 @@ BOOL TApp::InitApp(void)	// reference kwc
 	wc.lpfnWndProc		= WinProc;
 	wc.cbClsExtra 		= 0;
 	wc.cbWndExtra		= 0;
-	wc.hInstance		= hI;
+	wc.hInstance		= hInstance;
 	wc.hIcon			= NULL;
 	wc.hCursor			= LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground	= NULL;
 	wc.lpszMenuName		= NULL;
 	wc.lpszClassName	= defaultClassW;
 
-	if (::FindWindowW(defaultClassW, NULL) == NULL)
-	{
-		if (::RegisterClassW(&wc) == 0)
-			return FALSE;
+	if (::RegisterClassW(&wc) == 0) {
+		Debug("*** TApp::InitApp RegisteClass Failed(%d) ***\n", GetLastError());
+		return FALSE;
 	}
 
 	return	TRUE;
@@ -123,16 +149,16 @@ BOOL TApp::InitApp(void)	// reference kwc
 void TApp::Idle(DWORD timeout)
 {
 	TApp	*app = TApp::GetApp();
-	DWORD	start = GetTickCount();
+	DWORD	start = GetTick();
 	MSG		msg;
 
-	while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+	while (::PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
 		if (app->PreProcMsg(&msg))
 			continue;
 
 		::TranslateMessage(&msg);
-		::DispatchMessage(&msg);
-		if (GetTickCount() - start >= timeout) break;
+		::DispatchMessageW(&msg);
+		if (GetTick() - start >= timeout) break;
 	}
 }
 
@@ -146,7 +172,7 @@ BOOL TRegisterClass(LPCSTR class_name, UINT style, HICON hIcon, HCURSOR hCursor,
 	wc.lpfnWndProc		= TApp::WinProc;
 	wc.cbClsExtra 		= classExtra;
 	wc.cbWndExtra		= wndExtra;
-	wc.hInstance		= TApp::GetInstance();
+	wc.hInstance		= TApp::hInst();
 	wc.hIcon			= hIcon;
 	wc.hCursor			= hCursor;
 	wc.hbrBackground	= hbrBackground;
@@ -166,7 +192,7 @@ BOOL TRegisterClassW(const WCHAR *class_name, UINT style, HICON hIcon, HCURSOR h
 	wc.lpfnWndProc		= TApp::WinProc;
 	wc.cbClsExtra 		= classExtra;
 	wc.cbWndExtra		= wndExtra;
-	wc.hInstance		= TApp::GetInstance();
+	wc.hInstance		= TApp::hInst();
 	wc.hIcon			= hIcon;
 	wc.hCursor			= hCursor;
 	wc.hbrBackground	= hbrBackground;

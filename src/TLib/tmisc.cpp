@@ -1,27 +1,42 @@
 ﻿static char *tmisc_id = 
-	"@(#)Copyright (C) 1996-2015 H.Shirouzu		tmisc.cpp	Ver0.99";
+	"@(#)Copyright (C) 1996-2017 H.Shirouzu		tmisc.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2015-11-01(Sun)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
+#define EX_TRACE
 #include "tlib.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <intrin.h>
+#include <atomic>
+#include <list>
+#include <map>
+#include <dbghelp.h>
+
+using namespace std;
 
 DWORD TWinVersion = ::GetVersion();
 
 HINSTANCE defaultStrInstance;
 
+static CRITICAL_SECTION	gCs;
+static BOOL gCsInit = []() {
+	::InitializeCriticalSection(&gCs);
+	return	TRUE;
+}();
+
 Condition::Event	*Condition::gEvents  = NULL;
 volatile LONG		Condition::gEventMap = 0;
+
+#pragma comment (lib, "Dbghelp.lib")
 
 /*=========================================================================
   クラス ： Condition
@@ -46,7 +61,9 @@ BOOL Condition::InitGlobalEvents()
 	gEventMap = 0xffffffff;
 
 	// 事前に多少作っておく（おそらく十分すぎる）
-	for (int i=0; i < 10; i++) gEvents[i].hEvent = ::CreateEvent(0, FALSE, FALSE, NULL);
+	for (int i=0; i < 10; i++) {
+		gEvents[i].hEvent = ::CreateEvent(0, FALSE, FALSE, NULL);
+	}
 
 	return	TRUE;
 }
@@ -202,7 +219,7 @@ void Condition::Notify(void)	// 現状では、眠っているスレッド全員
   説  明 ： 
   注  意 ： 
 =========================================================================*/
-VBuf::VBuf(ssize_t _size, ssize_t _max_size, VBuf *_borrowBuf)
+VBuf::VBuf(size_t _size, size_t _max_size, VBuf *_borrowBuf)
 {
 	Init();
 
@@ -222,7 +239,7 @@ void VBuf::Init(void)
 	size = usedSize = maxSize = 0;
 }
 
-BOOL VBuf::AllocBuf(ssize_t _size, ssize_t _max_size, VBuf *_borrowBuf)
+BOOL VBuf::AllocBuf(size_t _size, size_t _max_size, VBuf *_borrowBuf)
 {
 	if (buf) FreeBuf();
 
@@ -265,7 +282,7 @@ void VBuf::FreeBuf(void)
 	Init();
 }
 
-BOOL VBuf::Grow(ssize_t grow_size)
+BOOL VBuf::Grow(size_t grow_size)
 {
 	if (size + grow_size > maxSize)
 		return	FALSE;
@@ -283,18 +300,23 @@ void InitInstanceForLoadStr(HINSTANCE hI)
 	defaultStrInstance = hI;
 }
 
-LPSTR GetLoadStrA(UINT resId, HINSTANCE hI)
+LPSTR LoadStrA(UINT resId, HINSTANCE hI)
 {
+#ifdef _WIN64
+	static TResHash	*hash = new TResHash(1000);
+#else
 	static TResHash	*hash;
-
-	if (hash == NULL) {
-		hash = new TResHash(100);
+	if (!hash) {	// avoid XP shell extension problem
+					// (an exception occurs in XP Shell when initializing
+					//  static variable in a function by new allocator or any function)
+		hash = new TResHash(1000);
 	}
+#endif
 
-	char		buf[1024];
 	TResHashObj	*obj;
 
 	if ((obj = hash->Search(resId)) == NULL) {
+		char	buf[1024];
 		if (::LoadStringA(hI ? hI : defaultStrInstance, resId, buf, sizeof(buf)) >= 0) {
 			obj = new TResHashObj(resId, strdup(buf));
 			hash->Register(obj);
@@ -303,13 +325,16 @@ LPSTR GetLoadStrA(UINT resId, HINSTANCE hI)
 	return	obj ? (char *)obj->val : NULL;
 }
 
-LPWSTR GetLoadStrW(UINT resId, HINSTANCE hI)
+LPWSTR LoadStrW(UINT resId, HINSTANCE hI)
 {
+#ifdef _WIN64
+	static TResHash	*hash = new TResHash(1000);
+#else
 	static TResHash	*hash;
-
-	if (hash == NULL) {
-		hash = new TResHash(100);
+	if (!hash) {	// avoid XP shell extension problem
+		hash = new TResHash(1000);
 	}
+#endif
 
 	WCHAR		buf[1024];
 	TResHashObj	*obj;
@@ -358,53 +383,84 @@ HMODULE TLoadLibraryW(WCHAR *dllname)
 /*=========================================================================
 	パス合成（ANSI 版）
 =========================================================================*/
-int MakePath(char *dest, const char *dir, const char *file)
+int MakePath(char *dest, const char *dir, const char *file, int max_len)
 {
-	BOOL	separetor = TRUE;
-	ssize_t	len;
+	if (!dir) {
+		dir = dest;
+	}
 
-	if ((len = strlen(dir)) == 0)
-		return	wsprintf(dest, "%s", file);
+	int	len;
+	if (dest == dir) {
+		len = (int)strlen(dir);
+	} else {
+		len = strcpyz(dest, dir);
+	}
 
-	if (dir[len -1] == '\\')	// 表など、2byte目が'\\'で終る文字列対策
-	{
-		if (len >= 2 && !IsDBCSLeadByte(dir[len -2]))
-			separetor = FALSE;
-		else {
-			u_char *p=(u_char *)dir;
-			for (; *p && p[1]; IsDBCSLeadByte(*p) ? p+=2 : p++)
-				;
-			if (*p == '\\')
-				separetor = FALSE;
+	if (len > 0) {
+		bool	need_sep = (dest[len -1] != '\\');
+
+		if (len >= 2 && !need_sep) {	// 表などで終端の場合は sep必要
+			BYTE	*p = (BYTE *)dest;
+			while (*p) {
+				if (IsDBCSLeadByte(*p) && *(p+1)) {
+					p += 2;
+					if (!*p) {
+						need_sep = true;
+					}
+				} else {
+					p++;
+				}
+			}
+		}
+		if (need_sep) {
+			dest[len++] = '\\';
 		}
 	}
-	return	wsprintf(dest, "%s%s%s", dir, separetor ? "\\" : "", file);
+	return	len + strncpyz(dest + len, file, max_len - len);
 }
 
 /*=========================================================================
 	パス合成（UTF-8 版）
 =========================================================================*/
-int MakePathU8(char *dest, const char *dir, const char *file)
+int MakePathU8(char *dest, const char *dir, const char *file, int max_len)
 {
-	ssize_t	len;
+	if (!dir) {
+		dir = dest;
+	}
 
-	if ((len = strlen(dir)) == 0)
-		return	wsprintf(dest, "%s", file);
+	int	len;
 
-	return	wsprintf(dest, "%s%s%s", dir, dir[len -1] ? "\\" : "", file);
+	if (dest == dir) {
+		len = (int)strlen(dir);
+	} else {
+		len = strcpyz(dest, dir);
+	}
+	if (len > 0 && dest[len -1] != '\\') {
+		dest[len++] = '\\';
+	}
+	return	len + strncpyz(dest + len, file, max_len - len);
 }
 
 /*=========================================================================
 	パス合成（UNICODE 版）
 =========================================================================*/
-int MakePathW(WCHAR *dest, const WCHAR *dir, const WCHAR *file)
+int MakePathW(WCHAR *dest, const WCHAR *dir, const WCHAR *file, int max_len)
 {
-	ssize_t	len;
+	if (!dir) {
+		dir = dest;
+	}
 
-	if ((len = wcslen(dir)) == 0)
-		return	wsprintfW(dest, L"%s", file);
+	int	len;
 
-	return	wsprintfW(dest, L"%s%s%s", dir, dir[len -1] == '\\' ? L"" : L"\\" , file);
+	if (dest == dir) {
+		len = (int)wcslen(dir);
+	} else {
+		len = wcscpyz(dest, dir);
+	}
+	if (len > 0 && dest[len -1] != '\\') {
+		dest[len++] = '\\';
+	}
+	return	len + wcsncpyz(dest + len, file, max_len - len);
 }
 
 
@@ -425,19 +481,21 @@ inline u_char hexchar2char(u_char ch)
 	return 0xff;
 }
 
-BOOL hexstr2bin(const char *buf, BYTE *bindata, int maxlen, int *len)
+size_t hexstr2bin(const char *buf, BYTE *bindata, size_t maxlen)
 {
-	for (*len=0; buf[0] && buf[1] && *len < maxlen; buf+=2, (*len)++)
+	size_t	len = 0;
+
+	for ( ; buf[0] && buf[1] && len < maxlen; buf+=2, len++)
 	{
 		u_char c1 = hexchar2char(buf[0]);
 		u_char c2 = hexchar2char(buf[1]);
 		if (c1 == 0xff || c2 == 0xff) break;
-		bindata[*len] = (c1 << 4) | c2;
+		bindata[len] = (c1 << 4) | c2;
 	}
-	return	TRUE;
+	return	len;
 }
 
-int bin2hexstr(const BYTE *bindata, int len, char *buf)
+int bin2hexstr(const BYTE *bindata, size_t len, char *buf)
 {
 	for (const BYTE *end=bindata+len; bindata < end; bindata++)
 	{
@@ -445,10 +503,10 @@ int bin2hexstr(const BYTE *bindata, int len, char *buf)
 		*buf++ = hexstr[*bindata & 0x0f];
 	}
 	*buf = 0;
-	return	len * 2;
+	return	int(len * 2);
 }
 
-int bin2hexstrW(const BYTE *bindata, int len, WCHAR *buf)
+int bin2hexstrW(const BYTE *bindata, size_t len, WCHAR *buf)
 {
 	for (const BYTE *end=bindata+len; bindata < end; bindata++)
 	{
@@ -456,33 +514,80 @@ int bin2hexstrW(const BYTE *bindata, int len, WCHAR *buf)
 		*buf++ = hexstr_w[*bindata & 0x0f];
 	}
 	*buf = 0;
-	return	len * 2;
+	return	int(len * 2);
 }
 
 /* little-endian binary to hexstr */
-int bin2hexstr_revendian(const BYTE *bindata, int len, char *buf)
+int bin2hexstr_revendian(const BYTE *bindata, size_t len, char *buf)
 {
-	int		sv_len = len;
+	size_t	sv_len = len;
 	while (len-- > 0)
 	{
 		*buf++ = hexstr[bindata[len] >> 4];
 		*buf++ = hexstr[bindata[len] & 0x0f];
 	}
 	*buf = 0;
-	return	sv_len * 2;
+	return	int(sv_len * 2);
 }
 
-BOOL hexstr2bin_revendian(const char *buf, BYTE *bindata, int maxlen, int *len)
+size_t hexstr2bin_revendian(const char *s, BYTE *bindata, size_t maxlen)
 {
-	*len = 0;
-	for (int buflen = (int)strlen(buf); buflen >= 2 && *len < maxlen; buflen-=2, (*len)++)
-	{
-		u_char c1 = hexchar2char(buf[buflen-1]);
-		u_char c2 = hexchar2char(buf[buflen-2]);
-		if (c1 == 0xff || c2 == 0xff) break;
-		bindata[*len] = c1 | (c2 << 4);
+	return	hexstr2bin_revendian_ex(s, bindata, maxlen);
+}
+
+size_t hexstr2bin_revendian_ex(const char *s, BYTE *bindata, size_t maxlen, int slen)
+{
+	size_t	len = 0;
+
+	if (slen == -1) {
+		slen = (int)strlen(s);
 	}
-	return	TRUE;
+
+	for ( ; slen >= 1 && len < maxlen; slen-=2, len++) {
+		u_char c1 = hexchar2char(s[slen-1]);
+		u_char c2 = (slen >= 2) ? hexchar2char(s[slen-2]) : 0;
+		if (c1 == 0xff || c2 == 0xff) {
+			return FALSE;
+		}
+		bindata[len] = c1 | (c2 << 4);
+	}
+	return	len;
+}
+
+BYTE hexstr2byte(const char *buf)
+{
+	BYTE	val = 0;
+
+	hexstr2bin_revendian(buf, (BYTE *)&val, sizeof(val));
+
+	return	val;
+}
+
+WORD hexstr2word(const char *buf)
+{
+	WORD	val = 0;
+
+	hexstr2bin_revendian(buf, (BYTE *)&val, sizeof(val));
+
+	return	val;
+}
+
+DWORD hexstr2dword(const char *buf)
+{
+	DWORD	val = 0;
+
+	hexstr2bin_revendian(buf, (BYTE *)&val, sizeof(val));
+
+	return	val;
+}
+
+int64 hexstr2int64(const char *buf)
+{
+	int64	val = 0;
+
+	hexstr2bin_revendian(buf, (BYTE *)&val, sizeof(val));
+
+	return	val;
 }
 
 int strip_crlf(const char *s, char *d)
@@ -498,49 +603,57 @@ int strip_crlf(const char *s, char *d)
 }
 
 /* base64 convert routine */
-BOOL b64str2bin(const char *buf, BYTE *bindata, int maxlen, int *len)
+size_t b64str2bin(const char *s, BYTE *bindata, size_t maxsize)
 {
-	*len = maxlen;
-	return	::CryptStringToBinary(buf, 0, CRYPT_STRING_BASE64, bindata, (DWORD *)len, 0, 0);
+	DWORD	size = (DWORD)maxsize;
+	BOOL ret = ::CryptStringToBinary(s, 0, CRYPT_STRING_BASE64, bindata, &size, 0, 0);
+	return	ret ? size : 0;
 }
 
-int bin2b64str(const BYTE *bindata, int len, char *str)
+size_t b64str2bin_ex(const char *s, int len, BYTE *bindata, size_t maxsize)
 {
-	int		size = len * 2 + 5;
-	char	*b64 = new char [size];
+	DWORD	size = (DWORD)maxsize;
+	BOOL ret = ::CryptStringToBinary(s, len, CRYPT_STRING_BASE64, bindata, &size, 0, 0);
+	return	ret ? size : 0;
+}
 
-	if (!::CryptBinaryToString(bindata, len, CRYPT_STRING_BASE64, b64, (DWORD *)&size)) {
+int bin2b64str(const BYTE *bindata, size_t size, char *str)
+{
+	DWORD	len  = (DWORD)size * 2 + 5;
+	char	*b64 = new char [len];
+
+	if (!::CryptBinaryToString(bindata, (DWORD)size, CRYPT_STRING_BASE64, b64, &len)) {
 		return 0;
 	}
-	size = strip_crlf(b64, str);
+	len = strip_crlf(b64, str);
 
 	delete [] b64;
+	return	len;
+}
+
+size_t b64str2bin_revendian(const char *s, BYTE *bindata, size_t maxsize)
+{
+	size_t	size = b64str2bin(s, bindata, maxsize);
+	rev_order(bindata, size);
 	return	size;
 }
 
-BOOL b64str2bin_revendian(const char *buf, BYTE *bindata, int maxlen, int *len)
+int bin2b64str_revendian(const BYTE *bindata, size_t size, char *buf)
 {
-	if (!b64str2bin(buf, bindata, maxlen, len)) return FALSE;
-	rev_order(bindata, *len);
-	return	TRUE;
-}
-
-int bin2b64str_revendian(const BYTE *bindata, int len, char *buf)
-{
-	BYTE *rev = new BYTE [len];
+	BYTE *rev = new BYTE [size];
 
 	if (!rev) return -1;
 
-	rev_order(bindata, rev, len);
-	int	ret = bin2b64str(rev, len, buf);
+	rev_order(bindata, rev, size);
+	int	ret = bin2b64str(rev, size, buf);
 	delete [] rev;
 
 	return	ret;
 }
 
-int bin2urlstr(const BYTE *bindata, int len, char *str)
+int bin2urlstr(const BYTE *bindata, size_t size, char *str)
 {
-	int ret = bin2b64str(bindata, len, str);
+	int ret = bin2b64str(bindata, size, str);
 
 	for (char *s=str; *s; s++) {
 		switch (*s) {
@@ -555,6 +668,22 @@ int bin2urlstr(const BYTE *bindata, int len, char *str)
 	return	ret;
 }
 
+void swap_s(BYTE *s, size_t len)
+{
+	if (len == 0) return;
+
+	size_t	mid = len / 2;
+
+	for (size_t i=0, e=len-1; i < mid; i++, e--) {
+		BYTE	&c1 = s[i];
+		BYTE	&c2 = s[e];
+		BYTE	tmp = c1;
+		c1 = c2;
+		c2 = tmp;
+	}
+}
+
+
 /*
 0: 0
 1: 2+2
@@ -563,10 +692,10 @@ int bin2urlstr(const BYTE *bindata, int len, char *str)
 4  6+2
 */
 
-BOOL urlstr2bin(const char *str, BYTE *bindata, int maxlen, int *len)
+size_t urlstr2bin(const char *str, BYTE *bindata, size_t maxsize)
 {
-	ssize_t	size = strlen(str);
-	char	*b64 = new char [size + 4];
+	int		len = (int)strlen(str);
+	char	*b64 = new char [len + 4];
 
 	strcpy(b64, str);
 	for (char *s=b64; *s; s++) {
@@ -575,14 +704,14 @@ BOOL urlstr2bin(const char *str, BYTE *bindata, int maxlen, int *len)
 		case '_': *s = '/'; break;
 		}
 	}
-	if (b64[size-1] != '\n' && (size % 4) && b64[size-1] != '=') {
-		sprintf(b64 + size -1, "%.*s", int(4 - (size % 4)), "===");
+	if (b64[len-1] != '\n' && (len % 4) && b64[len-1] != '=') {
+		sprintf(b64 + len -1, "%.*s", int(4 - (len % 4)), "===");
 	}
 
-	b64str2bin(b64, bindata, maxlen, len);
-
+	size_t	size = b64str2bin(b64, bindata, maxsize);
 	delete [] b64;
-	return	TRUE;
+
+	return	size;
 }
 
 /*
@@ -603,7 +732,7 @@ int64 hex2ll(char *buf)
 	return	ret;
 }
 
-void rev_order(BYTE *data, int size)
+void rev_order(BYTE *data, size_t size)
 {
 	BYTE	*d1 = data;
 	BYTE	*d2 = data + size - 1;
@@ -615,7 +744,7 @@ void rev_order(BYTE *data, int size)
 	}
 }
 
-void rev_order(const BYTE *src, BYTE *dst, int size)
+void rev_order(const BYTE *src, BYTE *dst, size_t size)
 {
 	dst = dst + size - 1;
 
@@ -627,64 +756,168 @@ void rev_order(const BYTE *src, BYTE *dst, int size)
 /*=========================================================================
 	Debug
 =========================================================================*/
+static HANDLE hStdOut = NULL;
+static HANDLE hLogFile = NULL;
+
+void OpenDebugConsole(DWORD odc_mode)
+{
+	if (!hStdOut) {
+		if (odc_mode == ODC_ALLOC) {
+			::AllocConsole();
+		}
+		else if (odc_mode == ODC_PARENT) {
+			::AttachConsole(ATTACH_PARENT_PROCESS);
+		}
+		else if (odc_mode == ODC_NONE) {
+		}
+		hStdOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
+		if (hStdOut == INVALID_HANDLE_VALUE) {
+			hStdOut = NULL;
+		}
+	}
+}
+
+void CloseDebugConsole()
+{
+	if (hStdOut) {
+		::FreeConsole();
+		hStdOut = NULL;
+	}
+}
+
+void OpenDebugFile(const char *logfile)
+{
+	CloseDebugFile();
+	hLogFile = CreateFileU8(logfile, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS,
+				FILE_ATTRIBUTE_NORMAL, 0);
+	if (hLogFile == INVALID_HANDLE_VALUE) {
+		hLogFile = NULL;
+	}
+}
+
+void CloseDebugFile()
+{
+	if (hLogFile) {
+		::CloseHandle(hLogFile);
+		hLogFile = NULL;
+	}
+}
+
+BOOL DebugConsoleEnabled()
+{
+	return	hStdOut ? TRUE : FALSE;
+}
+
+static DWORD dbg_last = ::GetTick();
+
 void Debug(const char *fmt,...)
 {
 	char buf[8192];
 
+	DWORD	cur = ::GetTick();
+	DWORD	diff = cur - dbg_last;
+	DWORD	len = (DWORD)sprintf(buf, "%04d.%02d: ", (diff / 1000), (diff % 1000) / 10);
+
 	va_list	ap;
 	va_start(ap, fmt);
-	_vsnprintf(buf, sizeof(buf), fmt, ap);
+	len += (DWORD)vsnprintfz(buf + len, sizeof(buf) - len -1, fmt, ap);
 	va_end(ap);
 	::OutputDebugString(buf);
+
+	if (hStdOut) {
+		DWORD	wlen = len;
+		::WriteConsole(hStdOut, buf, wlen, &wlen, 0);
+	}
+	if (hLogFile) {
+		DWORD	wlen = len;
+		::WriteFile(hLogFile, buf, wlen, &wlen, 0);
+	}
 }
 
 void DebugW(const WCHAR *fmt,...)
 {
-	WCHAR buf[8192];
+	WCHAR buf[4096];
+
+	DWORD	cur = ::GetTick();
+	DWORD	diff = cur - dbg_last;
+	DWORD	len = (DWORD)swprintf(buf, L"%04d.%02d: ", (diff / 1000), (diff % 1000) / 10);
 
 	va_list	ap;
 	va_start(ap, fmt);
-	_vsnwprintf(buf, sizeof(buf), fmt, ap);
+	len += (DWORD)_vsnwprintf(buf + len, sizeof(buf) - len, fmt, ap);
 	va_end(ap);
 	::OutputDebugStringW(buf);
+
+	if (hStdOut) {
+		DWORD	wlen = len;
+		::WriteConsoleW(hStdOut, buf, wlen, &wlen, 0);
+	}
+	if (hLogFile) {
+		U8str	u(buf);
+		DWORD	wlen = u.Len();
+		::WriteFile(hLogFile, u.Buf(), wlen, &wlen, 0);
+	}
 }
+
 
 void DebugU8(const char *fmt,...)
 {
 	char buf[8192];
 
+	DWORD	cur = ::GetTick();
+	DWORD	diff = cur - dbg_last;
+	size_t	len = sprintf(buf, "%04d.%02d: ", (diff / 1000), (diff % 1000) / 10);
+
 	va_list	ap;
 	va_start(ap, fmt);
-	_vsnprintf(buf, sizeof(buf), fmt, ap);
+	len += vsnprintfz(buf + len, int(sizeof(buf) - len), fmt, ap);
 	va_end(ap);
 
-	WCHAR *wbuf = U8toWs(buf);
-	::OutputDebugStringW(wbuf);
-	delete [] wbuf;
+	Wstr	w(buf);
+	::OutputDebugStringW(w.s());
+
+	if (hStdOut) {
+		DWORD wlen = (DWORD)w.Len();
+		::WriteConsoleW(hStdOut, w.s(), wlen, &wlen, 0);
+	}
+	if (hLogFile) {
+		DWORD	wlen = (DWORD)len;
+		::WriteFile(hLogFile, buf, wlen, &wlen, 0);
+	}
 }
+
+#define FMT_BUF_NUM		8		// 2^n
+#define FMT_BUF_SIZE	8192
 
 const char *Fmt(const char *fmt,...)
 {
-	static char buf[8192];
+	static std::atomic<DWORD>	idx;
+	static char		buf[FMT_BUF_NUM][FMT_BUF_SIZE];	// TLS使うべき…
+
+	char	*p = buf[idx++ % FMT_BUF_NUM];
 
 	va_list	ap;
 	va_start(ap, fmt);
-	_vsnprintf(buf, sizeof(buf), fmt, ap);
+	vsnprintfz(p, FMT_BUF_SIZE, fmt, ap);
 	va_end(ap);
 
-	return	buf;
+	return	p;
 }
 
 const WCHAR *FmtW(const WCHAR *fmt,...)
 {
-	static WCHAR buf[8192];
+	static std::atomic<DWORD>	idx;
+	static WCHAR buf[FMT_BUF_NUM][FMT_BUF_SIZE];
+
+	WCHAR	*p = buf[idx++ % FMT_BUF_NUM];
 
 	va_list	ap;
 	va_start(ap, fmt);
-	_vsnwprintf(buf, sizeof(buf), fmt, ap);
+	p[FMT_BUF_SIZE - 1] = 0;
+	_vsnwprintf(p, FMT_BUF_SIZE-1, fmt, ap);
 	va_end(ap);
 
-	return	buf;
+	return	p;
 }
 
 
@@ -693,7 +926,17 @@ const WCHAR *FmtW(const WCHAR *fmt,...)
 =========================================================================*/
 static char *ExceptionTitle;
 static char *ExceptionLogFile;
+static char *ExceptionDumpFile;
+static DWORD ExceptionDumpFlags;
+static char *ExceptionShellArg;
 static char *ExceptionLogInfo;
+static char *ExceptionVerInfo;
+static char *ExceptionTrace;
+static char *ExceptionTracePtr;
+static char *ExceptionTraceEnd;
+static void *ExceptionModAddr;
+static SYSTEMTIME ExceptionTm;
+
 #define STACKDUMP_SIZE			256
 #ifdef _WIN64
 #define MAX_STACKDUMP_SIZE		2048
@@ -724,123 +967,249 @@ inline int reg_info(char *buf, DWORD_PTR target, const char *name)
 {
 	int len = 0;
 
+	len += strcpyz(buf+len, "\r\n");
 	len += reg_info_core(buf+len, (const u_char *)target - 32, 32, "   ");
 	len += reg_info_core(buf+len, (const u_char *)target -  0, 32, name);
 	len += reg_info_core(buf+len, (const u_char *)target + 32, 32, "   ");
-	len += strcpyz(buf+len, "\r\n");
 
 	return	len < 50 ? 0 : len;	// target データがない場合は 0 に
 }
 
+void InitExTrace(int trace_len)
+{
+	if (ExceptionTrace) {
+		free(ExceptionTrace);
+		ExceptionTrace = ExceptionTracePtr = ExceptionTraceEnd = NULL;
+	}
+	if (trace_len <= 0) {
+		return;
+	}
+	ExceptionTrace = (char *)calloc(1, trace_len);
+	ExceptionTracePtr = ExceptionTrace;
+	ExceptionTraceEnd = ExceptionTrace + trace_len;
+}
+
+BOOL ExTrace(const char *fmt,...)
+{
+	if (!ExceptionTrace) {
+		return	FALSE;
+	}
+
+	char buf[8192];
+
+	va_list	ap;
+	va_start(ap, fmt);
+	int len = vsnprintfz(buf, sizeof(buf) - 3, fmt, ap);
+	va_end(ap);
+
+	if (len <= 0) {
+		return FALSE;
+	}
+	if (buf[0] != '[' && buf[len-1] != '\n') {
+		len += strcpyz(buf + len, "\r\n");
+	}
+
+	if (ExceptionTracePtr + len <= ExceptionTraceEnd) {
+		memcpy(ExceptionTracePtr, buf, len);
+		ExceptionTracePtr += len;
+		if (ExceptionTracePtr == ExceptionTraceEnd) {
+			ExceptionTracePtr = ExceptionTrace;
+		}
+	}
+	else {
+		size_t	remain = ExceptionTraceEnd - ExceptionTracePtr;
+		memcpy(ExceptionTracePtr, buf, remain);
+		ExceptionTracePtr = ExceptionTrace;
+		memcpy(ExceptionTracePtr, buf + remain, len - remain);
+		ExceptionTracePtr += len - remain;
+	}
+
+	return	TRUE;
+}
+
 LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 {
-	static char			buf[MAX_DUMPBUF_SIZE];
-	static HANDLE		hFile;
-	static SYSTEMTIME	tm;
-	static CONTEXT		*context;
-	static DWORD		len, i, j;
-	static char			*stack, *esp;
+	static char	buf[MAX_DUMPBUF_SIZE];
+	HANDLE		hFile;
+	HANDLE		hDumpFile;
+	SYSTEMTIME	&stm = ExceptionTm;
+	SYSTEMTIME	tm;
+	DWORD		len, i, j;
+	char		*esp;
 
 	hFile = ::CreateFile(ExceptionLogFile, GENERIC_WRITE, 0, 0, OPEN_ALWAYS, 0, 0);
 	::SetFilePointer(hFile, 0, 0, FILE_END);
 	::GetLocalTime(&tm);
-	context = info->ContextRecord;
 
 	len = sprintf(buf,
-#ifdef _WIN64
-		"------ %s -----\r\n"
+		"------ %.100s -----\r\n"
 		" Date        : %d/%02d/%02d %02d:%02d:%02d\r\n"
-		" Code/Addr   : %x / %p\r\n"
-		" AX/BX/CX/DX : %p / %p / %p / %p\r\n"
-		" SI/DI/BP/SP : %p / %p / %p / %p\r\n"
-		" 08/09/10/11 : %p / %p / %p / %p\r\n"
-		" 12/13/14/15 : %p / %p / %p / %p\r\n"
-		"------- pre stack info -----\r\n"
-		, ExceptionTitle
-		, tm.wYear, tm.wMonth, tm.wDay, tm.wHour, tm.wMinute, tm.wSecond
-		, info->ExceptionRecord->ExceptionCode, (void *)info->ExceptionRecord->ExceptionAddress
-		, (void *)context->Rax, (void *)context->Rbx, (void *)context->Rcx, (void *)context->Rdx
-		, (void *)context->Rsi, (void *)context->Rdi, (void *)context->Rbp, (void *)context->Rsp
-		, (void *)context->R8,  (void *)context->R9,  (void *)context->R10, (void *)context->R11
-		, (void *)context->R12, (void *)context->R13, (void *)context->R14, (void *)context->R15
-#else
-		"------ %s -----\r\n"
-		" Date        : %d/%02d/%02d %02d:%02d:%02d\r\n"
-		" Code/Addr   : %X / %p\r\n"
-		" AX/BX/CX/DX : %08x / %08x / %08x / %08x\r\n"
-		" SI/DI/BP/SP : %08x / %08x / %08x / %08x\r\n"
-		"----- pre stack info ---\r\n"
-		, ExceptionTitle
-		, tm.wYear, tm.wMonth, tm.wDay, tm.wHour, tm.wMinute, tm.wSecond
-		, info->ExceptionRecord->ExceptionCode, info->ExceptionRecord->ExceptionAddress
-		, context->Eax, context->Ebx, context->Ecx, context->Edx
-		, context->Esi, context->Edi, context->Ebp, context->Esp
-#endif
-		);
+		" Start       : %d/%02d/%02d %02d:%02d:%02d\r\n"
+		" OS Infos    : %.100s\r\n"
+		" Mod Addr    : %p\r\n"
+			, ExceptionTitle
+			, tm.wYear,  tm.wMonth,  tm.wDay,  tm.wHour,  tm.wMinute,  tm.wSecond
+			, stm.wYear, stm.wMonth, stm.wDay, stm.wHour, stm.wMinute, stm.wSecond
+			, ExceptionVerInfo, ExceptionModAddr);
 	::WriteFile(hFile, buf, len, &len, 0);
 
+	if (info) {
+		CONTEXT	*ctx = info->ContextRecord;
+
+		len = sprintf(buf,
 #ifdef _WIN64
-		esp = (char *)context->Rsp;
+			" Code/Adr/DC : %X / %p / %p\r\n"
+			" AX/BX/CX/DX : %p / %p / %p / %p\r\n"
+			" SI/DI/BP/SP : %p / %p / %p / %p\r\n"
+			" 08/09/10/11 : %p / %p / %p / %p\r\n"
+			" 12/13/14/15 : %p / %p / %p / %p\r\n"
+			" BT/BF/ET/EF : %p / %p / %p / %p\r\n"
+			"------- pre stack info -----\r\n"
+			, info->ExceptionRecord->ExceptionCode, (void *)info->ExceptionRecord->ExceptionAddress
+			, (void *)ctx->DebugControl
+			, (void *)ctx->Rax, (void *)ctx->Rbx, (void *)ctx->Rcx, (void *)ctx->Rdx
+			, (void *)ctx->Rsi, (void *)ctx->Rdi, (void *)ctx->Rbp, (void *)ctx->Rsp
+			, (void *)ctx->R8,  (void *)ctx->R9,  (void *)ctx->R10, (void *)ctx->R11
+			, (void *)ctx->R12, (void *)ctx->R13, (void *)ctx->R14, (void *)ctx->R15
+			, (void *)ctx->LastBranchToRip, (void *)ctx->LastBranchFromRip
+			, (void *)ctx->LastExceptionToRip, (void *)ctx->LastExceptionFromRip
 #else
-		esp = (char *)context->Esp;
+			" Code/Addr   : %X / %p\r\n"
+			" AX/BX/CX/DX : %08x / %08x / %08x / %08x\r\n"
+			" SI/DI/BP/SP : %08x / %08x / %08x / %08x\r\n"
+			"----- pre stack info ---\r\n"
+			, info->ExceptionRecord->ExceptionCode, info->ExceptionRecord->ExceptionAddress
+			, ctx->Eax, ctx->Ebx, ctx->Ecx, ctx->Edx
+			, ctx->Esi, ctx->Edi, ctx->Ebp, ctx->Esp
+#endif
+			);
+		::WriteFile(hFile, buf, len, &len, 0);
+
+#ifdef _WIN64
+			esp = (char *)ctx->Rsp;
+#else
+			esp = (char *)ctx->Esp;
 #endif
 
-	for (i=0; i < MAX_PRE_STACKDUMP_SIZE / STACKDUMP_SIZE; i++) {
-		stack = (esp - MAX_PRE_STACKDUMP_SIZE) + (i * STACKDUMP_SIZE);
-		if (::IsBadReadPtr(stack, STACKDUMP_SIZE)) continue;
-		len = 0;
-		for (j=0; j < STACKDUMP_SIZE / sizeof(void *); j++)
-			len += sprintf(buf + len, "%p%s", ((void **)stack)[j],
-							((j+1)%(32/sizeof(void *))) ? " " : "\r\n");
+		for (i=0; i < MAX_PRE_STACKDUMP_SIZE / STACKDUMP_SIZE; i++) {
+			char *stack = (esp - MAX_PRE_STACKDUMP_SIZE) + (i * STACKDUMP_SIZE);
+			if (::IsBadReadPtr(stack, STACKDUMP_SIZE)) continue;
+			len = 0;
+			for (j=0; j < STACKDUMP_SIZE / sizeof(void *); j++)
+				len += sprintf(buf + len, "%p%s", ((void **)stack)[j],
+								((j+1)%(32/sizeof(void *))) ? " " : "\r\n");
+			::WriteFile(hFile, buf, len, &len, 0);
+		}
+
+		len = sprintf(buf, "------- stack info -----\r\n");
+		::WriteFile(hFile, buf, len, &len, 0);
+
+		for (i=0; i < MAX_STACKDUMP_SIZE / STACKDUMP_SIZE; i++) {
+			char *stack = esp + (i * STACKDUMP_SIZE);
+			if (::IsBadReadPtr(stack, STACKDUMP_SIZE))
+				break;
+			len = 0;
+			for (j=0; j < STACKDUMP_SIZE / sizeof(void *); j++)
+				len += sprintf(buf + len, "%p%s", ((void **)stack)[j],
+								((j+1)%(32/sizeof(void *))) ? " " : "\r\n");
+			::WriteFile(hFile, buf, len, &len, 0);
+		}
+
+		len = sprintf(buf, "---- reg point info ----");
+#ifdef _WIN64
+		len += reg_info(buf+len, ctx->Rax, "Rax"); len += reg_info(buf+len, ctx->Rbx, "Rbx");
+		len += reg_info(buf+len, ctx->Rcx, "Rcx"); len += reg_info(buf+len, ctx->Rdx, "Rdx");
+		len += reg_info(buf+len, ctx->Rsi, "Rsi"); len += reg_info(buf+len, ctx->Rdi, "Rdi");
+		len += reg_info(buf+len, ctx->Rbp, "Rbp"); len += reg_info(buf+len, ctx->Rsp, "Rsp");
+		len += reg_info(buf+len, ctx->R8 , "R8 "); len += reg_info(buf+len, ctx->R9 , "R9 ");
+		len += reg_info(buf+len, ctx->R10, "R10"); len += reg_info(buf+len, ctx->R11, "R11");
+		len += reg_info(buf+len, ctx->R12, "R12"); len += reg_info(buf+len, ctx->R13, "R13");
+		len += reg_info(buf+len, ctx->R14, "R14"); len += reg_info(buf+len, ctx->R15, "R15");
+		len += reg_info(buf+len, ctx->Rip, "Rip");
+#else
+		len += reg_info(buf+len, ctx->Eax, "Eax"); len += reg_info(buf+len, ctx->Ebx, "Ebx");
+		len += reg_info(buf+len, ctx->Ecx, "Ecx"); len += reg_info(buf+len, ctx->Edx, "Edx");
+		len += reg_info(buf+len, ctx->Esi, "Esi"); len += reg_info(buf+len, ctx->Edi, "Edi");
+		len += reg_info(buf+len, ctx->Ebp, "Ebp"); len += reg_info(buf+len, ctx->Esp, "Esp");
+		len += reg_info(buf+len, ctx->Eip, "Eip");
+#endif
+
 		::WriteFile(hFile, buf, len, &len, 0);
 	}
 
-	len = sprintf(buf, "------- stack info -----\r\n");
-	::WriteFile(hFile, buf, len, &len, 0);
-
-	for (i=0; i < MAX_STACKDUMP_SIZE / STACKDUMP_SIZE; i++) {
-		stack = esp + (i * STACKDUMP_SIZE);
-		if (::IsBadReadPtr(stack, STACKDUMP_SIZE))
-			break;
-		len = 0;
-		for (j=0; j < STACKDUMP_SIZE / sizeof(void *); j++)
-			len += sprintf(buf + len, "%p%s", ((void **)stack)[j],
-							((j+1)%(32/sizeof(void *))) ? " " : "\r\n");
+	if (ExceptionTrace) {
+		len = sprintf(buf, "---- trace log info ----\r\n");
+		::WriteFile(hFile, buf, len, &len, 0);
+		if (ExceptionTracePtr != ExceptionTrace && ExceptionTracePtr[0] == 0 &&
+			ExceptionTracePtr[1]) {
+			if ((len = (DWORD)(ExceptionTraceEnd - ExceptionTracePtr - 1)) > 0) {
+				::WriteFile(hFile, ExceptionTracePtr + 1, len, &len, 0);
+			}
+		}
+		if (ExceptionTrace[0]) {
+			if ((len = (DWORD)(ExceptionTracePtr - ExceptionTrace)) > 0) {
+				::WriteFile(hFile, ExceptionTrace, len, &len, 0);
+			}
+		}
+		len = sprintf(buf, "\r\n");
 		::WriteFile(hFile, buf, len, &len, 0);
 	}
 
-	len = sprintf(buf, "---- reg point info ----\r\n");
-#ifdef _WIN64
-	len += reg_info(buf+len, context->Rax, "Rax"); len += reg_info(buf+len, context->Rbx, "Rbx");
-	len += reg_info(buf+len, context->Rcx, "Rcx"); len += reg_info(buf+len, context->Rdx, "Rdx");
-	len += reg_info(buf+len, context->Rsi, "Rsi"); len += reg_info(buf+len, context->Rdi, "Rdi");
-	len += reg_info(buf+len, context->Rbp, "Rbp"); len += reg_info(buf+len, context->Rsp, "Rsp");
-	len += reg_info(buf+len, context->R8 , "R8 "); len += reg_info(buf+len, context->R9 , "R9 ");
-	len += reg_info(buf+len, context->R10, "R10"); len += reg_info(buf+len, context->R11, "R11");
-	len += reg_info(buf+len, context->R12, "R12"); len += reg_info(buf+len, context->R13, "R13");
-	len += reg_info(buf+len, context->R14, "R14"); len += reg_info(buf+len, context->R15, "R15");
-	len += reg_info(buf+len, context->Rip, "Rip");
-#else
-	len += reg_info(buf+len, context->Eax, "Eax"); len += reg_info(buf+len, context->Ebx, "Ebx");
-	len += reg_info(buf+len, context->Ecx, "Ecx"); len += reg_info(buf+len, context->Edx, "Edx");
-	len += reg_info(buf+len, context->Esi, "Esi"); len += reg_info(buf+len, context->Edi, "Edi");
-	len += reg_info(buf+len, context->Ebp, "Ebp"); len += reg_info(buf+len, context->Esp, "Esp");
-	len += reg_info(buf+len, context->Eip, "Eip");
-#endif
+	if (ExceptionDumpFile) {
+		MINIDUMP_EXCEPTION_INFORMATION	mei = {
+			::GetCurrentThreadId(),
+			info,
+			FALSE
+		};
 
-	len += sprintf(buf+len, "------------------------\r\n\r\n");
+		len = sprintf(buf, "---- dump info ----\r\n");
+		::WriteFile(hFile, buf, len, &len, 0);
+
+		hDumpFile = ::CreateFile(ExceptionDumpFile, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+		while (1) {
+			if (::MiniDumpWriteDump(::GetCurrentProcess(), ::GetCurrentProcessId(), hDumpFile,
+				(MINIDUMP_TYPE)ExceptionDumpFlags, &mei, NULL, NULL)) {
+				len = ::GetFileSize(hDumpFile, NULL);
+				len = sprintf(buf, " size=%d flags=%x\r\n", len, ExceptionDumpFlags);
+				::WriteFile(hFile, buf, len, &len, 0);
+				break;
+			}
+			if (ExceptionDumpFlags == 0) {
+				break;
+			}
+			ExceptionDumpFlags &= ~(1 << get_nlz(ExceptionDumpFlags));
+		}
+		::CloseHandle(hDumpFile);
+	}
+
+	len = sprintf(buf, "------------------------\r\n\r\n");
 	::WriteFile(hFile, buf, len, &len, 0);
 	::CloseHandle(hFile);
 
-	sprintf(buf, ExceptionLogInfo, ExceptionLogFile);
-	::MessageBox(0, buf, ExceptionTitle, MB_OK);
+	if (!info) {
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
+	static BOOL	once = FALSE;
+	if (once) {
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+	once = TRUE;
+
+	snprintfz(buf, sizeof(buf), ExceptionLogInfo, ExceptionLogFile);
+	if (::MessageBox(0, buf, ExceptionTitle, MB_OKCANCEL) == IDOK) {
+		::ShellExecute(0, 0, "explorer", ExceptionShellArg, 0, SW_SHOW);
+	}
 
 	return	EXCEPTION_EXECUTE_HANDLER;
 }
 
-BOOL InstallExceptionFilter(const char *title, const char *info, const char *fname)
+BOOL InstallExceptionFilter(const char *title, const char *info, const char *fname,
+	const char *dump, DWORD dump_flags)
 {
-	char	buf[MAX_PATH];
+	::GetLocalTime(&ExceptionTm);
+
+	char	buf[MAX_PATH_U8];
 
 	if (fname && *fname) {
 		strcpy(buf, fname);
@@ -848,14 +1217,96 @@ BOOL InstallExceptionFilter(const char *title, const char *info, const char *fna
 		::GetModuleFileName(NULL, buf, sizeof(buf));
 		strcpy(strrchr(buf, '.'), "_exception.log");
 	}
+
 	ExceptionLogFile = strdup(buf);
+
+	if (dump && *dump) {
+		ExceptionDumpFile = strdup(dump);
+		ExceptionDumpFlags = dump_flags;
+	}
+
+	snprintfz(buf, sizeof(buf), "/select,%s", ExceptionLogFile);
+	ExceptionShellArg = strdup(buf);
+
 	ExceptionTitle = strdup(title);
 	ExceptionLogInfo = strdup(info);
+
+	OSVERSIONINFOEX	ovi = { sizeof(OSVERSIONINFOEX) };
+	::GetVersionEx((OSVERSIONINFO *)&ovi);
+	snprintfz(buf, sizeof(buf), "%02x/%02x/%02x/%02x/%02x/%02x",
+		ovi.dwMajorVersion, ovi.dwMinorVersion, ovi.dwBuildNumber,
+		ovi.wServicePackMajor, ovi.wServicePackMinor, ovi.wSuiteMask);
+	ExceptionVerInfo = strdup(buf);
+
+	ExceptionModAddr = (void *)::GetModuleHandle(NULL);
 
 	::SetUnhandledExceptionFilter(&Local_UnhandledExceptionFilter);
 	return	TRUE;
 }
 
+void ForceFlushExceptionLog()
+{
+	Local_UnhandledExceptionFilter(NULL);
+}
+
+
+int snprintfz(char *buf, int size, const char *fmt,...)
+{
+	va_list	ap;
+	va_start(ap, fmt);
+	int len = vsnprintfz(buf, size, fmt, ap);
+	va_end(ap);
+
+	return	len;
+}
+
+int vsnprintfz(char *buf, int size, const char *fmt, va_list ap)
+{
+	if (size <= 0) return 0;
+
+	int len = (int)vsnprintf(buf, size -1, fmt, ap);
+
+	if (len <= 0) {
+		buf[size -1] = 0;
+		len = (int)strlen(buf);
+	}
+	else if (len == (size -1)) {
+		buf[size -1] = 0;
+	}
+
+	va_end(ap);
+
+	return	len;
+}
+
+int snwprintfz(WCHAR *buf, int wsize, const WCHAR *fmt,...)
+{
+	va_list	ap;
+	va_start(ap, fmt);
+	int len = vsnwprintfz(buf, wsize, fmt, ap);
+	va_end(ap);
+
+	return	len;
+}
+
+int vsnwprintfz(WCHAR *buf, int wsize, const WCHAR *fmt, va_list ap)
+{
+	if (wsize <= 0) return 0;
+
+	int len = (int)_vsnwprintf(buf, wsize -1, fmt, ap);
+
+	if (len <= 0) {
+		buf[wsize -1] = 0;
+		len = (int)wcslen(buf);
+	}
+	else if (len == (wsize -1)) {
+		buf[wsize -1] = 0;
+	}
+
+	va_end(ap);
+
+	return	len;
+}
 
 /*
 	nul文字を必ず付与する strcpy かつ return は 0 を除くコピー文字数
@@ -905,12 +1356,12 @@ int strncatz(char *dest, const char *src, int num)
 	return strncpyz(dest, src, num);
 }
 
-const char *wcsnchr(const char *dest, char ch, int num)
+const char *strnchr(const char *s, char ch, int num)
 {
-	for ( ; num > 0 && *dest; num--, dest++) {
-		if (*dest == ch) {
-			return	dest;
-		}
+	const char *end = s + num;
+
+	for ( ; s < end && *s; s++) {
+		if (*s == ch) return s;
 	}
 	return	NULL;
 }
@@ -924,7 +1375,12 @@ int wcsncpyz(WCHAR *dest, const WCHAR *src, int num)
 	while (--num > 0 && *src) {
 		*dest++ = *src++;
 	}
+
+	if (IsSurrogateL(dest[-1])) { // surrogate includes IVS
+		dest--;
+	}
 	*dest = 0;
+
 	return	(int)(dest - sv_dest);
 }
 
@@ -960,101 +1416,102 @@ WCHAR *wcsdupNew(const WCHAR *_s, int max_len)
 	WCHAR	*s = new WCHAR [len + 1];
 	memcpy(s, _s, len * sizeof(WCHAR));
 	s[len] = 0;
+
+	if (len > 0) {
+		if (IsSurrogateL(s[len-1])) { // surrogate includes IVS
+			s[len-1] = 0;
+		}
+	}
+
 	return	s;
+}
+
+int ReplaceCharW(WCHAR *s, WCHAR rep_in, WCHAR rep_out, int max_len)
+{
+	WCHAR	*p = s;
+	WCHAR	*end = s + max_len;
+
+	for ( ; p < end && *p; p++) {
+		if (*p == rep_in) {
+			*p = rep_out;
+		}
+	}
+	return	int(p - s);
 }
 
 
 /* Win64検出 */
 BOOL TIsWow64()
 {
-	static BOOL	once = FALSE;
-	static BOOL	ret = FALSE;
-
-	if (!once) {
+	static BOOL	ret = []() {
+		BOOL r = FALSE;
 		BOOL (WINAPI *pIsWow64Process)(HANDLE, BOOL *) = (BOOL (WINAPI *)(HANDLE, BOOL *))
 				GetProcAddress(::GetModuleHandle("kernel32"), "IsWow64Process");
 		if (pIsWow64Process) {
-			pIsWow64Process(::GetCurrentProcess(), &ret);
+			pIsWow64Process(::GetCurrentProcess(), &r);
 		}
-		once = TRUE;
-	}
+		return	r;
+	}();
+
     return ret;
 }
 
 BOOL TRegDisableReflectionKey(HKEY hBase)
 {
-	static BOOL	once = FALSE;
-	static LONG (WINAPI *pRegDisableReflectionKey)(HKEY);
-
-	if (!once) {
-		pRegDisableReflectionKey = (LONG (WINAPI *)(HKEY))
+	static LONG (WINAPI *pRegDisableReflectionKey)(HKEY) = []() {
+		return	(LONG (WINAPI *)(HKEY))
 			GetProcAddress(::GetModuleHandle("advapi32"), "RegDisableReflectionKey");
-		once = TRUE;
-	}
-	if (pRegDisableReflectionKey && pRegDisableReflectionKey(hBase) == ERROR_SUCCESS)
-		return	TRUE;
-	return	FALSE;
+	}();
+
+	return	pRegDisableReflectionKey ? pRegDisableReflectionKey(hBase) == ERROR_SUCCESS : FALSE;
 }
 
 BOOL TRegEnableReflectionKey(HKEY hBase)
 {
-	static BOOL	once = FALSE;
-	static LONG (WINAPI *pRegEnableReflectionKey)(HKEY);
-
-	if (!once) {
-		pRegEnableReflectionKey = (LONG (WINAPI *)(HKEY))
+	static LONG (WINAPI *pRegEnableReflectionKey)(HKEY) = []() {
+		return	(LONG (WINAPI *)(HKEY))
 			GetProcAddress(::GetModuleHandle("advapi32"), "RegEnableReflectionKey");
-		once = TRUE;
-	}
-	if (pRegEnableReflectionKey && pRegEnableReflectionKey(hBase) == ERROR_SUCCESS)
-		return	TRUE;
-	return	FALSE;
+	}();
+
+	return	pRegEnableReflectionKey ? pRegEnableReflectionKey(hBase) == ERROR_SUCCESS : FALSE;
 }
 
 BOOL TWow64DisableWow64FsRedirection(void *oldval)
 {
-	static BOOL	once = FALSE;
-	static BOOL (WINAPI *pWow64DisableWow64FsRedirection)(void *);
-
-	if (!once) {
-		pWow64DisableWow64FsRedirection = (BOOL (WINAPI *)(void *))
+	static BOOL (WINAPI *pWow64DisableWow64FsRedirection)(void *) = []() {
+		return	(BOOL (WINAPI *)(void *))
 			GetProcAddress(::GetModuleHandle("kernel32"), "Wow64DisableWow64FsRedirection");
-		once = TRUE;
-	}
+	}();
+
 	return	pWow64DisableWow64FsRedirection ? pWow64DisableWow64FsRedirection(oldval) : FALSE;
 }
 
 BOOL TWow64RevertWow64FsRedirection(void *oldval)
 {
-	static BOOL	once = FALSE;
-	static BOOL (WINAPI *pWow64RevertWow64FsRedirection)(void *);
-
-	if (!once) {
-		pWow64RevertWow64FsRedirection = (BOOL (WINAPI *)(void *))
+	static BOOL (WINAPI *pWow64RevertWow64FsRedirection)(void *) = []() {
+		return	(BOOL (WINAPI *)(void *))
 			GetProcAddress(::GetModuleHandle("kernel32"), "Wow64RevertWow64FsRedirection");
-		once = TRUE;
-	}
+	}();
+
 	return	pWow64RevertWow64FsRedirection ? pWow64RevertWow64FsRedirection(oldval) : FALSE;
 }
 
 BOOL TIsEnableUAC()
 {
-	static BOOL once = FALSE;
-	static BOOL ret = FALSE;
-
-	if (!once) {
-		if (IsWinVista()) {
-			TRegistry reg(HKEY_LOCAL_MACHINE);
-			ret = TRUE;
-			if (reg.OpenKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System")) {
-				int	val = 1;
-				if (reg.GetInt("EnableLUA", &val) && val == 0) {
-					ret = FALSE;
-				}
+	static BOOL ret = []() {
+		if (!IsWinVista()) {
+			return FALSE;
+		}
+		TRegistry reg(HKEY_LOCAL_MACHINE);
+		if (reg.OpenKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System")) {
+			int	val = 1;
+			if (reg.GetInt("EnableLUA", &val) && val == 0) {
+				return FALSE;
 			}
 		}
-		once = TRUE;
-	}
+		return	TRUE;
+	}();
+
 	return	ret;
 }
 
@@ -1068,7 +1525,7 @@ BOOL TIsVirtualizedDirW(WCHAR *path)
 
 	for (int i=0; csidl[i] != 0xffffffff; i++) {
 		if (SHGetSpecialFolderPathW(NULL, buf, csidl[i], FALSE)) {
-			ssize_t	len = wcslen(buf);
+			int	len = (int)wcslen(buf);
 			if (wcsnicmp(buf, path, len) == 0) {
 				WCHAR	ch = path[len];
 				if (ch == 0 || ch == '\\' || ch == '/') {
@@ -1119,16 +1576,10 @@ BOOL TSetPrivilege(LPSTR privName, BOOL bEnable)
 
 BOOL TSetThreadLocale(int lcid)
 {
-	static BOOL	once = FALSE;
-	static LANGID (WINAPI *pSetThreadUILanguage)(LANGID LangId);
-
-	if (!once) {
-//		if (IsWinVista()) {	// ignore if XP
-			pSetThreadUILanguage = (LANGID (WINAPI *)(LANGID LangId))
-				GetProcAddress(::GetModuleHandle("kernel32"), "SetThreadUILanguage");
-//		}
-		once = TRUE;
-	}
+	static LANGID (WINAPI *pSetThreadUILanguage)(LANGID LangId) = []() {
+		return	(LANGID (WINAPI *)(LANGID LangId))
+			GetProcAddress(::GetModuleHandle("kernel32"), "SetThreadUILanguage");
+	}();
 
 	if (pSetThreadUILanguage) {
 		pSetThreadUILanguage(LANGIDFROMLCID(lcid));
@@ -1138,18 +1589,91 @@ BOOL TSetThreadLocale(int lcid)
 
 BOOL TChangeWindowMessageFilter(UINT msg, DWORD flg)
 {
-	static BOOL	once = FALSE;
-	static BOOL	(WINAPI *pChangeWindowMessageFilter)(UINT, DWORD);
-	static BOOL	ret = FALSE;
-
-	if (!once) {
-		pChangeWindowMessageFilter = (BOOL (WINAPI *)(UINT, DWORD))
+	static BOOL	(WINAPI *pChangeWindowMessageFilter)(UINT, DWORD) = []() {
+		return	(BOOL (WINAPI *)(UINT, DWORD))
 			GetProcAddress(::GetModuleHandle("user32"), "ChangeWindowMessageFilter");
-		once = TRUE;
+	}();
+
+	return	pChangeWindowMessageFilter ? pChangeWindowMessageFilter(msg, flg) : FALSE;
+}
+
+/*
+	ファイルダイアログ用汎用ルーチン
+*/
+BOOL OpenFileDlg::Exec(UINT editCtl, char *title, char *filter, char *defaultDir, char *defaultExt)
+{
+	char buf[MAX_PATH_U8];
+
+	if (parent == NULL)
+		return FALSE;
+
+	parent->GetDlgItemTextU8(editCtl, buf, sizeof(buf));
+
+	if (!Exec(buf, sizeof(buf), title, filter, defaultDir, defaultExt))
+		return	FALSE;
+
+	parent->SetDlgItemTextU8(editCtl, buf);
+	return	TRUE;
+}
+
+BOOL OpenFileDlg::Exec(char *target, int targ_size, char *title, char *filter, char *defaultDir,
+						char *defaultExt)
+{
+	if (targ_size <= 1) return FALSE;
+
+	OPENFILENAME	ofn;
+	U8str			fileName(targ_size);
+	U8str			dirName(targ_size);
+	char			*fname = NULL;
+
+	// target が fullpath の場合は default dir は使わない
+	if (*target && (*target == '\\' || *(target + 1) == ':')) {
+	 	GetFullPathNameU8(target, targ_size, dirName.Buf(), &fname);
+		if (fname) {
+			*(fname -1) = 0;
+			strncpyz(fileName.Buf(), fname, targ_size);
+		}
+	}
+	else if (defaultDir) {
+		strncpyz(dirName.Buf(), defaultDir, targ_size);
+		if (target) {
+			strncpyz(fileName.Buf(), target, targ_size);
+		}
 	}
 
-	if (pChangeWindowMessageFilter) {
-		ret = pChangeWindowMessageFilter(msg, flg);
+	memset(&ofn, 0, sizeof(ofn));
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = parent ? parent->hWnd : NULL;
+	ofn.lpstrFilter = filter;
+	ofn.nFilterIndex = filter ? 1 : 0;
+	ofn.lpstrFile = fileName.Buf();
+	ofn.lpstrDefExt	 = defaultExt;
+	ofn.nMaxFile = targ_size;
+	ofn.lpstrTitle = title;
+	ofn.lpstrInitialDir = dirName.Buf();
+	ofn.lpfnHook = hook;
+	ofn.Flags = OFN_HIDEREADONLY|OFN_EXPLORER|(hook ? OFN_ENABLEHOOK : 0);
+	if (mode == OPEN || mode == MULTI_OPEN)
+		ofn.Flags |= OFN_FILEMUSTEXIST | (mode == MULTI_OPEN ? OFN_ALLOWMULTISELECT : 0);
+	else
+		ofn.Flags |= (mode == NODEREF_SAVE ? OFN_NODEREFERENCELINKS : 0);
+	ofn.Flags |= flags;
+
+	U8str	dirNameBak(targ_size);
+	GetCurrentDirectoryU8(targ_size, dirNameBak.Buf());
+
+	BOOL	ret = (mode == OPEN || mode == MULTI_OPEN) ?
+					GetOpenFileNameU8(&ofn) : GetSaveFileNameU8(&ofn);
+
+	SetCurrentDirectoryU8(dirNameBak.Buf());
+	if (ret) {
+		if (mode == MULTI_OPEN) {
+			memcpy(target, fileName.Buf(), targ_size);
+		} else {
+			strncpyz(target, ofn.lpstrFile, targ_size);
+		}
+
+		if (defaultDir) strncpyz(defaultDir, ofn.lpstrFile, ofn.nFileOffset);
 	}
 
 	return	ret;
@@ -1157,14 +1681,10 @@ BOOL TChangeWindowMessageFilter(UINT msg, DWORD flg)
 
 void TSwitchToThisWindow(HWND hWnd, BOOL flg)
 {
-	static BOOL	once = FALSE;
-	static void	(WINAPI *pSwitchToThisWindow)(HWND, BOOL);
-
-	if (!once) {
-		pSwitchToThisWindow = (void (WINAPI *)(HWND, BOOL))
+	static void	(WINAPI *pSwitchToThisWindow)(HWND, BOOL) = []() {
+		return	(void (WINAPI *)(HWND, BOOL))
 			GetProcAddress(::GetModuleHandle("user32"), "SwitchToThisWindow");
-		once = TRUE;
-	}
+	}();
 
 	if (pSwitchToThisWindow) {
 		pSwitchToThisWindow(hWnd, flg);
@@ -1185,27 +1705,31 @@ float GetMonitorScaleFactor()
 /*
 	リンク
 	あらかじめ、CoInitialize(NULL); を実行しておくこと
-	src  ... old_path
-	dest ... new_path
+	target ... target_path
+	link   ... new_symlink_path
 */
-BOOL SymLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg)
+BOOL SymLinkW(const WCHAR *target, const WCHAR *link, const WCHAR *arg, const WCHAR *desc)
 {
 	IShellLinkW		*shellLink;
 	IPersistFile	*persistFile;
-	WCHAR			*ps_dest = dest;
 	BOOL			ret = FALSE;
 	WCHAR			buf[MAX_PATH];
 
 	if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW,
 			(void **)&shellLink))) {
-		shellLink->SetPath(src);
-		shellLink->SetArguments(arg);
-		GetParentDirW(src, buf);
+		shellLink->SetPath(target);
+		if (arg) {
+			shellLink->SetArguments(arg);
+		}
+		if (desc) {
+			shellLink->SetDescription(desc);
+		}
+		GetParentDirW(target, buf);
 		shellLink->SetWorkingDirectory(buf);
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
-			if (SUCCEEDED(persistFile->Save(ps_dest, TRUE))) {
+			if (SUCCEEDED(persistFile->Save(link, TRUE))) {
 				ret = TRUE;
-				GetParentDirW(dest, buf);
+				GetParentDirW(link, buf);
 				::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATHW|SHCNF_FLUSH, buf, NULL);
 			}
 			persistFile->Release();
@@ -1215,7 +1739,17 @@ BOOL SymLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg)
 	return	ret;
 }
 
-BOOL ReadLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg)
+BOOL SymLinkU8(const char *target, const char *link, const char *arg, const char *desc)
+{
+	Wstr	wtarg(target);
+	Wstr	wlink(link);
+	Wstr	warg(arg);
+	Wstr	wdesc(desc);
+
+	return	SymLinkW(wtarg.s(), wlink.s(), warg.s(), wdesc.s());
+}
+
+BOOL ReadLinkW(const WCHAR *link, WCHAR *target, WCHAR *arg, WCHAR *desc)
 {
 	IShellLinkW		*shellLink;		// 実際は IShellLinkA or IShellLinkW
 	IPersistFile	*persistFile;
@@ -1224,10 +1758,13 @@ BOOL ReadLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg)
 	if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW,
 			(void **)&shellLink))) {
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
-			if (SUCCEEDED(persistFile->Load((WCHAR *)src, STGM_READ))) {
-				if (SUCCEEDED(shellLink->GetPath(dest, MAX_PATH, NULL, 0))) {
+			if (SUCCEEDED(persistFile->Load(link, STGM_READ))) {
+				if (SUCCEEDED(shellLink->GetPath(target, MAX_PATH, NULL, 0))) {
 					if (arg) {
 						shellLink->GetArguments(arg, MAX_PATH);
+					}
+					if (desc) {
+						shellLink->GetDescription(desc, INFOTIPSIZE);
 					}
 					ret = TRUE;
 				}
@@ -1239,20 +1776,90 @@ BOOL ReadLinkW(WCHAR *src, WCHAR *dest, WCHAR *arg)
 	return	ret;
 }
 
+BOOL ReadLinkU8(const char *link, char *targ, char *arg, char *desc)
+{
+	Wstr	wlink(link);
+	Wstr	wtarg(MAX_PATH);
+	Wstr	warg(INFOTIPSIZE);
+	Wstr	wdesc(INFOTIPSIZE);
+
+	if (!ReadLinkW(wlink.s(), wtarg.Buf(), arg ? warg.Buf() : NULL, desc ? wdesc.Buf() : NULL)) {
+		return	FALSE;
+	}
+	WtoU8(wtarg.s(), targ, MAX_PATH_U8);
+	if (arg) {
+		WtoU8(warg.s(), arg, INFOTIPSIZE);
+	}
+	if (desc) {
+		WtoU8(wdesc.s(), desc, INFOTIPSIZE);
+	}
+
+	return	TRUE;
+}
+
+HRESULT UpdateLinkW(const WCHAR *link, const WCHAR *arg, const WCHAR *desc, DWORD flags, HWND hWnd)
+{
+	IPersistFile	*persistFile;
+	IShellLinkW		*shellLink;
+	HRESULT			hr = S_OK;
+
+	hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW,
+		(void **)&shellLink);
+	if (hr == S_OK) {
+		// 事前に IPersistFile::Loadしないと、Distribute Link Tracking されない
+		hr = shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile);
+		if (hr == S_OK) {
+			hr = persistFile->Load(link, STGM_READ);
+			if (hr == S_OK) {
+				hr = shellLink->Resolve(hWnd, flags);
+				if (arg) {
+					shellLink->SetArguments(arg);
+				}
+				if (desc) {
+					shellLink->SetDescription(desc);
+				}
+				if (arg || desc) {
+					persistFile->Save(link, TRUE);
+				}
+			}
+			persistFile->Release();
+		}
+		shellLink->Release();
+	}
+	return	hr;
+}
+
+HRESULT UpdateLinkU8(const char *link, const char *arg, const char *desc, DWORD flags, HWND hWnd)
+{
+	Wstr	wlink(link);
+	Wstr	warg(arg);
+	Wstr	wdesc(desc);
+
+	return	UpdateLinkW(wlink.s(), warg.s(), wdesc.s(), flags, hWnd);
+}
+
+
 /*
 	リンクファイル削除
 */
-BOOL DeleteLinkW(WCHAR *path)
+BOOL DeleteLinkW(const WCHAR *link)
 {
 	WCHAR	dir[MAX_PATH];
 
-	if (!DeleteFileW(path))
+	if (!DeleteFileW(link))
 		return	FALSE;
 
-	GetParentDirW(path, dir);
+	GetParentDirW(link, dir);
 	::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATHW|SHCNF_FLUSH, dir, NULL);
 
 	return	TRUE;
+}
+
+BOOL DeleteLinkU8(const char *link)
+{
+	Wstr	wlink(link);
+
+	return	DeleteLinkW(wlink.s());
 }
 
 /*
@@ -1260,17 +1867,18 @@ BOOL DeleteLinkW(WCHAR *path)
 */
 BOOL GetParentDirW(const WCHAR *srcfile, WCHAR *dir)
 {
-	WCHAR	path[MAX_PATH], *fname=NULL;
+	WCHAR	path[MAX_PATH];
+	WCHAR	*fname=NULL;
 
 	if (GetFullPathNameW(srcfile, MAX_PATH, path, &fname) == 0 || fname == NULL)
-		return	wcscpy(dir, srcfile), FALSE;
+		return	wcsncpyz(dir, srcfile, MAX_PATH), FALSE;
 
 	if ((fname - path) > 3 || path[1] != ':')
 		fname[-1] = 0;
 	else
 		fname[0] = 0;		// C:\ の場合
 
-	wcscpy(dir, path);
+	wcsncpyz(dir, path, MAX_PATH);
 	return	TRUE;
 }
 
@@ -1280,7 +1888,8 @@ BOOL GetParentDirW(const WCHAR *srcfile, WCHAR *dir)
 */
 BOOL GetParentDirU8(const char *org_path, char *target_dir)
 {
-	char	path[MAX_PATH_U8], *fname=NULL;
+	char	path[MAX_PATH_U8];
+	char	*fname=NULL;
 
 	if (GetFullPathNameU8(org_path, sizeof(path), path, &fname) == 0 || fname == NULL)
 		return	strncpyz(target_dir, org_path, MAX_PATH_U8), FALSE;
@@ -1302,31 +1911,56 @@ BOOL GetParentDirU8(const char *org_path, char *target_dir)
 #include <htmlhelp.h>
 
 static HWND (WINAPI *pHtmlHelpW)(HWND, WCHAR *, UINT, DWORD_PTR) = NULL;
-BOOL InitHtmlHelpCore()
-{
-	DWORD		cookie=0;
-	HMODULE		hHtmlHelp = TLoadLibrary("hhctrl.ocx");
-	if (hHtmlHelp)
-		pHtmlHelpW = (HWND (WINAPI *)(HWND, WCHAR *, UINT, DWORD_PTR))
-					::GetProcAddress(hHtmlHelp, "HtmlHelpW");
-	if (pHtmlHelpW)
-		pHtmlHelpW(NULL, NULL, HH_INITIALIZE, (DWORD_PTR)&cookie);
-
-	return	pHtmlHelpW ? TRUE : FALSE;;
-}
+static DWORD	htmlCookie;
+static HMODULE	hHtmlHelp;
 
 BOOL InitHtmlHelp()
 {
-	static BOOL	ret = InitHtmlHelpCore();
-	return	ret;
+	if (!hHtmlHelp) {
+		hHtmlHelp = TLoadLibraryExW(L"hhctrl.ocx", TLT_SYSDIR);
+	}
+	if (hHtmlHelp && !pHtmlHelpW) {
+		pHtmlHelpW = (HWND (WINAPI *)(HWND, WCHAR *, UINT, DWORD_PTR))
+			::GetProcAddress(hHtmlHelp, "HtmlHelpW");
+	}
+	if (pHtmlHelpW) {
+		htmlCookie = 0;
+		pHtmlHelpW(NULL, NULL, HH_INITIALIZE, (DWORD_PTR)&htmlCookie);
+		return	TRUE;
+	}
+	return	FALSE;
+}
+
+void UnInitHtmlHelp()
+{
+	if (hHtmlHelp) {
+		if (pHtmlHelpW) {
+			pHtmlHelpW(NULL, NULL, HH_UNINITIALIZE, htmlCookie);
+			pHtmlHelpW = NULL;
+		}
+		::FreeLibrary(hHtmlHelp);
+		hHtmlHelp = NULL;
+	}
 }
 
 #endif
 
+HWND TransMsgHelp(MSG *msg)
+{
+#if defined(ENABLE_HTML_HELP)
+	if (pHtmlHelpW) {
+		return	pHtmlHelpW(0, 0, HH_PRETRANSLATEMESSAGE, (DWORD_PTR)msg);
+	}
+#endif
+	return	NULL;
+}
+
 HWND CloseHelpAll()
 {
 #if defined(ENABLE_HTML_HELP)
-	if (!pHtmlHelpW) return NULL;
+	if (!pHtmlHelpW) {
+		return NULL;
+	}
 	return	pHtmlHelpW(0, 0, HH_CLOSE_ALL, 0);
 #else
 	return NULL;
@@ -1336,14 +1970,17 @@ HWND CloseHelpAll()
 HWND ShowHelpW(HWND hOwner, WCHAR *help_dir, WCHAR *help_file, WCHAR *section)
 {
 #if defined(ENABLE_HTML_HELP)
-	if (!pHtmlHelpW) InitHtmlHelp();
+	if (!pHtmlHelpW) {
+		InitHtmlHelp();
+	}
 
 	if (pHtmlHelpW) {
 		WCHAR	path[MAX_PATH];
 
 		MakePathW(path, help_dir, help_file);
-		if (section)
+		if (section) {
 			wcscpy(path + wcslen(path), section);
+		}
 		return	pHtmlHelpW(hOwner, path, HH_HELP_FINDER, 0);
 	}
 #endif
@@ -1357,6 +1994,14 @@ HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const 
 	Wstr	sec(section);
 
 	return	ShowHelpW(hOwner, dir.Buf(), file.Buf(), sec.Buf());
+}
+
+void UnInitShowHelp()
+{
+#if defined(ENABLE_HTML_HELP)
+	CloseHelpAll();
+	UnInitHtmlHelp();
+#endif
 }
 
 //#define MAGIC_NTZ 0x03F566ED27179461ULL
@@ -1385,16 +2030,16 @@ HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const 
 #undef free
 
 extern "C" {
-void *malloc(ssize_t);
-void *realloc(void *, ssize_t);
+void *malloc(size_t);
+void *realloc(void *, size_t);
 void free(void *);
 }
 
-inline ssize_t align_size(ssize_t size, ssize_t grain) {
+inline size_t align_size(size_t size, size_t grain) {
 	return (size + grain -1) / grain * grain;
 }
 
-inline ssize_t alloc_size(ssize_t size) {
+inline size_t alloc_size(size_t size) {
 	return	align_size((align_size(size, ALLOC_ALIGN) + 16 + PAGE_SIZE), PAGE_SIZE);
 }
 inline void *valloc_base(void *d)
@@ -1406,20 +2051,20 @@ inline void *valloc_base(void *d)
 
 	return	(void *)base;
 }
-inline ssize_t valloc_size(void *d)
+inline size_t valloc_size(void *d)
 {
 	d = valloc_base(d);
 
 	if (((DWORD *)d)[0] != VALLOC_SIG) {
-		return	(ssize_t)-1;
+		return	SIZE_MAX;
 	}
-	return	((ssize_t *)d)[1];
+	return	((size_t *)d)[1];
 }
 
 
-void *valloc(ssize_t size)
+void *valloc(size_t size)
 {
-	ssize_t	s = alloc_size(size);
+	size_t	s = alloc_size(size);
 	void	*d = VirtualAlloc(0, s, MEM_RESERVE, PAGE_NOACCESS);
 
 	if (!d || !VirtualAlloc(d, s - PAGE_SIZE, MEM_COMMIT, PAGE_READWRITE)) {
@@ -1428,16 +2073,16 @@ void *valloc(ssize_t size)
 	}
 
 	((DWORD *)d)[0]  = VALLOC_SIG;
-	((ssize_t *)d)[1] = size;
+	((size_t *)d)[1] = size;
 
 	Debug("valloc (%x %d %d)\n", d, s, size);
 
 	return (void *)((u_char *)d + s - PAGE_SIZE - align_size(size, ALLOC_ALIGN));
 }
 
-void *vcalloc(ssize_t num, ssize_t ele)
+void *vcalloc(size_t num, size_t ele)
 {
-	ssize_t	size = num * ele;
+	size_t	size = num * ele;
 	void	*d = valloc(size);
 
 	if (d) {
@@ -1446,12 +2091,12 @@ void *vcalloc(ssize_t num, ssize_t ele)
 	return	d;
 }
 
-void *vrealloc(void *d, ssize_t size)
+void *vrealloc(void *d, size_t size)
 {
-	ssize_t	old_size = 0;
+	size_t	old_size = 0;
 
 	if (d) {
-		if ((old_size = valloc_size(d)) == -1) {
+		if ((old_size = valloc_size(d)) == SIZE_MAX) {
 			Debug("non vrealloc (%x %d %d)\n", d, old_size, size);
 			return realloc(d, size);
 		}
@@ -1473,9 +2118,9 @@ void vfree(void *d)
 {
 	if (!d) return;
 
-	ssize_t	size = valloc_size(d);
+	size_t	size = valloc_size(d);
 
-	if (size == -1) {
+	if (size == SIZE_MAX) {
 		Debug("vfree non vfree (%x)\n", d);
 		free(d);
 		return;
@@ -1491,7 +2136,7 @@ void vfree(void *d)
 
 char *vstrdup(const char *s)
 {
-	ssize_t	size = strlen(s) + 1;
+	size_t	size = strlen(s) + 1;
 	void	*d = valloc(size);
 	if (d) {
 		memcpy(d, s, size);
@@ -1501,7 +2146,7 @@ char *vstrdup(const char *s)
 
 WCHAR *vwcsdup(const WCHAR *s)
 {
-	ssize_t	size = (wcslen(s) + 1) * sizeof(WCHAR);
+	size_t	size = (wcslen(s) + 1) * sizeof(WCHAR);
 	void	*d = valloc(size);
 	if (d) {
 		memcpy(d, s, size);
@@ -1509,7 +2154,7 @@ WCHAR *vwcsdup(const WCHAR *s)
 	return	(WCHAR *)d;
 }
 
-void *operator new(ssize_t size)
+void *operator new(size_t size)
 {
 	return	valloc(size);
 }
@@ -1520,7 +2165,7 @@ void operator delete(void *d)
 }
 
 #if _MSC_VER >= 1200
-void *operator new [](ssize_t size)
+void *operator new [](size_t size)
 {
 	return	valloc(size);
 }
@@ -1597,4 +2242,874 @@ BOOL ForceSetTrayIcon(HWND hWnd, UINT id, DWORD pref)
 	}
 	return	ret;
 }
+
+/* =======================================================================
+	Application ID Functions
+ ======================================================================= */
+#include <Shellapi.h>
+#include <propkey.h>
+#include <propvarutil.h>
+
+
+BOOL SetWinAppId(HWND hWnd, const WCHAR *app_id)
+{
+	static HRESULT (WINAPI *pSHGetPropertyStoreForWindow)(HWND, REFIID, void**) = []() {
+		return	(HRESULT (WINAPI *)(HWND, REFIID, void**))
+			::GetProcAddress(::GetModuleHandle("shell32"), "SHGetPropertyStoreForWindow");
+	}();
+
+	if (!pSHGetPropertyStoreForWindow) {
+		return	FALSE;
+	}
+
+	IPropertyStore *pps;
+	HRESULT hr = pSHGetPropertyStoreForWindow(hWnd, IID_PPV_ARGS(&pps));
+	if (SUCCEEDED(hr)) {
+		PROPVARIANT pv;
+		hr = ::InitPropVariantFromString(app_id, &pv);
+		if (SUCCEEDED(hr)) {
+			hr = pps->SetValue(PKEY_AppUserModel_ID, pv);
+			::PropVariantClear(&pv);
+		}
+		pps->Release();
+	}
+	return	SUCCEEDED(hr);
+}
+
+static int CALLBACK font_enum_proc(ENUMLOGFONTEXW *elf, NEWTEXTMETRICEX *ntm,
+	DWORD fontType, LPARAM found_p)
+{
+	BOOL	&found = *(BOOL *)found_p;
+
+	found = TRUE;
+
+	return	0;
+}
+
+BOOL IsInstalledFont(HDC hDc, const WCHAR *face_name, BYTE charset)
+{
+	LOGFONTW	lf = {};
+	BOOL		found = FALSE;
+
+	lf.lfCharSet = charset;
+	wcscpy(lf.lfFaceName, face_name);
+
+	::EnumFontFamiliesExW(hDc, &lf, (FONTENUMPROCW)font_enum_proc, (LPARAM)&found, 0);
+
+	return	found;
+}
+
+/* =======================================================================
+	Firewall Functions (require CoInitialize())
+ ======================================================================= */
+#include <netfw.h>
+#include <OleAuto.h>
+
+// Windows Firewall 除外設定を参照する 3rd Party Firewallリスト
+static const WCHAR *Fw3rdPartyExceptKeywords[] = {
+	L"ESET ",
+	NULL,
+};
+
+BOOL Is3rdPartyFwEnabled(BOOL use_except_list)
+{
+	INetFwProducts	*fwProd = NULL;
+
+	CoCreateInstance(__uuidof(NetFwProducts), 0, CLSCTX_INPROC_SERVER,
+		__uuidof(INetFwProducts), (void **)&fwProd);
+
+	if (!fwProd) {
+		return FALSE;
+	}
+	long	cnt = 0;
+	fwProd->get_Count(&cnt);
+	fwProd->Release();
+
+	if (cnt == 0 || !use_except_list) {
+		return FALSE;
+	}
+	for (int i=0; i < cnt; i++) {
+		WCHAR	name[MAX_PATH];
+		if (Get3rdPartyFwName(i, name, MAX_PATH)) {
+			for (int j=0; Fw3rdPartyExceptKeywords[j]; j++) {
+				if (wcsstr(name, Fw3rdPartyExceptKeywords[j])) {
+					return	FALSE;	// 1件でもマッチすれば WinFW有効と判断
+				}
+			}
+		}
+	}
+	return	TRUE;
+}
+
+int Get3rdPartyFwNum()
+{
+	INetFwProducts	*fwProd = NULL;
+
+	CoCreateInstance(__uuidof(NetFwProducts), 0, CLSCTX_INPROC_SERVER,
+		__uuidof(INetFwProducts), (void **)&fwProd);
+
+	if (!fwProd) {
+		return 0;
+	}
+	long	cnt = 0;
+	fwProd->get_Count(&cnt);
+
+	fwProd->Release();
+
+	return	(int)cnt;
+}
+
+BOOL Get3rdPartyFwName(int idx, WCHAR *name, int max_len)
+{
+	BOOL			ret = FALSE;
+	INetFwProducts	*fwProd = NULL;
+
+	CoCreateInstance(__uuidof(NetFwProducts), 0, CLSCTX_INPROC_SERVER,
+		__uuidof(INetFwProducts), (void **)&fwProd);
+
+	if (fwProd) {
+		INetFwProduct	*product = NULL;
+		fwProd->Item(idx, &product);
+		if (product) {
+			BSTR	bName = NULL;
+			if (product->get_DisplayName(&bName) == S_OK) {
+				wcsncpyz(name, bName, max_len);
+				ret = TRUE;
+				::SysFreeString(bName);
+				//DebugW(L"dispname=<%s>\n", name);
+			}
+		}
+		fwProd->Release();
+	}
+
+	return	ret;
+}
+
+static INetFwProfile* GetFwProfile()
+{
+	INetFwMgr		*fwMgr  = NULL;
+	INetFwPolicy	*fwPlcy = NULL;
+	INetFwProfile	*fwProf = NULL;
+
+	::CoCreateInstance(__uuidof(NetFwMgr), NULL, CLSCTX_INPROC_SERVER,
+		__uuidof(INetFwMgr), (void **)&fwMgr );
+
+	if (fwMgr) {
+		fwMgr->get_LocalPolicy(&fwPlcy);
+		if (fwPlcy) {
+			fwPlcy->get_CurrentProfile(&fwProf);
+			fwPlcy->Release();
+		}
+		fwMgr->Release();
+	}
+
+    return fwProf;
+}
+
+
+static BSTR GetSysFileName(const WCHAR *path)
+{
+	WCHAR	wpath[MAX_PATH];
+
+	if (!path) {
+		::GetModuleFileNameW(0, wpath, wsizeof(wpath));
+		path = wpath;
+	}
+	return	::SysAllocString(path);
+}
+
+BOOL GetFwStatus(const WCHAR *path, FwStatus *fs)
+{
+	fs->Init();
+
+	INetFwProfile	*fwProf = GetFwProfile();
+	if (!fwProf) {
+		return FALSE;
+	}
+	VARIANT_BOOL	vfw_enable = VARIANT_FALSE;
+	fwProf->get_FirewallEnabled(&vfw_enable);
+	fs->fwEnable = (vfw_enable != VARIANT_FALSE);
+
+	INetFwAuthorizedApplications	*fwApps = NULL;
+	fwProf->get_AuthorizedApplications(&fwApps);
+
+	if (fwApps) {
+		INetFwAuthorizedApplication	*app = NULL;
+		BSTR	bpath = GetSysFileName(path);
+
+		fwApps->Item(bpath, &app);
+		if (app) {
+			fs->entryCnt  = 1;
+			fs->enableCnt = 1;
+			VARIANT_BOOL	vent_enable = VARIANT_FALSE;
+			app->get_Enabled(&vent_enable);
+			if (vent_enable != VARIANT_FALSE) {
+				fs->allowCnt++;
+			}
+			else {
+				fs->blockCnt++;
+			}
+			app->Release();
+		}
+		::SysFreeString(bpath);
+		fwApps->Release();
+	}
+
+	fwProf->Release();
+
+	return	TRUE;
+}
+
+BOOL SetFwStatus(const WCHAR *path, const WCHAR *label, BOOL enable)
+{
+	INetFwProfile	*fwProf = GetFwProfile();
+
+	if (!fwProf) {
+		return FALSE;
+	}
+	BOOL	ret = FALSE;
+
+	INetFwAuthorizedApplications	*fwApps = NULL;
+	fwProf->get_AuthorizedApplications(&fwApps);
+
+	if (fwApps) {
+		INetFwAuthorizedApplication	*app = NULL;
+
+		::CoCreateInstance( __uuidof(NetFwAuthorizedApplication), NULL, CLSCTX_INPROC_SERVER,
+			__uuidof(INetFwAuthorizedApplication), (void **)&app);
+		if (app) {
+			BSTR	bpath  = GetSysFileName(path);
+			BSTR	blabel = GetSysFileName(label ? label : path);
+
+			app->put_ProcessImageFileName(bpath);
+			app->put_Name(blabel);
+			if (!enable) {
+				app->put_Enabled(VARIANT_FALSE);
+			}
+			app->put_Name(blabel);
+			if (fwApps->Add(app) >= S_OK) {
+				ret = TRUE;
+			}
+			::SysFreeString(blabel);
+			::SysFreeString(bpath);
+			app->Release();
+		}
+		fwApps->Release();
+	}
+	fwProf->Release();
+
+	return	ret;
+}
+
+BOOL DelFwStatus(const WCHAR *path)
+{
+	INetFwProfile	*fwProf = GetFwProfile();
+
+	if (!fwProf) {
+		return FALSE;
+	}
+	BOOL	ret = FALSE;
+
+	INetFwAuthorizedApplications	*fwApps = NULL;
+	fwProf->get_AuthorizedApplications(&fwApps);
+
+	if (fwApps) {
+		BSTR	bpath = GetSysFileName(path);
+		ret = fwApps->Remove(bpath) >= S_OK;
+		::SysFreeString(bpath);
+		fwApps->Release();
+	}
+	fwProf->Release();
+
+	return	ret;
+}
+
+static BOOL CheckFwRule(BSTR bpath, INetFwRule *rule, FwStatus *fs)
+{
+	long	profTypes = 0;
+
+	if (rule->get_Profiles(&profTypes) < S_OK) {
+		return	FALSE;
+	}
+	if ((fs->profTypes & profTypes) == 0) {	// 現在のプロファイルに合致しない
+		return	FALSE;
+	}
+
+	BSTR	bapp = NULL;
+	WCHAR	app[MAX_PATH];
+
+	if (rule->get_ApplicationName(&bapp) < S_OK) {
+		return	FALSE;
+	}
+
+	if (::ExpandEnvironmentStringsW(bapp, app, wsizeof(app)) > 0) {
+		if (wcsicmp(app, bpath) == 0) {
+			VARIANT_BOOL	vb = VARIANT_FALSE;
+			rule->get_Enabled(&vb);
+			fs->entryCnt++;
+
+			if (vb != VARIANT_FALSE) {
+				fs->enableCnt++;
+				NET_FW_ACTION nfa;
+				if (rule->get_Action(&nfa) >= S_OK) {
+					if (nfa == NET_FW_ACTION_ALLOW) {
+						fs->allowCnt++;
+					}
+					else {
+						fs->blockCnt++;
+					}
+				}
+			}
+			else {
+				fs->disableCnt++;
+			}
+		}
+	}
+	::SysFreeString(bapp);
+	return	TRUE;
+}
+
+BOOL GetFwStatusEx(const WCHAR *path, FwStatus *fs)
+{
+	fs->Init();
+
+	INetFwPolicy2	*plcy = NULL;
+
+	if (::CoCreateInstance(__uuidof(NetFwPolicy2), NULL, CLSCTX_INPROC_SERVER,
+		__uuidof(INetFwPolicy2), (void **)&plcy) < S_OK) {
+		return	FALSE;
+	}
+
+	long	ptype = 0;
+	plcy->get_CurrentProfileTypes(&ptype);
+	fs->profTypes = ptype;
+
+	for (DWORD i=1; ptype; i <<= 1) {
+		if ((ptype & i) == 0) {
+			continue;
+		}
+		ptype &= ~i;
+
+		VARIANT_BOOL vfw_enable = VARIANT_FALSE;
+		plcy->get_FirewallEnabled((NET_FW_PROFILE_TYPE2)i, &vfw_enable);
+		fs->fwEnable = (vfw_enable != VARIANT_FALSE) ? TRUE : FALSE;
+	}
+
+	if (fs->fwEnable) {
+		INetFwRules	*rules = NULL;
+
+		if (plcy->get_Rules(&rules) >= S_OK) {
+			IUnknown *pUnk = NULL;
+
+			if (rules->get__NewEnum(&pUnk) >= S_OK) {
+				IEnumVARIANT	*pEnum = NULL;
+
+				if (pUnk->QueryInterface(IID_IEnumVARIANT, (void **)&pEnum) >= S_OK) {
+					long	count = 0;
+					VARIANT	var;
+					ULONG	lFetch = 0;
+					::VariantInit(&var);
+					rules->get_Count(&count);
+					BSTR	bpath = GetSysFileName(path);
+
+					for (int i=0; i < count && pEnum->Next(1, &var, &lFetch) >= S_OK; i++) {
+						INetFwRule	*rule = NULL;
+						if (V_DISPATCH(&var)->QueryInterface(IID_INetFwRule, (void **)&rule)
+							>= S_OK) {
+							CheckFwRule(bpath, rule, fs);
+							rule->Release();
+						}
+						::VariantClear(&var);
+					}
+					::SysFreeString(bpath);
+				}
+			}
+			rules->Release();
+		}
+	}
+	plcy->Release();
+
+	return	TRUE;
+}
+
+static BOOL SetFwRule(BSTR bpath, BSTR blabel, INetFwRule *rule, long prof_type)
+{
+//	long	local_ptype = 0;
+//
+//	if (rule->get_Profiles(&local_ptype) < S_OK) {
+//		return	FALSE;
+//	}
+//	if ((prof_type & local_ptype) == 0) {	// 現在のプロファイルに合致しない
+//		return	FALSE;
+//	}
+
+	BSTR	bapp = NULL;
+	WCHAR	app[MAX_PATH];
+
+	if (rule->get_ApplicationName(&bapp) < S_OK) {
+		return	FALSE;
+	}
+
+	if (::ExpandEnvironmentStringsW(bapp, app, wsizeof(app)) > 0) {
+		if (wcsicmp(app, bpath) == 0) {
+			VARIANT_BOOL	vb = VARIANT_FALSE;
+			rule->get_Enabled(&vb);
+
+			if (vb != VARIANT_FALSE) {
+				NET_FW_ACTION nfa;
+				if (rule->get_Action(&nfa) >= S_OK) {
+					if (nfa == NET_FW_ACTION_BLOCK) {
+						rule->put_Action(NET_FW_ACTION_ALLOW);
+					}
+				}
+			}
+		}
+	}
+	::SysFreeString(bapp);
+	return	TRUE;
+}
+
+BOOL SetFwStatusEx(const WCHAR *path, const WCHAR *label, BOOL enable)
+{
+	SetFwStatus(path, label, enable);
+
+	INetFwPolicy2	*plcy = NULL;
+
+	if (::CoCreateInstance(__uuidof(NetFwPolicy2), NULL, CLSCTX_INPROC_SERVER,
+		__uuidof(INetFwPolicy2), (void **)&plcy) < S_OK) {
+		return	FALSE;
+	}
+
+	INetFwRules	*rules = NULL;
+	long		ptype = 0;
+	plcy->get_CurrentProfileTypes(&ptype);
+
+	if (plcy->get_Rules(&rules) >= S_OK) {
+		IUnknown *pUnk = NULL;
+
+		if (rules->get__NewEnum(&pUnk) >= S_OK) {
+			IEnumVARIANT	*pEnum = NULL;
+
+			if (pUnk->QueryInterface(IID_IEnumVARIANT, (void **)&pEnum) >= S_OK) {
+				long	count = 0;
+				VARIANT	var;
+				ULONG	lFetch = 0;
+				::VariantInit(&var);
+				rules->get_Count(&count);
+				BSTR	bpath  = GetSysFileName(path);
+				BSTR	blabel = GetSysFileName(label ? label : path);
+
+				for (int i=0; i < count && pEnum->Next(1, &var, &lFetch) >= S_OK; i++) {
+					INetFwRule	*rule = NULL;
+					if (V_DISPATCH(&var)->QueryInterface(IID_INetFwRule, (void **)&rule)
+						>= S_OK) {
+						SetFwRule(bpath, blabel, rule, ptype);
+						rule->Release();
+					}
+					::VariantClear(&var);
+				}
+				::SysFreeString(blabel);
+				::SysFreeString(bpath);
+			}
+		}
+		rules->Release();
+	}
+	plcy->Release();
+
+	return	TRUE;
+}
+
+// 正確な GetTextExtentExPointW
+BOOL TGetTextWidth(HDC hDc, const WCHAR *s, int len, int width, int *rlen, int *rcx)
+{
+	TRect	rc;
+	TSize	sz;
+
+	if (!::GetTextExtentExPointW(hDc, s, len, width, rlen, NULL, &sz)) {
+		return	FALSE;
+	}
+//	if (!::GetTextExtentExPointW(hDc, s, *rlen, width, rlen, NULL, &sz)) {
+//		return	FALSE;
+//	}
+	::DrawTextW(hDc, s, *rlen, &rc, DT_CALCRECT|DT_LEFT|DT_VCENTER|DT_SINGLELINE|DT_NOPREFIX);
+
+//	if (rc.cx() <= width) {
+//		if (rc.cx() != sz.cx) {
+//			DebugW(L" GetTextWidth: %d %d %.*s\n", rc.cx(), sz.cx, *rlen, s);
+//		}
+//	}
+	*rcx = rc.cx();
+	return	TRUE;
+}
+
+HBITMAP TDIBtoDDB(HBITMAP hDibBmp) // 8bit には非対応
+{
+	HBITMAP		hDdbBmp  = NULL;
+	HWND		hDesktop = ::GetDesktopWindow();
+	HDC			hDc = ::GetDC(hDesktop);
+	DIBSECTION	ds;
+
+	if (::GetObject(hDibBmp, sizeof(DIBSECTION), &ds)) {
+		hDdbBmp = ::CreateDIBitmap(hDc, &ds.dsBmih, CBM_INIT, ds.dsBm.bmBits,
+			(BITMAPINFO *)&ds.dsBmih, DIB_RGB_COLORS);
+	}
+	::ReleaseDC(hDesktop, hDc);
+
+	return	hDdbBmp;
+}
+
+BOOL TOpenExplorerSelOneW(const WCHAR *path)
+{
+	WCHAR	buf[MAX_PATH + 20];
+	snwprintfz(buf, wsizeof(buf), L"/select,%s", path);
+	return	INT_RDC(::ShellExecuteW(0, 0, L"explorer", buf, 0, SW_SHOW)) > 32;
+}
+
+// CoInitialize系必須
+BOOL TOpenExplorerSelW(const WCHAR *dir, WCHAR **path, int num)
+{
+	BOOL	ret = FALSE;
+	size_t	len = wcslen(dir);
+
+	if (PIDLIST_ABSOLUTE iDir = ::ILCreateFromPathW(dir)) {
+		if (PIDLIST_ABSOLUTE *items = new ITEMIDLIST *[num]) {
+			memset(items, 0, sizeof(ITEMIDLIST *) * num);
+			for (int i=0; i < num; i++) {
+				if (wcslen(path[i]) + len + 2 < MAX_PATH) {
+					WCHAR	buf[MAX_PATH];
+					MakePathW(buf, dir, path[i]);
+					items[i] = ::ILCreateFromPathW(buf);
+				}
+			}
+
+			HRESULT hr = ::SHOpenFolderAndSelectItems(iDir, num, (LPCITEMIDLIST *)items, 0);
+			if (hr >= S_OK || hr == E_INVALIDARG) {
+				ret = TRUE; // items のエラーの場合は、shell は開く
+			}
+			for (int i=0; i < num; i++) {
+				if (items[i]) {
+					::ILFree(items[i]);
+				}
+			}
+			delete [] items;
+		}
+		::ILFree(iDir);
+	}
+	return	ret;
+}
+
+BOOL TSetClipBoardTextW(HWND hWnd, const WCHAR *s, int len)
+{
+	if (len < 0) {
+		len = (int)wcslen(s);
+	}
+	HANDLE	hGlobal = ::GlobalAlloc(GHND, (len + 1) * sizeof(WCHAR));
+
+	if (!hGlobal) {
+		return FALSE;
+	}
+
+	BOOL	ret = FALSE;
+	WCHAR	*p = (WCHAR *)::GlobalLock(hGlobal);
+
+	if (p) {
+		wcsncpyz(p, s, len+1);
+		::GlobalUnlock(hGlobal);
+		::OpenClipboard(hWnd);
+		::EmptyClipboard();
+
+		if (::SetClipboardData(CF_UNICODETEXT, hGlobal)) {
+			ret = TRUE;
+		}
+		::CloseClipboard();
+	}
+
+	if (!ret) {
+		::GlobalFree(hGlobal);
+	}
+
+	return ret;
+}
+
+// バッファオーバーフロー検出用テストルーチン
+void bo_test_core(char *buf)
+{
+	static char *p;
+
+	p = buf;
+	memset(p, 0x33, 200);
+}
+
+void bo_test()
+{
+	static char *p;
+	char buf[100];
+
+	p = buf;
+	bo_test_core(p);
+}
+
+#if _MSC_VER >= 1900 && _MSC_VER <= 1911
+extern "C" __declspec(noreturn) void __cdecl __raise_securityfailure(PEXCEPTION_POINTERS const exception_pointers);
+// バッファオーバーフローをApp側例外ハンドラでキャッチするためのhack
+// Prevent to avoid FastCopy's ExceptionFilter by __report_gsfailure/__report_securityfailure
+//  like a _set_security_error_handler
+void TGsFailureHack()
+{
+#ifndef _DEBUG
+	DWORD	flag = 0;
+
+//	__raise_securityfailure(NULL);
+	BYTE	*p = (BYTE *)&__raise_securityfailure;
+	if (::VirtualProtect(p, 8, PAGE_EXECUTE_READWRITE, &flag)) {
+#ifdef _WIN64
+		memcpy(p+11, "\x90\x90\x90\x90\x90\x90", 6); // nop (overwrite SetUnhandledFilter call)
+#else
+		memcpy(p+5, "\x90\x90\x90\x90\x90\x90", 6);	// nop (overwrite SetUnhandledFilter call)
+#endif
+		::VirtualProtect(p, 8, flag, &flag);
+
+		p = (BYTE *)&__report_gsfailure;
+		if (::VirtualProtect(p, 8, PAGE_EXECUTE_READWRITE, &flag)) {
+#ifdef _WIN64
+			memcpy(p+9, "\xeb\x13", 2);		// jump 0x13 (skip to select deubbger)
+#else
+			memcpy(p+9, "\x74\x10", 2);		// jump 0x10 (skip to select deubbger)
+#endif
+			::VirtualProtect(p, 8, flag, &flag);
+		}
+	}
+#endif
+}
+#endif
+
+
+/*
+	マスク情報をアルファ値として引き継ぐ形でDIBSectionを作成
+	主に、SetMenuItemBitmaps用（GDI+なら Bitmap::FromFile(icon) で簡単…）
+	今のところ、意図的に GetIconInfo は使わず、cx/cyはユーザ指定させる
+*/
+HBITMAP TIconToBmp(HICON hIcon, int cx, int cy)
+{
+	BITMAPINFO	bmi = {};
+	bmi.bmiHeader.biSize     = sizeof(BITMAPINFOHEADER);
+	bmi.bmiHeader.biWidth    = cx;
+	bmi.bmiHeader.biHeight   = cy;
+	bmi.bmiHeader.biPlanes   = 1;
+	bmi.bmiHeader.biBitCount = 32;
+
+	HDC		hBmpDc = ::CreateCompatibleDC(NULL);
+	HDC		hTmpDc = ::CreateCompatibleDC(NULL);
+	void	*dat = NULL;
+	void	*tmp = NULL;
+	HBITMAP	hBmp = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &dat, 0, 0);
+	HBITMAP hTmp = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &tmp, 0, 0);
+	HGDIOBJ	hBmpSv = ::SelectObject(hBmpDc, hBmp);
+	HGDIOBJ	hTmpSv = ::SelectObject(hTmpDc, hTmp);
+
+	::DrawIconEx(hBmpDc, 0, 0, hIcon, cx, cy, 0, 0, DI_NORMAL);
+	::DrawIconEx(hTmpDc, 0, 0, hIcon, cx, cy, 0, 0, DI_MASK);
+
+	for (int i=0; i < cy; i++) {
+		for (int j=0; j < cx; j++) {
+			if (((BYTE *)tmp)[(i*cx + j) * 4] == 0) {
+				((BYTE *)dat)[(i*cx + j) * 4 + 3] = 0xff;
+			}
+//			for (int k=0; k < 4; k++) {
+//				Debug("%02x:", ((BYTE *)dat)[(i*cx + j) * 4 + k]);
+//			}
+//			Debug(" ");
+		}
+//		Debug("\n");
+	}
+
+	::SelectObject(hBmpDc, hBmpSv);
+	::SelectObject(hTmpDc, hTmpSv);
+	::DeleteDC(hBmpDc);
+	::DeleteDC(hTmpDc);
+
+	::DeleteObject(hTmp);
+	return	hBmp;
+}
+
+BOOL IsWineEnvironment()
+{
+	HMODULE	ntdll = ::GetModuleHandle("ntdll.dll");
+
+	return	(ntdll && ::GetProcAddress(ntdll, "wine_get_version")) ? TRUE : FALSE;
+}
+
+CRITICAL_SECTION *TLibCs()
+{
+	return	&gCs;
+}
+
+DWORD64 GetTick64()
+{
+	static DWORD64 (WINAPI *pGetTickCount64)(void) = []() {
+		return	(DWORD64 (WINAPI *)(void))
+			::GetProcAddress(::GetModuleHandle("kernel32"), "GetTickCount64");
+	}();
+
+	if (pGetTickCount64) {
+		return	pGetTickCount64();
+	}
+
+	::EnterCriticalSection(&gCs);
+
+	static DWORD64	lastUpper;
+	static DWORD	lastLower;
+
+	DWORD	cur = ::GetTickCount();
+	if (cur < lastLower) {
+		lastUpper += (DWORD64)1 << 32;
+	}
+	DWORD64	ret = lastUpper | lastLower;
+
+	lastLower = cur;
+
+	::LeaveCriticalSection(&gCs);
+
+	return	ret;
+}
+
+DWORD GetTick() {
+	return	::GetTickCount();
+}
+
+
+#include <psapi.h>
+#pragma comment (lib, "psapi.lib")
+
+BOOL IsLockedScreen()
+{
+	static list<HWND>	hlist;
+	static map<HWND, pair<BOOL, decltype(hlist.begin())>>	hmap;
+
+	HWND	hWnd = ::GetForegroundWindow();
+
+	if (!hWnd) {
+		//Debug("NULL\n");
+		return	TRUE;
+	}
+
+	auto	itr = hmap.find(hWnd);
+	if (itr != hmap.end()) {
+		hlist.erase(itr->second.second);
+		itr->second.second = hlist.insert(hlist.end(), hWnd);
+		//Debug("cached %p %d\n", hWnd, itr->second.first);
+		return	itr->second.first;
+	}
+
+	while (hlist.size() > 10) {
+		auto	itr = hlist.begin();
+		//Debug("erase cache %p %d\n", *itr, hmap[*itr].first);
+		hmap.erase(*itr);
+		hlist.erase(itr);
+	}
+
+	BOOL	ret = FALSE;
+	DWORD	pid = 0;
+
+	::GetWindowThreadProcessId(hWnd, &pid);
+	if (pid) {
+		HANDLE	hProc = NULL;
+		if (!(hProc = ::OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid))) {
+			hProc = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+		}
+		if (hProc) {
+			WCHAR	wbuf[MAX_PATH];
+			if (::GetProcessImageFileNameW(hProc, wbuf, wsizeof(wbuf))) {
+				size_t	len = wcslen(wbuf);
+
+#define LOCKAPP_NAME	L"\\LockApp.exe"
+#define LOCKAPP_LEN		12
+				if (len > LOCKAPP_LEN && wcsicmp(wbuf+len-LOCKAPP_LEN, LOCKAPP_NAME) == 0) {
+					ret = TRUE;
+					//Debug("Lock Detect %p\n", hWnd);
+				}
+				//else DebugW(L"Non Lock Detect(%s) %p\n", wbuf, hWnd);
+				::CloseHandle(hProc);
+			}
+		}
+	}
+	hmap[hWnd] = pair<BOOL, decltype(hlist.begin())>(ret, hlist.insert(hlist.end(), hWnd));
+
+	return	ret;
+}
+
+BOOL TSetDefaultDllDirectories(DWORD flags)
+{
+	static BOOL (WINAPI *pSetDefaultDllDirectories)(DWORD) = []() {
+		return	(BOOL (WINAPI *)(DWORD))
+			::GetProcAddress(::GetModuleHandle("kernel32"), "SetDefaultDllDirectories");
+	}();
+
+	if (pSetDefaultDllDirectories) {
+		return	pSetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32);
+	}
+	return	FALSE;
+}
+
+const WCHAR *TGetSysDirW(WCHAR *buf)
+{
+	static WCHAR	*sysDir = []() {
+		static WCHAR	dir[MAX_PATH];
+		::GetSystemDirectoryW(dir, wsizeof(dir));
+		return	dir;
+	}();
+
+	if (buf) {
+		wcscpyz(buf, sysDir);
+	}
+
+	return	sysDir;
+}
+
+const WCHAR *TGetExeDirW(WCHAR *buf)
+{
+	static WCHAR	*exeDir = []() {
+		static WCHAR	dir[MAX_PATH];
+		WCHAR	tmp[MAX_PATH];
+
+		::GetModuleFileNameW(NULL, tmp, wsizeof(tmp));
+		GetParentDirW(tmp, dir);
+		return	dir;
+	}();
+
+	if (buf) {
+		wcscpyz(buf, exeDir);
+	}
+
+	return	exeDir;
+}
+
+HMODULE TLoadLibraryExW(const WCHAR *dll, TLoadType t)
+{
+	const WCHAR	*targDir = NULL;
+
+	switch (t) {
+	case TLT_SYSDIR:
+		targDir = TGetSysDirW();
+		break;
+
+	case TLT_EXEDIR:
+		targDir = TGetExeDirW();
+		break;
+
+	default:
+		targDir = NULL;
+		break;
+	}
+
+	if (!targDir || !*targDir) {
+		return	NULL;
+	}
+
+	WCHAR	path[MAX_PATH];
+	MakePathW(path, targDir, dll);
+
+	return	TLoadLibraryW(path);
+}
+
 

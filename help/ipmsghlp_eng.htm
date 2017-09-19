@@ -15,20 +15,25 @@
 	color:white;
 	background-color:#0000cc;
 	margin-bottom:10px;
+	padding-left:10px;
 }
 .help_head3 {
 	color:white;
 	background-color:#0000cc;
 	margin-bottom:5px;
+	padding-left:5px;
 }
-.help_head4 {
-	margin-bottom:0px;
+.table_head {
+	background-color: #aaffaa;
 }
 .help_table {
 	border-style:solid;
 	border-collapse: separate;
 	background-color: #ddffdd;
 	border-color: #aaaaaa;
+	font-size: 95%;
+}
+.help_table2 {
 	font-size: 95%;
 }
 .tr_default {
@@ -54,6 +59,16 @@
 	background-color: #eeffff;
 	padding:2%;
 }
+.help_feature_section {
+	margin:1%;
+	background-color: #ccffcc;
+	padding:1%;
+	font-weight: bold;
+	line-height: 180%;
+	border-style:solid; 
+	border-color:#88cc88; 
+	color: #333333;
+}
 .help_license {
 	border-color:#777777; 
 	border-style:solid; 
@@ -61,37 +76,37 @@
 	background-color: #dddddd;
 }
 .help_license_cond {
-	padding:5%;
+	padding:3%;
 }
 -->
 </style>
 </head>
 <body bgcolor="#eeffff">
 
-
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.64</h1>
+<h1 class="help_head1">IP Messenger v4.80</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2015/12/24 H.Shirouzu</div>
+<div align="right">2017/09/19 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
 <div class="help_section">
   <a href="#about">1. Overview</a><br>
-  <a href="#license">2. License</a><br>
-  <a href="#environment">3. Requirements</a><br>
-  <a href="#uninstall">4. Uninstall</a><br>
-  <a href="#usage">5. Usage</a><br>
-  &nbsp;<a href="#settings">5.1 Settings(IPv6 multicast, etc)</a><br>
-  <a href="#misc">6. Others</a><br>
-  <a href="#wan">7. WAN Settings (Broadcast Settings)</a><br>
-  <a href="#firewall">8. Member detection or file transfer Problem</a><br>
-  <a href="#cmdline">9. CommandLine</a><br>
-  <a href="#support">10. Support</a><br>
-  <a href="#ToDo">11. ToDo</a><br>
-  <a href="#history">12. History</a><br>
+  <a href="#license">2. License/Environment/Install</a><br>
+  <a href="#usage">3. Usage/Screen description</a><br>
+  &nbsp; - <a href="#logview">LogViewer</a><br>
+  <a href="#settings">4. Settings</a><br>
+  &nbsp; - <a href="#master">Member Master Settings</a><br>
+  &nbsp; - <a href="#labtest_settings">RecvTrans (Slack or etc)</a><br>
+  &nbsp; - <a href="#update">Auto Update</a><br>
+  <a href="#misc">5. Use Port/Registry</a><br>
+  <a href="#problem">6. Frequency Problem</a><br>
+  <a href="#cmdline">7. CommandLine</a><br>
+  <a href="#support">8. Support</a><br>
+  <a href="#tips">9. Tips/Shortcut</a><br>
+  <a href="#history">10. History</a><br>
 </div>
 
 <a name="about">
@@ -101,35 +116,30 @@
 	for multi platforms. It is based on TCP and UDP/IP.
 	<br><br>
 
-	This software does not require server machine.
-	<br><br>
+	This software does not require server machine.<br>
+	Simple, lightweight, and free software :-)<br>
 
-	Embedded image in message (ver3.00 or later)
-	<br><br>
-
-	Folder/file transfer (ver2.00 or later)
-	<br><br>
-
-	RSA2048/AES256/Sha1 Encryption/Sign of message data (ver3.00 or later)
-	<br><br>
-
-	RSA/Blofish Encryption of message data (ver2.00 or later)
-	<br><br>
-
-	Simple, lightweight, and free software :-)
-	<br><br>
+	<div class="help_feature_section">
+	1. Powerfull LogViewer (ver4.0)<br>
+	2. Folder/file transfer<br>
+	3. Embedded images in a message<br>
+	4. RSA(2048bit) + AES(256bit) + SHA-256 for safety communication<br>
+	5. IPv6 Multicast support
+	6. Over routers (Member Master function. v4.5 or later)
+	</div>
 
 	IPMsg software is available for MacOSX, iPhone, Android, Java, X11/GTK/GNOME and all sources supplied with protocol.
 	Please check the URL addresses below.
-	    <a href="http://ipmsg.org/index.html.en">http://ipmsg.org/index.html.en</a>
+	    <a href="https://ipmsg.org/index.html.en" target="_blank">https://ipmsg.org/index.html.en</a>
 	<br><br>
 </div>
 
 <a name="license"/>
-<h2 class="help_head2">2. License (BSD License)</h2>
+<h2 class="help_head2">2. License/Environment/Install</h2>
 <div class="help_section">
 	<div class="help_license">
-	<strong>Copyright 2004-2015 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<strong>Copyright 1996-2017 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<strong>Copyright 2015-2017 Asahi Net, Inc. All rights reserved.</strong><br>
 	<br>
 	Redistribution and use in source and binary forms, with or
 	without modification, are permitted provided that the following
@@ -146,10 +156,10 @@
 	</div>
 	<div class="help_license">
 	<strong>
-	THIS SOFTWARE IS PROVIDED BY SHIROUZU Hiroaki ``AS IS'' AND ANY
-	EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-	THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-	PARTICULAR PURPOSE ARE DISCLAIMED.
+	THIS SOFTWARE IS PROVIDED BY SHIROUZU Hiroaki and Asahi Net, Inc.
+	``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
+	BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+	AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 	IN NO EVENT SHALL SHIROUZU Hiroaki OR CONTRIBUTORS BE LIABLE
 	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
@@ -162,46 +172,45 @@
 	</strong>
 	</div>
 	</div>
-</div>
 
-<a name="environment"/>
-<h2 class="help_head2">3. Requirements</h2>
-<div class="help_section">
-	Windows XP/Vista/Win7/8/8.1 (and Windows2003/2008/2012)<br>
-	(for Windows2000, please use v3.42)<br>
-</div>
+	<a name="environment"/>
+	<h3 class="help_head3">Requirements</h3>
+	<div class="help_section">
+		Windows XP/Vista/Win7/8/8.1/10 (and Windows2003/2008/2012/2016)<br>
+	</div>
 
-<a name="uninstall"/>
-<h2 class="help_head2">4. Uninstall</h2>
-<div class="help_section">
-	<div class="help_sub_section">
-		You can uninstall from control panel. 
+	<a name="uninstall"/>
+	<h3 class="help_head3">Uninstall</h3>
+	<div class="help_section">
+		<div class="help_sub_section">
+			If it was installed in administrative privilege, the uninstallation can be used in control panel. <br>
+			If it was not, the uninstallation can be used in Start Menu.
+		</div>
 	</div>
 </div>
 
-
 <a name="usage"/>
-<h2 class="help_head2">5. Usage</h2>
+<h2 class="help_head2">3. Usage/Screen description</h2>
 <div class="help_section">
 
 <h3 class="help_head3">Task tray icon</h3>
 	<div class="help_sub_section">
    Left Single(or double) click on the icon opens a Send Message window.<br>
-   Right single click on the icon opens IPMsg menu such as setting,
-   absence mode, etc.
+   Right single click on the icon opens IPMsg menu such as setting, absence mode, view log, help, or etc.
 	</div>
 
 <h3 class="help_head3">Send Message Window</h3>
 	<div class="help_sub_section">
+	<img src="img/ipmsg_send_mini_e.png" align="left" />
    If [Seal] is checked, it will be sealed message.<br>
    If [Lock] is checked, it will be locked message. The receiver must
    use <strong>receiver's own</strong> password to open a locked message.
 	<br><br>
 
-	<strong>To embed clipboard image</strong> (v3.0 or later), push CTRL-V in editbox.(Max.10 image)<br>
+	<strong>To embed clipboard image</strong> (v3.0 or later), push Ctrl-[V] in editbox.(Max.10 images)<br>
 	  If logging setting is enabled, send/receive images are saved in ipmsg_img sub-folder of logfile folder.<br>
-	(Because embedded image mechanism use ipmsg file transfer, it requires to open 2425/tcp port)<br>
-	Select embedded image and show context menu, it can be saved selected image to a file.
+	(Because sending/receiving image mechanism use ipmsg file transfer, it requires to open 2425/tcp port)<br>
+	Select embedded images and show context menu, it can be saved a selected image to a file.
 	
 	<br><br>
 
@@ -210,7 +219,7 @@
 	  Send Message Window is minimized at starting to capture, but this behavior can be changed by settings.
 	<br><br>
 
-   <strong>To transfer File/Folder</strong> (v2.0 or later), Drag & Drop File/Folder to Send Window.
+   <strong>To transfer File/Folder</strong> (v2.0 or later), Drag &amp; Drop File/Folder to Send Window.
    (or selec right button menu on Send Window)
 	<br><br>
 
@@ -222,23 +231,23 @@
 
 	Prefix color of the user list<br>
 	<table class="help_table" border="4">
-	<tr><th>color</th><th>mean</th></tr>
-	<tr><td bgcolor="#ffffff">white</td><td>v3.0 level (embedded image, attached files, RSA2048/AES256/SHA1 encryption/sign)</td></tr>
-	<tr><td bgcolor="#ffc8c8">light pink</td><td>same as white except disabling embedded image</td></tr>
-	<tr><td bgcolor="#f0f0f0">light gray</td><td>v2.0 level (attached files RSA encryption)</td></tr>
-	<tr><td bgcolor="#b4b4f0">light blue</td><td>a part of v2.0 level (attached files)</td></tr>
-	<tr><td bgcolor="#808080">dark gray</td><td>v1.0 level (basic message communication)</td></tr>
+	<tr class="table_head"><th>color</th><th>mean</th></tr>
+	<tr><td bgcolor="#ffffff">white</td><td>Embedded images, attached files, RSA2048/AES256/SHA-256(orSHA-1) encryption/sign</td></tr>
+	<tr><td bgcolor="#ffc8c8">light pink</td><td>Same as white except disabling embedded images</td></tr>
+	<tr><td bgcolor="#f0f0f0">light gray</td><td>Attached files RSA encryption</td></tr>
+	<tr><td bgcolor="#b4b4f0">light blue</td><td>A part of v2.0 level (attached files)</td></tr>
+	<tr><td bgcolor="#808080">dark gray</td><td>Basic message communication</td></tr>
 	</table>
 	Attention: <strong>!</strong> mark indicates absence mode
 	<br><br>
 
    The order of Send Message window header item list can be changed
-   by Drag & Drop. Right click and select "Save List Header" for
+   by Drag &amp; Drop. Right click and select "Size/Font/Pos Setting" for
    saving order.
 	<br><br>
 
    Right click on the window and select from the menu: Sort/Filter, 
-   Group Select, Search User Ctrl+F, File Transfer, (Folder)Transfer, 
+   Group Select, Search User Ctrl-[F], File Transfer, (Folder)Transfer, 
    Save List Header, Font Setting, Size Setting, Fix Position, Disp Setting.
 	<br><br>
 
@@ -249,6 +258,7 @@
 	<br><br>
 	</div>
 
+<a name="recv"/>
 <h3 class="help_head3">Receive Message Window</h3>
 	<div class="help_sub_section">
    Right click on the window and select from the menu: Font Setting,
@@ -257,134 +267,574 @@
 
    If you receive a message with an attachment, then an attachment
    button will be displayed. Folder transfer data can't be overwritten. 
-	<br><br>
 
-	<strong>IP Messenger v3.0 or later, Messaging security have improved.</strong>
 	<br><br>
 	<table class="help_table" border="4">
-	<tr><th>Strongness</th><th>PublicKey</th><th>CommonKey</th><th>Signature</th><th>Receive Window Title</th><th>Log File</th></tr>
-	<tr><td>Strongest</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-1</td><td>Receive Message +++</td><td>(RSA2/Signed)</td></tr>
+	<tr class="table_head"><th>Strongness</th><th>PublicKey</th><th>CommonKey</th><th>Signature</th><th>Receive Window Title</th><th>Log File</th></tr>
+	<tr><td>Strongest</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-256</td><td>Receive Message ++++</td><td>(RSA2+/Signed)</td></tr>
+	<tr><td>Strong</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-1</td><td>Receive Message +++</td><td>(RSA2/Signed)</td></tr>
 	<tr><td>Strong</td><td>RSA 2048bit</td><td>AES 256bit</td><td>Nothing</td><td>Receive Message ++</td><td>(RSA2)</td></tr>
-	<tr><td>Middle</td><td>RSA 1024bit</td><td>Blowfish 128bit</td><td>Nothing</td><td>Receive Message +</td><td>(RSA)</td></tr>
-	<tr><td>Weak</td><td>RSA 512bit</td><td>RC2 40bit</td><td>Nothing</td><td>Receive Message -</td><td>(RSA)</td></tr>
 	<tr><td>Nothing</td><td>Nothing</td><td>Nothing</td><td>Nothing</td><td>Receive Message</td><td></td></tr>
 	</table>
 	<br>
 	It is used most strong way that is supported by sender and reciever.<br>
 	UserID is extended with finger print in v3.0 or later. ("uid" --&gt; "uid-&lt;finger_print_hexstr&gt;")<br>
 	</div>
+	<br>
+
+<a name="logview"/>
+<h3 class="help_head3">LogViewer</h3>
+<div class="help_section">
+
+<strong>Powerfull Viewer that can show message log with embedded images</strong><br><br>
+	
+<table class="help_table2">
+<tr><td valign="top">
+Main Features<br><br>
+It can show <strong>several tens of thousand messages</strong> with <strong>embedded images</strong><br><br>
+It can narrow messages for <strong>specified user</strong> by 1 click<br><br>
+It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
+(and also has <strong>"Self memo", "Embedded images" functions)</strong>
+
+</td><td>
+	<img src="img/ipmsg_logview_mini_e.png"/>
+</td></tr></table>
+
+<strong>Menu &amp; Functions</strong>
+	<table class="help_table" border="4">
+	<tr class="table_head"><th nowrap colspan="2">File Menu</th></tr>
+	<tr><th nowrap>Open Text Log</th>
+	<td>Open a text message log (it requires to associate ".log" file type with a program)
+	</td></tr>
+	<tr><th nowrap>Open Image Folder</th>
+	<td>Open png(embedded images) file folder in ipmsg log folder.
+	</td></tr>
+	<tr><th nowrap>Open Attached file History Folder</th>
+	<td>Open attached file/dir shortcuts.<br>
+		These shortcuts is used by LogViewer's attached file accessing
+	</td></tr>
+	<tr><th nowrap>Open AutoSaved Folder</th>
+	<td>Open <a href="#auto_save">AutoSaved Folder</a> for attached files/dirs.
+	</td></tr>
+	<tr><th nowrap>Import/remove log files</th>
+	<td>
+		Import(or remove) ipmsg text log files for the LogViewer.<br><br>
+		If text log format is too old, it may not be able to separate username/hostname/uid/IPaddress.<br>
+		(In that case, whether to modify a header(== Other messages that have same header will be modified, too). Or remove imported data, modify text log, and import it again.)
+	</td></tr>
+	<tr><th nowrap>DB Prefetch</th>
+	<td>Load log-DB file(ipmsg.db) to OS cache for improving search/show performance.
+	</td></tr>
+
+	<tr><th nowrap>DB Vacuum</th>
+	<td>Vacuum/Reindex log-DB file for reducing size and improving search performance.
+	</td></tr>
+
+	<tr><th nowrap>Close</th>
+	<td>Close LogViewer
+	</td></tr>
+
+	<tr class="table_head"><th nowrap colspan="2">Settings Menu</th></tr>
+	<tr><th nowrap>Reverse Disp</th>
+	<td>
+		Reverse the message show order.
+	</td></tr>
+
+	<tr><th nowrap>Clear Find History</th>
+	<td>
+		Clear Find History
+	</td></tr>
+	<tr><th nowrap>Font Settings</th>
+	<td>
+		Change display font<br>
+		(Now, same font is used for all message area in LogViewer. Only font size and thickness are changed)
+	</td></tr>
+
+	<tr class="table_head"><th nowrap colspan="2">Window Menu</th></tr>
+	<tr><th nowrap>Open New LogViewer</th>
+	<td>
+		Open New LogViewer.<br>
+		To add marker or modification will reflect all viewers.
+	</td></tr>
+	<tr><th nowrap>Memo Message</th>
+	<td>
+		Add self memo like a message.
+	</td></tr>
+	<tr class="table_head"><th nowrap colspan="2">Help Menu</th></tr>
+	<tr><th nowrap>Help</th>
+	<td>
+		Open Viewer Help(this document).
+	</td></tr>
+	<tr><th nowrap>Tips</th>
+	<td>
+		Open Tips section in Help.
+	</td></tr>
+	</table>
+	<br>
+
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">ToolBar<br><img src="img/ipmsg_lvtoolbar_e.png"/></th></tr>
+	<tr><th nowrap>Jump to lastest message button</th>
+	<td>
+		Jump to lastest message.<br>
+		Then, it will be auto scroll mode and this button icon will be broken line arrow.<br>
+		(with Shift key, jump to oldest message)
+	</td></tr>
+	<tr><th nowrap>Switch to title only</th>
+	<td>
+		Toggle Normal / Title only mode<br>
+	</td></tr>
+	<tr><th nowrap>User filter ("All Users")</th>
+	<td>
+		Narrow selected user message.<br>
+		(Pushing "User" button in a title has the same effect.)<br>
+		<br>
+		If it is pushed <strong>small pen button</strong>, it will be changed manual user search.<br>
+		(Search username/uid/hostname field)
+	</td></tr>
+	<tr><th nowrap>Search string field</th>
+	<td>
+		Start realtime string search and jumping to a message that contains the string.<br>
+		If it is pushed return key, jump to next searched message.<br>
+		If it is pushed return key with Shift key, jump to previous searched message.<br>
+		<br>
+		If it is checked <strong>"Check mark"</strong>, narrow and show only hitted messages.
+		<hr>
+		<strong>Complex search:</strong> "AAA BBB" means to search the messages that contain both "AAA" and "BBB". "AAA OR BBB" means to search the messages that contain "AAA" or "BBB".<br>
+	</td></tr>
+	<tr><th nowrap>Favorite narrowing</th>
+	<td>
+		Narrow favorite checked messages.
+	</td></tr>
+	<tr><th nowrap>Marker/Comment narrowing</th>
+	<td>
+		Narrow markered/commented messages.<br>
+		(Mark: Using right click menu in selected sentence. Comment: Using "..." button in the right side of message titlebar)
+	</td></tr>
+	<tr><th nowrap>Narrow embedded images</th>
+	<td>
+		Narrow embedded image messages.
+	</td></tr>
+	<tr><th nowrap>Narrow unopened messages</th>
+	<td>
+		Narrow unopened messages.<br>
+		<strong>The number of unopened messages is 300. If it is over, New message can't be received.</strong><br>
+		(Even if it is used "logviewer receive mode", hidden receive window object is created during unopen status.)
+	</td></tr>
+	<tr><th nowrap>Open Send Dialog<br></th>
+	<td>
+		Open Send Dialog.
+	</td></tr>
+	</table>
+	<br>
+
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">Title part of message area<br><img src="img/ipmsg_lvtitle.png"/></th></tr>
+	<tr><th nowrap>Date</th>
+	<td>
+		Show the date of send/received message.<br>
+		(If mouse is over this field, it will show date with day of week and seconds in bottom status field)
+	</td></tr>
+	<tr><th nowrap>Arrow mark</th>
+	<td>
+		Right arrow means sended message, and left arrow means recieved message.
+		(If mouse is over this field, arrow mark change to reply mark)
+	</td></tr>
+	<tr><th nowrap>"User" button</th>
+	<td>
+		If it is pushed, narrow "User" messages.<br>
+		If it is right-clicked, reply/etc menu will be shown.
+	</td></tr>
+	<tr><th nowrap>Receive "Unopened" mini button</th>
+	<td>
+		If it is received a sealed message, it will show "Unopened" mini button in the right-top of "User" button.<br>
+		If it is pushed, then the sealed message will open.
+	</td></tr>
+	<tr><th nowrap>Send "Unopened" mini mark</th>
+	<td>
+		If a sended sealed message is not opened, it will show "Unopened" mini mark in the right-top of "User" button.<br>
+		If the message is opened, it will be hidden.
+	</td></tr>
+	<tr><th nowrap>Favorite Mark</th>
+	<td>
+		If it is pushed a Favorite Mark in a message title, the message will be registered as "Favorite".<br>
+		And It affects results of narrowing Favorite button in toolbar.
+	</td></tr>
+	<tr><th nowrap>Misc menu(...)</th>
+	<td>
+		Select "Reply (<strong>(== title dobule click)", "Copy message", "Modify Header", "Edit Message", "Delete Message", "Add Comment" menu items.
+	</td></tr>
+	</table>
+	<br>
+
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">Message Area (Body)<br>
+	<img src="img/ipmsg_lvbody.png"/></th>
+	</th></tr>
+	
+	<tr><th nowrap>Embedded images</th>
+	<td>
+		Embedded(inline) images is shown as thumbnail. If it is clicked, it will be expanded.<br>
+		If it is double-clicked, the application that associates ".png" extension will open it.
+	</td></tr>
+	<tr><th nowrap>Add Comment</th>
+	<td>
+		If it is right-clicked, it can be selected to add comment.<br>
+		If comment area is clicked, then a dialogbox for EditComment will be opened.
+	</td></tr>
+	<tr><th nowrap>Marker</th>
+	<td>
+		It can be selected "Marker", if selected string area is right-clicked, 
+	</td></tr>
+	<tr><th nowrap>Copy</th>
+	<td>
+		It can be selected "Copy", if selected string area is right-clicked.
+	</td></tr>
+	<tr><th nowrap>Search Messages</th>
+	<td>
+		It can be selected "Search Message", if selected string area is right-clicked.
+	</td></tr>
+	<tr><th nowrap>Google Seach</th>
+	<td>
+		It can be selected "Google Search", if selected string area is right-clicked.
+	</td></tr>
+	<tr><th nowrap>Reply</th>
+	<td>
+		Open a send message window to reply. (same as title double clicking)
+	</td></tr>
+	<tr class="table_head"><th colspan="2">Embedded from Clipboard<br>
+	<tr><th nowrap>Embedded images</th>
+	<td>
+		Ctrl-[V] is pushed, <strong>"Image"</strong> can be embedded from clipboard.
+	</td></tr>
+	<tr><th nowrap>Embedded text</th>
+	<td>
+		Ctrl-[V] is pushed, <strong>"Comment"</strong> can be added from clipboard.
+	</td></tr>
+	</table>
+<br>
+	<strong><a href="#tips">Shortcut list is this</a></strong>
+<br>
+</div>
+
 
 <a name="settings"/>
-<h3 class="help_head3">Settings Dialog</h3>
+<h2 class="help_head2">4. Settings</h2>
 	<div class="help_sub_section">
-	It can be changed detail settings.<br><br>
-
-	<strong>Local segment broadcast (for IPv4 member detection)</strong><br>
 	<br>
+	Settings Dialog can be opened from right-click in tasktray icon.<br>
+	<img src="img/ipmsg_settings_e.png"/></th>
+<br>
+
+<a name="lan_settings"/>
+<h3 class="help_head3">Basic &amp; LAN Settings</h3>
+	<div class="help_sub_section">
+
 	<table class="help_table" border="4">
-	<tr><th>Kind</th><th>Details</th></tr>
+	<tr class="table_head"><th colspan="2">Basic Settings</th></tr>
+	<tr><td>User name</td><td>Set User name</td></tr>
+	<tr><td nowrap>Group name</td><td>Set/Select Group name<br>Input new group name or select group name in pulldown menu.</td></tr>
+	<tr class="table_head"><th colspan="2">LAN Settings</th></tr>
+	<tr><td>Broadcast setup for different segments</td><td>
+	If you want to detecting diffrent segment members, it requires broadcast settings.<br>
+(However,  many routers are blocking directed broadcast. So we recommend to use <a href="#master">Member Master</a> function instead of this field.)
+	</td></tr>
+	<tr><td>Unicast required</td><td>Demand status messages to other IPMsg client</td></tr>
+
+	<tr class="table_head"><th colspan="2">Local segment broadcast (for IPv4 member detection)</th></tr>
 	<tr><td>Limited broadcast</td><td>Send to 255.255.255.255 for member detection<br>(If VMWare is used, we recommend to use "Directed broadcast")</td></tr>
 	<tr><td>Directed broadcast</td><td>Listing all IPv4 addresses that NICs have, and send all directed broadcast addresses for member detection. <br>(ex: OS have two addresses(192.168.0.1/24 and 192.168.100.2/24), send to 192.168.0.255 and 192.168.100.255 for member detection.</td></tr>
 	<tr><td>both</td><td>use Limted and Directed broadcast together</td></tr>
-	</table>
-<br>
 
-	<strong>IPv6 multicast (for IPv6 member detection) (IP Messenger v3.50 or later)</strong><br>
-	<br>
-	<table class="help_table" border="4">
-	<tr><th>Kind</th><th>Multicast address and details</th></tr>
+	<tr class="table_head"><th colspan="2">IPv6 multicast (for IPv6 member detection)</th></tr>
 	<tr><td>SiteLocal</td><td>Send to ff15::979 as multicast address for member detection.<br>(If your site routers can use IPv6 multicast, over router member detection will be available.)</td></tr>
 	<tr><td>LinkLocal</td><td>Send to ff02::1 as multicast address for member detection.<br>(member detection is available in local segment only)</td></tr>
 	<tr><td>Site/LinkLocal dual</td><td>use SiteLocal and LinkLocal</td></tr>
 	</table>
-<br>
-
-	<strong>Remote restart (or remote shutdown)</strong><br>
-	<br>
-	<table class="help_table" border="4">
-	<tr><td>If it is checked "Allow remote restart" and received "ipmsg-cmd:..." message, it will be restarted after the confirmation dialog comes out for 15sec.</td></tr>
-	</table>
-<br>
 	</div>
 
-<h3 class="help_head3">Shortcut or etc</h3>
+<a name="master"/>
+<h3 class="help_head3">Member Master Settings (v4.5 or later)</h3>
 	<div class="help_sub_section">
-	1. Ctrl+D ... Boss key (toggle of hide/show windows)<br>
-	2. Ctrl+RefreshButton ... remain existing members, and refresh<br>
-	3. ALT+Ctrl+'S'/'R'/ ... Send/Recv Hotkey (need detail settings)<br>
-	4. ALT+Ctrl+'D' ... Close old-style message-open notification window<br>
-	5. Ctrl+F ... open search user box in send window<br>
+
+	This function is to detect members over routers.<br>
+	If only one PC becomes a Master in an entire LAN and one or more PC uses/relations the Master in each segments, Auto detecting members function is enabled.<br>
+
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">Select mode</th></tr>
+	<tr><td>Not Use</td><td>Not use Master Mode</td></tr>
+	<tr><td nowrap>Use/Relate to a Master<br></td><td>Set Master's IP address(or FQDN). It will be received members information from the Master.<br>
+	And it will be accepted to request collecting members in own segment from the Master.</td></tr>
+	<tr><td nowrap>Become a Master<br></td><td>Become a Member Master.<br>
+	A master should exist only one in entire LAN.<br><br>Basically, Master's IP address should be Fixed address.<br>
+	The master collects members information periodically, and if some change is detected, it send these notifications to each segments.<br>
+	(Refresh period can be setted in "Refresh Intervals (min)". default: 3min)
+	<strong>One or more PCs that Use/Relate to a master(=Agent) in each segments are required.</strong></td></tr>
+	</table>
+	<br>
+
+	Ref) A Master PC and Use Master PCs(Agent) cooperate image<br>
+	<table class="help_table" border="4">
+		<tr class="table_head"><th>Activity Image</th></tr>
+		<tr><td><img src="img/ipmsg_master_e_1.png"/></td></tr>
+		<tr><td><img src="img/ipmsg_master_e_2.png"/></td></tr>
+		<tr><td><img src="img/ipmsg_master_e_3.png"/></td></tr>
+	</table>
+	<br>
+	</div>
+
+<a name="detail_settings"/>
+<h3 class="help_head3">Detail Settings</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">Detal Settings</th></tr>
+		<tr><td nowrap>Receive Msg</td><td>Specify duration time(sec) at receive notification</td></tr>
+		<tr><td nowrap>Open Msg</td><td>Specify duration time(sec) at open msg notification<</td></tr>
+		<tr><td>Do not display user information</td><td>(As it is)</td></tr>
+		<tr><td nowrap>QuoteStr</td><td>Specify quote string at replying</td></tr>
+		<tr><td nowrap>Use Hotkey</td><td>Open send/recv window by shortcut key</td></tr>
+		<tr><td>Change Send/Reply -&gt; Fire/Intercept<td>Back to original label(1st beta in 1996)</td></tr>
+		<tr><td nowrap>English UI</td><td>Change to English UI (need restart)</td></tr>
+		<tr><td nowrap>Icon</td><td>Change main/tasktray Icon</td></tr>
+		<tr><td nowrap>RevIcon</td><td>Change recv/absense Icon</td></tr>
+		<tr><td>Register Icon &amp; Notify<br>in TaskTray at Starting</td><td>Register Icon&Notify at starting, automatically</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="sendrecv_settings"/>
+<h3 class="help_head3">Send/Recv Wnd</h3>
+	<div class="help_sub_section">
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">Send Window</th></tr>
+		<tr><td nowrap>1 Click Open SendDlg</td><td>Open Send Dlg by 1click in tasktray icon</td></tr>
+		<tr><td nowrap>IME auto ON</td><td>Enable IME at SendDlg opened</td></tr>
+		<tr><td nowrap>Narrow Userlist at reply</td><td>Show original addressees in userlist at replying. (if it is clicked "+" mini button, show all users)</td></tr>
+
+		<tr><td nowrap>UserHsitoryNum</td><td>Specfy the number of user history in right click menu of SendDlg</td></tr>
+		<tr><td nowrap>Prevent missend</td><td>Confirm addressee changed.</td></tr>
+
+		<tr class="table_head"><th colspan="2">Recv Window</th></tr>
+		<tr><td nowrap>NonPopup Receive</td><td>Change "popup" to "blink tasktray Icon" at receiving</td></tr>
+		<tr><td nowrap>Quoted check</td><td>(As it is)</td></tr>
+		<tr><td nowrap>Open Logviewer when<br>trayicon is clicked at recv</td><td>(As it is)</td></tr>
+		<tr><td nowrap>Show LogonName</td><td>(As it is)</td></tr>
+		<tr><td nowrap>Show IP address</td><td>(As it is)</td></tr>
+		<tr><td nowrap>Don't close RecvDlg, when reply</td><td>(As it is)</td></tr>
+		<tr><td nowrap>No recv sound</td><td>(As it is)</td></tr>
+		<tr><td nowrap>Reproduce msg at rebooting<br>with unopend msg</td><td>(As it is)</td></tr>
+		<tr><td nowrap>Sound</td><td>(As it is)</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="capture_settings"/>
+<h3 class="help_head3">Image/Capture</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">Embedded image in a message</th></tr>
+		<tr><td nowrap>Always show directly</td><td>Show inline images in RecvDlg, directly</td></tr>
+		<tr><td nowrap>Show directly if priority user</td><td>If a sender is display priority user in SendDlg, show inline images in RecvDlg, directry</td></tr>
+		<tr><td nowrap>Always show via Image button</td><td>(As it is)</td></tr>
+		<tr class="table_head"><th colspan="2">Display (area specified) Capture</th></tr>
+		<tr><td nowrap>Minimize Send Message Dialog as default</td><td>(As not to interfere with the capture)</td></tr>
+		<tr><td nowrap>Clipboard check as default</td><td>Copy image to Clipboard at finishing to capture</td></tr>
+		<tr><td nowrap>Save check as default</td><td>Open save image dialog at finishing to capture</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="url_settings"/>
+<h3 class="help_head3">URL/File Link</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">Link behavior</th></tr>
+		<tr><td nowrap>One click open</td><td>Open a link by single click. (default: double click is needed)</td></tr>
+		<tr><td nowrap>One click open (only viewer)</td><td>Open a link by single click in log viewer, and open a link by double click in send/recv window. </td></tr>
+		<tr><td nowrap>Link targets are only URL</td><td>Show only URL-link, not File-link.</td></tr>
+		<tr><td nowrap>Permitted file extensions for clicking a file link</td><td>set open file-types without confirm dialog</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="log_settings"/>
+<h3 class="help_head3">Log Setting</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">Logging</th></tr>
+		<tr><td nowrap>Logging available</td><td>(As it is)</td></tr>
+		<tr><td nowrap>LogFile</td><td>Specify a filename of send/recv message logs.
+		<hr>
+		And also, a dbfile(ipmsg.db) for logviewer will be created in same folder.
+		<hr>
+		And also, inline image(.png) files will be stored in ipmsg_image subfolder of LogFolder.
+		</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="auto_save">
+<h3 class="help_head3">Auto FileDownload</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">Auto Save</th></tr>
+		<tr><td nowrap>Enable to download attched files automatically</td><td>(If a message is opened, the message is not autosaved. It requires to download it manually</td></tr>
+		<tr><td nowrap>Auto download folder</td><td>(If it is not specified, it is used "(LogFile_folder)\AutoSave")</td></tr>
+		<tr><td nowrap>Limitation by disp priority</td><td>AutoSave function can be enabled for display priority users.</td></tr>
+		<tr><td nowrap>Download size limitation(MB)</td><td>Specify the limit of total download size<br>
+Download size will be added up while IPMsg hasn't be operated manually<br>
+(This limitation protects for disk full)</td></tr>
+		<tr><td nowrap>Grace sec of starting auto downloading</td><td>(As it is)</td></tr>
+		<tr><td nowrap>Allow to download folders</td><td>AutoSave is enabled, even if it is a folder. But total file/folder downloaded size is over than the limitation size, folder transfer will be discontinued <br>
+	(In this case, it can download manually, if the sender hasn't been shutdown/restart</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="remote_settings"/>
+<h3 class="help_head3">Remote reboot</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+
+		<tr class="table_head"><th colspan="2">Remote Reboot</th></tr>
+		<tr><td nowrap>Allow remote Reboot</td><td>If it is received "ipmsg-cmd:...", this machine will reboot this machine when a reboot confirm dialog is timeout(15sec)</td></tr>
+		<tr><td nowrap>Refresh</td><td>Change the reboot message command("ipmsg-cmd:...")</td></tr>
+
+		<tr class="table_head"><th colspan="2">Remote Shutdown</th></tr>
+		<tr><td nowrap>Allow remote Shutdown</td><td>If it is received "ipmsg-cmd:...", this machine will be shutdown when a shutdown confirm dialog is timeout(15sec)</td></tr>
+		<tr><td nowrap>Refresh</td><td>Change the shutdown message command("ipmsg-cmd:...")</td></tr>
+
+		<tr class="table_head"><th colspan="2">Remote Terminate IPMSG</th></tr>
+		<tr><td nowrap>Allow remote Shutdown</td><td>If it is received "ipmsg-cmd:...", this ipmsg will be terminated when a terminate confirm dialog is timeout(15sec)</td></tr>
+		<tr><td nowrap>Refresh</td><td>Change the terminate message command("ipmsg-cmd:...")</td></tr>
+
+		</table>
+		(for restarting multiple via RDP or for requesting restart/shutdown to other ipmsg user)
+	<br>
+	</div>
+
+
+<a name="labtest_settings"/>
+<h3 class="help_head3">RecvTrans (Slack or etc)</h3>
+	<div class="help_sub_section">
+		Trasnfer received messages to slack or another server during lock screen.<br>
+		It requires to get the <a href="https://api.slack.com/incoming-webhooks" target="_blank">Slack Incoming Webhooks</a> URL.<br>
+		If you want to transfer to another server, it is required to describe URL and POST message.<br>
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">Common Settings</th></tr>
+		<tr><td nowrap>Trasnfer Mode</td><td>Select mode. (Lock Screen) mode transfers the unopened messages when screen is locked</td></tr>
+		<tr><td nowrap>Slack or General</td><td>Select Slack or General</td></tr>
+		<tr><td nowrap>Test</td><td>Trasnfer test message to slack or another server. If an error occurs, it is written in the text area in right side.<br>
+		Ref) <a href="https://api.slack.com/incoming-webhooks#handling_errors" target="_blank">Slack handling errors</a></td></tr>
+		<tr class="table_head"><th colspan="2">for Slack</th></tr>
+		<tr><td nowrap>incoming webhook URL</td><td>Describe /Txxxxxx/Bxxxxx/xxxxxxx after https://hook.slack.com/services URL<br>
+		Ref) <a href="https://api.slack.com/incoming-webhooks" target="_blank">Slack Incoming Webhooks</a></td></tr>
+		<tr><td nowrap>#channel/@username</td><td>Specify #channel or @username.</td></tr>
+		<tr class="table_head"><th colspan="2">for General</th></tr>
+		<tr><td nowrap>URL</td><td>Describe URL that you want to transfer to</td></tr>
+		<tr><td nowrap>POST</td><td>Describe POST data. $(sender) and $(msg) are replaced real sender name and real message body.</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="update"/>
+<h3 class="help_head3">Auto Update</h3>
+	<div class="help_sub_section">
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">Auto Update</th></tr>
+		<tr><td nowrap>Regularly check the lastest version</td><td>Regularly check the lastest version and if new version is released, updating IPMsg.</td></tr>
+		<tr><td nowrap>Check the lastest version, but no install</td><td>If new version exists, it shows balloon notification and if click it, the update confirm dialog will be shown.</td></tr>
+		<tr><td nowrap>Check Update</td><td>Check the lastest version now, and if new version exists, the button label will be changed "Start to Update"<br>
+		</table>
+	<br>
+	</div>
+
+<a name="backup_settings"/>
+<h3 class="help_head3">Misc/Firewall</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">Export Settings</th></tr>
+		<tr><td nowrap>Export settings to .reg file</td><td>(As it is)</td></tr>
+		<tr class="table_head"><th colspan="2">Windows Firewall</th></tr>
+		<tr><td nowrap>Don't confirm Windows Firewall settings at start</td><td>In current version, ipmsg confirms Windows Firewall Settings at starting.<br>And if Windows Firewall blocks IPMsg packet, IPMsg shows "Add to firewall exception list for receive" dialog.<br>
+If it is checked, this dialog will be not shown.
+d></tr>
+		<tr class="table_head"><th colspan="2">Experimental</th></tr>
+		<tr><td nowrap>Reduce task tray action at receiving</td><td>(Change "Blink" to "mini sun moving")</td></tr>
+		</table>
+	<br>
 	</div>
 
 </div>
-
 
 <a name="misc"/>
-<h2 class="help_head2">6. Others</h2>
+<h2 class="help_head2">5. Use Port/Registry</h2>
 <div class="help_section">
-Setting is saved in the following registry key.<br>
-\\HKEY_CURRENT_USER\Software\HSTools\IPMsgEng<br>
-(If port number has been set, IPMsg + port number)<br>
-When changing your registry number, please re-start ipmsg.
-<br><br>
-Password for Lock and Seal is saved in registry with encording.<br>
-<br>
+	Normally use 2425 port for TCP/UDP. (See 8. Appendices)<br>
+	Use 2425 port only for UDP with no File(Folder) Transfer.  <br>
+	(These ports should be activated when using firewall software.)
+	<br><br>
 
-	<div class="help_license">
-If you forget the password, remove it in the following registry key.<br>
-\\HKEY_CURRENT_USER\Software\HSTools\IPMsgEng\PasswordStr
-	</div>
-<br>
+	Setting is saved in the following registry key.<br>
+	\\HKEY_CURRENT_USER\Software\HSTools\IPMsgEng<br>
+	(If port number has been set, IPMsg + port number)<br>
+	When changing your registry number, please re-start ipmsg.
+	<br><br>
 
-Normally use 2425 port for TCP/UDP. (See 8. Appendices)<br>
-Use 2425 port only for UDP with no File(Folder) Transfer.  <br>
-(These ports should be activated when using firewall software.)
-<br><br>
-
-Protocol specification comes with source.(Japanese)
-<br><br>
-
-Broadcast messaging happens only at [Start/End], [Absencemode],
-[Refresh], [Change 'UserName' or 'GroupName'].
-<br><br>
-
-
-<a name="wan"/>
-<h2 class="help_head2">7. WAN settings (Broadcast Settings)</h2>
-<div class="help_section">
-
-All bits of Host part have to be 1 in the receiver's IP address. <br>
-For example, connect to Class C(network 24bit, host 8bit) address
-"aaa.bbb.ccc.ddd", broadcast address will be "aaa.bbb.ccc.255".<br>
-If network uses subnet, it may not work.
-<br><br>
-
-For more detail check TCP/IP books or ask network administrators.
-<br><br>
-
-If you have difficulty to connect, especially over two or more
-router connection. Set IP addresses independent.
-<br><br>
-
-For dialup connection, check [Dialup connection] box on.<br>
-When press [Refresh], member list doesn't go off.
+	Protocol specification comes with source.(Japanese)
+	<br>
 
 </div>
 
-
-<a name="firewall">
-<h2 class="help_head2">8. Member detection or file transfer Problem</h2>
+<a name="problem">
+<h2 class="help_head2">6. Frequency Trouble</h2>
 <div class="help_section">
 IP Messenger use <strong>2425/UDP port</strong> for member detection and message communication, and use <strong>2425/TCP port</strong> for file and image transfer.<br>
 If those port are blocked by OS or Antivirus software, IP Messenger can't detect other member or can't send/receive file or images.<br>
-Please open those port.<br>
+Please open these port.<br>
+<br>
 </div>
 
 
 <a name="cmdline">
-<h2 class="help_head2">9. CommandLine</h2>
+<h2 class="help_head2">7. CommandLine</h2>
 <div class="help_section">
 
+v4.5 or later, special command(ipcmd.exe) is enabled. <br>
+(Its parent folder can be opened by right click menu in task tray icon(<img src="img/ipmsg_tasktray.png"/>) -&gt; Lastest &amp; Help etc -&gt; Installed Folder)<br>
+<br>
+
+If ipcmd.exe is used, it can be enabled "get/set absence mode", "send/recv messages", or etc.<br>
+<br>
+Format: <strong>ipcmd [/port=N] [/nic=ipaddr] [/nostat] sub command...</strong>
+
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">sub command</th></tr>
+	<tr class=""><th>Get absence mode</th><td>getabs</td></tr>
+	<tr class=""><th>Set absence mode</th><td>setabs (0|1|...|N)</td></tr>
+	<tr class=""><th>Get UserList</th><td>list</td></tr>
+	<tr class=""><th>Refresh UserList</th><td>refresh [/noremove]</td></tr>
+	<tr class=""><th>Send a message</th><td>
+						send [/file=path1 /file=path2...] [/noseal]<br>
+						"(uid|ipaddr|ALL)[,uid...]"<br>
+						("msg_body" | /msgfile=path)<br>
+						</td></tr>
+	<tr class=""><th>Receive a message</th><td>recv [/msgfile=path]</td></tr>
+	<tr class=""><th>Status</th><td>state</td></tr>
+	<tr class=""><th>Terminate IPMsg</th><td>terminate</td></tr>
+	</table>
+	<br>
+	ex.1) Send a message: ipcmd send "shirouzu-&lt;09b167745f2bdf56&gt;" test<br>
+	ex.2) Set absence mode: ipcmd setabs 1<br>
+<br>
+<strong>ipmsg.exe command lines</strong><br>
 At startup IPMSG software, you can specify UDP/TCP port number.<br>
 IPMSG can run at multiple sessions.<br>
 For example, using [ipmsg.exe 2426] command, you can contact only people who are using 2426 port.<br>
@@ -399,65 +849,143 @@ Ask network administrator<br>
 Specifing NIC (for multi NIC environment)<br>
 ipmsg.exe [port] /NIC nic_ipaddr<br>
 ex) C:\> ipmsg.exe /NIC 192.168.10.100<br>
-<br>
-Command Line support<br>
-ipmsg.exe [port] /MSG [/LOG][/SEAL] &lt;hostname or IPaddr&gt; &lt;message&gt; <br>
-ex) C:\&gt; ipmsg.exe /MSG /SEAL localhost Hello.<br>
-(Changing /MSG to /MSGEX, '\n' in message will be replaced to new-line character)
 
 </div>
 
 <a name="support">
-<h2 class="help_head2">10. Support</h2>
+<h2 class="help_head2">8. Support</h2>
 <div class="help_section">
 
-Any bug report, suggestion and recommendations are welcome in the bbs of http://ipmsg.org/index.html.en<br>
+Any bug report, suggestion and recommendations are welcome in <a href="https://groups.google.com/forum/#!forum/ipmsg-bbs-eng" target="_blank">the support forum</a>.
+(The support forum is the only official support entry)
 <br>
 For these report, please send the following information.<br>
 Software Version, Operating System, problem situation, repeatability.
 
 </div>
 
-<a name="ToDo">
-<h2 class="help_head2">11. ToDo</h2>
+<a name="tips">
+<h2 class="help_head2">9. Tips/Shortcut key</h2>
 <div class="help_section">
 
-- LogViewer for text and image.
+	<table class="help_table" border="4">
+	<tr class="table_head"><th>Function</th><th>Details</th></tr>
+	<tr><th nowrap>Almost All Windows</th>
+	<td>
+		To close a window, Shortcut(CTRL + [W]) can be used.
+	</td></tr>
+	<tr><th nowrap>Open Send/Recv/LogView<br>Dialog</th>
+	<td>
+		It is easy to use shortcut key<br>
+		(It is assigned CTRL + ALT + [S][R][E], as default)<br>
+		And in send/recv/LogVIew dialog, it can used BOSS key(Ctrl-[D])
+	</td></tr>
+	<tr><th nowrap>Send Dialog</th>
+	<td>
+		Ctrl-[F] is User incremental Search<br>
+		To set display priority settings in right click of userlist is convenience.<br>
+		To use the frequency userlist in right click of userlist is convenience. <br>
+		If it is right-clicked a image, the image can be re-edited.<br>
+		If it is sended with SHIFT + CTRL + right-click, it can retrieve the receiver's ipmsg version.<br>
+		If the refresh button is clicked with Ctrl-key, it is refreshed userlist, but it doesn't remove old entries.<br>
+	</td></tr>
+	<tr><th nowrap>Receive Dialog</th>
+	<td>
+		If it is right-clicked a image, the image can be stored as a png file.<br>
+		A image can drag &amp; drop to Send Dialog.
+	</td></tr>
+	<tr><th nowrap>LogViewer</th>
+	<td>
+		<br><br>
+		[Space][Ret] Go to next message (with Shift-key, go to previous message) <br>
+		Ctrl-[T] or [Home] Jump to the top of messages (oldest message)<br>
+		Ctrl-[B] or [End] Jump to the end of messages (newest message)<br>
+		Ctrl-[R] Reply (if a enabled current message(*) exists)<br>
+		Ctrl-[S] Open Send Dialog<br>
+		Ctrl-[F] Set focus to the Search field (toggle)<br>
+		Ctrl-[N] Show only search results (toggle)<br>
+		Ctrl-[U] User string search (toggle)<br>
+		Ctrl-[Q] Title Only mode (Toggle)<br>
+		Ctrl-[C] Copy selected area to clipboard<br>
+		Ctrl-[V] Paste from clipboard<br>
 
+		<br>
+		In the Search field, it can used AND/OR/NOT search.<br>AND: "AAA BBB"<br>OR: "AAA OR BBB"<br>NOT: "AAA NOT BBB" (NOT can't used the top of the field)<br>
+		<br>
+		(*) Enabled current message(**) == selected by mouse click, or move current message by [Ret]<br>
+		(**) Current message has a glay line in the left of header
+	</td></tr>
+	</table>
 </div>
 
+
 <a name="history"/>
-<h2 class="help_head2">12. History</h2>
+<h2 class="help_head2">10. History</h2>
 <div class="help_section">
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
-<tr><td>v3.64</td><td>
+
+<tr><td>v4.80</td><td>
+Support <a href="#update">Auto Update</a>.<br>
+Support General <a href="#labtest_settings">RecvMsg Transfer mode</a>. (Transfer to non slack server)<br>
+It can be downloaded the attached files, even if the sender IPMsg is restarted.<br>
+Misc refine. (mini-dump, VS2017, etc)
+</td></tr>
+
+<tr><td>v4.70</td><td>
+Add <a href="#labtest_settings">Slack transfer experiment</a> during lock screen.<br>
+Fix the master PC didn't delete the member that stopped without exit notification, from member list. (v4.61 only)<br>
+Fix some problem of <a href="#cmdline">ipcmd</a><br>
+Fix starting problem in WinXP/Server2003. (Server2003 doesn't support MemberMaster function, because it can't use SHA256)
+</td></tr>
+
+<tr><td>v4.61</td><td>
+Take a measure for DLL preload attack.<br>
+Improve screen saver interlocking rename. (misc/firewall -&gt; experimental)
+</td></tr>
+<tr><td>v4.60</td><td>
+Add "Narrowing file attached message" button in logviewer.<br>
+Improve loviewer.<br>
+ - Fold tail quoted lines. (as default)<br>
+ - Always show a message (that shown only a part of lines) header.<br>
+ - Support unicode IVS show/search<br>
+Prevent dbl-quoted lines in head/tail at repying. (as default)<br>
+Change cursor pos to top at repying. (as default)<br>
+Improve Installer/Uninstaller.
+Fix to restore unopend messages that was stored by under v4.50.
+</td></tr>
+
+<tr><td>v4.50</td><td>
+Add <a href="#master">Member Master</a> function<br>
+Add <a href="#cmdline">special command(ipcmd.exe)</a>. (It can Set/Get absence mode/Receive Messages/Send Messages with files/or etc)<br>
+Support <a href="#recv">SHA-256 signing</a>.<br>
+Enable to open attached files in log viewer. (Distributed Link Tracking)<br>
+Speed up file transfer.<br>
+Enable to be shown A header of message in Opened/UnOpened Dialog.<br>
+Obsolete old weak encryption mode (RSA512bit/RC2-40bit)<br>
+Support wine environment.<br>
+Support new Protocol.
+</td></tr>
+<tr><td>v4.01 - v4.11</td><td>
+Fix not to reflect a opened information to a logviewer.<br>
+Fix installer failure when logon name includes multi-byte charactor.<br>
+Narrow userlist(original addresees only) at replying as default. (Click "+" button, show all)<br>
+Fix not to freeze at receiving in Win10 anniv. (ToastAPI problem. Avoid by multi thread)<br>
+Improve logviewer. (Add unopend filter button. Enable to reply in message blank area.)<br>
+Change a number of unopen receive window is 100 -> 300. (it can be changed HKCU\Software\HSTools\IPMsg\RecvMax)
+</td></tr>
+<tr><td>v4.00</td><td>
+Support Powerful LogViewer<br>
+Support multiple-addressees reply.<br>
+Support to confirm that reply-addressees are changed.<br>
+Support to add to firewall exception list for receive.<br>
+Misc refine/fix.
+</td></tr>
+<tr><td>v3.50 - v3.64</td><td>
 Change bakgroud color to non-transparent for text-marker in image capture.<br>
-Fix command line mode error in WinXP
-</td></tr>
-<tr><td>v3.63</td><td>
-Fix an exception at starting in Win10(x64)<br>
-Misc refine.
-</td></tr>
-<tr><td>v3.62</td><td>
-Fix an exception at starting in Win10(x86)
-</td></tr>
-<tr><td>v3.61</td><td>
-Fix unicode input for send dialog.
-</td></tr>
-<tr><td>v3.60</td><td>
 Support auto download option for attached files.<br>
-Support reproduce message for unopend/hidden message at restarting.
-</td></tr>
-<tr><td>v3.52</td><td>
-Not to need manual settings for task tray icon at minimize.
-</td></tr>
-<tr><td>v3.51</td><td>
-Fix specifing port_no in command line.<br>
-Fix balloon notification in WinXP.
-</td></tr>
-<tr><td>v3.50</td><td>
+Support reproduce message for unopened/hidden message at restarting.<br>
 Support to encryption/sign(AES-CTR256bit) for file/folder transfer<br>
 Support IPv6 multicast<br>
 Change image processing library (libpng -> GDI+)<br>
@@ -466,55 +994,16 @@ Support to re-edit image.<br>
 Support to paste image by file.<br>
 Add new commandline message mode(/MSGEX), "\n" in message is replaced to new line code.<br>
 Suport remote reboot/shutdown.<br>
-misc refine.<br>
 </td></tr>
-<tr><td>v3.42</td><td>
-Update libpng (1.5.9 -> 1.5.10)<br>
-Fix hidden button label in classic style.<br>
-(It will be the final version that supports Windows2000.)
-</td></tr>
-<tr><td>v3.41</td><td>
+<tr><td>v3.00 - v3.42</td><td>
+(v3.42 is the final version that supports Windows2000.)<br>
 Support Marker function for captured display image.<br>
-Update libpng (1.5.4 -> 1.5.9) for VU#523889<br>
-Show embedded image directly as default.<br>
-Support to save selected embedded image to a file via right context menu.<br>
-Improve Send Dialog UI.
-</td></tr>
-<tr><td>v3.32</td><td>
-Show embedded image directly as default, if priority user.<br>
-Fix illegal characters in setting dialog(v3.31 only)
-</td></tr>
-<tr><td>v3.31</td><td>
-Support to export settings to .reg file.
-Fix "Log file" button in settings.
-Misc refine.
-<tr><td>v3.30</td><td>
 Support display (area specified) capture.<br>
 Support detail settings of balloon notifications.<br>
-Update libpng (1.5.2 -> 1.5.4) for VU#819894<br>
-Misc refine.
-</td></tr>
-<tr><td>v3.21</td><td>
-Prevent to lost focus in active window when embedded image messsage is received.<br>
-Release 64bit version.
-</td></tr>
-<tr><td>v3.20</td><td>
+Release 64bit version.<br>
 Support select users by user(sended) history.<br>
-Support old-style message-open notification.<br>
-Support delayed message-open notification, if desktop window is not activated(ex. screen saver).<br>
-Improve unopened message monitor.<br>
-Change default behavior to open Send Window by single click.<br>
-Misc refine.<br>
-</td></tr>
-<tr><td>v3.10</td><td>
-Support icremental search for userlist (Ctrl+F).<br>
-Change recv/log header format.<br>
-Improve send list prefix color.<br>
-Improve setting dialog.<br>
-Change zip archive to exe installer.<br>
-some fix.
-</td></tr>
-<tr><td>v3.00</td><td>
+Support icremental search for userlist (Ctrl-[F]).<br>
+<br>
 Support embedded image in message.<br>
 Support multi language communication.<br>
 Support unopened message monitor.<br>

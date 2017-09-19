@@ -1,10 +1,10 @@
 ﻿static char *miscdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2014   miscdlg.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 1996-2017   miscdlg.cpp	Ver4.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc Dialog
 	Create					: 1996-12-15(Sun)
-	Update					: 2014-08-20(Wed)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -129,7 +129,7 @@ BOOL TListViewEx::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return	FALSE;
 }
 
-int TListViewEx::InsertColumn(int idx, char *title, int width, int fmt)
+int TListViewEx::InsertColumn(int idx, const char *title, int width, int fmt)
 {
 	LV_COLUMNW	lvC;
 	memset(&lvC, 0, sizeof(lvC));
@@ -161,7 +161,7 @@ BOOL TListViewEx::DeleteItem(int idx)
 	return	(BOOL)SendMessage(LVM_DELETEITEM, idx, 0);
 }
 
-int TListViewEx::InsertItem(int idx, char *str, LPARAM lParam)
+int TListViewEx::InsertItem(int idx, const char *str, LPARAM lParam)
 {
 	LV_ITEMW		lvi = {};
 	lvi.mask		= LVIF_TEXT|LVIF_PARAM;
@@ -171,7 +171,7 @@ int TListViewEx::InsertItem(int idx, char *str, LPARAM lParam)
 	return	(int)SendMessage(LVM_INSERTITEMW, 0, (LPARAM)&lvi);
 }
 
-int TListViewEx::SetSubItem(int idx, int subIdx, char *str)
+int TListViewEx::SetSubItem(int idx, int subIdx, const char *str)
 {
 	LV_ITEMW		lvi = {};
 	lvi.mask		= LVIF_TEXT;
@@ -221,7 +221,7 @@ BOOL TListViewEx::SetColumnOrder(int *order, int num)
 
 BOOL TListViewEx::IsSelected(int idx)
 {
-	return	(int)SendMessage(LVM_GETITEMSTATE, idx, LVIS_SELECTED) & LVIS_SELECTED ? TRUE : FALSE;
+	return	(SendMessage(LVM_GETITEMSTATE, idx, LVIS_SELECTED) & LVIS_SELECTED) ? TRUE : FALSE;
 }
 
 
@@ -271,7 +271,7 @@ extern char	*DefaultAbsence[], *DefaultAbsenceHead[];
 TAbsenceDlg::TAbsenceDlg(Cfg *_cfg, TWin *_parent) : TDlg(ABSENCE_DIALOG, _parent)
 {
 	cfg = _cfg;
-	hAccel = ::LoadAccelerators(TApp::GetInstance(), (LPCSTR)IPMSG_ACCEL);
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 }
 
 TAbsenceDlg::~TAbsenceDlg()
@@ -411,11 +411,11 @@ BOOL TAbsenceDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void TAbsenceDlg::SetData(void)
 {
-	for (int cnt=0; cnt < cfg->AbsenceMax; cnt++)
+	for (int i=0; i < cfg->AbsenceMax; i++)
 	{
-		strcpy(tmpAbsenceHead[cnt], cfg->AbsenceHead[cnt]);
-		strcpy(tmpAbsenceStr[cnt], cfg->AbsenceStr[cnt]);
-		Wstr	head_w(cfg->AbsenceHead[cnt], BY_UTF8);
+		strcpy(tmpAbsenceHead[i], cfg->AbsenceHead[i]);
+		strcpy(tmpAbsenceStr[i], cfg->AbsenceStr[i]);
+		Wstr	head_w(cfg->AbsenceHead[i], BY_UTF8);
 		SendDlgItemMessageW(ABSENCE_LIST, LB_INSERTSTRING, (WPARAM)-1, (LPARAM)head_w.Buf());
 	}
 	currentChoice = cfg->AbsenceChoice;
@@ -427,10 +427,10 @@ void TAbsenceDlg::GetData(void)
 {
 	GetDlgItemTextU8(ABSENCEHEAD_EDIT, tmpAbsenceHead[currentChoice], MAX_NAMEBUF);
 	GetDlgItemTextU8(ABSENCE_EDIT, tmpAbsenceStr[currentChoice], MAX_PATH_U8);
-	for (int cnt=0; cnt < cfg->AbsenceMax; cnt++)
+	for (int i=0; i < cfg->AbsenceMax; i++)
 	{
-		strcpy(cfg->AbsenceHead[cnt], tmpAbsenceHead[cnt]);
-		strcpy(cfg->AbsenceStr[cnt], tmpAbsenceStr[cnt]);
+		strcpy(cfg->AbsenceHead[i], tmpAbsenceHead[i]);
+		strcpy(cfg->AbsenceStr[i], tmpAbsenceStr[i]);
 	}
 	cfg->AbsenceChoice = currentChoice;
 }
@@ -443,14 +443,15 @@ TSortDlg *TSortDlg::exclusiveWnd = NULL;
 
 TSortDlg::TSortDlg(Cfg *_cfg, TWin *_parent) : TDlg(SORT_DIALOG, _parent)
 {
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 	cfg = _cfg;
 }
 
 int TSortDlg::Exec(void)
 {
-	if (exclusiveWnd)
+	if (exclusiveWnd) {
 		return	exclusiveWnd->SetForegroundWindow(), FALSE;
-
+	}
 	exclusiveWnd = this;
 	return	TDlg::Exec();
 }
@@ -543,6 +544,7 @@ void TSortDlg::GetData(void)
 // パスワード確認用
 TPasswordDlg::TPasswordDlg(Cfg *_cfg, TWin *_parent) : TDlg(PASSWORD_DIALOG, _parent)
 {
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 	cfg = _cfg;
 	outbuf = NULL;
 }
@@ -550,6 +552,7 @@ TPasswordDlg::TPasswordDlg(Cfg *_cfg, TWin *_parent) : TDlg(PASSWORD_DIALOG, _pa
 // 単なるパスワード入力用
 TPasswordDlg::TPasswordDlg(char *_outbuf, TWin *_parent) : TDlg(PASSWORD_DIALOG, _parent)
 {
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 	cfg = NULL;
 	outbuf = _outbuf;
 }
@@ -569,7 +572,7 @@ BOOL TPasswordDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 				if (CheckPassword(cfg->PasswordStr, buf))
 					EndDialog(wID);
 				else
-					SetDlgItemTextU8(PASSWORD_EDIT, ""), MessageBoxU8(GetLoadStrU8(IDS_CANTAUTH));
+					SetDlgItemTextU8(PASSWORD_EDIT, ""), MessageBoxU8(LoadStrU8(IDS_CANTAUTH));
 			}
 			else EndDialog(wID);
 		}
@@ -601,11 +604,11 @@ BOOL TPasswordDlg::EvCreate(LPARAM lParam)
 
 
 /*
-	TMsgDlgは、制約の多いMessageBoxU8()の代用として作成
+	TMsgDlgは、制約の多いMessageBoxU8()、NonModal用として作成
 */
 TMsgDlg::TMsgDlg(TWin *_parent) : TListDlg(MESSAGE_DIALOG, _parent)
 {
-	hAccel = ::LoadAccelerators(TApp::GetInstance(), (LPCSTR)IPMSG_ACCEL);
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 }
 
 /*
@@ -619,7 +622,7 @@ TMsgDlg::~TMsgDlg()
 /*
 	Window生成ルーチン
 */
-BOOL TMsgDlg::Create(char *text, char *title, int _showMode)
+BOOL TMsgDlg::Create(const char *text, const char *title, int _showMode)
 {
 	showMode = _showMode;
 
@@ -631,12 +634,12 @@ BOOL TMsgDlg::Create(char *text, char *title, int _showMode)
 		DWORD	key =	GetAsyncKeyState(VK_LBUTTON) |
 						GetAsyncKeyState(VK_RBUTTON) |
 						GetAsyncKeyState(VK_MBUTTON);
-		::EnableWindow(hWnd, TRUE);
-		::ShowWindow(hWnd, (key & 0x8000) ? SW_SHOWNOACTIVATE : SW_SHOW);
+		EnableWindow(TRUE);
+		ShowWindow((key & 0x8000) ? SW_SHOWNOACTIVATE : SW_SHOW);
 	}
 	else {
-		::ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
-		::EnableWindow(hWnd, TRUE);
+		ShowWindow(SW_SHOWMINNOACTIVE);
+		EnableWindow(TRUE);
 	}
 
 	if (strstr(text, "\r\n"))
@@ -692,15 +695,146 @@ BOOL TMsgDlg::EvCreate(LPARAM lParam)
 					FALSE);
 	}
 
-	createCnt++;
 	return	TRUE;
 }
 
 /*
+	TMsgBoxは位置決め可能な MessageBox()
+*/
+TMsgBox::TMsgBox(TWin *_parent) : TDlg(MESSAGE_BOX, _parent)
+{
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
+
+	flags = 0;
+}
+
+/*
+	Window生成ルーチン
+*/
+int TMsgBox::Exec(const char *_text, const char *_title, int _x, int _y)
+{
+	text  = _text;
+	title = _title;
+
+	x = _x;
+	y = _y;
+
+	return	TDlg::Exec();
+}
+
+int TMsgBox::Exec(const char *_text, const char *_title)
+{
+	text  = _text;
+	title = _title;
+	x = CW_USEDEFAULT;
+	y = CW_USEDEFAULT;
+
+	return	TDlg::Exec();
+}
+
+BOOL TMsgBox::Create(const char *_text, const char *_title)
+{
+	text  = _text;
+	title = _title;
+	x = CW_USEDEFAULT;
+	y = CW_USEDEFAULT;
+
+	return	TDlg::Create();
+}
+
+void TMsgBox::Setup()
+{
+	SetDlgItemTextU8(MESSAGE_EDIT, text);
+	SetWindowTextU8(title);
+
+	if (strstr(text, "\r\n"))
+	{
+		WINDOWPLACEMENT wp;
+		wp.length = sizeof(wp);
+		::GetWindowPlacement(GetDlgItem(MESSAGE_EDIT), &wp);
+		wp.rcNormalPosition.top -= ::GetSystemMetrics(SM_CYCAPTION) / 4;
+		::SetWindowPlacement(GetDlgItem(MESSAGE_EDIT), &wp);
+	}
+
+	::ShowWindow(GetDlgItem(IDCANCEL), (flags & NOCANCEL) ? SW_HIDE : SW_SHOW);
+}
+
+/*
+	WM_COMMAND CallBack
+*/
+BOOL TMsgBox::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
+{
+	switch (wID)
+	{
+	case IDOK:
+	case IDCANCEL:
+		EndDialog(wID);
+		return	TRUE;
+	}
+	return	FALSE;
+}
+
+/*
+	Window 生成時の CallBack。Screenの中心を起点として、すでに開いている
+	TMsgBoxの枚数 * Caption Sizeを ずらして表示
+*/
+BOOL TMsgBox::EvCreate(LPARAM lParam)
+{
+	SetDlgIcon(hWnd);
+
+	Setup();
+
+	SendDlgItemMessage(MESSAGE_EDIT, EM_SETBKGNDCOLOR, FALSE, ::GetSysColor(COLOR_3DFACE));
+	SendDlgItemMessage(MESSAGE_EDIT, EM_SETTARGETDEVICE, 0, 0);
+
+	GetWindowRect(&rect);
+	if (flags & DBLX) {
+		MoveWindow(rect.x()-rect.cx(), rect.y(), rect.cx()*2, rect.cy(), FALSE);
+		GetWindowRect(&rect);
+		FitMoveWindow(rect.x(), rect.y());
+		GetWindowRect(&rect);
+	}
+
+	POINT	pt = { x, y };
+
+	if ((flags & CENTER)) {
+		MoveCenter(TRUE);
+	}
+	else {
+		GetCursorPos(&pt);
+		rect.Slide(pt.x - rect.x(), pt.y - rect.y() + 5);
+
+		MoveWindow(rect.x(), rect.y(), rect.cx(), rect.cy(), TRUE);
+		FitMoveWindow(rect.x(), rect.y());
+	}
+
+	SetDlgItem(MESSAGE_EDIT, XY_FIT);
+	SetDlgItem(IDOK, BOTTOM_FIT|HMID_FIT);
+	if ((flags & NOCANCEL) == 0) {
+		SetDlgItem(IDCANCEL, BOTTOM_FIT|RIGHT_FIT);
+	}
+
+	FitDlgItems();
+
+	return	TRUE;
+}
+
+BOOL TMsgBox::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
+{
+	if (fwSizeType == SIZE_RESTORED || fwSizeType == SIZE_MAXIMIZED) {
+		return	FitDlgItems();
+	}
+	return	FALSE;;
+}
+
+
+/*
 	About Dialog初期化処理
 */
-TAboutDlg::TAboutDlg(TWin *_parent) : TDlg(ABOUT_DIALOG, _parent)
+TAboutDlg::TAboutDlg(Cfg *_cfg, TWin *_parent) : TDlg(ABOUT_DIALOG, _parent)
 {
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
+	cfg = _cfg;
 }
 
 /*
@@ -710,10 +844,22 @@ BOOL TAboutDlg::EvCreate(LPARAM lParam)
 {
 	SetDlgIcon(hWnd);
 
-	char	buf[512], buf2[512];
+	char	buf[512];
+	char	buf2[512];
+
 	GetDlgItemTextU8(ABOUT_TEXT, buf, sizeof(buf));
-	wsprintf(buf2, buf, GetVersionStr());
+	snprintfz(buf2, sizeof(buf2), buf, GetVersionStr());
 	SetDlgItemTextU8(ABOUT_TEXT, buf2);
+
+	if (cfg->NoTcp || cfg->NoFileTrans) {
+		GetWindowTextU8(buf, sizeof(buf));
+		strcat(buf, cfg->NoFileTrans == 2 ? " (No Share Transfer)" : " (No File Transfer)");
+		SetWindowTextU8(buf);
+	}
+
+#ifdef IPMSG_PRO
+	::ShowWindow(GetDlgItem(IPMSGUPD_BTN), SW_HIDE);
+#endif
 
 	if (rect.left == CW_USEDEFAULT)
 	{
@@ -743,8 +889,14 @@ BOOL TAboutDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 	case IPMSG_ICON: case IPMSGWEB_BUTTON:
 		if (wID == IPMSGWEB_BUTTON || wNotifyCode == 1)
-			ShellExecuteU8(NULL, NULL, GetLoadStrU8(IDS_IPMSGURL), NULL, NULL, SW_SHOW);
+			ShellExecuteU8(NULL, NULL, LoadStrU8(IDS_IPMSGURL), NULL, NULL, SW_SHOW);
 		return	TRUE;
+
+#ifndef IPMSG_PRO
+	case IPMSGUPD_BTN:
+		::PostMessage(GetMainWnd(), WM_COMMAND, MENU_UPDATE, 0);
+		return	TRUE;
+#endif
 	}
 	return	FALSE;
 }
@@ -752,6 +904,7 @@ BOOL TAboutDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 TFindDlg::TFindDlg(Cfg *_cfg, TSendDlg *_parent) : TDlg(FIND_DIALOG, _parent)
 {
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 	cfg = _cfg;
 	sendDlg = _parent;
 	imeStatus = FALSE;
@@ -762,25 +915,28 @@ BOOL TFindDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	switch (wID)
 	{
 	case IDOK:
-		int		cnt;
 		cfg->FindAll = (BOOL)SendDlgItemMessage(ALLFIND_CHECK, BM_GETCHECK, 0, 0);
 
 		if (sendDlg->SelectFilterHost()) {
 			GetDlgItemTextU8(FIND_COMBO, cfg->FindStr[0], MAX_NAMEBUF);
-			for (cnt=1; cnt < cfg->FindMax; cnt++) {
-				if (stricmp(cfg->FindStr[cnt], cfg->FindStr[0]) == 0) break;
+			int	i;
+			for (i=1; i < cfg->FindMax; i++) {
+				if (stricmp(cfg->FindStr[i], cfg->FindStr[0]) == 0) {
+					break;
+				}
 			}
 			memmove(cfg->FindStr[2], cfg->FindStr[1],
-					(cnt == cfg->FindMax ? cnt-2 : cnt-1) * MAX_NAMEBUF);
+					((i >= 2 && i == cfg->FindMax) ? i-2 : i-1) * MAX_NAMEBUF);
 			memcpy(cfg->FindStr[1], cfg->FindStr[0], MAX_NAMEBUF);
+
 			DWORD	start, end;		// エディット部の選択状態の保存
 			SendDlgItemMessage(FIND_COMBO, CB_GETEDITSEL, (WPARAM)&start, (LPARAM)&end);
 			// CB_RESETCONTENT でエディット部がクリア
 			// なお、DELETESTRING でも edit 同名stringの場合、同じくクリアされる
 			SendDlgItemMessage(FIND_COMBO, CB_RESETCONTENT, 0, 0);
-			for (cnt=1; cnt < cfg->FindMax && cfg->FindStr[cnt][0]; cnt++) {
-				Wstr	find_w(cfg->FindStr[cnt], BY_UTF8);
-				SendDlgItemMessageW(FIND_COMBO, CB_INSERTSTRING, cnt-1, (LPARAM)find_w.Buf());
+			for (int i=1; i < cfg->FindMax && cfg->FindStr[i][0]; i++) {
+				Wstr	find_w(cfg->FindStr[i], BY_UTF8);
+				SendDlgItemMessageW(FIND_COMBO, CB_INSERTSTRING, i-1, (LPARAM)find_w.Buf());
 			}
 			SetDlgItemTextU8(FIND_COMBO, cfg->FindStr[0]);
 			SendDlgItemMessage(FIND_COMBO, CB_SETEDITSEL, 0, MAKELPARAM(start, end));
@@ -819,9 +975,9 @@ BOOL TFindDlg::EvCreate(LPARAM lParam)
 {
 	CheckDlgButton(ALLFIND_CHECK, cfg->FindAll);
 
-	for (int cnt=1; cnt < cfg->FindMax && cfg->FindStr[cnt][0]; cnt++) {
-		Wstr	find_w(cfg->FindStr[cnt], BY_UTF8);
-		SendDlgItemMessageW(FIND_COMBO, CB_INSERTSTRING, (WPARAM)cnt-1, (LPARAM)find_w.Buf());
+	for (int i=1; i < cfg->FindMax && cfg->FindStr[i][0]; i++) {
+		Wstr	find_w(cfg->FindStr[i], BY_UTF8);
+		SendDlgItemMessageW(FIND_COMBO, CB_INSERTSTRING, (WPARAM)i-1, (LPARAM)find_w.Buf());
 	}
 //	if (cfg->FindStr[0][0])
 //		SetDlgItemTextU8(FIND_COMBO, cfg->FindStr[0]);
@@ -861,81 +1017,6 @@ BOOL TFindDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 /*
-	ファイルダイアログ用汎用ルーチン
-*/
-BOOL OpenFileDlg::Exec(UINT editCtl, char *title, char *filter, char *defaultDir, char *defaultExt)
-{
-	char buf[MAX_PATH_U8];
-
-	if (parent == NULL)
-		return FALSE;
-
-	parent->GetDlgItemTextU8(editCtl, buf, sizeof(buf));
-
-	if (!Exec(buf, sizeof(buf), title, filter, defaultDir, defaultExt))
-		return	FALSE;
-
-	parent->SetDlgItemTextU8(editCtl, buf);
-	return	TRUE;
-}
-
-BOOL OpenFileDlg::Exec(char *target, int targ_size, char *title, char *filter, char *defaultDir,
-						char *defaultExt)
-{
-	if (targ_size <= 1) return FALSE;
-
-	OPENFILENAME	ofn;
-	U8str			fileName(targ_size);
-	U8str			dirName(targ_size);
-	char			*fname = NULL;
-
-	if (*target && GetFullPathNameU8(target, targ_size, dirName.Buf(), &fname) != 0 && fname) {
-		*(fname -1) = 0;
-		strncpyz(fileName.Buf(), fname, targ_size);
-	}
-	else if (defaultDir) {
-		strncpyz(dirName.Buf(), defaultDir, targ_size);
-	}
-
-	memset(&ofn, 0, sizeof(ofn));
-	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.hwndOwner = parent ? parent->hWnd : NULL;
-	ofn.lpstrFilter = filter;
-	ofn.nFilterIndex = filter ? 1 : 0;
-	ofn.lpstrFile = fileName.Buf();
-	ofn.lpstrDefExt	 = defaultExt;
-	ofn.nMaxFile = targ_size;
-	ofn.lpstrTitle = title;
-	ofn.lpstrInitialDir = dirName.Buf();
-	ofn.lpfnHook = hook;
-	ofn.Flags = OFN_HIDEREADONLY|OFN_EXPLORER|(hook ? OFN_ENABLEHOOK : 0);
-	if (mode == OPEN || mode == MULTI_OPEN)
-		ofn.Flags |= OFN_FILEMUSTEXIST | (mode == MULTI_OPEN ? OFN_ALLOWMULTISELECT : 0);
-	else
-		ofn.Flags |= (mode == NODEREF_SAVE ? OFN_NODEREFERENCELINKS : 0);
-	ofn.Flags |= flags;
-
-	U8str	dirNameBak(targ_size);
-	GetCurrentDirectoryU8(targ_size, dirNameBak.Buf());
-
-	BOOL	ret = (mode == OPEN || mode == MULTI_OPEN) ?
-					GetOpenFileNameU8(&ofn) : GetSaveFileNameU8(&ofn);
-
-	SetCurrentDirectoryU8(dirNameBak.Buf());
-	if (ret) {
-		if (mode == MULTI_OPEN) {
-			memcpy(target, fileName.Buf(), targ_size);
-		} else {
-			strncpyz(target, ofn.lpstrFile, targ_size);
-		}
-
-		if (defaultDir) strncpyz(defaultDir, ofn.lpstrFile, ofn.nFileOffset);
-	}
-
-	return	ret;
-}
-
-/*
 	BrowseDirDlg用コールバック
 */
 int CALLBACK BrowseDirDlgProc(HWND hWnd, UINT uMsg, LPARAM lParam, LPARAM path)
@@ -955,7 +1036,8 @@ int CALLBACK BrowseDirDlgProc(HWND hWnd, UINT uMsg, LPARAM lParam, LPARAM path)
 /*
 	ディレクトリダイアログ用汎用ルーチン
 */
-BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, char *buf)
+BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir,
+	char *buf, int bufsize, DWORD flags)
 { 
 	IMalloc			*iMalloc = NULL;
 	BROWSEINFOW		brInfo;
@@ -970,7 +1052,7 @@ BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, ch
 	brInfo.pidlRoot = 0;
 	brInfo.pszDisplayName = buf_w.Buf();
 	brInfo.lpszTitle = title_w.s();
-	brInfo.ulFlags = BIF_RETURNONLYFSDIRS;
+	brInfo.ulFlags = flags;
 	brInfo.lpfn = BrowseDirDlgProc;
 	brInfo.lParam = (LPARAM)defaultDir_w.Buf();
 	brInfo.iImage = 0;
@@ -980,7 +1062,7 @@ BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, ch
 		ret = SHGetPathFromIDListW(pidlBrowse, buf_w.Buf());
 		iMalloc->Free(pidlBrowse);
 		if (ret) {
-			WtoU8(buf_w.s(), buf, MAX_PATH_U8);
+			WtoU8(buf_w.s(), buf, bufsize);
 		}
 	}
 
@@ -990,6 +1072,7 @@ BOOL BrowseDirDlg(TWin *parentWin, const char *title, const char *defaultDir, ch
 
 TInputDlg::TInputDlg(TWin *_parent) : TDlg(INPUT_DIALOG, _parent)
 {
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 }
 
 int TInputDlg::Exec(POINT _pt, char *_buf, int _max_buf)
@@ -1024,5 +1107,79 @@ BOOL TInputDlg::EvCreate(LPARAM lParam)
 	}
 	MoveWindow(pt.x, pt.y, orgRect.cx(), orgRect.cy(), FALSE);
 	return	TRUE;
+}
+
+
+/*
+	FireWall Dialog
+*/
+TFwDlg::TFwDlg(TWin *_parent) : TDlg(FW_DIALOG, _parent)
+{
+}
+
+BOOL TFwDlg::EvCreate(LPARAM lParam)
+{
+	::SendMessage(GetDlgItem(IDOK), BCM_SETSHIELD, 0, 1);
+	BOOL ret = TDlg::EvCreate(lParam);
+
+	static HICON hBigIcon;
+	static HICON hSmallIcon;
+
+	if (!hBigIcon) {
+		hBigIcon = (HICON)::LoadImage(TApp::hInst(), (LPCSTR)IPMSG_ICON,
+			IMAGE_ICON, 32, 32, LR_DEFAULTCOLOR);
+		hSmallIcon = (HICON)::LoadImage(TApp::hInst(), (LPCSTR)IPMSG_ICON,
+			IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	}
+
+	MoveCenter();
+
+	Show();
+	return	ret;
+}
+
+BOOL TFwDlg::EvNcDestroy()
+{
+	return	TRUE;
+}
+
+BOOL TFwDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
+{
+	switch (wID) {
+	case IDOK:
+		SetFirewallExcept(hWnd);
+		return	TRUE;
+
+	case IDCANCEL:
+		EndDialog(IDCANCEL);
+		return	TRUE;
+	}
+	return	FALSE;
+}
+
+BOOL TFwDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg) {
+	case WM_IPMSG_SETFWRES:
+		if (parent && parent->hWnd) {
+			parent->PostMessage(WM_IPMSG_SETFWRES, wParam, lParam);
+		}
+		EndDialog(wParam ? IDOK : IDCANCEL);
+		return	TRUE;
+	}
+	return	FALSE;
+}
+
+BOOL TFwDlg::SetFirewallExcept(HWND hTarget)
+{
+	char	path[MAX_PATH];
+	char	arg[MAX_BUF] = "/FIREWALL";
+
+	if (hTarget) {
+		sprintf(arg + strlen(arg), "=%p", hTarget);
+	}
+	::GetModuleFileName(NULL, path, sizeof(path));
+
+	return	INT_RDC(::ShellExecute(hTarget, "runas", path, arg, NULL, SW_NORMAL)) > 32;
 }
 

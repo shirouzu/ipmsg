@@ -1,0 +1,459 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\aes.cpp" />
+    <ClCompile Include="src\blowfish.cpp" />
+    <ClCompile Include="src\cfg.cpp" />
+    <ClCompile Include="src\histdlg.cpp" />
+    <ClCompile Include="src\image.cpp" />
+    <ClCompile Include="src\ipmsg.cpp" />
+    <ClCompile Include="src\logchildview.cpp" />
+    <ClCompile Include="src\logchildviewev.cpp" />
+    <ClCompile Include="src\logchildviewpt.cpp" />
+    <ClCompile Include="src\logdb.cpp" />
+    <ClCompile Include="src\logdbconv.cpp" />
+    <ClCompile Include="src\logeditdlg.cpp" />
+    <ClCompile Include="src\logimportdlg.cpp" />
+    <ClCompile Include="src\logmng.cpp" />
+    <ClCompile Include="src\logview.cpp" />
+    <ClCompile Include="src\logviewitem.cpp" />
+    <ClCompile Include="src\mainwin.cpp" />
+    <ClCompile Include="src\miscdlg.cpp" />
+    <ClCompile Include="src\miscfunc.cpp" />
+    <ClCompile Include="src\msgmng.cpp" />
+    <ClCompile Include="src\plugin.cpp" />
+    <ClCompile Include="src\pubkey.cpp" />
+    <ClCompile Include="src\recvdlg.cpp" />
+    <ClCompile Include="src\remotedlg.cpp" />
+    <ClCompile Include="src\richedit.cpp" />
+    <ClCompile Include="src\senddlg.cpp" />
+    <ClCompile Include="src\setupdlg.cpp" />
+    <ClCompile Include="src\share.cpp" />
+    <ClCompile Include="src\taskbarui.cpp" />
+    <ClCompile Include="src\tipwnd.cpp" />
+    <ClCompile Include="src\toolbar.cpp" />
+    <ClCompile Include="src\version.cpp" />
+    <ClCompile Include="src\ipdict.cpp" />
+    <ClCompile Include="src\mainwindir.cpp" />
+    <ClCompile Include="src\mainwinev.cpp" />
+    <ClCompile Include="src\mainwinmsg.cpp" />
+    <ClCompile Include="src\mainwinfile.cpp" />
+    <ClCompile Include="src\ipipc.cpp" />
+    <ClCompile Include="src\mainwincmd.cpp" />
+    <ClCompile Include="src\inet.cpp" />
+    <ClCompile Include="src\mainwinupd.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\ipmsg.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\aes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\blowfish.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cfg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\environ.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\histdlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ipmsg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ipmsgbase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ipmsgcmn.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ipmsgdef.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\logchildview.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\logdb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\logdbconv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\logdbgrn.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\logeditdlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\logimportdlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\logmng.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\logview.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\logviewitem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mainwin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\miscdlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\miscfunc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\msgmng.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\plugin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pubkey.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\recvdlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\remotedlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\richedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\senddlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\setupdlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\share.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\taskbarui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tipwnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolbar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="src\ipmsg.exe.manifest">
+      <Filter>Resource Files</Filter>
+    </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="src\res\asc.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\basehead.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\bottom.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\bottomhot.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\btnf.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\btnmf.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\btnmn.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\btnms.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\btnn.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\btns.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\camera.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\cameraxp.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\clip.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\cliptb.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\comment.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\cropuser.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\desc.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\dummypic.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\fabtb.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\fav.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\favemp.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\favmid.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\favrev.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\file.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\foldf.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\foldt.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\frommsg.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\fulldisp.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\imenu.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\imenumid.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\imenurev.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipexc.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg1.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg2.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg3.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg4.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg5.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg6.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg7.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsgrev.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\logview.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\logviewmono.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\logviewtb.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\lvbase.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\mark.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\markerblue.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\markergreen.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\markerred.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\MARKERTB.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\markeryellow.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\marktb.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\memotb.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\menu.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\misc.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\msgto.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\multi.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\multirev.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\narrow.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\narrowd.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\noclip.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\refresh.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\reply.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\replyhide.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\replymsg.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\sendtb.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\title.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\titledips.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\titledisp.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\tomsg.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\top.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\tophot.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\unopen.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\unopenbig.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\unopenr.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\userchk.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\tomsg2.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\unopentb.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\ipmsg_mst.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\filetb.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\filetb.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\res\blue.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\cross.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\genblue.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\gengreen.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\genred.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\genyellow.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\green.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\LOUPE.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\red.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\sep.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\yellow.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>

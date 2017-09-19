@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2015   miscdlg.h	Ver3.50 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2016   miscdlg.h	Ver4.10 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc Dialog
 	Create					: 2013-03-03(Sun)
-	Update					: 2015-05-03(Sun)
+	Update					: 2016-11-01(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -34,12 +34,12 @@ public:
 	virtual	void	SetFocusIndex(int index) { focusIndex = index; }
 	virtual void	LetterKey(BOOL on) { letterKey = on; }
 
-	virtual	int		InsertColumn(int idx, char *title, int width, int fmt=LVCFMT_LEFT);
+	virtual	int		InsertColumn(int idx, const char *title, int width, int fmt=LVCFMT_LEFT);
 	virtual	BOOL	DeleteColumn(int idx);
 	virtual int		GetColumnWidth(int idx);
 	virtual	void	DeleteAllItems();
-	virtual	int		InsertItem(int idx, char *str, LPARAM lParam=0);
-	virtual	int		SetSubItem(int idx, int subIdx, char *str);
+	virtual	int		InsertItem(int idx, const char *str, LPARAM lParam=0);
+	virtual	int		SetSubItem(int idx, int subIdx, const char *str);
 	virtual	BOOL	DeleteItem(int idx);
 	virtual	int		FindItem(LPARAM lParam);
 	virtual	int		GetItemCount();
@@ -72,30 +72,10 @@ public:
 	}
 };
 
-
-class OpenFileDlg {
-public:
-	enum			Mode { OPEN, MULTI_OPEN, SAVE, NODEREF_SAVE };
-
-protected:
-	TWin			*parent;
-	LPOFNHOOKPROC	hook;
-	Mode			mode;
-	DWORD			flags;
-
-public:
-	OpenFileDlg(TWin *_parent, Mode _mode=OPEN, LPOFNHOOKPROC _hook=NULL, DWORD _flags=0) {
-		parent = _parent; hook = _hook; mode = _mode; flags = _flags;
-	}
-	BOOL Exec(char *target, int size, char *title=NULL, char *filter=NULL, char *defaultDir=NULL,
-				char *defaultExt=NULL);
-	BOOL Exec(UINT editCtl, char *title=NULL, char *filter=NULL, char *defaultDir=NULL,
-				char *defaultExt=NULL);
-};
-
 class TAboutDlg : public TDlg {
+	Cfg	*cfg;
 public:
-	TAboutDlg(TWin *_parent = NULL);
+	TAboutDlg(Cfg *_cfg, TWin *_parent = NULL);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 	virtual BOOL	EvCreate(LPARAM lParam);
 };
@@ -109,10 +89,38 @@ public:
 	TMsgDlg(TWin *_parent = NULL);
 	virtual ~TMsgDlg();
 
-	virtual BOOL	Create(char *text, char *title, int _showMode = SW_SHOW);
+	virtual BOOL	Create(const char *text, const char *title, int _showMode = SW_SHOW);
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl);
 	static int		GetCreateCnt(void) { return createCnt; }
+};
+
+class TMsgBox : public TDlg {
+public:
+	enum { NOCANCEL=0x1, CENTER=0x2, DBLX=0x4 };
+
+protected:
+	const char *text;
+	const char *title;
+
+	DWORD	flags;
+
+	int		x;
+	int		y;
+	void	Setup();
+	void	InitPos();
+
+public:
+	TMsgBox(TWin *_parent = NULL);
+
+	virtual int		Exec(const char *text, const char *title, int x, int y);
+	virtual int		Exec(const char *text, const char *title=IP_MSG);
+	virtual BOOL	Create(const char *_text, const char *_title=IP_MSG);
+	virtual BOOL	EvCreate(LPARAM lParam);
+	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl);
+	virtual BOOL	EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight);
+
+	void SetFlags(DWORD _flags) { flags = _flags; }
 };
 
 class TPasswordDlg : public TDlg {
@@ -189,6 +197,21 @@ public:
 	virtual int		Exec(POINT _pt, char *_buf, int _max_buf);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 	virtual BOOL	EvCreate(LPARAM lParam);
+};
+
+class TFwDlg : public TDlg {
+public:
+	TFwDlg(TWin *_parent=NULL);
+//	virtual int		Exec(void);
+//	virtual void	EndDialog(int);
+
+	virtual BOOL	EvCreate(LPARAM lParam);
+	virtual BOOL	EvNcDestroy(void);
+	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
+//	virtual BOOL	EvSysCommand(WPARAM uCmdType, POINTS pos);
+
+	static BOOL SetFirewallExcept(HWND hTarget=0);
 };
 
 #endif

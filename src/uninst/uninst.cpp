@@ -1,10 +1,10 @@
 static char *uninst_id = 
-	"@(#)Copyright (C) H.Shirouzu 1998-2015   uninst.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 1998-2017   uninst.cpp	Ver4.61";
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Installer Application Class
 	Create					: 1998-06-14(Sun)
-	Update					: 2015-06-02(Tue)
+	Update					: 2017-07-31(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -13,12 +13,33 @@ static char *uninst_id =
 #include "resource.h"
 #include "uninst.h"
 #include "../version.h"
+#include "../ipmsgdef.h"
+
+#pragma comment (lib, "comctl32.lib")
+#pragma comment (lib, "crypt32.lib")
+#ifndef _WIN64
+#pragma comment (lib, "Shlwapi.lib")
+#endif
+#pragma comment (lib, "winmm.lib")
+
+#define MAIN_EXEC
+#include "../instdata/instcmn.h"
 
 /*
 	WinMain
 */
 int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR cmdLine, int nCmdShow)
 {
+	::SetDllDirectory("");
+	::SetCurrentDirectoryW(TGetExeDirW());
+
+	if (!TSetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)) {
+		TLoadLibraryExW(L"iertutil.dll", TLT_SYSDIR);
+		TLoadLibraryExW(L"cryptbase.dll", TLT_SYSDIR);
+		TLoadLibraryExW(L"urlmon.dll", TLT_SYSDIR);
+		TLoadLibraryExW(L"cscapi.dll", TLT_SYSDIR);
+	}
+
 	TUninstApp	app(hI, cmdLine, nCmdShow);
 	return	app.Run();
 }
@@ -46,14 +67,23 @@ void TUninstApp::InitWindow(void)
 /*
 	メインダイアログクラス
 */
-TUninstDlg::TUninstDlg(char *cmdLine) : TDlg(UNINSTALL_DIALOG)
+TUninstDlg::TUninstDlg(char *cmdLine) :
+	TDlg(UNINSTALL_DIALOG),
+	runasBtn(this)
 {
 	runasWnd = NULL;
+
+	isSilent = strstr(cmdLine, "/SILENT") ? TRUE : FALSE;
+	if (isSilent) {
+		OpenDebugConsole(ODC_NONE);
+	}
 
 	char	*p = strstr(cmdLine, "runas=");
 	if (p) {
 		runasWnd = (HWND)strtoull(p + 6, 0, 16);
-		if (!runasWnd) PostQuitMessage(0);
+		if (!runasWnd) {
+			TApp::Exit(0);
+		}
 	}
 }
 
@@ -61,33 +91,66 @@ TUninstDlg::~TUninstDlg()
 {
 }
 
+BOOL IsAppRegistered()
+{
+	TRegistry	reg(HKEY_LOCAL_MACHINE);
+
+	if (reg.OpenKey(REGSTR_PATH_UNINSTALL)) {
+		if (reg.OpenKey(IPMSG_NAME)) {
+			return	TRUE;
+		}
+	}
+	return	FALSE;
+}
+
 /*
 	メインダイアログ用 WM_INITDIALOG 処理ルーチン
 */
 BOOL TUninstDlg::EvCreate(LPARAM lParam)
 {
-	char	title[256], title2[256];
+	char	title[256];
+	char	title2[256];
+
 	GetWindowText(title, sizeof(title));
-	::wsprintf(title2, "%s ver%s", title, GetVersionStr());
+	sprintf(title2, "%s ver%s", title, GetVersionStr());
 	SetWindowText(title2);
+
+	if (IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
+		runasBtn.AttachWnd(GetDlgItem(RUNAS_BUTTON));
+		runasBtn.CreateTipWnd(LoadStrW(IDS_LABLE_RUNAS));
+		runasBtn.ShowWindow(SW_SHOW);
+		runasBtn.SendMessage(BCM_SETSHIELD, 0, 1);
+	}
 
 	GetWindowRect(&rect);
 	int		cx = ::GetSystemMetrics(SM_CXFULLSCREEN), cy = ::GetSystemMetrics(SM_CYFULLSCREEN);
 	int		xsize = rect.right - rect.left, ysize = rect.bottom - rect.top;
 
-	::SetClassLong(hWnd, GCL_HICON, (LONG)::LoadIcon(TApp::GetInstance(), (LPCSTR)SETUP_ICON));
-	MoveWindow((cx - xsize)/2, (cy - ysize)/2, xsize, ysize, TRUE);
-	Show();
+	::SetClassLong(hWnd, GCL_HICON, LONG_RDC(::LoadIcon(TApp::hInst(), (LPCSTR)SETUP_ICON)));
+
+	if (isSilent) {
+		Show(SW_HIDE);
+	}
+	else {
+		MoveWindow((cx - xsize)/2, (cy - ysize)/2, xsize, ysize, TRUE);
+		Show();
+	}
 
 // 現在ディレクトリ設定
-	char	resetupDir[MAX_PATH_U8];
+	char	resetupDir[MAX_PATH_U8] = "";
+
 	GetModuleFileNameU8(NULL, resetupDir, sizeof(resetupDir));
 	GetParentDirU8(resetupDir, resetupDir);
+
 	SetDlgItemTextU8(RESETUP_EDIT, resetupDir);
 
 	if (runasWnd) {
 		::SendMessage(runasWnd, IPMSG_QUIT_MESSAGE, 0, 0);
-		CheckDlgButton(DELPUBKEY_CHECK, 1);
+		CheckDlgButton(DELPUBKEY_CHECK, ::IsDlgButtonChecked(runasWnd, DELPUBKEY_CHECK));
+		PostMessage(WM_COMMAND, IDOK, 0);
+	}
+
+	if (isSilent) {
 		PostMessage(WM_COMMAND, IDOK, 0);
 	}
 
@@ -106,7 +169,11 @@ BOOL TUninstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		return	TRUE;
 
 	case IDCANCEL:
-		::PostQuitMessage(0);
+		TApp::Exit(wID);
+		return	TRUE;
+
+	case RUNAS_BUTTON:
+		RunAsAdmin(hWnd);
 		return	TRUE;
 	}
 	return	FALSE;
@@ -115,7 +182,7 @@ BOOL TUninstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 BOOL TUninstDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (uMsg == IPMSG_QUIT_MESSAGE) {
-		PostQuitMessage(0);
+		TApp::Exit(0);
 		return	TRUE;
 	}
 	return	FALSE;
@@ -134,92 +201,90 @@ BOOL DeleteKeySet(const char *csp_name, const char *cont_name, DWORD flag)
 	return	TRUE;
 }
 
-BOOL RunAsAdmin(HWND hWnd)
+BOOL IsRotateFile(const char *org, const char *target, int max_rotate)
 {
-	char	path[MAX_PATH], buf[MAX_BUF];
-	::GetModuleFileName(::GetModuleHandle(NULL), path, sizeof(path));
-	sprintf(buf, "/runas=%p\n", hWnd);
-	ShellExecute(hWnd, "runas", path, buf, NULL, SW_SHOW);
-	return TRUE;
+	char	path[MAX_PATH_U8];
+	char	*p = path + strcpyz(path, org);
+
+	for (int i=1; i < max_rotate; i++) {
+		sprintf(p, ".%d", i);
+		if (strcmpi(path, target) == 0) {
+			return	TRUE;
+		}
+	}
+	return	FALSE;
 }
 
-BOOL TUninstDlg::UnInstall(void)
+// ユーザファイルが無いことの確認
+BOOL ReadyToRmFolder(const char *dir)
 {
-// 現在、起動中の ipmsg を終了
-	int		st = TerminateIPMsg();
+	char	dir_aster[MAX_PATH_U8];
+	WIN32_FIND_DATA_U8	fdat;
 
-	if (st == 1) return FALSE;
-	if (st == 2) {
-		if (!IsWinVista() || ::IsUserAnAdmin() || !TIsEnableUAC()) {
-			MessageBox(GetLoadStr(IDS_CANTTERMINATE), UNINSTALL_STR);
-			return FALSE;
-		}
-		if (MessageBox(GetLoadStr(IDS_REQUIREADMIN_TERM), "",
-						MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) return FALSE;
-		return	RunAsAdmin(hWnd);
+	MakePathU8(dir_aster, dir, "*");
+
+	HANDLE	fh = FindFirstFileU8(dir_aster, &fdat);
+	if (fh == INVALID_HANDLE_VALUE) {
+		return	FALSE;
 	}
 
-	if (!runasWnd && MessageBox(GetLoadStr(IDS_START), UNINSTALL_STR,
-						MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) return	FALSE;
+	BOOL ret = TRUE;
 
-// 公開鍵削除
-	if (IsDlgButtonChecked(DELPUBKEY_CHECK)) {
-		BOOL	need_admin = FALSE;
-		char	contName[MAX_PATH_U8], userName[MAX_PATH_U8];
-		DWORD	size = sizeof(userName);
-		::GetUserName(userName, &size);
-
-		::wsprintf(contName, "ipmsg.rsa2048.%s", userName);
-		if (!DeleteKeySet(MS_ENHANCED_PROV, contName, CRYPT_MACHINE_KEYSET) ||
-			!DeleteKeySet(MS_ENHANCED_PROV, contName, 0)) need_admin = TRUE;
-
-		::wsprintf(contName, "ipmsg.rsa1024.%s", userName);
-		if (!DeleteKeySet(MS_ENHANCED_PROV, contName, CRYPT_MACHINE_KEYSET) ||
-			!DeleteKeySet(MS_ENHANCED_PROV, contName, 0)) need_admin = TRUE;
-
-		::wsprintf(contName, "ipmsg.rsa512.%s", userName);
-		if (!DeleteKeySet(MS_DEF_PROV, contName, CRYPT_MACHINE_KEYSET) ||
-			!DeleteKeySet(MS_DEF_PROV, contName, 0)) need_admin = TRUE;
-
-		if (need_admin) {
-			if (IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
-				if (MessageBox(GetLoadStr(IDS_REQUIREADMIN_PUBKEY), "",
-					MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) return FALSE;
-				return	RunAsAdmin(hWnd);
+	do {
+		if (strcmp(fdat.cFileName, ".") && strcmp(fdat.cFileName, "..")) {
+			BOOL	found = FALSE;
+			for (int i=0; UnSetupFiles[i]; i++) {
+				if (strcmpi(UnSetupFiles[i], fdat.cFileName) == 0 ||
+					IsRotateFile(UnSetupFiles[i], fdat.cFileName, 10)) {
+					found = TRUE;
+					break;
+				}
+			}
+			if (!found) {
+				ret = FALSE;
 			}
 		}
-	}
+	} while (ret && FindNextFileU8(fh, &fdat));
 
-// スタートアップ＆デスクトップから削除
+	::FindClose(fh);
+
+	return	ret;
+}
+
+void TUninstDlg::DeleteShortcut(void)
+{
 	TRegistry	reg(HKEY_CURRENT_USER);
-	if (reg.OpenKey(REGSTR_SHELLFOLDERS)) {
-		char	buf[MAX_PATH_U8];
-		char	*regStr[]	= { REGSTR_STARTUP, REGSTR_PROGRAMS, REGSTR_DESKTOP, NULL };
+	char		dir[MAX_PATH_U8];
+	char		path[MAX_PATH_U8];
 
-		for (int i=0; regStr[i]; i++) {
-			if (reg.GetStr(regStr[i], buf, sizeof(buf))) {
-				if (i == 0) RemoveSameLink(buf);
-				::wsprintf(buf + strlen(buf), "\\%s", IPMSG_SHORTCUT_NAME);
-				DeleteLink(buf);
-			}
-		}
-		reg.CloseKey();
+	if (!reg.OpenKey(REGSTR_SHELLFOLDERS)) {
+		return;
 	}
+	if (reg.GetStr(REGSTR_STARTUP, dir, sizeof(dir))) {
+		RemoveSameLink(dir, IPMSG_EXENAME);
+		MakePathU8(path, dir, IPMSG_SHORTCUT_NAME);
+		DeleteLink(path);
+	}
+	if (reg.GetStr(REGSTR_DESKTOP, dir, sizeof(dir))) {
+		MakePathU8(path, dir, IPMSG_SHORTCUT_NAME);
+		DeleteLink(path);
+	}
+	if (reg.GetStr(REGSTR_PROGRAMS, dir, sizeof(dir))) {
+		MakePathU8(path, dir, IPMSG_FULLNAME);
+		DeleteLinkFolder(path);
+	}
+}
 
-// レジストリからユーザー設定情報を削除
-	if (reg.ChangeApp(HSTOOLS_STR))
-		reg.DeleteChildTree(GetLoadStr(IDS_REGIPMSG));
+//------------------------------------------------------
+// アプリケーション情報削除用
+//------------------------------------------------------
 
+void TUninstDlg::RemoveAppRegs(void)
+{
 // レジストリからアプリケーション情報を削除
-	char	setupDir[MAX_PATH_U8];		// セットアップディレクトリ情報を保存
-	GetDlgItemTextU8(RESETUP_EDIT, setupDir, sizeof(setupDir));
+	TRegistry	reg(HKEY_LOCAL_MACHINE);
 
-	reg.ChangeTopKey(HKEY_LOCAL_MACHINE);
 	if (reg.OpenKey(REGSTR_PATH_APPPATHS)) {
-		if (reg.OpenKey(IPMSG_EXENAME)) {
-			reg.GetStr(REGSTR_PATH, setupDir, sizeof(setupDir));
-			reg.CloseKey();
-		}
 		reg.DeleteKey(IPMSG_EXENAME);
 		reg.CloseKey();
 	}
@@ -229,132 +294,175 @@ BOOL TUninstDlg::UnInstall(void)
 		reg.DeleteKey(IPMSG_NAME);
 		reg.CloseKey();
 	}
-
-// 終了メッセージ
-	MessageBox(GetLoadStr(IDS_UNINSTCOMPLETE));
-
-// インストールディレクトリを開く
-	if (GetDriveTypeEx(setupDir) != DRIVE_REMOTE)
-		ShellExecuteU8(NULL, NULL, setupDir, 0, 0, SW_SHOW);
-
-	::PostQuitMessage(0);
-	return	TRUE;
 }
 
-/*
-	同じ内容を持つショートカットを削除（スタートアップへの重複登録よけ）
-*/
-BOOL RemoveSameLink(const char *dir, char *remove_path)
+
+BOOL TUninstDlg::DeletePubkey(void)
 {
-	char				path[MAX_PATH_U8], dest[MAX_PATH_U8], arg[MAX_PATH_U8];
-	HANDLE				fh;
-	WIN32_FIND_DATA_U8	data;
-	BOOL				ret = FALSE;
+	BOOL	ret = TRUE;
+	char	contName[MAX_PATH_U8];
+	char	userName[MAX_PATH_U8];
 
-	::wsprintf(path, "%s\\*.*", dir);
-	if ((fh = FindFirstFileU8(path, &data)) == INVALID_HANDLE_VALUE)
-		return	FALSE;
+	DWORD	size = sizeof(userName);
+	::GetUserName(userName, &size);
 
-	do {
-		::wsprintf(path, "%s\\%s", dir, data.cFileName);
-		if (ReadLinkU8(path, dest, arg) && *arg == 0) {
-			int		dest_len = (int)strlen(dest);
-			int		ipmsg_len = (int)strlen(IPMSG_EXENAME);
-			if (dest_len > ipmsg_len && strnicmp(dest + dest_len - ipmsg_len, IPMSG_EXENAME, ipmsg_len) == 0) {
-				ret = DeleteFileU8(path);
-				if (remove_path)
-					strcpy(remove_path, path);
-			}
-		}
+	sprintf(contName, "ipmsg.rsa2048.%s", userName);
+	if (!DeleteKeySet(MS_ENHANCED_PROV, contName, CRYPT_MACHINE_KEYSET) ||
+		!DeleteKeySet(MS_ENHANCED_PROV, contName, 0)) {
+		ret = FALSE;
+	}
 
-	} while (FindNextFileU8(fh, &data));
+	sprintf(contName, "ipmsg.rsa1024.%s", userName);
+	if (!DeleteKeySet(MS_ENHANCED_PROV, contName, CRYPT_MACHINE_KEYSET) ||
+		!DeleteKeySet(MS_ENHANCED_PROV, contName, 0)) {
+		ret = FALSE;
+	}
 
-	::FindClose(fh);
+	sprintf(contName, "ipmsg.rsa512.%s", userName);
+	if (!DeleteKeySet(MS_DEF_PROV, contName, CRYPT_MACHINE_KEYSET) ||
+		!DeleteKeySet(MS_DEF_PROV, contName, 0)) {
+		ret = FALSE;
+	}
+
 	return	ret;
 }
 
-
-/*
-	立ち上がっている IPMSG を終了
-*/
-int TUninstDlg::TerminateIPMsg()
+BOOL TUninstDlg::UnInstall(void)
 {
-	BOOL	existFlg = FALSE;
-
-	::EnumWindows(TerminateIPMsgProc, (LPARAM)&existFlg);
-	if (existFlg) {
-		if (MessageBox(GetLoadStr(IDS_TERMINATE), "", MB_OKCANCEL) == IDCANCEL)
-			return	1;
-		::EnumWindows(TerminateIPMsgProc, NULL);
+	if (IsAppRegistered() && IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
+		if (isSilent) {
+			DebugU8("Require admin privilege for deleting AppInfo in Control Panel\n");
+			TApp::Exit(-1);
+			return	FALSE;
+		}
+		else if (MessageBox(LoadStr(IDS_REQUIREADMIN), "",
+					MB_OKCANCEL|MB_ICONINFORMATION) == IDOK) {
+			return	RunAsAdmin(hWnd);
+		}
 	}
-	existFlg = FALSE;
-	::EnumWindows(TerminateIPMsgProc, (LPARAM)&existFlg);
 
-	return	!existFlg ? 0 : 2;
-}
+// 現在、起動中の ipmsg を終了
+	int		st = TerminateIPMsg(hWnd, LoadStr(IDS_TERMINATE), UNINSTALL_STR, isSilent);
 
-/*
-	lParam == NULL ...	全 IPMSG を終了
-	lParam != NULL ...	lParam を BOOL * とみなし、IPMSG proccess が存在する
-						場合は、そこにTRUE を代入する。
-*/
-BOOL CALLBACK TerminateIPMsgProc(HWND hWnd, LPARAM lParam)
-{
-	char	buf[MAX_BUF];
+	if (st == 1) return FALSE;
+	if (st == 2) {
+		if (isSilent) {
+			Debug("Can't terminate ipmsg\n");
+			TApp::Exit(-1);
+			return FALSE;
+		}
+		if (!IsWinVista() || ::IsUserAnAdmin() || !TIsEnableUAC()) {
+			MessageBox(LoadStr(IDS_CANTTERMINATE), UNINSTALL_STR);
+			return FALSE;
+		}
+		if (MessageBox(LoadStr(IDS_REQUIREADMIN_TERM), "",
+						MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) return FALSE;
+		return	RunAsAdmin(hWnd);
+	}
 
-	if (::GetClassName(hWnd, buf, sizeof(buf)) != 0) {
-		if (strnicmp(IPMSG_CLASS, buf, strlen(IPMSG_CLASS)) == 0) {
-			if (lParam)
-				*(BOOL *)lParam = TRUE;		// existFlg;
-			else {
-				::SendMessage(hWnd, WM_CLOSE, 0, 0);
-				for (int i=0; i < 10; i++) {
-					Sleep(300);
-					if (!IsWindow(hWnd)) break;
-				}
+	if (!runasWnd && !isSilent &&
+		MessageBox(LoadStr(IDS_START), UNINSTALL_STR, MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) {
+		return	FALSE;
+	}
+
+// 公開鍵削除
+	if (!isSilent && IsDlgButtonChecked(DELPUBKEY_CHECK)) {
+		if (!DeletePubkey()) {
+			if (IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
+				if (MessageBox(LoadStr(IDS_REQUIREADMIN_PUBKEY), "",
+					MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) return FALSE;
+				return	RunAsAdmin(hWnd);
 			}
 		}
 	}
-	return	TRUE;
-}
 
-/*
-	ファイルの保存されているドライブ識別
-*/
-UINT GetDriveTypeEx(const char *file)
-{
-	if (file == NULL)
-		return	GetDriveType(NULL);
+// スタートアップ＆デスクトップから削除
+	DeleteShortcut();
 
-	if (IsUncFile(file))
-		return	DRIVE_REMOTE;
+// インストール情報削除
+	char	logDir[MAX_PATH_U8] = {};
+	RemoveAppRegs();
 
-	char	buf[MAX_PATH_U8];
-	int		len = (int)strlen(file), len2;
+// レジストリからユーザー設定情報を削除
+	TRegistry	reg(HKEY_CURRENT_USER);
+	if (reg.ChangeApp(HSTOOLS_STR)) {
+		const char *ipmsg_reg = LoadStr(IDS_REGIPMSG);
 
-	strcpy(buf, file);
-	do {
-		len2 = len;
-		GetParentDirU8(buf, buf);
-		len = (int)strlen(buf);
-	} while (len != len2);
+		if (reg.OpenKey(ipmsg_reg)) {
+			char	path[MAX_PATH_U8];
+			if (reg.GetStr("LogFile", path, sizeof(path))) {
+				GetParentDirU8(path, logDir);
+				DWORD	attr = GetFileAttributesU8(logDir);
+				if (attr == 0xffffffff || (attr & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+					*logDir = 0;
+				}
+			}
+			reg.CloseKey();
+		}
+		reg.DeleteChildTree(ipmsg_reg);
+	}
 
-	return	GetDriveTypeU8(buf);
-}
+	char	setupDir[MAX_PATH_U8];		// セットアップディレクトリ情報を保存
+	GetDlgItemTextU8(RESETUP_EDIT, setupDir, sizeof(setupDir));
 
-/*
-	リンクファイル削除
-*/
-BOOL DeleteLink(LPCSTR path)
-{
-	char	dir[MAX_PATH_U8];
+	for (int i=0; UnSetupFiles[i]; i++) {
+		char	path[MAX_PATH_U8];
 
-	if (!DeleteFileU8(path))
-		return	FALSE;
+		MakePathU8(path, setupDir, UnSetupFiles[i]);
+		DeleteFileU8(path);
+	}
 
-	GetParentDirU8(path, dir);
-	::SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH|SHCNF_FLUSH, U8toAs(dir), NULL);
+// 終了メッセージ
+	BOOL	can_rm = ReadyToRmFolder(setupDir);
+	char	*msg = LoadStrU8(can_rm ? IDS_UNINSTCOMPLETE : IDS_UNINSTCOMPLETEEX);
+	if (!isSilent) {
+		MessageBoxU8(msg);
+	}
 
+	char	path[MAX_PATH_U8];
+
+	GetParentDirU8(setupDir, path);
+	SetCurrentDirectoryU8(path);
+
+	if (ReadyToRmFolder(setupDir)) {
+		WCHAR cmd[MAX_PATH];
+		WCHAR dir[MAX_PATH];
+
+		U8toW(setupDir, dir, MAX_PATH);
+		MakePathW(cmd, dir, UNINST_BAT_W);
+
+		if (FILE *fp = _wfopen(cmd, L"w")) {
+			for (int i=0; i < 10; i++) {
+				fwprintf(fp, L"timeout 1 /NOBREAK\n");
+				fwprintf(fp, L"rd /s /q \"%s\"\n", dir);
+			}
+			fclose(fp);
+
+			STARTUPINFOW		sui = { sizeof(sui) };
+			PROCESS_INFORMATION	pi = {};
+
+			WCHAR opt[MAX_PATH];
+			swprintf(opt, L"cmd.exe /c \"%s\"", cmd);
+			if (::CreateProcessW(NULL, opt, 0, 0, 0, CREATE_NO_WINDOW, 0, 0, &sui, &pi)) {
+				::CloseHandle(pi.hThread);
+				::CloseHandle(pi.hProcess);
+			}
+		}
+	}
+	else {
+		if (isSilent) {
+			DebugU8("%s can't remove\n", setupDir);
+		}
+		else {
+			ShellExecuteU8(NULL, NULL, setupDir, 0, 0, SW_SHOW);
+		}
+	}
+
+	if (*logDir && !isSilent) {
+		ShellExecuteU8(NULL, NULL, logDir, 0, 0, SW_SHOW);
+	}
+
+	TApp::Exit(0);
 	return	TRUE;
 }
 

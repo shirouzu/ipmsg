@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2015   recvdlg.h	Ver3.60 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2017   recvdlg.h	Ver4.50 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Receive Dialog
 	Create					: 2013-03-03(Sun)
-	Update					: 2015-11-01(Sun)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -17,8 +17,12 @@ enum FileStatus {
 };
 
 struct RecvFileObj {
-	RecvFileObj() { Init(); }
-	void Init() { memset(&conInfo, 0, sizeof(RecvFileObj));}
+	RecvFileObj() {
+		Init();
+	}
+	void Init() {
+		memset(this, 0, sizeof(*this));
+	}
 
 	ConnectInfo	*conInfo;
 	FileInfo	*fileInfo;
@@ -27,8 +31,8 @@ struct RecvFileObj {
 	BOOL		isClip;
 	FileInfo	curFileInfo;
 
-	_int64		offset;		// read offset
-	_int64		woffset;	// written offset
+	int64		offset;		// read offset
+	int64		woffset;	// written offset
 	char		*recvBuf;
 	HANDLE		hFile;
 	HANDLE		hThread;
@@ -36,10 +40,14 @@ struct RecvFileObj {
 	int			infoLen;
 	int			dirCnt;
 
-	_int64		totalTrans;
+	int64		totalTrans;
+	int			totalFiles;
 	DWORD		startTick;
 	DWORD		lastTick;
-	int			totalFiles;
+
+	int64		curTrans;
+	int			curFiles;
+
 	FileStatus	status;
 	AES			aes;
 
@@ -53,14 +61,19 @@ struct ClipBuf : public TListObj {
 	VBuf	vbuf;
 	int		pos;
 	BOOL	finished;
-	ClipBuf(int size, int _pos) : vbuf(size), pos(_pos) { finished = FALSE; }
+	ClipBuf(int size, int _pos) : vbuf(size), pos(_pos) {
+		finished = FALSE;
+	}
 };
 
 class RecvTransEndDlg : public TDlg {
 	RecvFileObj	*fileObj;
 
 public:
-	RecvTransEndDlg(RecvFileObj *_fileObj, TWin *_win) : TDlg(_fileObj->status == FS_COMPLETE ? TRANSEND_DIALOG : SUSPEND_DIALOG, _win) { fileObj = _fileObj; }
+	RecvTransEndDlg(RecvFileObj *_fileObj, TWin *_win) :
+		TDlg(_fileObj->status == FS_COMPLETE ? TRANSEND_DIALOG : SUSPEND_DIALOG, _win) {
+		fileObj = _fileObj;
+	}
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 };
@@ -85,9 +98,17 @@ protected:
 	static HFONT	hEditFont;
 	static LOGFONT	orgFont;
 	TEditSub		editSub;
+	TSubClassCtl	replyBtn;
+	TSubClassCtl	logViewBtn;
+	TSubClassCtl	recvHead;
+
 	SelfStatus		status;
+
+	int64			autoSavedSize;
 	BOOL			isAutoSave;
 	char			autoSaves[MAX_BUF];
+	std::vector<HostSub> replyList;
+	std::vector<HostSub> recvList;
 
 	RecvFileObj		*fileObj;
 	ShareInfo		*shareInfo;
@@ -95,6 +116,7 @@ protected:
 	TListEx<ClipBuf> clipList;
 	int				useClipBuf;
 	int				useDummyBmp;
+//	DynBuf			ulData;
 
 	UINT_PTR	timerID;
 	UINT		retryCnt;
@@ -105,13 +127,14 @@ protected:
 
 	enum	recv_item {
 				title_item=0, head_item, head2_item, open_item, edit_item, image_item,
-				ok_item, cancel_item, quote_item, file_item, max_recvitem
+				logview_item, ok_item, cancel_item, quote_item, file_item, max_recvitem
 			};
 	WINPOS	item[max_recvitem];
 
-	BOOL	InitCliped(ULONG clipBase);
+	BOOL	InitCliped(ULONG *clipBase);
 	BOOL	InitAutoSaved(const char *auto_saved);
 
+	void 	SetReplyInfo();
 	void	SetFont(BOOL force_reset=FALSE);
 	void	SetSize(void);
 	void	SetMainMenu(HMENU hMenu);
@@ -120,7 +143,7 @@ protected:
 	BOOL	StartRecvFile(void);
 	BOOL	ConnectRecvFile(void);
 	static UINT WINAPI RecvFileThread(void *_recvDlg);
-	BOOL	SaveFile(BOOL auto_save=FALSE);
+	BOOL	SaveFile(BOOL auto_save=FALSE, BOOL is_first=TRUE);
 	BOOL	OpenRecvFile(void);
 	BOOL	RecvFile(void);
 	BOOL	RecvDirFile(void);
@@ -142,6 +165,9 @@ public:
 						return openFlg &&
 							(!fileObj || !fileObj->conInfo) && !clipList.TopObj() && !recvEndDlg;
 					}
+	virtual BOOL	IsOpened(void) {
+						return	openFlg;
+					}
 	virtual BOOL	IsSamePacket(MsgBuf *test_msg);
 	virtual BOOL	SendFinishNotify(HostSub *hostSub, ULONG packet_no);
 
@@ -161,14 +187,25 @@ public:
 
 	virtual void	Show(int mode = SW_NORMAL);
 	virtual BOOL	InsertImages(void);
-	SelfStatus		Status() { return status; }
-	void			SetStatus(SelfStatus _status);
-	static int		GetCreateCnt(void) { return createCnt; }
-	Time_t			GetRecvTime() { return msg.timestamp; }
-	MsgBuf			*GetMsgBuf() { return &msg; }
 
-	int				UseClipboard() { return useClipBuf; }
-	BOOL			FileAttached() { return !!shareInfo; }
+	SelfStatus	Status() { return status; }
+	void		SetStatus(SelfStatus _status);
+	static int	GetCreateCnt(void) { return createCnt; }
+	time_t		GetRecvTime() { return msg.timestamp; }
+	MsgBuf		*GetMsgBuf() { return &msg; }
+	BOOL		GetLogStr(U8str *u);
+	BOOL		IsRep() { return isRep; }
+
+	int			UseClipboard() { return useClipBuf; }
+	BOOL		FileAttached() { return !!shareInfo; }
+	int			FileAttacheRemain() { return shareInfo ? shareInfo->fileCnt : 0; }
+	BOOL		IsOpenMsgSending() { return timerID ? TRUE : FALSE; }
+	void		CleanupAutoSaveSize();
+	BOOL		IsAutoSaved() { return *autoSaves ? TRUE : FALSE; }
+	const std::vector<HostSub> &GetReplyList() const { return replyList; }
+
+	// test
+	BOOL		hookCheck;
 };
 
 #endif

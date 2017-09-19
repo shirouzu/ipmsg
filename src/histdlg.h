@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2013-2015   histdlg.h	Ver3.50 */
+/*	@(#)Copyright (C) H.Shirouzu 2013-2017   histdlg.h	Ver4.50 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: History Dialog
 	Create					: 2013-03-03(Sun)
-	Update					: 2015-05-03(Sun)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -16,14 +16,16 @@ struct HistObj : public THashObj {
 	HistObj	*next;
 	HistObj	*lruPrev;
 	HistObj	*lruNext;
-	char	info[MAX_LISTBUF];
-	char	user[MAX_LISTBUF];
-	char	sdate[MAX_NAMEBUF];
-	char	odate[MAX_NAMEBUF];
-	char	pktno[MAX_NAMEBUF];
+	int		packetNo;
+	U8str	info;
+	U8str	user;
+	U8str	sdate;
+	U8str	odate;
+//	U8str	pktnos;
+	U8str	msg;
 	HistObj() : THashObj() {
-		*info = *user = *sdate = *odate = *pktno = 0;
 		prev = next = lruPrev = lruNext = NULL;
+		packetNo = 0;
 	}
 };
 
@@ -49,6 +51,12 @@ public:
 	virtual HistObj *LruEnd() { return lruEnd; }
 };
 
+struct HistNotify {
+	HostSub		*hostSub;
+	ULONG		packetNo;
+	const char	*msg;
+};
+
 class THistDlg : public TDlg {
 protected:
 	Cfg			*cfg;
@@ -70,7 +78,7 @@ public:
 	virtual BOOL	EvDestroy();
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl);
 	virtual BOOL	EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight);
-	virtual void	SendNotify(HostSub *hostSub, ULONG packetNo);
+	virtual void	SendNotify(HostSub *hostSub, ULONG packetNo, const char *msg);
 	virtual void	OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify=NULL);
 	virtual void	SaveColumnInfo();
 	virtual void	SetTitle();

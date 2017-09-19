@@ -1,10 +1,10 @@
 static char *remotedlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 2013-2014   remotedlg.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 2013-2017   remotedlg.cpp	Ver4.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Remote Dialog
 	Create					: 2013-09-29(Sun)
-	Update					: 2014-04-14(Mon)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -13,10 +13,12 @@ static char *remotedlg_id =
 
 TRemoteDlg::TRemoteDlg(Cfg *_cfg, TWin *_parent) : TDlg(REMOTE_DIALOG, _parent)
 {
+	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
 	cfg      = _cfg;
 	mode     = INIT;
 	title    = NULL;
 	graceSec = 0;
+	count    = 0;
 }
 
 BOOL TRemoteDlg::Start(Mode _mode)
@@ -37,14 +39,15 @@ BOOL TRemoteDlg::StartCore()
 {
 	char	buf[MAX_BUF];
 
-	title = GetLoadStrU8(mode == REBOOT    ? IDS_REMOTE_REBOOT    :
-						 mode == STANDBY   ? IDS_REMOTE_STANDBY   :
-						 mode == HIBERNATE ? IDS_REMOTE_HIBERNATE : IDS_REMOTE_EXIT);
-	notifyFmt = GetLoadStrU8(IDS_REMOTE_NOTIFY_FMT);
+	title = LoadStrU8(mode == REBOOT    ? IDS_REMOTE_REBOOT    :
+					  mode == STANDBY   ? IDS_REMOTE_STANDBY   :
+					  mode == IPMSGEXIT ? IDS_REMOTE_IPMSGEXIT :
+					  mode == HIBERNATE ? IDS_REMOTE_HIBERNATE : IDS_REMOTE_EXIT);
+	notifyFmt = LoadStrU8(IDS_REMOTE_NOTIFY_FMT);
 
-	::SetTimer(hWnd, IPMSG_REMOTE_TIMER, 1000, NULL);
+	SetTimer(IPMSG_REMOTE_TIMER, 1000);
 	SetWindowTextU8(title);
-	sprintf(buf, notifyFmt, title, graceSec, title);
+	snprintfz(buf, sizeof(buf), notifyFmt, title, graceSec, title);
 	SetDlgItemTextU8(NOTIFY_STATIC, buf);
 
 	GetWindowRect(&rect);
@@ -67,7 +70,7 @@ BOOL TRemoteDlg::EvCreate(LPARAM lParam)
 BOOL TRemoteDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 {
 	if (wID == IDOK || wID == IDCANCEL) {
-		::KillTimer(hWnd, IPMSG_REMOTE_TIMER);
+		KillTimer(IPMSG_REMOTE_TIMER);
 		EndDialog(wID);
 		return TRUE;
 	}
@@ -78,11 +81,11 @@ BOOL TRemoteDlg::EvTimer(WPARAM timerID, TIMERPROC proc)
 {
 	if (++count <= graceSec) {
 		char	buf[MAX_BUF];
-		sprintf(buf, notifyFmt, title, graceSec - count, title);
+		snprintfz(buf, sizeof(buf), notifyFmt, title, graceSec - count, title);
 		SetDlgItemTextU8(NOTIFY_STATIC, buf);
 	}
 	else {
-		::KillTimer(hWnd, IPMSG_REMOTE_TIMER);
+		KillTimer(IPMSG_REMOTE_TIMER);
 		Show(SW_HIDE);
 		PostMessage(WM_COMMAND, IDOK, 0);
 
@@ -90,11 +93,23 @@ BOOL TRemoteDlg::EvTimer(WPARAM timerID, TIMERPROC proc)
 
 		switch (mode) {
 		case REBOOT:
-			::ExitWindowsEx(EWX_REBOOT|EWX_FORCE, 0);
+			::InitiateSystemShutdownEx(NULL, NULL, 0, TRUE, TRUE,
+				SHTDN_REASON_MAJOR_APPLICATION |
+				SHTDN_REASON_MINOR_OTHER |
+				SHTDN_REASON_FLAG_PLANNED
+			);
 			break;
 
 		case EXIT:
-			::ExitWindowsEx(EWX_POWEROFF|EWX_FORCE, 0);
+			::InitiateSystemShutdownEx(NULL, NULL, 0, TRUE, FALSE,
+				SHTDN_REASON_MAJOR_APPLICATION |
+				SHTDN_REASON_MINOR_OTHER |
+				SHTDN_REASON_FLAG_PLANNED
+			);
+			break;
+
+		case IPMSGEXIT:
+			::PostMessage(GetMainWnd(), WM_COMMAND, IDCANCEL, 0);
 			break;
 
 		case STANDBY:

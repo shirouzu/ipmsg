@@ -7,7 +7,7 @@ This document is not verified yet. (too old...)
                                                  Modified 2014/11/08
 
                                                           H.Shirouzu
-                                                    http://ipmsg.org
+                                                    https://ipmsg.org
 ---------------------------------------------------------------------
 
 About IP Messenger
@@ -385,8 +385,8 @@ Function description
 
 
   5. Contact
-	http://ipmsg.org/ (Japanese site)
-	http://ipmsg.org/index.html.en (English site)
+	https://ipmsg.org/ (Japanese site)
+	https://ipmsg.org/index.html.en (English site)
 
 
 Note

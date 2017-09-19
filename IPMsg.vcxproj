@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -21,32 +21,32 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{899CEA68-08AB-45E3-BA20-1376122EE78D}</ProjectGuid>
     <RootNamespace>IPMsg</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v140_xp</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v140_xp</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v140_xp</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -55,19 +55,15 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -77,33 +73,22 @@
     <OutDir>Debug\</OutDir>
     <IntDir>Obj\Debug\</IntDir>
     <LinkIncremental>true</LinkIncremental>
+    <LibraryWPath />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>x64\Debug\</OutDir>
     <IntDir>x64\Obj\Debug\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <ExecutablePath>$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(PATH);</ExecutablePath>
-    <IncludePath>$(VC_IncludePath);$(WindowsSdk_IncludePath);</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSdk_LibraryPath_x64);</LibraryPath>
-    <ExcludePath>$(VC_IncludePath);$(WindowsSdk_IncludePath);$(MSBuild_ExecutablePath);$(VC_LibraryPath_x64);</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>Release\</OutDir>
     <IntDir>Obj\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
-    <IncludePath>$(VC_IncludePath);$(WindowsSdk_IncludePath);</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSdk_LibraryPath_x86);</LibraryPath>
-    <ExcludePath>$(VC_IncludePath);$(WindowsSdk_IncludePath);$(MSBuild_ExecutablePath);$(VC_LibraryPath_x86);</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>x64\Release\</OutDir>
     <IntDir>x64\Obj\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <ExecutablePath>$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(PATH);</ExecutablePath>
-    <IncludePath>$(VC_IncludePath);$(WindowsSdk_IncludePath);</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSdk_LibraryPath_x64);</LibraryPath>
-    <ExcludePath>$(VC_IncludePath);$(WindowsSdk_IncludePath);$(MSBuild_ExecutablePath);$(VC_LibraryPath_x64);</ExcludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -119,7 +104,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeaderOutputFile>Obj\Debug\IPMsg.pch</PrecompiledHeaderOutputFile>
@@ -129,13 +114,14 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Culture>0x0411</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>odbc32.lib;odbccp32.lib;winmm.lib;Comctl32.lib;imm32.lib;Ws2_32.lib;lib\tlib_d.lib;Shlwapi.lib;Iphlpapi.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lib\tlib_d.lib;lib\sqlite3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -145,6 +131,8 @@
       <TargetMachine>MachineX86</TargetMachine>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DelayLoadDLLs>
+      </DelayLoadDLLs>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -165,7 +153,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeaderOutputFile>x64\Obj\Debug\IPMsg.pch</PrecompiledHeaderOutputFile>
@@ -175,13 +163,14 @@
       <AssemblerListingLocation>x64\Obj\Debug\</AssemblerListingLocation>
       <ObjectFileName>x64\Obj\Debug\</ObjectFileName>
       <ProgramDataBaseFileName>x64\Obj\Debug\</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Culture>0x0411</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>odbc32.lib;odbccp32.lib;winmm.lib;Comctl32.lib;imm32.lib;Ws2_32.lib;x64\lib\tlib_d.lib;Shlwapi.lib;Iphlpapi.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>x64\lib\tlib_d.lib;x64\lib\sqlite3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -191,11 +180,16 @@
       <TargetMachine>MachineX64</TargetMachine>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>true</DataExecutionPrevention>
+      <LinkTimeCodeGeneration>
+      </LinkTimeCodeGeneration>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>Obj\x64\Debug\IPMsg.bsc</OutputFile>
     </Bscmake>
+    <PreBuildEvent>
+      <Command>x64\debug\ipcmd terminate &amp; SET ERRORLEVEL = 0</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -222,6 +216,7 @@
       <ProgramDataBaseFileName>Obj\Release\</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
@@ -229,8 +224,8 @@
       <Culture>0x0411</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>odbc32.lib;odbccp32.lib;winmm.lib;Comctl32.lib;imm32.lib;Ws2_32.lib;lib\tlib.lib;Shlwapi.lib;Iphlpapi.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalDependencies>lib\tlib.lib;lib\sqlite3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -240,6 +235,11 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <SetChecksum>true</SetChecksum>
+      <OptimizeReferences>true</OptimizeReferences>
+      <DelayLoadDLLs>user32.dll; Activeds.dll; comctl32.dll; crypt32.dll; Dbghelp.dll; gdiplus.dll; imm32.dll; Iphlpapi.dll; msimg32.dll; psapi.dll; Shlwapi.dll; wininet.dll; winmm.dll; Ws2_32.dll</DelayLoadDLLs>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -278,9 +278,9 @@
       <Culture>0x0411</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>odbc32.lib;odbccp32.lib;winmm.lib;Comctl32.lib;imm32.lib;Ws2_32.lib;x64\lib\tlib.lib;Shlwapi.lib;Iphlpapi.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalDependencies>x64\lib\tlib.lib;x64\lib\sqlite3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>x64\Release\IPMsg.exe</OutputFile>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -291,6 +291,11 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <SetChecksum>true</SetChecksum>
+      <OptimizeReferences>true</OptimizeReferences>
+      <DelayLoadDLLs>user32.dll; Activeds.dll; comctl32.dll; crypt32.dll; Dbghelp.dll; gdiplus.dll; imm32.dll; Iphlpapi.dll; msimg32.dll; psapi.dll; wininet.dll; winmm.dll; Ws2_32.dll</DelayLoadDLLs>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -303,10 +308,27 @@
     <ClCompile Include="src\cfg.cpp" />
     <ClCompile Include="src\histdlg.cpp" />
     <ClCompile Include="src\image.cpp" />
+    <ClCompile Include="src\inet.cpp" />
+    <ClCompile Include="src\ipdict.cpp" />
+    <ClCompile Include="src\ipipc.cpp" />
     <ClCompile Include="src\ipmsg.cpp" />
+    <ClCompile Include="src\logchildview.cpp" />
+    <ClCompile Include="src\logchildviewev.cpp" />
+    <ClCompile Include="src\logchildviewpt.cpp" />
+    <ClCompile Include="src\logdb.cpp" />
+    <ClCompile Include="src\logdbconv.cpp" />
+    <ClCompile Include="src\logeditdlg.cpp" />
+    <ClCompile Include="src\logimportdlg.cpp" />
     <ClCompile Include="src\logmng.cpp" />
     <ClCompile Include="src\logview.cpp" />
+    <ClCompile Include="src\logviewitem.cpp" />
     <ClCompile Include="src\mainwin.cpp" />
+    <ClCompile Include="src\mainwincmd.cpp" />
+    <ClCompile Include="src\mainwindir.cpp" />
+    <ClCompile Include="src\mainwinev.cpp" />
+    <ClCompile Include="src\mainwinfile.cpp" />
+    <ClCompile Include="src\mainwinmsg.cpp" />
+    <ClCompile Include="src\mainwinupd.cpp" />
     <ClCompile Include="src\miscdlg.cpp" />
     <ClCompile Include="src\miscfunc.cpp" />
     <ClCompile Include="src\msgmng.cpp" />
@@ -319,58 +341,156 @@
     <ClCompile Include="src\setupdlg.cpp" />
     <ClCompile Include="src\share.cpp" />
     <ClCompile Include="src\taskbarui.cpp" />
+    <ClCompile Include="src\tipwnd.cpp" />
+    <ClCompile Include="src\toolbar.cpp" />
     <ClCompile Include="src\version.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\ipmsg.rc" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="src\ipmsg.exe.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\aes.h" />
+    <ClInclude Include="src\blowfish.h" />
+    <ClInclude Include="src\cfg.h" />
+    <ClInclude Include="src\environ.h" />
+    <ClInclude Include="src\histdlg.h" />
+    <ClInclude Include="src\image.h" />
     <ClInclude Include="src\ipmsg.h" />
+    <ClInclude Include="src\ipmsgbase.h" />
+    <ClInclude Include="src\ipmsgcmn.h" />
+    <ClInclude Include="src\ipmsgdef.h" />
+    <ClInclude Include="src\logchildview.h" />
+    <ClInclude Include="src\logdb.h" />
+    <ClInclude Include="src\logdbconv.h" />
+    <ClInclude Include="src\logdbgrn.h" />
+    <ClInclude Include="src\logeditdlg.h" />
+    <ClInclude Include="src\logimportdlg.h" />
+    <ClInclude Include="src\logmng.h" />
+    <ClInclude Include="src\logview.h" />
+    <ClInclude Include="src\logviewitem.h" />
+    <ClInclude Include="src\mainwin.h" />
+    <ClInclude Include="src\miscdlg.h" />
+    <ClInclude Include="src\miscfunc.h" />
+    <ClInclude Include="src\msgmng.h" />
+    <ClInclude Include="src\plugin.h" />
+    <ClInclude Include="src\pubkey.h" />
+    <ClInclude Include="src\recvdlg.h" />
+    <ClInclude Include="src\remotedlg.h" />
     <ClInclude Include="src\resource.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="src\ipmsg.rc">
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="src\resource.hm" />
-    <None Include="src\blue.cur" />
-    <None Include="src\cross.cur" />
-    <None Include="src\gen_blue.cur" />
-    <None Include="src\genblue.cur" />
-    <None Include="src\gengreen.cur" />
-    <None Include="src\gengreen_.cur" />
-    <None Include="src\genred.cur" />
-    <None Include="src\genyellow.cur" />
-    <None Include="src\green.cur" />
-    <None Include="src\red.cur" />
-    <None Include="src\sep.cur" />
-    <None Include="src\yellow.cur" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="src\camera.ico" />
-    <Image Include="src\cameraxp.ico" />
-    <Image Include="src\dummypic.bmp" />
-    <Image Include="src\ipmsg.ico" />
-    <Image Include="src\ipmsgrev.ico" />
-    <Image Include="src\logviewtb.bmp" />
-    <Image Include="src\markerblue.bmp" />
-    <Image Include="src\markergreen.bmp" />
-    <Image Include="src\markerred.bmp" />
-    <Image Include="src\MARKERTB.bmp" />
-    <Image Include="src\markeryellow.bmp" />
-    <Image Include="src\menu.ico" />
-    <Image Include="src\refresh.ico" />
+    <ClInclude Include="src\richedit.h" />
+    <ClInclude Include="src\senddlg.h" />
+    <ClInclude Include="src\setupdlg.h" />
+    <ClInclude Include="src\share.h" />
+    <ClInclude Include="src\taskbarui.h" />
+    <ClInclude Include="src\tipwnd.h" />
+    <ClInclude Include="src\toolbar.h" />
+    <ClInclude Include="src\version.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="src\TLib\TLib.vcxproj">
       <Project>{e99ee17d-136c-4c37-b78a-18d324e7119c}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\filetb.bmp" />
+    <Image Include="src\res\asc.bmp" />
+    <Image Include="src\res\basehead.bmp" />
+    <Image Include="src\res\bottom.bmp" />
+    <Image Include="src\res\bottomhot.bmp" />
+    <Image Include="src\res\btnf.bmp" />
+    <Image Include="src\res\btnmf.bmp" />
+    <Image Include="src\res\btnmn.bmp" />
+    <Image Include="src\res\btnms.bmp" />
+    <Image Include="src\res\btnn.bmp" />
+    <Image Include="src\res\btns.bmp" />
+    <Image Include="src\res\camera.ico" />
+    <Image Include="src\res\cameraxp.ico" />
+    <Image Include="src\res\clip.bmp" />
+    <Image Include="src\res\cliptb.bmp" />
+    <Image Include="src\res\comment.bmp" />
+    <Image Include="src\res\cropuser.bmp" />
+    <Image Include="src\res\desc.bmp" />
+    <Image Include="src\res\dummypic.bmp" />
+    <Image Include="src\res\fabtb.bmp" />
+    <Image Include="src\res\fav.bmp" />
+    <Image Include="src\res\favemp.bmp" />
+    <Image Include="src\res\favmid.bmp" />
+    <Image Include="src\res\favrev.bmp" />
+    <Image Include="src\res\file.bmp" />
+    <Image Include="src\res\filetb.bmp" />
+    <Image Include="src\res\foldf.bmp" />
+    <Image Include="src\res\foldt.bmp" />
+    <Image Include="src\res\frommsg.bmp" />
+    <Image Include="src\res\fulldisp.bmp" />
+    <Image Include="src\res\imenu.bmp" />
+    <Image Include="src\res\imenumid.bmp" />
+    <Image Include="src\res\imenurev.bmp" />
+    <Image Include="src\res\ipexc.png" />
+    <Image Include="src\res\ipmsg.ico" />
+    <Image Include="src\res\ipmsg.png" />
+    <Image Include="src\res\ipmsg1.ico" />
+    <Image Include="src\res\ipmsg2.ico" />
+    <Image Include="src\res\ipmsg3.ico" />
+    <Image Include="src\res\ipmsg4.ico" />
+    <Image Include="src\res\ipmsg5.ico" />
+    <Image Include="src\res\ipmsg6.ico" />
+    <Image Include="src\res\ipmsg7.ico" />
+    <Image Include="src\res\ipmsgrev.ico" />
+    <Image Include="src\res\ipmsg_mst.ico" />
+    <Image Include="src\res\logview.ico" />
+    <Image Include="src\res\logviewmono.ico" />
+    <Image Include="src\res\logviewtb.bmp" />
+    <Image Include="src\res\lvbase.bmp" />
+    <Image Include="src\res\mark.bmp" />
+    <Image Include="src\res\markerblue.bmp" />
+    <Image Include="src\res\markergreen.bmp" />
+    <Image Include="src\res\markerred.bmp" />
+    <Image Include="src\res\MARKERTB.bmp" />
+    <Image Include="src\res\markeryellow.bmp" />
+    <Image Include="src\res\marktb.bmp" />
+    <Image Include="src\res\memotb.bmp" />
+    <Image Include="src\res\menu.ico" />
+    <Image Include="src\res\misc.bmp" />
+    <Image Include="src\res\msgto.bmp" />
+    <Image Include="src\res\multi.ico" />
+    <Image Include="src\res\multirev.ico" />
+    <Image Include="src\res\narrow.bmp" />
+    <Image Include="src\res\narrowd.bmp" />
+    <Image Include="src\res\noclip.bmp" />
+    <Image Include="src\res\refresh.ico" />
+    <Image Include="src\res\reply.bmp" />
+    <Image Include="src\res\replyhide.bmp" />
+    <Image Include="src\res\replymsg.bmp" />
+    <Image Include="src\res\sendtb.bmp" />
+    <Image Include="src\res\title.bmp" />
+    <Image Include="src\res\titledips.bmp" />
+    <Image Include="src\res\titledisp.bmp" />
+    <Image Include="src\res\tomsg.bmp" />
+    <Image Include="src\res\tomsg2.bmp" />
+    <Image Include="src\res\top.bmp" />
+    <Image Include="src\res\tophot.bmp" />
+    <Image Include="src\res\unopen.bmp" />
+    <Image Include="src\res\unopenbig.bmp" />
+    <Image Include="src\res\unopenr.bmp" />
+    <Image Include="src\res\unopentb.bmp" />
+    <Image Include="src\res\userchk.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\res\blue.cur" />
+    <None Include="src\res\cross.cur" />
+    <None Include="src\res\genblue.cur" />
+    <None Include="src\res\gengreen.cur" />
+    <None Include="src\res\genred.cur" />
+    <None Include="src\res\genyellow.cur" />
+    <None Include="src\res\green.cur" />
+    <None Include="src\res\LOUPE.cur" />
+    <None Include="src\res\red.cur" />
+    <None Include="src\res\sep.cur" />
+    <None Include="src\res\yellow.cur" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

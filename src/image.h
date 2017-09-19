@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2013-2015   image.h	Ver3.50 */
+/*	@(#)Copyright (C) H.Shirouzu 2013-2016   image.h	Ver4.00 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Image
 	Create					: 2013-03-03(Sun)
-	Update					: 2015-06-02(Tue)
+	Update					: 2016-08-17(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

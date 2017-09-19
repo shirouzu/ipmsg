@@ -1,10 +1,10 @@
 /*static char *remotedlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 2013-2014   remotedlg.h	Ver3.50"; */
+	"@(#)Copyright (C) H.Shirouzu 2013-2017   remotedlg.h	Ver4.50"; */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Remote Dialog
 	Create					: 2013-09-29(Sun)
-	Update					: 2014-04-14(Mon)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -16,7 +16,7 @@
 
 class TRemoteDlg : public TDlg {
 public:
-	enum Mode { INIT=0, REBOOT=1, EXIT=2, STANDBY=3, HIBERNATE=4 };
+	enum Mode { INIT=0, REBOOT=1, EXIT=2, IPMSGEXIT=3, STANDBY=4, HIBERNATE=5 };
 
 	TRemoteDlg(Cfg *_cfg, TWin *_parent);
 	BOOL Start(Mode _mode);

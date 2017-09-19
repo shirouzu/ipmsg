@@ -1,10 +1,10 @@
 ﻿static char *richedit_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2014   richedit.cpp	Ver3.50";
+	"@(#)Copyright (C) H.Shirouzu 2011-2017   richedit.cpp	Ver4.50";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Rich Edit Control and PNG-BMP convert
 	Create					: 2011-05-03(Tue)
-	Update					: 2014-08-24(Sun)
+	Update					: 2017-06-12(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -18,17 +18,28 @@
 #include <richedit.h>
 #include <oledlg.h>
 #include <gdiplus.h>
+#include <regex>
 using namespace Gdiplus;
+using namespace std;
 
 class TDataObject : IDataObject {
 private:
 	ULONG		refCnt;
 	HBITMAP		hBmp;
+	HBITMAP		hBmpDdb;
 	FORMATETC	fe;
 
 public:
-	TDataObject() { refCnt = 0; memset(&fe, 0, sizeof(fe)); }
-	~TDataObject() {}
+	TDataObject() {
+		refCnt = 0;
+		memset(&fe, 0, sizeof(fe));
+		hBmpDdb = NULL;
+	}
+	~TDataObject() {
+		if (hBmpDdb) {
+			::DeleteObject(hBmpDdb);
+		}
+	}
 
 	STDMETHODIMP QueryInterface(REFIID iid, void **obj);
 	STDMETHODIMP_(ULONG) AddRef(void);
@@ -54,7 +65,13 @@ HRESULT TDataObject::QueryInterface(REFIID riid, LPVOID* ppv)
 	if (IID_IUnknown == riid || IID_IDataObject == riid) {
 		*ppv = this;
 	}
-	else return ResultFromScode(E_NOINTERFACE);
+	else {
+		Debug("TDataObject::QueryInterface noif %08x-%04x-%04x-%02x%02x%02x%02x%02x%02x%02x%02x\n",
+			riid.Data1, riid.Data2, riid.Data3,
+			riid.Data4[0], riid.Data4[1], riid.Data4[2], riid.Data4[3],
+			riid.Data4[4], riid.Data4[5], riid.Data4[6], riid.Data4[7]);
+		return ResultFromScode(E_NOINTERFACE);
+	}
 
 	AddRef();
 	return S_OK;
@@ -79,7 +96,10 @@ ULONG TDataObject::Release(void)
 HRESULT TDataObject::GetData(FORMATETC *_fe, STGMEDIUM *sm)
 {
 	HBITMAP		hDupBmp = (HBITMAP)::OleDuplicateData(hBmp, CF_BITMAP, NULL);
-	if (!hDupBmp) return E_HANDLE;
+	if (!hDupBmp) {
+		Debug("TDataObject::GetData OleDuplicateData failed\n");
+		return E_HANDLE;
+	}
 
 	sm->tymed			= TYMED_GDI;
 	sm->hBitmap			= hDupBmp;
@@ -107,14 +127,39 @@ void TDataObject::InsertBitmap(IRichEditOle *richOle, HBITMAP _hBmp)
 	richOle->GetClientSite(&ocs);
 
 	::CreateILockBytesOnHGlobal(NULL, TRUE, &lb);
-	if (!ocs || !lb) goto END;
+	if (!ocs || !lb) {
+		Debug("InsertBitmap: CreateILockBytesOnHGlobal failed %x\n", GetLastError());
+		goto END;
+	}
 
 	::StgCreateDocfileOnILockBytes(lb, STGM_SHARE_EXCLUSIVE|STGM_CREATE|STGM_READWRITE, 0, &is);
-	if (!is) goto END;
+	if (!is) {
+		Debug("InsertBitmap: StgCreateDocfileOnILockBytes failed %x\n", GetLastError());
+		goto END;
+	}
 
 	::OleCreateStaticFromData(this, IID_IOleObject, OLERENDER_FORMAT, &fe, ocs, is,
 		(void **)&oleObj);
-	if (!oleObj) goto END;
+
+	if (!oleObj) {		// 16bit環境用フォールバックルーチン
+//		is->Release();	// （本来は DIB -> DDB変換ルーチンを用意する）
+//		lb->Release();	// （DIBSECTIONが非対応の 8bit colorで問題）
+//		ocs->Release();
+//		richOle->GetClientSite(&ocs);
+//		::CreateILockBytesOnHGlobal(NULL, TRUE, &lb);
+//		::StgCreateDocfileOnILockBytes(lb, STGM_SHARE_EXCLUSIVE|STGM_CREATE|STGM_READWRITE, 0, &is);
+
+		if (hBmpDdb = TDIBtoDDB(hBmp)) {
+			hBmp = hBmpDdb;
+		}
+		::OleCreateStaticFromData(this, IID_IOleObject, OLERENDER_FORMAT, &fe, ocs, is,
+			(void **)&oleObj);
+
+		if (!oleObj) {
+			Debug("InsertBitmap: OleCreateStaticFromData failed %x\n", GetLastError());
+			goto END;
+		}
+	}
 	::OleSetContainedObject(oleObj, TRUE);
 
 	memset(&reobj, 0, sizeof(REOBJECT));
@@ -189,7 +234,10 @@ HRESULT TRichEditOleCallback::QueryInterface(REFIID riid, LPVOID* ppv)
 	if (IID_IUnknown == riid || IID_IRichEditOleCallback == riid) {
 		*ppv = this;
 	}
-	else return ResultFromScode(E_NOINTERFACE);
+	else {
+		Debug("TRichEditOleCallback::QueryInterface failed\n");
+		return ResultFromScode(E_NOINTERFACE);
+	}
 
 	((LPUNKNOWN)*ppv)->AddRef();
 
@@ -215,16 +263,26 @@ ULONG TRichEditOleCallback::Release(void)
 
 HRESULT TRichEditOleCallback::GetNewStorage(LPSTORAGE* ppStg)
 {
-	if (!ppStg) return E_INVALIDARG;
+	if (!ppStg) {
+		Debug("TRichEditOleCallback::GetNewStorage ppStg is NULL\n");
+		return E_INVALIDARG;
+	}
 
 	*ppStg = NULL;
 
 	LPLOCKBYTES	lb;
 	HRESULT hr = ::CreateILockBytesOnHGlobal(NULL, TRUE, &lb);
-	if (FAILED(hr))	return hr;
+	if (FAILED(hr))	{
+		Debug("CreateILockBytesOnHGlobal err=%x\n", hr);
+		return hr;
+	}
 
 	hr = ::StgCreateDocfileOnILockBytes(lb, STGM_SHARE_EXCLUSIVE|STGM_CREATE|STGM_READWRITE,
 			0, ppStg);
+
+	if (FAILED(hr))	{
+		Debug("CreateILockBytesOnHGlobal err=%x\n", hr);
+	}
 	lb->Release();
 
 	return hr;
@@ -234,11 +292,13 @@ HRESULT TRichEditOleCallback::GetNewStorage(LPSTORAGE* ppStg)
 HRESULT TRichEditOleCallback::GetInPlaceContext(LPOLEINPLACEFRAME* ppFrame,
 			LPOLEINPLACEUIWINDOW* ppDoc, LPOLEINPLACEFRAMEINFO pFrameInfo)
 {
+	Debug("GetInPlaceContext not implement\n");
 	return E_NOTIMPL;
 }
 
 HRESULT TRichEditOleCallback::ShowContainerUI(BOOL fShow)
 {
+	Debug("ShowContainerUI not implement\n");
 	return E_NOTIMPL;
 }
 
@@ -263,6 +323,10 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 	HBITMAP		hDelayBmp = NULL;
 	int			idx = 0;
 
+	if (pasteMode == 0 && (::GetKeyState(VK_SHIFT) & 0x8000)) {
+		pasteMode = 1;
+	}
+
 	memset(enabled, 0, sizeof(enabled));
 
 	memset(&fe, 0, sizeof(fe));
@@ -270,12 +334,18 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 	fe.dwAspect = DVASPECT_CONTENT;
 	fe.lindex = -1;
 	fe.tymed = TYMED_HGLOBAL;
-	if (SUCCEEDED(dataObj->QueryGetData(&fe))) return ret;
+	if (SUCCEEDED(dataObj->QueryGetData(&fe))) {
+		return ret;
+	}
 
 	IEnumFORMATETC	*enum_fe = NULL;
 	DWORD			num;
 
-	if (FAILED(dataObj->EnumFormatEtc(DATADIR_GET, &enum_fe))) return S_FALSE;
+	HRESULT	hr;
+	if (FAILED((hr = dataObj->EnumFormatEtc(DATADIR_GET, &enum_fe)))) {
+		Debug("QueryAcceptData: EnumFormatEtc failed %x\n", hr);
+		return S_FALSE;
+	}
 
 	while (SUCCEEDED(enum_fe->Next(num=1, &fe, &num)) && num == 1) {
 //		editWnd->MessageBoxU8(Fmt("cf=%d",fe.cfFormat));
@@ -306,13 +376,15 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 				if (idx < 2 && enabled[idx] == 0 && (idx == 0 || enabled[0] == CF_TEXT)) {
 					enabled[idx++] = fe.cfFormat;
 				}
-				if (!fReally) break;
-
+				if (!fReally) {
+					break;
+				}
 				if (editWnd->GetImageNum() < cfg->ClipMax) {
 					if (!hDelayBmp && SUCCEEDED(dataObj->GetData(&fe, &sm))) {
 						if (fe.cfFormat == CF_BITMAP) {
 							hDelayBmp = sm.hBitmap; // WM_DELAY_BITMAP で開放
-						} else {
+						}
+						else {
 							BITMAPINFO	*bmi = (BITMAPINFO *)::GlobalLock(sm.hGlobal);
 							if (bmi) {
 								hDelayBmp = BmpInfoToHandle(bmi, sizeof(BITMAPINFOHEADER));
@@ -323,7 +395,7 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 					}
 				}
 				else {
-					editWnd->MessageBoxU8(GetLoadStrU8(IDS_TOOMANY_CLIP));
+					editWnd->MessageBoxU8(LoadStrU8(IDS_TOOMANY_CLIP));
 				}
 			}
 			break;
@@ -345,11 +417,15 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 
 		if (delay_text && (enabled[0] == CF_TEXT || !hDelayBmp)) {
 			editWnd->PostMessage(WM_DELAY_PASTE, 0, (LPARAM)delay_text);
-			if (hDelayBmp) ::DeleteObject(hDelayBmp);
+			if (hDelayBmp) {
+				::DeleteObject(hDelayBmp);
+			}
 		}
 		else if (hDelayBmp) {
 			editWnd->PostMessage(WM_DELAY_BITMAP, 0, (LPARAM)hDelayBmp);
-			if (delay_text) free(delay_text);
+			if (delay_text) {
+				free(delay_text);
+			}
 		}
 	}
 	pasteMode = 0;
@@ -359,6 +435,7 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 
 HRESULT TRichEditOleCallback::ContextSensitiveHelp(BOOL fEnterMode)
 {
+	Debug("ContextSensitiveHelp not implement\n");
 	return E_NOTIMPL;
 }
 
@@ -367,11 +444,13 @@ HRESULT TRichEditOleCallback::GetClipboardData(CHARRANGE* pchrg, DWORD reco,
 
 {
 	*ppDataObject = NULL;
+	Debug("GetClipboardData not implement\n");
 	return E_NOTIMPL;
 }
 
 HRESULT TRichEditOleCallback::GetDragDropEffect(BOOL fDrag, DWORD grfKeyState, LPDWORD pdwEffect)
 {
+	Debug("GetDragDropEffect not implement\n");
 	return E_NOTIMPL;
 }
 
@@ -402,7 +481,13 @@ TEditSub::~TEditSub()
 #define EM_GETEVENTMASK			(WM_USER + 59)
 #define ENM_LINK				0x04000000
 
-
+#ifndef AURL_ENABLEURL
+#define AURL_ENABLEURL			1
+#define AURL_ENABLEEMAILADDR	2
+#define AURL_ENABLETELNO		4
+#define AURL_ENABLEEAURLS		8
+#define AURL_ENABLEDRIVELETTERS	16
+#endif
 
 BOOL TEditSub::AttachWnd(HWND _hWnd)
 {
@@ -422,30 +507,64 @@ BOOL TEditSub::AttachWnd(HWND _hWnd)
 
 	if ((cb = new TRichEditOleCallback(cfg, this, this->parent))) {
 		cb->AddRef();
-		SendMessage(EM_SETOLECALLBACK, 0, (LPARAM)cb);
+		if (!SendMessage(EM_SETOLECALLBACK, 0, (LPARAM)cb)) {
+			Debug("EM_SETOLECALLBACK err=%x\n", GetLastError());
+		}
 	}
 
 	richOle = NULL;
-	SendMessage(EM_GETOLEINTERFACE, 0, (LPARAM)&richOle);
+	if (!SendMessage(EM_GETOLEINTERFACE, 0, (LPARAM)&richOle)) {
+		Debug("EM_GETOLEINTERFACE err=%x\n", GetLastError());
+	}
 
-	LRESULT	evMask = SendMessage(EM_GETEVENTMASK, 0, 0) | ENM_LINK;
+	if (IsWin8()) {
+		SendMessage(EM_AUTOURLDETECT,
+			AURL_ENABLEURL			|
+			AURL_ENABLEEAURLS		|
+			((cfg->linkDetectMode & 1) ? 0 : AURL_ENABLEDRIVELETTERS)
+			, 0);
+	}
+	else {
+		SendMessage(EM_AUTOURLDETECT, AURL_ENABLEURL, 0);
+	}
+	SendMessage(EM_SETTARGETDEVICE, 0, 0);		// 折り返し
+
+	LRESULT	evMask = SendMessage(EM_GETEVENTMASK, 0, 0) | ENM_LINK | ENM_CHANGE;
 	SendMessage(EM_SETEVENTMASK, 0, evMask); 
+
 	dblClicked = FALSE;
 	selStart = selEnd = 0;
 	return	TRUE;
 }
 
+BOOL TEditSub::EvChar(WCHAR code, LPARAM keyData)
+{
+//	Debug("EvChar code=%x keyData=%zx\n", code, keyData);
+	return	FALSE;
+}
+
+BOOL TEditSub::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
+{
+//	Debug("EvKey(msg=%x) key=%x keyData=%zx\n", uMsg, nVirtKey, lKeyData);
+	return	FALSE;
+}
+
+BOOL TEditSub::PreProcMsg(MSG *msg)
+{
+	return	TSubClassCtl::PreProcMsg(msg);
+}
+
 int TEditSub::SelectedImageIndex()
 {
 	int		image_num = GetImageNum();
-	DWORD	selStart  = 0;
-	DWORD	selEnd    = 0;
+	DWORD	start  = 0;
+	DWORD	end    = 0;
 
-	SendMessageW(EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+	SendMessageW(EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
 
-	if ((selEnd - selStart) == 1) {
+	if ((end - start) == 1) {
 		for (int i=0; i < image_num; i++) {
-			if (GetImagePos(i) == selStart) {
+			if (GetImagePos(i) == start) {
 				return	i;
 			}
 		}
@@ -462,11 +581,13 @@ void TEditSub::SaveSelectedImage()
 	VBuf	*vbuf = GetPngByte(idx);
 	if (!vbuf) return;
 
-	char	fname[MAX_PATH_U8] = "";
+	char	fname[MAX_PATH_U8];
+	MakeImageTmpFileName(cfg->lastSaveDir, fname);
+
 	OpenFileDlg	dlg(this->parent, OpenFileDlg::SAVE, NULL, OFN_OVERWRITEPROMPT);
 
 	if (dlg.Exec(fname, sizeof(fname), NULL, "PNG file(*.png)\0*.png\0\0", cfg->lastSaveDir, "png")) {
-		HANDLE	hFile = CreateFileU8(fname, GENERIC_WRITE,
+		HANDLE	hFile = CreateFileWithDirU8(fname, GENERIC_WRITE,
 									 FILE_SHARE_READ|FILE_SHARE_WRITE,
 									 NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 		DWORD	size = 0;
@@ -475,6 +596,8 @@ void TEditSub::SaveSelectedImage()
 			WriteFile(hFile, vbuf->Buf(), (DWORD)vbuf->Size(), &size, 0);
 			CloseHandle(hFile);
 			GetParentDirU8(fname, cfg->lastSaveDir);
+			cfg->WriteRegistry(CFG_GENERAL);
+			TOpenExplorerSelOneW(U8toWs(fname));
 		}
 	}
 	delete vbuf;
@@ -505,35 +628,117 @@ HMENU TEditSub::CreatePopupMenu()
 	HMENU	hMenu = ::CreatePopupMenu();
 	BOOL	is_readonly = BOOL(GetWindowLong(GWL_STYLE) & ES_READONLY);
 	BOOL	is_paste = BOOL(SendMessage(EM_CANPASTE, 0, 0));
+	BOOL	is_clip_enable  = (cfg->ClipMode & CLIP_ENABLE);
+	BOOL	is_cbimg = (cb && cb->enabled[0] != CF_TEXT) ? TRUE : FALSE;
 
 	AppendMenuU8(hMenu, MF_STRING|((is_readonly || !SendMessage(EM_CANUNDO, 0, 0)) ?
-				MF_DISABLED|MF_GRAYED : 0), WM_UNDO, GetLoadStrU8(IDS_UNDO));
+				MF_DISABLED|MF_GRAYED : 0), WM_UNDO, LoadStrU8(IDS_UNDO));
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 	AppendMenuU8(hMenu, MF_STRING|(is_readonly ? MF_DISABLED|MF_GRAYED : 0), WM_CUT,
-				GetLoadStrU8(IDS_CUT));
-	AppendMenuU8(hMenu, MF_STRING, WM_COPY, GetLoadStrU8(IDS_COPY));
-	AppendMenuU8(hMenu, MF_STRING|((is_readonly || !is_paste) ?
-				MF_DISABLED|MF_GRAYED : 0), WM_PASTE, GetLoadStrU8(IDS_PASTE));
-	if (cb && cb->enabled[1] && !is_readonly && is_paste) {
+				LoadStrU8(IDS_CUT));
+	AppendMenuU8(hMenu, MF_STRING, WM_COPY, LoadStrU8(IDS_COPY));
+	AppendMenuU8(hMenu, MF_STRING|((is_readonly || !is_paste || (!is_clip_enable && is_cbimg)) ?
+				MF_DISABLED|MF_GRAYED : 0), WM_PASTE, LoadStrU8(IDS_PASTE));
+	if (cb && cb->enabled[1] && !is_readonly && is_paste && is_clip_enable) {
 		AppendMenuU8(hMenu, MF_STRING, WM_PASTE_REV,
-				GetLoadStrU8(cb->enabled[1] == CF_TEXT ? IDS_PASTE_TEXT : IDS_PASTE_BMP));
+				LoadStrU8(cb->enabled[1] == CF_TEXT ? IDS_PASTE_TEXT : IDS_PASTE_BMP));
 	}
 	AppendMenuU8(hMenu, MF_STRING|(is_readonly ? MF_DISABLED|MF_GRAYED : 0), WM_CLEAR,
-				GetLoadStrU8(IDS_DELETE));
+				LoadStrU8(IDS_DELETE));
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
-	AppendMenuU8(hMenu, MF_STRING, EM_SETSEL, GetLoadStrU8(IDS_SELECTALL));
+	AppendMenuU8(hMenu, MF_STRING, EM_SETSEL, LoadStrU8(IDS_SELECTALL));
 
 	/* 画像保存 */
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 	AppendMenuU8(hMenu, MF_STRING|(SelectedImageIndex() < 0 ? MF_DISABLED|MF_GRAYED : 0),
-					WM_SAVE_IMAGE, GetLoadStrU8(IDS_SAVE_IMAGE));
-	if (!is_readonly) {
+					WM_SAVE_IMAGE, LoadStrU8(IDS_SAVE_IMAGE));
+	if (!is_readonly && is_clip_enable) {
 		AppendMenuU8(hMenu, MF_STRING|(SelectedImageIndex() < 0 ? MF_DISABLED|MF_GRAYED : 0),
-						WM_EDIT_IMAGE, GetLoadStrU8(IDS_EDIT_IMAGE));
-		AppendMenuU8(hMenu, MF_STRING, WM_INSERT_IMAGE, GetLoadStrU8(IDS_INSERT_IMAGE));
+						WM_EDIT_IMAGE, LoadStrU8(IDS_EDIT_IMAGE));
+		AppendMenuU8(hMenu, MF_STRING, WM_INSERT_IMAGE, LoadStrU8(IDS_INSERT_IMAGE));
 	}
 
 	return	hMenu;
+}
+
+BOOL TEditSub::SetHyperLink()
+{
+//static BOOL is_using;
+//	if (is_using) {
+//		Wstr	wbuf(MAX_UDPBUF);
+//		ExGetText(wbuf.Buf(), MAX_UDPBUF, GT_DEFAULT, 1200);
+//		DebugW(L"* %s\n", wbuf.s());
+//		return FALSE;
+//	}
+//	is_using = TRUE;
+//
+//	SendMessage(WM_SETREDRAW, FALSE, 0);
+//	Wstr	wbuf(MAX_UDPBUF);
+//
+//	if (ExGetText(wbuf.Buf(), MAX_UDPBUF, GT_DEFAULT, 1200) <= 0) {
+//		is_using = FALSE;
+//		SendMessage(WM_SETREDRAW, TRUE, 0);
+//		return	FALSE;
+//	}
+//	DebugW(wbuf.s());
+//
+//	std::vector<LinkAttr>	tmpAttr;
+//
+////	LRESULT	evMask = SendMessage(EM_GETEVENTMASK, 0, 0) | ENM_LINK | ENM_CHANGE;
+////	SendMessage(EM_SETEVENTMASK, 0, evMask); 
+//
+//	POINT		pt;
+//	SendMessageW(EM_GETSCROLLPOS, 0, (LPARAM)&pt);
+//	CHARRANGE	cr;
+//	SendMessageW(EM_EXGETSEL, 0, (LPARAM)&cr);
+//
+//	wcmatch	match;
+//	wregex	&main_re = (cfg->linkDetectMode == 0) ? *cfg->urlex_re : *cfg->url_re;
+//
+//	CHARFORMAT2W	cf_def = {};
+//	cf_def.cbSize	= sizeof(cf_def);
+//	cf_def.dwMask	= CFM_LINK;
+//
+//	CHARFORMAT2W	cf_lnk = cf_def;
+//	cf_lnk.dwEffects	= CFE_LINK;
+//
+//	const WCHAR	*s = wbuf.s();
+//	int			prev_i = 0;
+//	for (int i=0; s[i]; i=prev_i) {
+//		if (!regex_search(s+i, match, main_re)) {
+//			break;
+//		}
+//		if (cfg->linkDetectMode && !regex_search(s+i, match, *cfg->fileurl_re)) {
+//			break;
+//		}
+//		LinkAttr	attr = { i + (int)match.position(0), (int)match.length(0) };
+//		tmpAttr.push_back(attr);
+//
+//		if (prev_i < attr.pos) {
+//			CHARRANGE	cr_def = { prev_i, attr.pos };
+//			SendMessageW(EM_EXSETSEL, 0, (LPARAM)&cr_def);
+//			SendMessageW(EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf_def);
+//		}
+//		CHARRANGE	cr_lnk = { attr.pos, attr.pos + attr.len };
+//		SendMessageW(EM_EXSETSEL, 0, (LPARAM)&cr_lnk);
+//		SendMessageW(EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf_lnk);
+//		prev_i = cr_lnk.cpMax;
+//		break;
+//	}
+////	CHARRANGE	cr_def = { prev_i, -1 };
+////	SendMessageW(EM_EXSETSEL, 0, (LPARAM)&cr_def);
+////	SendMessageW(EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf_def);
+//
+////	SendMessageW(EM_SETSCROLLPOS, 0, (LPARAM)&pt);
+//	SendMessageW(EM_EXSETSEL, 0, (LPARAM)&cr);
+//
+//	linkAttr = tmpAttr;
+//
+//	is_using = FALSE;
+//	SendMessage(WM_SETREDRAW, TRUE, 0);
+//	InvalidateRect(0, TRUE);
+
+	return	TRUE;
 }
 
 BOOL TEditSub::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
@@ -543,8 +748,14 @@ BOOL TEditSub::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 	case WM_UNDO:
 	case WM_CUT:
 	case WM_COPY:
-	case WM_PASTE:
 	case WM_CLEAR:
+		SendMessage(wID, 0, 0);
+		return	TRUE;
+
+	case WM_PASTE:
+		if (cb) {
+			cb->pasteMode = 3; // ignore shift check
+		}
 		SendMessage(wID, 0, 0);
 		return	TRUE;
 
@@ -621,70 +832,103 @@ BOOL TEditSub::EvContextMenu(HWND childWnd, POINTS pos)
 	return	TRUE;
 }
 
+BOOL TEditSub::JumpLink(ENLINK *el, BOOL is_dblclick)
+{
+	Wstr	wbuf(MAX_UDPBUF);
+	if (ExGetText(wbuf.Buf(), MAX_UDPBUF, GT_DEFAULT, 1200) <= 0) {
+		return	FALSE;
+	}
+
+	LONG	top = el->chrg.cpMin;
+	LONG	end = el->chrg.cpMax;
+
+	Wstr	link(wbuf.s() + top, (end >= 0) ? end - top : -1);
+
+	return	JumpLinkWithCheck(parent, cfg, link.s(), is_dblclick ? JLF_DBLCLICK : 0) == JLR_OK;
+}
+
+BOOL TEditSub::LinkSel(ENLINK *el)
+{
+	SendMessageW(EM_EXSETSEL, 0, (LPARAM)&el->chrg);
+	return	TRUE;
+}
+
+BOOL TEditSub::ExpandSel()
+{
+	CHARRANGE	cr;
+	LONG		&start	= cr.cpMin;
+	LONG		&end	= cr.cpMax;
+//	LONG		start = 0;
+//	LONG		end	= 0;
+
+	SendMessageW(EM_EXGETSEL, 0, (LPARAM)&cr);
+//	SendMessageW(EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
+
+	if (start >= end || end >= MAX_UDPBUF) {
+		return TRUE;
+	}
+
+	WCHAR	*wbuf = new WCHAR[MAX_UDPBUF];
+	UrlObj	*obj = NULL;
+	BOOL	modify = FALSE;
+	WCHAR	*terminate_chars = L"\r\n\t \x3000";	// \x3000 ... 全角空白
+
+	int max_len = ExGetText(wbuf, MAX_UDPBUF, GT_DEFAULT, 1200);	// 1200 == UNICODE
+//	int max_len = ::GetWindowTextW(hWnd, wbuf, MAX_UDPBUF);
+	max_len = min(max_len, MAX_UDPBUF-1);
+	end = min(end, MAX_UDPBUF - 1);
+
+	for ( ; start > 0 && !wcschr(terminate_chars, wbuf[start-1]); start--) {
+		modify = TRUE;
+	}
+	if (!wcschr(terminate_chars, wbuf[end-1])) {
+		for ( ; end < max_len && !wcschr(terminate_chars, wbuf[end]); end++) {
+			modify = TRUE;
+		}
+	}
+	if (modify) {
+		SendMessageW(EM_EXSETSEL, 0, (LPARAM)&cr);
+//		SendMessageW(EM_SETSEL, start, end);
+	}
+	memmove(wbuf, wbuf + start, (end - start) * sizeof(WCHAR));
+	wbuf[end - start] = 0;
+	char	*url_ptr;
+	char	*u8buf = WtoU8(wbuf);
+
+	if ((url_ptr = strstr(u8buf, URL_STR))) {
+		char	proto[MAX_NAMEBUF];
+
+		strncpyz(proto, u8buf, int(min(url_ptr - u8buf + 1, sizeof(proto))));
+		for (int i=0; proto[i]; i++) {
+			if ((obj = SearchUrlObj(&cfg->urlList, proto + i))) {
+				url_ptr = u8buf + i;
+				break;
+			}
+		}
+	}
+	if (obj && *obj->program) {
+		if (LONG_RDC(ShellExecuteU8(NULL, NULL, obj->program, url_ptr ? url_ptr : u8buf,
+				NULL, SW_SHOW)) <= WINEXEC_ERR_MAX) {
+			MessageBoxU8(obj->program, LoadStrU8(IDS_CANTEXEC), MB_OK|MB_ICONINFORMATION);
+		}
+	}
+	else if (!url_ptr && cfg->ShellExec || url_ptr && cfg->DefaultUrl) {
+		ShellExecuteU8(NULL, NULL, url_ptr ? url_ptr : u8buf, NULL, NULL, SW_SHOW);
+	}
+	delete [] u8buf;
+	delete	[] wbuf;
+	return	TRUE;
+}
+
+
+
 BOOL TEditSub::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
 	case WM_EDIT_DBLCLK:
-		{
-			CHARRANGE	cr;
-			LONG		&start	= cr.cpMin;
-			LONG		&end	= cr.cpMax;
-	//		LONG		start = 0;
-	//		LONG		end	= 0;
-
-			SendMessageW(EM_EXGETSEL, 0, (LPARAM)&cr);
-	//		SendMessageW(EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
-
-			if (start == end || end >= MAX_UDPBUF) return TRUE;
-
-			WCHAR	*wbuf = new WCHAR[MAX_UDPBUF];
-			UrlObj	*obj = NULL;
-			BOOL	modify = FALSE;
-			WCHAR	*terminate_chars = L"\r\n\t \x3000";	// \x3000 ... 全角空白
-
-			int max_len = ExGetText(wbuf, MAX_UDPBUF, GT_DEFAULT, 1200);	// 1200 == UNICODE
-	//		int max_len = ::GetWindowTextW(hWnd, wbuf, MAX_UDPBUF);
-
-			for ( ; start > 0 && !wcschr(terminate_chars, wbuf[start-1]); start--) {
-				modify = TRUE;
-			}
-			if (!wcschr(terminate_chars, wbuf[end-1])) {
-				for ( ; end < max_len && !wcschr(terminate_chars, wbuf[end]); end++) {
-					modify = TRUE;
-				}
-			}
-			if (modify) {
-				SendMessageW(EM_EXSETSEL, 0, (LPARAM)&cr);
-	//			SendMessageW(EM_SETSEL, start, end);
-			}
-			memmove(wbuf, wbuf + start, (end - start) * sizeof(WCHAR));
-			wbuf[end - start] = 0;
-			char	*url_ptr;
-			char	*u8buf = WtoU8(wbuf);
-
-			if ((url_ptr = strstr(u8buf, URL_STR))) {
-				char	proto[MAX_NAMEBUF];
-
-				strncpyz(proto, u8buf, int(min(url_ptr - u8buf + 1, sizeof(proto))));
-				for (int i=0; proto[i]; i++) {
-					if ((obj = SearchUrlObj(&cfg->urlList, proto + i))) {
-						url_ptr = u8buf + i;
-						break;
-					}
-				}
-			}
-			if (obj && *obj->program) {
-				if ((int)(INT_PTR)ShellExecuteU8(NULL, NULL, obj->program, url_ptr ? url_ptr : u8buf, NULL, SW_SHOW) <= WINEXEC_ERR_MAX)
-					MessageBoxU8(obj->program, GetLoadStrU8(IDS_CANTEXEC), MB_OK|MB_ICONINFORMATION);
-			}
-			else if (!url_ptr && cfg->ShellExec || url_ptr && cfg->DefaultUrl) {
-				ShellExecuteU8(NULL, NULL, url_ptr ? url_ptr : u8buf, NULL, NULL, SW_SHOW);
-			}
-			delete [] u8buf;
-			delete	[] wbuf;
-			return	TRUE;
-		}
+//		ExpandSel();
+		return	TRUE;
 
 	case WM_DELAY_PASTE:
 		if (lParam) {
@@ -720,7 +964,7 @@ BOOL TEditSub::SetFont(LOGFONT	*lf, BOOL dualFont)
 	cf.bCharSet = lf->lfCharSet;
 	cf.bPitchAndFamily = lf->lfPitchAndFamily;
 	strcpy(cf.szFaceName, lf->lfFaceName);
-	SendMessage(EM_SETCHARFORMAT, 0, (LPARAM)&cf);
+	SendMessage(EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
 
 	LRESULT	langOpts = SendMessage(EM_GETLANGOPTIONS, 0, 0);
 	langOpts = dualFont ? (langOpts | IMF_DUALFONT) : (langOpts & ~IMF_DUALFONT);
@@ -740,6 +984,16 @@ int TEditSub::ExGetText(void *buf, int max_len, DWORD flags, UINT codepage)
 	int	ret = (int)SendMessageW(EM_GETTEXTEX, (WPARAM)&ge, (LPARAM)buf);
 
 	return	ret;
+}
+
+void TEditSub::GetCurSel(DWORD *start, DWORD *end)
+{
+	CHARRANGE	cr;
+
+	SendMessageW(EM_EXGETSEL, 0, (LPARAM)&cr);
+
+	*start = cr.cpMin;
+	*end   = cr.cpMax;
 }
 
 int TEditSub::GetTextUTF8(char *buf, int max_len, BOOL force_select)
@@ -816,6 +1070,27 @@ int TEditSub::GetStreamText(void *buf, int max_len, DWORD flags)
 
 	return	(int)SendMessageW(EM_STREAMOUT, flags, (LPARAM)&es);
 }
+
+//DWORD CALLBACK RichStreamCallback2(DWORD_PTR dwCookie, BYTE *buf, LONG cb, LONG *pcb)
+//{
+//	if (*(DWORD *)dwCookie) return 1;
+//	*(DWORD *)dwCookie = 1;
+//
+//	char data[] =  "RTF";
+//
+// 	memcpy(buf, data, sizeof(data));
+//	*pcb = sizeof(data);
+//
+//	return 0;
+//}
+//
+//int TEditSub::SetStreamText()
+//{
+//	DWORD		end = 0;
+//	EDITSTREAM	es = { (DWORD_PTR)&end, 0, RichStreamCallback2 };
+//
+//	return	(int)SendMessageW(EM_STREAMIN, SF_RTF, (LPARAM)&es);
+//}
 
 int TEditSub::ExSetText(const void *buf, int max_len, DWORD flags, UINT codepage)
 {
@@ -921,9 +1196,10 @@ HBITMAP TEditSub::GetBitmap(int idx, int *pos)
 	memset(&reobj, 0, sizeof(REOBJECT));
 	reobj.cbStruct = sizeof(REOBJECT);
 
-	if (SUCCEEDED(richOle->GetObject(idx, &reobj, REO_GETOBJ_POLEOBJ))) {
+	HRESULT	hr;
+	if (SUCCEEDED((hr = richOle->GetObject(idx, &reobj, REO_GETOBJ_POLEOBJ)))) {
 		if (pos) *pos = reobj.cp;
-		if (SUCCEEDED(reobj.poleobj->QueryInterface(IID_IDataObject, (void **)&dobj))) {
+		if (SUCCEEDED((hr = reobj.poleobj->QueryInterface(IID_IDataObject, (void **)&dobj)))) {
 			STGMEDIUM	sm = {};
 			FORMATETC	fe;
 			memset(&fe, 0, sizeof(fe));
@@ -932,13 +1208,22 @@ HBITMAP TEditSub::GetBitmap(int idx, int *pos)
 			fe.lindex	= -1;
 			fe.tymed	= TYMED_GDI;
 
-			if (SUCCEEDED(dobj->GetData(&fe, &sm))) {
+			if (SUCCEEDED((hr = dobj->GetData(&fe, &sm)))) {
 				hBmp = (HBITMAP)::CopyImage(sm.hBitmap, IMAGE_BITMAP, 0, 0, LR_COPYRETURNORG);
 				::ReleaseStgMedium(&sm);
 			}
+			else {
+				Debug("GetBitmap GetData failed %x\n", hr);
+			}
 			dobj->Release();
 		}
+		else {
+			Debug("GetBitmap QueryInterface failed %x\n", hr);
+		}
 		reobj.poleobj->Release();
+	}
+	else {
+		Debug("GetBitmap failed %x\n", hr);
 	}
 
 	return	 hBmp;
@@ -954,7 +1239,9 @@ int TEditSub::GetImagePos(int idx)
 	memset(&reobj, 0, sizeof(REOBJECT));
 	reobj.cbStruct = sizeof(REOBJECT);
 
-	if (!SUCCEEDED(richOle->GetObject(idx, &reobj, REO_GETOBJ_NO_INTERFACES))) {
+	HRESULT	hr;
+	if (!SUCCEEDED((hr = richOle->GetObject(idx, &reobj, REO_GETOBJ_NO_INTERFACES)))) {
+		Debug("GetImagePos failed %x\n", hr);
 		reobj.cp = -1;
 	}
 	return	 reobj.cp;

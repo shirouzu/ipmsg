@@ -32,7 +32,7 @@ HINSTANCE PluginMng::EntryDll(char *dllName)
 	HINSTANCE	dll;
 	BOOL		(*pPluginInit)(void);
 
-	if ((dll = ::LoadLibrary(dllName)) == NULL)
+	if ((dll = TLoadLibraryExW(dllName, TLT_EXEDIR)) == NULL)
 		return	NULL;
 
 	if ((pPluginInit = (BOOL (*)(void))::GetProcAddress(dll, "PluginInitialize")) && pPluginInit())

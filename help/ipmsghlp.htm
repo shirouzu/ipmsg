@@ -14,20 +14,26 @@
 	color:white;
 	background-color:#0000cc;
 	margin-bottom:10px;
+	padding-left:10px;
 }
 .help_head3 {
 	color:white;
 	background-color:#0000cc;
 	margin-bottom:5px;
+	padding-left:5px;
 }
-.help_head4 {
-	margin-bottom:0px;
+.table_head {
+	background-color: #aaffaa;
 }
 .help_table {
 	border-style:solid;
 	border-collapse: separate;
 	background-color: #ddffdd;
 	border-color: #aaaaaa;
+	line-height: 115%;
+	font-size: 95%;
+}
+.help_table2 {
 	font-size: 95%;
 }
 .tr_default {
@@ -53,6 +59,16 @@
 	background-color: #eeffff;
 	padding:2%;
 }
+.help_feature_section {
+	margin:1%;
+	background-color: #ccffcc;
+	padding:1%;
+	font-weight: bold;
+	line-height: 150%;
+	border-style:solid; 
+	border-color:#88cc88; 
+	color:#333333;
+}
 .help_license {
 	border-color:#777777; 
 	border-style:solid; 
@@ -60,37 +76,37 @@
 	background-color: #dddddd;
 }
 .help_license_cond {
-	padding:5%;
+	padding:3%;
 }
 -->
 </style>
 </head>
 <body bgcolor="#eeffff">
 
-
 <div align="center">
-<h1 class="help_head1">IP Messenger v3.64</h1>
+<h1 class="help_head1">IP Messenger v4.80</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2015/12/24 H.Shirouzu (白水啓章)</div>
+<div align="right">2017/09/19 H.Shirouzu (白水啓章)</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
 <div class="help_section">
   <a href="#about">1. 概要</a><br>
-  <a href="#license">2. ライセンス＆免責</a><br>
-  <a href="#environment">3. 動作環境</a><br>
-  <a href="#uninstall">4. アンインストール</a><br>
-  <a href="#usage">5. 使用法＆画面説明</a><br>
-  　<a href="#settings">5.1 設定（IPv6 multicast等）</a><br>
-  <a href="#misc">6. その他</a><br>
-  <a href="#wan">7. ルータ越えの設定について（LocalNetwork以外へのBroadcast設定）</a><br>
-  <a href="#firewall">8. メンバ認識、ファイル転送、画像添付で問題があるとき</a><br>
-  <a href="#cmdline">9. コマンドライン</a><br>
-  <a href="#support">10. サポートについて（疑問・質問のある方は、こちらをご覧ください）</a><br>
-  <a href="#todo">11. ToDo</a><br>
-  <a href="#history">12. 履歴</a><br>
+  <a href="#license">2. ライセンス＆動作環境＆インストール</a><br>
+  <a href="#usage">3. 使用法＆画面説明</a><br>
+  &nbsp; - <a href="#logview">ログビューア</a><br>
+  <a href="#settings">4. 設定</a><br>
+  &nbsp; - <a href="#master">メンバマスター設定</a><br>
+  &nbsp; - <a href="#labtest_settings">受信転送（Slack等）</a><br>
+  &nbsp; - <a href="#update">自動アップデート</a><br>
+  <a href="#misc">5. 使用ポート・レジストリ</a><br>
+  <a href="#problem">6. よくあるトラブル</a><br>
+  <a href="#cmdline">7. コマンドライン</a><br>
+  <a href="#support">8. サポートについて（疑問・質問のある方は、こちらをご覧ください）</a><br>
+  <a href="#tips">9. tips/ショートカット</a><br>
+  <a href="#history">10. 履歴</a><br>
 </div>
 
 <a name="about">
@@ -98,35 +114,34 @@
 <div class="help_section">
 	<strong>LAN用メッセージ送受信ソフトウェア</strong> です。シンプル＆軽快動作。
 	<br><br>
-	自分のいるネットワーク内（および指定のネットワーク）で、動的なメンバ
-	認識ができます。サーバを必要としません。
+	LAN内で動的なメンバ認識ができます。サーバを必要としません。
 	<br><br>
 
-	シンプル＆軽快動作がモットーですが、
-	メッセージ内画像貼り付け(ver3.0以降）、ファイル添付(ver2.0以降)、封書送信、同報送信、
-	ログ機能、ノンポップアップモード、不在通知モード、といった機能を持っています。
-	<br><br>
-
-	通信メッセージは、RSA(2048bit) + AES(256bit) で暗号化され、RSA/SHA-1による
-	検証を行いますので（ver2.x は RSA(1024bit) + blowfish(128bit)）、万一、
-	経路上のパケットが傍受 or 改竄されても安心です。
-	<br><br>
-
-	タスクトレイに常駐します。
+	シンプル＆軽快動作がモットーですが、<br>
+	<div class="help_feature_section">
+	1. 高性能ログビューア（ver4.0以降）<br>
+	2. ファイル/フォルダ添付<br>
+	3. インライン画像付メッセージ<br>
+	4. RSA(2048bit) + AES(256bit) + SHA256 による安全なメッセージ通信<br>
+	5. IPv6マルチキャスト対応<br>
+	6. ルータ越え対応（メンバマスター機能。v4.5以降）
+	</div>
+	といった機能を持っています。
 	<br><br>
 
 	MacOSX版、iPhone版、Android版、X11/GTK/GNOME版、Java版、および、
-	全ソース(protocol 仕様同梱) も公開しています。以下の URL にあります。
+	全ソース(protocol 仕様同梱) も公開しています。<br>以下の URL にあります。
 	<br>
-    <a href="http://ipmsg.org">http://ipmsg.org</a>
-    <a href="http://ipmsg.org/index.html.en">http://ipmsg.org/index.html.en</a>（英語、中文、ポルトガル語、タガログ語等）
+    <a href="https://ipmsg.org" target="_blank">https://ipmsg.org</a> （日本語公式）<br>
+    <a href="https://ipmsg.org/index.html.en" target="_blank">https://ipmsg.org/index.html.en</a>（英語、中文、ポルトガル語、タガログ語等）
 </div>
 
 <a name="license"/>
-<h2 class="help_head2">2. ライセンス＆免責(BSD License)</h2>
+<h2 class="help_head2">2. ライセンス＆動作環境＆インストール</h2>
 <div class="help_section">
 	<div class="help_license">
-	<strong>Copyright 1996-2015 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<strong>Copyright 1996-2017 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<strong>Copyright 2015-2017 Asahi Net, Inc. All rights reserved.</strong><br>
 	<br>
 	ソースとバイナリ形式の再配布および使用は、「変更の有無、商用/非商用にかかわらず」、以下の条件を満たす場合に許可されます:<br>
 	<div class="help_license_cond">
@@ -135,54 +150,50 @@
 	 2. バイナリ形式で再配布する場合、上記著作権表示、本条件書、および下記免責表示を、配布物とともに提供される文書及び 他の資料に必ず含めてください。
 	</div>
 	<div class="help_license">
-	<strong>このソフトウエアは、SHIROUZU Hiroaki により「あるがままの状態」で提供され、あらゆる明示的または暗黙の保証を否認し、いかなる損害に対しても責任を負いません。</strong>
-	</div>
+	<strong>このソフトウエアは、SHIROUZU Hiroaki と Asahi Net, Inc. により「あるがままの状態」で提供され、あらゆる明示的または暗黙の保証を否認し、いかなる損害に対しても責任を負いません。</strong>
 	</div>
 </div>
 
 <a name="environment"/>
-<h2 class="help_head2">3. 動作環境</h2>
-<div class="help_section">
-	Windows XP/Vista/Win7/8/8.1（及び Windows2003/2008/2012）<br>
-	（Windows 2000 をお使いの方は、v3.42 をお使いください）<br>
+<h3 class="help_head3">動作環境</h3>
+<div class="help_sub_section">
+	Windows XP/Vista/Win7/8/8.1/10（及び Server2003/2008/2012/2016）<br>
+	（なお、Server2003では、SHA256がないため「メンバマスター機能」は利用できません）
 </div>
 
-<a name="uninstall"/>
-<h2 class="help_head2">4. アンインストール</h2>
-<div class="help_section">
+<a name="install"/>
+<h3 class="help_head3">インストール等</h3>
 	<div class="help_sub_section">
-		コントロールパネルの「プログラムの追加と削除」から、アンインストールできます。
+		インストールは、ipmsg4xx_installer.exeを実行します。<br>
+		アンインストールは、スタートメニューの「IP Messenger for Win」フォルダの「Uninstall IPMSG」からアンインストールします。<br>
+		（管理者権限でインストールした場合、コントロールパネルの「プログラムの追加と削除」から行います）<br>
 	</div>
 </div>
 
-
 <a name="usage"/>
-<h2 class="help_head2">5. 使用法＆画面説明</h2>
+<h2 class="help_head2">3. 使用法＆画面説明</h2>
 <div class="help_section">
 
 <h3 class="help_head3">タスクトレイアイコン</h3>
-アイコンの左クリック（or ダブルクリック）で、送信ウィンドウが出ます。<br>
-右クリックで「設定」「不在通知モード」などのメニューが出ます。
+<img src="img/ipmsg_tasktray.png" align="left" />
+タスクトレイアイコン  のダブルクリックで、送信ウィンドウが出ます。<br>
+右クリックで「設定」「不在通知モード」「ログ参照」「ヘルプ」などのメニューが出ます。<br>
 
 <h3 class="help_head3">送信ウィンドウ</h3>
 	<div class="help_sub_section">
-	「封書」をチェックすると、開封ボタンつき送信になります。<br>
-	「錠」をチェックすると、<strong>「受取人自身が設定した鍵」</strong>でのみ開封できる
-	    封書送信になります。
-	<br><br>
+	<img src="img/ipmsg_send_mini.png" align="left" />
+	<strong>「送信」</strong>： 送信先を選んで押すと、メッセージが送信されます。<br>
+	送信ボタンをマウスオーバーすると、宛先一覧が表示されます。<br>
+	（「封書」をチェックすると、開封ボタンつき送信になります）<br>
+	<br>
 
-　<strong>画像貼り付け</strong>(v3.0以降)は、CTRL-V もしくは右クリックメニューから貼り付けてください。
-　クリップボード内の画像を貼り付けることができます（10画像まで）。
-　なお、クリップボードへの画像コピーは PrintScreen や Alt+PrintScreen を使うと便利です。<br>
-　設定でログ記録を有効にしておくと、送受信した画像はログファイル保存フォルダ下の
-　ipmsg_img というサブフォルダに PNGファイルで保存されます。<br>
-　（なお、画像転送には、内部的にファイル添付機能を使いますので、
-　<strong>送信側の 2425/TCPポートが開いている必要</strong>があります。
-　（受信側から送信側に画像ダウンロードを求めます）。OSやアンチウイルス系の
-　ファイアーウォール機能で 2425/TCP がブロックされていないことを確認してください）<br>
-  また、送受信画面のエディット領域で、画像を選択して右クリックメニューから「選択画像の保存」が可能です。<br>
+　<strong>「画像貼り付け」</strong>： Ctrl-[V] もしくは右クリックメニューから貼り付けてください。クリップボード内の画像を貼り付けることができます（10画像まで）。<br>
+	<br>
+　設定でログ記録を有効にしておくと、送受信した画像はログファイル保存フォルダ下の ipmsg_img というサブフォルダに PNGファイルで保存されます。<br>
 <br>
-　<strong>画面キャプチャ</strong>(v3.30以降)は、送信画面左下のカメラボタンから呼び出せます。
+  また、画像の右クリックから「選択画像の保存」も可能です。<br>
+<br>
+　<strong>「画面キャプチャ」</strong>： 送信画面左下のカメラボタンから呼び出せます。
    範囲指定されたデスクトップ画像を貼り付けたり、キャプチャ画像にマーカーで追記したり、
    PNG ファイルとして保存することができます。キャプチャを開始すると、
    デフォルトでは呼び出し元の送信ウィンドウは最小化されます。
@@ -190,31 +201,31 @@
    設定によりデフォルトの挙動を変更することもできます）
 	<br><br>
 
-  <strong>ファイル/フォルダ添付</strong>(v2.0以降)は、送りたいファイル/フォルダをウィンドウにドラッグ＆ドロップ
+  <strong>「ファイル/フォルダ添付」</strong>： 送りたいファイル/フォルダをウィンドウにドラッグ＆ドロップ
     するか、ウィンドウ右クリックで「ファイル添付」or 「フォルダ添付」を選んでください。<br>
-    （受信側がダウンロード操作するまで、転送は開始されません。また、
-      送信側が IPMSG を再起動すると、ダウンロード許可情報がクリアされ
+    （受信側がダウンロード操作するまで転送は開始されません（なお、v3.5から受信側設定による自動受信モードが追加されています）。<br>
+	また、送信側が IPMSG を再起動すると、ダウンロード許可情報がクリアされ
       るため、再起動以前に添付したファイルはダウンロードできなくなり
       ます）
 	<br><br>
 
-	<strong>ユーザリストの左端の色</strong>によって、ユーザごとの対応機能を表します。<br>
+	<strong>「ユーザリストの左端の色」</strong>： ユーザごとの対応機能を表します。<br>
 	<table class="help_table" border="4">
-	<tr><th>色</th><th>意味</th></tr>
-	<tr><td bgcolor="#ffffff">白色</td><td>v3.0レベル（画像貼付＆ファイル添付可能、RSA2048/AES256/SHA1 暗号/署名対応）</td></tr>
+	<tr class="table_head"><th>色</th><th>意味</th></tr>
+	<tr><td bgcolor="#ffffff">白色</td><td>画像貼付＆ファイル添付可能、RSA2048/AES256/SHA-256(orSHA-1)暗号/署名対応</td></tr>
 	<tr><td bgcolor="#ffc8c8">桃色</td><td>画像貼付を無効化している点以外は、白色と同じ</td></tr>
-	<tr><td bgcolor="#f0f0f0">薄灰色</td><td>v2.0レベル（ファイル添付可能、RSA暗号化対応）</td></tr>
-	<tr><td bgcolor="#b4b4f0">薄青色</td><td>一部v2.0レベル（ファイル添付可能、暗号非対応）</td></tr>
-	<tr><td bgcolor="#808080">濃灰色</td><td>v1.0レベル（基本メッセージ交換のみ）</td></tr>
+	<tr><td bgcolor="#f0f0f0">薄灰色</td><td>ファイル添付可能、RSA暗号化対応</td></tr>
+	<tr><td bgcolor="#b4b4f0">薄青色</td><td>ファイル添付可能、暗号非対応</td></tr>
+	<tr><td bgcolor="#808080">濃灰色</td><td>基本メッセージ交換のみ</td></tr>
 	</table>
 	なお、上記すべてのモードにおいて、<strong>!</strong> マークは不在モードを表します。<br>
-	<br><br>
+	<br>
 
-  送信ウィンドウのリスト項目は、項目のドラッグ＆ドロップによって、
-    順番を変更することができます。項目順＆項目幅の保存は、右クリック
-    →リストヘッダ保存で行ってください。
+	送信ウィンドウのリスト項目は、項目のドラッグ＆ドロップによって、順番を変更することができます。<br>
+	項目順＆項目幅の保存は、右クリック → サイズ/フォント/位置設定 → サイズ/ヘッダ保存、で行ってください。
 	<br><br>
-  ウィンドウ右クリックで、ソート・フィルタ設定、グループ選択、ユーザ検索(CTRL+F)、
+	ウィンドウ右クリックから、
+	ソート・フィルタ設定、グループ選択、ユーザ検索(Ctrl-[F])、
     フォント設定、サイズの保存、位置固定、詳細表示設定ができます。
 	<br><br>
     ＃ソート・フィルタの表示優先度について<br>
@@ -224,312 +235,805 @@
 
 	</div>
 
+<a name="recv"/>
 <h3 class="help_head3">受信ウィンドウ</h3>
 	<div class="help_sub_section">
+	<img src="img/ipmsg_recv.png" align="left" />
   ウィンドウ右クリックで、フォント設定、サイズの保存、位置固定ができます。
 <br><br>
 
   添付ファイルがあった場合、添付ボタンが現れます。
 <br><br>
 
-<strong>IP Messenger v3.0 以降、メッセージのセキュリティが大幅に向上しました。</strong>
-<br><br>
+<strong>ReceiveMessage後ろの記号は「暗号強度」を表します</strong>
 
 	<table class="help_table" border="4">
-	<tr><th>強度</th><th>公開鍵</th><th>共通鍵</th><th>署名</th><th>受信タイトル表記</th><th>ログ表記</th></tr>
-	<tr><td>最強</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-1</td><td>Receive Message +++</td><td>（RSA2/認証）</td></tr>
-	<tr><td>強</td><td>RSA 2048bit</td><td>AES 256bit</td><td>なし</td><td>Receive Message ++</td><td>（RSA2）</td></tr>
-	<tr><td>中</td><td>RSA 1024bit</td><td>Blowfish 128bit</td><td>なし</td><td>Receive Message +</td><td>（RSA）</td></tr>
-	<tr><td>弱</td><td>RSA 512bit</td><td>RC2 40bit</td><td>なし</td><td>Receive Message -</td><td>（RSA）</td></tr>
-	<tr><td>なし</td><td>なし</td><td>なし</td><td>なし</td><td>Receive Message</td><td></td></tr>
+	<tr class="table_head"><th>記号</th><th>強度</th><th>公開鍵</th><th>共通鍵</th><th>署名</th><th>ログ表記</th></tr>
+	<tr><td>++++</td><td>最強</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-256</td><td>（RSA2/認証+）</td></tr>
+	<tr><td>+++</td><td>強</td><td>RSA 2048bit</td><td>AES 256bit</td><td>RSA+SHA-1</td><td>（RSA2/認証）</td></tr>
+	<tr><td>++</td><td>強</td><td>RSA 2048bit</td><td>AES 256bit</td><td>なし</td><td>（RSA2）</td></tr>
+	<tr><td>+</td><td>弱</td><td>RSA 1024bit</td><td>Blowfish 128bit</td><td>なし</td><td>（RSA）</td></tr>
+	<tr><td>なし</td><td>なし</td><td>なし</td><td>なし</td><td>なし</td><td>なし</td></tr>
 	</table>
 <br>
-	原則として、上記の５つのモードのうち、送信者および受信者のサポートする最高強度モードでメッセージ送受信が行われます。
+	原則として、上記の４つのモードのうち、送信者および受信者のサポートする最高強度モードでメッセージ送受信が行われます。
 <br><br>
 	なお、認証（署名検証）機能の追加に伴い、ユーザID がログオン名から、ログオン名-&lt;公開鍵指紋&gt; の形式に変化しました。<br>
 	成り済ましの防止や、ユーザの一意性の向上に使われます。<br>
 	<strong>ログ記録設定で、「ログオン名を記録」にチェックしておくことをお勧めします。</strong><br><br>
 	公開鍵指紋付きユーザIDを偽装した（指紋の公開鍵を所有していない）ユーザが、メッセージを送りつけた場合、受信タイトルに「偽装？」といった表示が出てきます。
 
-<br><br>
-
 	</div>
 
-<a name="settings"/>
-<h3 class="help_head3">設定ダイアログ</h3>
-	<div class="help_sub_section">
-各種設定ができます。<br>
-<br>
-・自セグメントへの Broadcast (IPv4用メンバ認識)<br>
+<a name="logview"/>
+<h3 class="help_head3">ログビューア</h3>
+<div class="help_section">
+
+<strong>過去ログを貼付画像入りで参照できる高性能内蔵ビューアです。</strong><br><br>
+	
+<table class="help_table2">
+<tr><td valign="top">
+（主な特徴）<br><br>
+数万メッセージも画像入りで、<strong>「高速表示＆検索」</strong>が可能です。<br><br>
+1クリックで、<strong>「ユーザ絞込」</strong>が可能です。<br><br>
+<strong>「マーカー」「お気に入り」「コメント」</strong>が登録できます。<br><br>
+<strong>「自分用のメモ」</strong>や<strong>「追加画像の登録」</strong>もできます。
+
+</td><td>
+	<img src="img/ipmsg_logview_mini.png"/>
+</td></tr></table>
+
+<strong>メニュー・機能説明一覧</strong>
 	<table class="help_table" border="4">
-	<tr><th>種類</th><th>説明</th></tr>
+	<tr class="table_head"><th nowrap colspan="2">ファイル(F) メニュー</th></tr>
+	<tr><th nowrap>ログ（テキスト）を開く</th>
+	<td>従来のテキストログを開きます。（.log へのアプリケーションの関連付けが必要）
+	</td></tr>
+	<tr><th nowrap>画像保存フォルダを開く</th>
+	<td>貼付画像（PNGファイル）保存フォルダを開きます。
+	</td></tr>
+	<tr><th nowrap>添付ファイル履歴フォルダを開く</th>
+	<td>添付ファイル履歴をショートカットの形で保存したフォルダを開きます。<br>
+		（ログビューアから、過去メッセージの添付ファイルを開くのに利用されています）
+	</td></tr>
+	<tr><th nowrap>自動保存フォルダを開く</th>
+	<td><a href="#auto_save">添付ファイルの自動保存用</a>フォルダを開きます。
+	</td></tr>
+	<tr><th nowrap>過去ログ取込＆削除</th>
+	<td>
+		IP Messenger の過去ログをビューア用DBに取り込み or 削除を行います。<br><br>
+		古い形式の場合、ユーザ名/ホスト名/グループ名/ログオン名/IPアドレス、の分割が正しくできない場合があります。<br>
+		（その場合、メッセージを右クリックしてヘッダ修正を行う（＝同一ヘッダ内容の他のメッセージも変更されます） or 一旦取り込みデータを削除してテキストログを整形後、再度取り込みしてください）
+	</td></tr>
+	<tr><th nowrap>DB事前読み込み</th>
+	<td>DBファイル(ipmsg.db)を事前にOSキャッシュに乗せることで、高速表示・検索を可能にします
+	</td></tr>
+
+	<tr><th nowrap>DB整理</th>
+	<td>DBに対し、Vacuum/Reindex を行うことで、DBファイル(ipmsg.db)をなるべく小さく＆高速にします
+	</td></tr>
+
+	<tr><th nowrap>閉じる</th>
+	<td>ログビューアを閉じます
+	</td></tr>
+
+	<tr class="table_head"><th nowrap colspan="2">設定(S) メニュー</th></tr>
+	<tr><th nowrap>表示順を反転</th>
+	<td>
+		メッセージを新しいものから表示します
+	</td></tr>
+
+	<tr><th nowrap>検索履歴クリア</th>
+	<td>
+		検索履歴を消去します。
+	</td></tr>
+	<tr><th nowrap>フォント設定</th>
+	<td>
+		表示フォントを変更します。<br>
+		（今のところ、メッセージ表示領域は全て同じフォントを使用しています。場所によりサイズや太さを変化）
+	</td></tr>
+
+	<tr><th nowrap>IPMsg設定</th>
+	<td>
+		IPMsgメイン設定を開きます。<br>
+		URL/Fileリンク設定から、1クリックで開く等の設定変更が可能です。
+	</td></tr>
+
+	<tr class="table_head"><th nowrap colspan="2">ウィンドウ(W) メニュー</th></tr>
+	<tr><th nowrap>新規ビューアを開く</th>
+	<td>
+		新しいビューアを開きます。<br>
+		マーカー追加等、変更は可能な限りすべてのビューアに反映します。
+	</td></tr>
+	<tr><th nowrap>メモメッセージ</th>
+	<td>
+		自分用メモをメッセージ風に作成します
+	</td></tr>
+	<tr class="table_head"><th nowrap colspan="2">ヘルプ(H) メニュー</th></tr>
+	<tr><th nowrap>ヘルプ</th>
+	<td>
+		ビューアヘルプ（このドキュメント）を開きます。
+	</td></tr>
+	<tr><th nowrap>Tips</th>
+	<td>
+		Tips集を開きます。
+	</td></tr>
+	</table>
+	<br>
+
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">ツールバー機能<br><img src="img/ipmsg_lvtoolbar.png"/></th></tr>
+	<tr><th nowrap>最新表示「↓」</th>
+	<td>
+		最新メッセージに移動します。<br>
+		その場合、自動スクロールモードになり、矢印が破線に変化します。<br>
+		（SHIFTキー付で押すと、最古メッセージに移動します）
+	</td></tr>
+	<tr><th nowrap>ヘッダのみ表示切替「－」</th>
+	<td>
+		通常表示 ⇔ １行１メッセージの一覧表示モードとを切り替えます。<br>
+	</td></tr>
+	<tr><th nowrap>ユーザ絞込「All Users」</th>
+	<td>
+		プルダウンを選択すると、指定ユーザだけに絞り込んだログ閲覧ができます。<br>
+		（各ヘッダ行の「ユーザ名」ボタンを押しても同様です）<br>
+		<br>
+		横の<strong>「ミニ鉛筆マーク」</strong>を押すと、手動入力モードに切替わります。<br>
+		（ユーザ名/uid/ホスト名のいずれかの部分一致で絞り込みます）
+	</td></tr>
+	<tr><th nowrap>検索文字列欄</th>
+	<td>
+		任意のキーワードを入れるとリアルタイムに高速検索します。<br>
+		リターンキーを押すと次の検索候補にジャンプします。<br>
+		SHIFTキーを押しながらリターンキーを押すと上方向の候補を探します。<br>
+		<br>
+		右の<strong>「チェック」</strong>をマークすると、検索にヒットしたメッセージのみ表示されます。
+		<hr>
+		<strong>高度な検索：</strong>「AAA BBB」で AAA と BBB を同時に含むメッセージを検索、「AAA OR BBB」で AAA か BBB のどちらかを含むメッセージを検索します。
+	</td></tr>
+	<tr><th nowrap>お気に入り絞込（★）</th>
+	<td>
+		お気に入りをチェックしたメッセージのみを表示します。
+	</td></tr>
+	<tr><th nowrap>マーカー・コメント絞込（緑）</th>
+	<td>
+		マーカーもしくはコメント入りのメッセージのみを表示します。<br>
+		（マーカーは「本文を選択→右クリック」で引くことができます。コメントはメッセージ右端の「…」から選んでください）
+	</td></tr>
+	<tr><th nowrap>貼付画像絞込（カメラ）</th>
+	<td>
+		貼付画像つきメッセージのみを表示します。
+	</td></tr>
+	<tr><th nowrap>未開封絞込（封書）</th>
+	<td>
+		未開封の受信メッセージのみを表示します。<br><strong>起動後の未開封受信メッセージ数は300までに制限されており、それを超えると受信できなくなります。</strong><br>（ログビューア受信の場合も、未開封の間は裏でウィンドウ用オブジェクトが作られているため）
+	</td></tr>
+	<tr><th nowrap>新規送信ウィンドウ<br></th>
+	<td>
+		新規送信ウィンドウを開きます。
+	</td></tr>
+	</table>
+	<br>
+
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">メッセージ表示エリア（ヘッダ部）<br><img src="img/ipmsg_lvtitle.png"/></th></tr>
+	<tr><th nowrap>日付</th>
+	<td>
+		送受信した日時を表示します。<br>
+		（マウスオーバーすると下部ステータス欄に、曜日と秒も表示されます）
+	</td></tr>
+	<tr><th nowrap>矢印マーク</th>
+	<td>
+		右矢印（⇒）は送信メッセージを表し、左矢印は受信メッセージを表します。<br>
+		（マウスオーバーするとリターンマークに変化し、押すと返信画面が出ます）
+	</td></tr>
+	<tr><th nowrap>「ユーザ名」ボタン</th>
+	<td>
+		押すとそのユーザだけのログに絞り込みます。<br>
+		右クリックすると、返信（当該ユーザのみ選択）メニューが出ます。
+	</td></tr>
+	<tr><th nowrap>受信「未開封」ミニボタン</th>
+	<td>
+		受信後、未開封のメッセージには「ユーザ名」ボタン右上に「未開封」ミニボタンが表示されます。<br>
+		押すと、開封されます。
+	</td></tr>
+	<tr><th nowrap>送信「未開封」ミニアイコン</th>
+	<td>
+		送信相手が未開封のメッセージには「ユーザ名」ボタン右上に「未開封」ミニアイコンが表示されます。<br>
+		送信相手が開封するとこのアイコンは消えます。
+	</td></tr>
+	<tr><th nowrap>お気に入り「★」ボタン</th>
+	<td>
+		押すとお気に入りとして登録され、ツールバー「★」ボタンの絞り込み表示の対象となります。
+	</td></tr>
+	<tr><th nowrap>その他メニュー「…」</th>
+	<td>
+	「返信（<strong>ヘッダダブルクリック</strong>でも可）」「メッセージコピー」「ヘッダ修正」「メッセージ編集」「メッセージ削除」「コメント追加」などが行えます。
+	</td></tr>
+	</table>
+	<br>
+
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">メッセージ表示エリア（本文）<br>
+	<img src="img/ipmsg_lvbody.png"/></th>
+	</th></tr>
+	
+	<tr><th nowrap>貼付画像</th>
+	<td>
+		貼付画像がサムネイルで表示されます。クリックすると拡大表示されます。<br>
+		ダブルクリックすると、.pngに関連付けられているアプリケーションを使って画像を開きます。
+	</td></tr>
+	<tr><th nowrap>コメント追加</th>
+	<td>
+		右クリックでコメントを追記することができます。<br>
+		コメントをクリックすると、コメント編集画面が出ます。
+	</td></tr>
+	<tr><th nowrap>マーカー</th>
+	<td>
+		文字列を選択後、右クリックから、マーカーを引くことができます。
+	</td></tr>
+	<tr><th nowrap>コピー</th>
+	<td>
+		文字列を選択後、右クリックから部分コピーができます
+	</td></tr>
+	<tr><th nowrap>ログ検索</th>
+	<td>
+		文字列を選択後、右クリックから検索欄への転記＆検索ができます
+	</td></tr>
+	<tr><th nowrap>google検索</th>
+	<td>
+		文字列を選択後、右クリックからgoogle検索ができます
+	</td></tr>
+	<tr><th nowrap>返信</th>
+	<td>
+		メッセージ相手への送信ウィンドウを開きます。（ヘッダダブルクリックでも可）
+	</td></tr>
+	<tr class="table_head"><th colspan="2">クリップボードからの貼り付け<br>
+	<tr><th nowrap>画像の貼付</th>
+	<td>
+		Ctrl-[V] で<strong>「画像」</strong>を貼り付けることが出来ます。
+	</td></tr>
+	<tr><th nowrap>テキストの貼付</th>
+	<td>
+		Ctrl-[V] で<strong>「コメント」</strong>を追加することが出来ます。
+	</td></tr>
+	</table>
+<br>
+	<strong><a href="#tips">ショートカット類はこちらを参照ください</a></strong>
+<br>
+</div>
+</div>
+
+
+<a name="settings"/>
+<h2 class="help_head2">4. 設定ダイアログ</h2>
+	<div class="help_sub_section">
+<br>
+<strong>設定は、タスクトレイにあるIPMsgアイコン右クリックから開くことができます。</strong><br>
+	<img src="img/ipmsg_settings.png"/></th>
+
+<a name="lan_settings"/>
+<h3 class="help_head3">基本＆LAN設定</h3>
+	<div class="help_sub_section">
+
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">基本設定</th></tr>
+	<tr><td>ユーザ名設定</td><td>ユーザ名を設定します</td></tr>
+	<tr><td nowrap>グループ名設定</td><td>グループ名を設定します。<br>新たなグループ名を入力するか、プルダウンから既に存在するグループのいずれかを選びます</td></tr>
+	<tr class="table_head"><th colspan="2">LAN設定</th></tr>
+	<tr><td>自セグメント以外へのBroadcast設定</td><td>ルータを越えたIPMsgを認識するには、ここにそのネットワークのブロードキャストアドレスを設定できます。<br>
+（最近のルータはブロードキャストをブロックする設定が多いため、これを利用するよりも、v4.5から搭載された<a href="#master">「メンバマスター機能」</a>の利用を推奨します）</td></tr>
+	<tr><td>要Unicast通知</td><td>他のIPMsgから個別の存在通知を送るよう要求します</td></tr>
+	<tr class="table_head"><th colspan="2">自セグメントへの Broadcast (IPv4用メンバ認識)</th></tr>
 	<tr><td>制限(Limited broadcast)</td><td>255.255.255.255宛てに、参加/離脱を通知します。<br>（Windowsの最優先NICからパケットが出ます。VMWare等を入れると仮想NICが最優先になることが多いため、その場合は「直接」を選ぶか、WindowsのNIC優先順位で認識したいNICの優先度を上げて下さい）</td></tr>
 	<tr><td>直接(Directed broadcast)</td><td>すべてのNICに付与されているIPv4アドレスをリストアップし、すべての付与IPアドレスに対する直接ブロードキャストに対し、参加/離脱を通知します。（例: 192.168.0.1/24 と 192.168.100.2/24 を持っている場合、192.168.0.255 と 192.168.100.255 の 2つのアドレスに、参加/離脱を通知します。</td></tr>
 	<tr><td>両利用</td><td>上記の２つを併用します。</td></tr>
-	</table>
-<br>
-
-・IPv6マルチキャスト（IPv6用メンバ認識）（IP Messenger v3.50以降）<br>
-	<table class="help_table" border="4">
-	<tr><th>種類</th><th>マルチキャストアドレス＆説明</th></tr>
+	<tr class="table_head"><th colspan="2">IPv6マルチキャスト（IPv6用メンバ認識）</th></tr>
 	<tr><td>SiteLocal</td><td>ff15::979 をマルチキャストアドレスとして、参加/離脱を通知します。<br>（IPv6マルチキャスト対応ルータの場合、サイト内であればルータ越えが可能です）</td></tr>
 	<tr><td>LinkLocal</td><td>ff02::1 をマルチキャストアドレスとして、参加/離脱を通知します。<br>（ルータを越えません）</td></tr>
 	<tr><td>Site/LinkLocal dual</td><td>上記の２つ両方のアドレスに参加/離脱を通知します。</td></tr>
 	</table>
-<br>
-
-・遠隔再起動（or 遠隔shutdown）<br>
-	<table class="help_table" border="4">
-	<tr><td>「遠隔再起動を許可」にチェックをした状態で、"ipmsg-cmd:～" で始まるメッセージを受信すると、15秒間の実行確認ウィンドウが出たのちに再起動します。（遠隔shutdownも同様です）</td></tr>
-	</table>
-<br>
-
-
+	<br>
 	</div>
 
-<h3 class="help_head3">ショートカット等</h3>
+<a name="master"/>
+<h3 class="help_head3">メンバマスター設定 (v4.5以降）</h3>
 	<div class="help_sub_section">
-１．ボスがきたキー(Ctrl-D)...全ウィンドウを隠す。再度 Ctrl+D で元に<br>
-２．拡張更新(Ctrl+更新ボタン)...既存ユーザリストを残したまま更新<br>
-３．送信/受信ホットキー(Alt+Ctrl+'S' or 'R')...設定→詳細設定で設定可能<br>
-　（さらに、旧方式開封ウィンドウの一括消去は Alt+Ctrl+'D'で可能）<br>
-４．インクリメンタルユーザ検索機能（送信画面で Ctrl+F）<br>
-５．グループ一括選択（送信画面右クリックで選択、+Ctrlで複数）<br>
+
+	ルータを越えて、お互いを認識するための機能です。<br>
+	LAN全体で「1つのIPMsgだけ」をメンバマスターとして動作させ、各LANセグメントで「メンバマスター利用」IPMsgが1台以上存在すれば、LAN全体のユーザを認識できるようになります。<br>
+	<br>
+	他のOS版であっても「更新ボタン」を押せば、LAN全体の最新ユーザリストを得ることが出来ます。<br>
+	（v4.5以上を使っている場合、原則として「更新ボタン」を押すことなく最新リストが維持されます）<br>
+
+	<table class="help_table" border="4" style="margin-top:10px">
+	<tr class="table_head"><th colspan="2">利用可能モード</th></tr>
+	<tr><td>利用しない</td><td>メンバマスター機能を利用しません。</td></tr>
+	<tr><td nowrap>メンバマスター<br>を利用する</td><td>メンバマスターのIPアドレス（or FQDN）を設定することで、メンバマスターからメンバ情報を受け取ります。<br>
+	また、マスターから自セグメントのメンバ情報取得依頼を受け付けます。<br>
+	<br>
+	<strong>各セグメントで1台以上、「メンバマスターを利用する（＝マスターと協調動作）」モードで動作するIPMsgが必要です。</strong><br>（これらが協調して動作します）	<strong><br>
+	<br>
+	なるべく（マスター以外の）全PCで「メンバマスターを利用する」設定にしてください。</strong>
+	</td></tr>
+	<tr><td nowrap>メンバマスター<br>になる</td><td>メンバマスターとして動作します。<br>
+	<br>
+	<strong>LAN全体で1台だけ設定し、原則として固定IPアドレスでご利用ください。</strong><br>
+	<br>
+	マスターは、定期的にメンバ情報を収集し、変更がある場合、各セグメントに通知します。<br>
+	（「定期リフレッシュ間隔」で収集間隔を調整できます（標準＝3分）。なお退出通知を送信することなく消えたIPMsgが発生した場合、次の定期リフレッシュまでは存在しているように見えます）
+</td></tr>
+	</table>
+
+	<br>
+	参考）下記のようにマスターPCと、マスター利用PC（エージェント）が協調動作して、<br>
+	最小限のパケットでメンバ状態を最新に維持します。
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">動作イメージ図</th></tr>
+	<tr><td><img src="img/ipmsg_master_1.png"/></td></tr>
+	<tr><td><img src="img/ipmsg_master_2.png"/></td></tr>
+	<tr><td><img src="img/ipmsg_master_3.png"/></td></tr>
+	</table>
+	<br>
 	</div>
+
+<a name="detail_settings"/>
+<h3 class="help_head3">詳細設定</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">詳細設定</th></tr>
+		<tr><td nowrap>受信通知</td><td>受信時のバルーンの表示秒数を指定します</td></tr>
+		<tr><td nowrap>開封通知</td><td>開封時のバルーンの表示秒数を指定します</td></tr>
+		<tr><td>バルーン内にユーザ情報を出さない</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>引用文字</td><td>返信時の引用文字を指定します</td></tr>
+		<tr><td nowrap>送受信ホットキー</td><td>送信画面、受信画面を出すショートカットを指定します</td></tr>
+		<tr><td>「送信・返信」を「発射・迎撃」に変更</td><td>1996年0.95β版時代のラベルに戻します</td></tr>
+		<tr><td nowrap>英語UI</td><td>英語UIに変更します。（要再起動）</td></tr>
+		<tr><td nowrap>アイコン</td><td>タスクトレイ・メインアイコンを変更します</td></tr>
+		<tr><td nowrap>不在アイコン</td><td>不在時のタスクトレイアイコンを変更します</td></tr>
+		<tr><td>起動時にタスクトレイへの<br>アイコン＆通知をONにする</td><td>タスク通知領域でタスクトレイを出す設定を自動的に行います</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="sendrecv_settings"/>
+<h3 class="help_head3">送受信画面</h3>
+	<div class="help_sub_section">
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">送信</th></tr>
+		<tr><td nowrap>シングルクリックで開く</td><td>タスクトレイアイコンを1クリックで送信画面を開きます</td></tr>
+		<tr><td nowrap>IME自動ON</td><td>送信画面オープン時にIMEをONにします</td></tr>
+		<tr><td nowrap>返信時は宛先のみ表示</td><td>送信画面でオリジナルの宛先のみ表示します（ユーザリスト横の「+」ボタンで全員表示）</td></tr>
+		<tr><td nowrap>ユーザ履歴数</td><td>送信ユーザリスト右クリックで出る、送信履歴リストの上限数を設定</td></tr>
+		<tr><td nowrap>誤送信防止</td><td>メッセージ返信先が「本来の宛先(*)」と違う場合に、一旦「送信」ボタンの表示が「確認」に変化します。<br>
+	「確認」を一度押すと「送信」ボタンに戻ります。<br>
+	（(*) 本来の宛先：元メッセージの「送信者＋（自分以外の）受信者」）</td></tr>
+		<tr class="table_head"><th colspan="2">受信</th></tr>
+		<tr><td nowrap>ノンポップアップ受信</td><td>受信時にポップアップする代わりに、タスクトレイアイコンが点滅します</td></tr>
+		<tr><td nowrap>引用チェックON</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>受信時のアイコンクリックで、<br>ログビューアを開く</td><td>受信ウィンドウを開く代わりに、ログビューアを開きます</td></tr>
+		<tr><td nowrap>ログオン名表示</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>IPアドレス表示</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>返信時に受信画面を閉じない</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>受信音を出さない</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>未開封のまま再起動した場合、<br>メッセージを復元</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>受信音</td><td>（そのまま）</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="capture_settings"/>
+<h3 class="help_head3">画像/キャプチャ</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">メッセージ内の埋め込み画像</th></tr>
+		<tr><td nowrap>常に直接表示する</td><td>受信画面内に埋め込み画像をそのままインライン表示します</td></tr>
+		<tr><td nowrap>優先度ユーザのみ直接表示</td><td>送信画面で表示優先度設定したユーザの画像のみ直接表示します</td></tr>
+		<tr><td nowrap>常に画像ボタン経由で表示</td><td>（そのまま）</td></tr>
+		<tr class="table_head"><th colspan="2">画面（範囲指定）キャプチャ</th></tr>
+		<tr><td nowrap>キャプチャ開始時に送信画面を最小化</td><td>（送信画面がキャプチャの邪魔にならないように）</td></tr>
+		<tr><td nowrap>ClipboardチェックをデフォルトON</td><td>キャプチャ完了時に画像をクリップボードにもコピー</td></tr>
+		<tr><td nowrap>保存チェックをデフォルトON</td><td>キャプチャ完了時に画像ファイル保存ダイアログを出します</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="url_settings"/>
+<h3 class="help_head3">URL/Fileリンク</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">リンク関連</th></tr>
+		<tr><td nowrap>1クリックで開く</td><td>シングルクリックで開きます（標準ではダブルクリック）</td></tr>
+		<tr><td nowrap>ビューアのみ1クリックで開く</td><td>ログビューア上のリンクのみ、シングルクリックで開きます</td></tr>
+		<tr><td nowrap>通常URLのみリンクし、ファイルは対象外</td><td>リンク表示をURLのみにします。（これを有効にしても、実装上、ログビューア以外ではUNCパスおよび file:// もリンク表示されますが、クリックしても開きません）</td></tr>
+		<tr><td nowrap>許可する拡張子</td><td>ファイルへのリンクをクリックした際、確認ダイアログなしに開くことを許可する拡張子を設定します。（Explorerでのダブルクリックと同じ挙動です）</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="log_settings"/>
+<h3 class="help_head3">ログ設定</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">ログ記録関連</th></tr>
+		<tr><td nowrap>ログを記録する</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>ログファイル</td><td>保存するログファイル名を指定します。
+		<hr>
+		このフォルダに、ログビューア用ファイル(ipmsg.db)も作成されます。
+		<hr>
+		このフォルダ下の ipmsg_imageフォルダに、貼付画像ファイルが保存されます。<br>
+		このフォルダ下の ipmsg_dllinksフォルダに、添付ファイルリンクが保存されます。<br>
+		このフォルダ下の AutoSaveフォルダに、自動添付保存ファイルが保存されます。<br>
+		</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="auto_save">
+<h3 class="help_head3">自動添付ファイル保存</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">自動添付ファイル保存</th></tr>
+		<tr><td nowrap>添付ファイルの自動保存を有効にする</td><td>開封（or 本文が表示）されると、自動保存対象から外れます。<br>その場合は、手動保存してください。</td></tr>
+		<tr><td nowrap>自動保存フォルダ</td><td>無設定の場合、ログ記録フォルダ\AutoSave に保存されます。</td></tr>
+		<tr><td nowrap>表示優先度での自動保存制限</td><td>表示優先度設定されたユーザのみ、自動保存を有効にすることができます。</td></tr>
+		<tr><td nowrap>最大自動保存サイズ(MB)</td><td>自動保存される合計最大サイズを指定します。<br>
+IPMsgにユーザが触らない状態での自動受信を許容する総サイズ上限を指定します。<br>
+（ディスクを使い尽くすような、巨大ファイルや大量ファイル群の自動受信を防ぎます）</td></tr>
+		<tr><td nowrap>着信から保存開始までの猶予(sec)</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>フォルダ添付も保存する</td><td>フォルダ添付も自動受信します。自動受信済み＋フォルダ転送中の合計サイズが「最大自動保存サイズ」を超えると、転送途中であっても転送を中断します。<br>
+	（中断した場合、相手IPMsgを再起動しなければ、手動での再ダウンロードは可能です）</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="remote_settings"/>
+<h3 class="help_head3">遠隔再起動/遠隔shutdown</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">遠隔再起動</th></tr>
+		<tr><td nowrap>遠隔再起動を許可</td><td>表示されている、"ipmsg-cmd:～" を本文に張り付けたメッセージを受信すると、15秒間の実行確認ウィンドウが出たのちに再起動します。</td></tr>
+		<tr><td nowrap>更新ボタン</td><td>遠隔再起動用メッセージを変更します</td></tr>
+		<tr class="table_head"><th colspan="2">遠隔Shutdown</th></tr>
+
+		<tr><td nowrap>遠隔Shutdownを許可</td><td>表示されている、"ipmsg-cmd:～" を本文に張り付けたメッセージを受信すると、15秒間の実行確認ウィンドウが出たのちにShutdownします。</td></tr>
+		<tr><td nowrap>更新ボタン</td><td>遠隔Shutdown用メッセージを変更します</td></tr>
+
+		<tr class="table_head"><th colspan="2">遠隔IPMsg終了</th></tr>
+		<tr><td nowrap>IPMsgの遠隔終了を許可</td><td>表示されている、"ipmsg-cmd:～" を本文に張り付けたメッセージを受信すると、15秒間の実行確認ウィンドウが出たのちにIPMsgを終了します。</td></tr>
+		<tr><td nowrap>更新ボタン</td><td>IPMsg遠隔終了用メッセージを変更します</td></tr>
+		</table>
+		（何らかのトラブルで、マシンを遠隔から再起動したい場合や複数段RDPでお手軽に再起動したいときなど）
+	<br>
+	</div>
+
+<a name="labtest_settings"/>
+<h3 class="help_head3">受信転送（Slack等）</h3>
+	<div class="help_sub_section">
+		主に、画面ロック中やスクリーンセーバ動作中に届いたメッセージを、slackや他のサーバに転送します。<br>
+		なお、Slackに転送するには<a href="https://api.slack.com/incoming-webhooks" target="_blank">Slack Incoming Webhooks</a> 設定を行い、hook用URLを取得する必要があります。<br>
+		他のサーバに転送する場合は、そのURLとそのPOST内容を記述します。<br><br>
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">全体設定</th></tr>
+		<tr><td nowrap>転送モード</td><td>転送モードを選びます。（画面ロック中）モードでは、ロック開始時に溜まっていた未開封メッセージも転送します。</td></tr>
+		<tr><td nowrap>Slack用 or 汎用</td><td>Slack転送か汎用転送かを選びます。</td></tr>
+		<tr><td nowrap>テスト</td><td>実際に slack or 指定サーバにテストメッセージを送信します。エラーが発生した場合、その横にエラーメッセージが出力されます。<br>
+		参考）<a href="https://api.slack.com/incoming-webhooks#handling_errors" target="_blank">Slack handling errors</a></td></tr>
+		<tr class="table_head"><th colspan="2">Slack用</th></tr>
+		<tr><td nowrap>incoming webhook用URL</td><td>https://hook.slack.com/services 以降の /Txxxxxx/Bxxxxx/xxxxxxx の部分を記入します。<br>
+		参考) <a href="https://api.slack.com/incoming-webhooks" target="_blank">Slack Incoming Webhooks</a></td></tr>
+		<tr><td nowrap>#チャネル名/@ユーザ名</td><td>転送する #チャネル名/@ユーザ名を指定します。</td></tr>
+		<tr class="table_head"><th colspan="2">汎用</th></tr>
+		<tr><td nowrap>URLを記述</td><td>転送したいサーバのURLを記述します。</td></tr>
+		<tr><td nowrap>POST内容</td><td>POSTするデータを記述します。なお、$(sender) と $(msg) を記述すると、それぞれ「送信者」「メッセージ本文」で置換されます。</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="update"/>
+<h3 class="help_head3">自動アップデート</h3>
+	<div class="help_sub_section">
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">自動アップデート</th></tr>
+		<tr><td nowrap>定期アップデート確認を行う</td><td>定期的に最新版をチェックし、最新版がある場合、自動アップデートします。</td></tr>
+		<tr><td nowrap>確認するが、アップデートは手動で行う</td><td>最新版がある場合、バルーン通知します。バルーンクリックで確認ダイアログを出し、OKを押すとアップデートします。</td></tr>
+		<tr><td nowrap>アップデート確認</td><td>直ちに、最新版情報をチェックします。最新版がある場合、「アップデートを実行」ボタンに変化します<br>
+		</table>
+		<br>
+		<table class="help_table" border="4">
+		<tr class="table_head"><th>（仕組み・技術詳細）</th></tr>
+		<tr><td>下記の方法で（httpsを使用しつつも）通信路やサーバの安全性に依存することなく、安全なアップデートを実現しています。<br><br>
+		1) 定期的に「最新版情報」(https://ipmsg.org/ipmsg-update.dat)をダウンロードします。<br>
+		（このデータには「32bit/64bit版毎のバージョン情報」「インストーラのサイズとSHA-256ハッシュ値」「（ipmsg.org内での）インストーラのパス名（/archive/ipmsg4xxx_installer.exe等）」「（このデータの）電子署名（SHA-256 + RSA2048bit）」が IPDict形式で記載されています）<br>
+		2) 「最新版情報」ダウンロード後、その電子署名を（IPMsg埋め込み済みの）IPMsg公式公開鍵で検証します。<br>
+		3) 検証が正しい場合、自分自身のバージョン情報と比較します。<br>
+		4) もし自分自身のバージョンよりも新しいバージョン情報がある場合、「最新版情報」に記載のインストーラのパスから、インストーラをダウンロードします。<br>
+		5) ダウンロードが成功した後、「最新版情報」のハッシュ値とサイズを比較して内容を検証します。<br>
+		6) 検証が正しい場合、ipmsg.exe の横に ipmsgupd64(or32).exe という名前でインストーラを保存し、/SILENTオプション付きで実行します。<br>
+		（なお、ipmsg.exeフォルダが書き込みできない場合、テンポラリディレクトリにインストーラを保存した上で通常のインストーラ起動を行い、手動インストールを促す形になります）<br>
+		</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="backup_settings"/>
+<h3 class="help_head3">設定保存/実験</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">設定内容の外部保存</th></tr>
+		<tr><td nowrap>設定内容をファイルに書き出し</td><td>（そのまま）</td></tr>
+		<tr class="table_head"><th colspan="2">Windows Firewall関連</th></tr>
+		<tr><td nowrap>起動時に WindowsFirewall設定を確認しない</td><td>標準では、起動時に WindowsFirewallによって IPMsg へのパケットがブロックされているかを確認し、ブロックされている場合、解除するかどうかを尋ねるダイアログを出します。<br>チェックすると、確認動作をしません。</td></tr>
+		<tr class="table_head"><th colspan="2">実験中</th></tr>
+		<tr><td nowrap>受信時にアイコン変化を小さくする</td><td>（反転ではなく、太陽(?)が移動するアニメになります）</td></tr>
+		<tr><td nowrap>封書用鍵機能を使う</td><td>v3.xまで存在した「鍵」UI機能を復活させます（要再起動）</td></tr>
+		<tr><td nowrap>デスクトップ非アクティブで [離席中] に</td><td>スクリーンセーバー起動等で、デスクトップの非アクティブを検出すると、名前に [離席中] を付与します。</td></tr>
+		</table>
+	<br>
+	</div>
+
 
 </div>
-
 
 <a name="misc"/>
-<h2 class="help_head2">6. その他</h2>
+<h2 class="help_head2">5. 使用ポート・レジストリ</h2>
 <div class="help_section">
 
-設定は、レジストリの \\HKEY_CURRENT_USER\Software\HSTools\IPMsg に
-保存しています。（ポート番号指定の場合、IPMsg＋ポート番号）
-レジストリを変更した場合は、IPMSG を再起動してください。
+通常、UDP/TCPポートの2425番を使っています。（ポート指定起動をしない場合）<br>
+（ファイル添付・画像貼付・メンバマスターを使用しない場合は、UDP/2425番のみ）<br>
+（WindowsFirewall等が有効になっている場合は、これらのポートを開いておく必要があります）
 <br><br>
 
-錠前付き封書用のパスワード文字列は、エンコードしてレジストリに保存
-していますが、不可逆変換にはなってませんので、ご注意ください。
+設定は、レジストリの \\HKEY_CURRENT_USER\Software\HSTools\IPMsg に保存しています。<br>
+（ポート番号指定の場合、IPMsg＋ポート番号）<br>
+レジストリを変更する場合は、事前に IPMSG を終了してください。
 <br><br>
 
-<div class="help_license">
-パスワードを忘れた場合は、レジストリの \\HKEY_CURRENT_USER\Software\HSTools\IPMsg\PasswordStr を削除してください。
 </div>
 
-<br>
-
-通常、TCP/UDPポートの2425番（「<a href="#cmdline">■コマンドライン</a>」参照）を使っています。
-ただし、ファイル添付しない場合は、UDP/2425番のみ使用します。
-（ファイアウォール系ソフトや機能が有効になっている場合は、これら
-  のポートを開いておく必要があります）
-<br><br>
-
-ブロードキャストは「起動/終了」「不在モード変更」「更新ボタンの押下時」
-「設定でユーザ名/グループ名変更」の場合のみ発行しています。
-</div>
-
-
-<a name="wan"/>
-<h2 class="help_head2">7. ルータ越えの設定について（LocalNetwork以外へのBroadcast設定）</h2>
-<div class="help_section">
-
-ブロードキャストアドレスは、相手先のIPアドレスのうち、ホスト部分の
-ビットをすべて1にした値になります。たとえば、相手先のネットワークが
-クラスＣ(network 24bit, host 8bit)で、IPアドレスが aaa.bbb.ccc.ddd
-の場合、aaa.bbb.ccc.255 になります（サブネットを使っている場合は、
-この限りではありません）。これ以上、詳しく知りたい場合は、TCP/IPの
-書籍やネットワーク管理者の方などにお聞きになってください。
-<br><br>
-環境によって、認識しないことがあります。（ルータがネットワーク指定
-のブロードキャストを通さない設定になっている場合など）
-どうしても認識しない場合には、ルータ越えホストのIPアドレス群を直接、
-ブロードキャスト先として、登録してください(^^;
-<br><br>
-
-ダイアルアップ接続の場合、設定の「ダイアルアップ接続」をチェック
-しておくと、接続先メンバーによる「更新」動作でも、メンバリストから
-消えることなく、正常に動作するようになります。
-</div>
-
-
-<a name="firewall">
-<h2 class="help_head2">8. メンバ認識、ファイル転送、画像添付で問題があるとき</h2>
+<a name="problem">
+<h2 class="help_head2">6. よくあるトラブル</h2>
 <div class="help_section">
 IP Messenger は、メンバ認識およびメッセージ通信に <strong>2425/UDPポート</strong>、ファイル添付/画像添付に <strong>2425/TCPポート</strong>を利用します。<br>
 OS やアンチウイルス系ソフトによって、これらのポートが塞がれていると、正しく動作しませんので、開けるように設定してください。<br>
 <br>
-最近のルータは、別セグメント宛のブロードキャストをブロックする場合があります。<br>
-その場合は、http://ipmsg.org にリンクがあります、福島さん作の IP Messenger Exchanger Server などを利用すると良いでしょう。<br>
-<br>
-また、CISCOルータは別セグメント宛のブロードキャストを limited broadcast(255.255.255.255) に変換する場合があります。<br>
-これに加えて、別セグメントからの limited broadcast を捨てるアンチウイルス系ソフトがあると、正しく認識できないことがあります。
+最近のルータは、ネットワーク指定ブロードキャストをブロックすることが多いため、ルータ越えには<a href="#master">メンバマスター設定</a>をお使いください。
 
-<br><br>
 </div>
 
 
 <a name="cmdline">
-<h2 class="help_head2">9. コマンドライン</h2>
+<h2 class="help_head2">7. コマンドライン</h2>
 <div class="help_section">
 
-デフォルトで UDPとTCP の 2425ポートを使いますが、コマンドラインで
-ポート指定することによって、別セッションを開くことができます。
-たとえば「ipmsg.exe 2426」などと実行すると、同じく 2426指定で
-IPMsgを立ちあげている人だけと、通信できるようになります。
-もちろんポート番号毎に IPMsgを複数立ちあげることも可能です。
-<br><br>
-
-なお、ポート番号は 1024番以降を指定するようにしてください。
-また、他の用途に使われているポート（たとえば NFSの多くは 2049/UDP
-を使用しています）もありますので、詳しくはネットワーク管理者の方に
-ご確認されることをお勧めします。
-<br><br>
-
-コマンドラインでのメッセージ送信の書式は以下の通りです。<br>
-&nbsp;C:\&gt; ipmsg.exe [port] /MSG [/LOG][/SEAL] &lt;hostname or IPaddr&gt; &lt;message&gt; <br>
-（なお、/MSG を /MSGEX に変更すると message 内の \n を改行に置換して送信します）<br>
+v4.5 から、専用コマンド(ipcmd.exe)が増設されました。<br>
+（タスクトレイのIPMsgアイコン（<img src="img/ipmsg_tasktray.png"/>）右クリック → 最新版＆ヘルプ等 → インストール先フォルダ、でipcmd.exeの親フォルダを開くことが出来ます）<br>
 <br>
+ipmsg本体を常駐させた上で、ipcmd.exeを使うと、不在モードの取得・変更や、メッセージ送信に加えて、メッセージ受信も可能になります。<br>
+（受信と送信を組み合わせたバッチを書けば、転送的の動作も可能のはず）<br>
+<br>
+書式: <strong>ipcmd [/port=N] [/nic=ipaddr] [/nostat] サブコマンド...</strong>
 
-例：自分宛てに Hello という封書を送る<br>
-&nbsp;C:\&gt; ipmsg.exe /MSG /SEAL localhost Hello.<br>
+	<table class="help_table" border="4">
+	<tr class="table_head"><th colspan="2">サブコマンド</th></tr>
+	<tr class=""><th>不在モード取得</th><td>getabs</td></tr>
+	<tr class=""><th>不在モード設定</th><td>setabs (0|1|...|N)</td></tr>
+	<tr class=""><th>ユーザリスト取得</th><td>list</td></tr>
+	<tr class=""><th>ユーザリスト更新</th><td>refresh [/noremove]</td></tr>
+	<tr class=""><th>メッセージ送信</th><td>
+						send [/file=path1 /file=path2...] [/noseal]<br>
+						"(uid|ipaddr|ALL)[,uid...]"<br>
+						("msg_body" | /msgfile=path)<br>
+						</td></tr>
+	<tr class=""><th>メッセージ受信</th><td>recv [/msgfile=path]</td></tr>
+	<tr class=""><th>状態</th><td>state</td></tr>
+	<tr class=""><th>IPMsg終了</th><td>terminate</td></tr>
+	</table>
+	<br>
+	例) メッセージ送信: ipcmd send "shirouzu-&lt;09b167745f2bdf56&gt;" test<br>
+	例) 不在モード設定: ipcmd setabs 1<br>
+<br>
+<h3 class="help_head3">7. コマンドライン</h3>
+<strong>ipmsg.exeのコマンドライン引数について</strong><br>
+デフォルトで UDPとTCP の 2425ポートを使いますが、コマンドラインでポート指定することによって、別セッションを開くことができます。<br>
+たとえば「ipmsg.exe 2426」などと実行すると、同じく 2426指定でIPMsgを立ちあげている人だけと、通信できるようになります。<br>
+ポート番号毎に IPMsgを複数立ちあげることも可能です。
+<br>
 
 </div>
 
 <a name="support">
-<h2 class="help_head2">10. サポートについて</h2>
+<h2 class="help_head2">8. サポートについて</h2>
 <div class="help_section">
-
-サポートは、下記のURLの掲示板で行っています。<br>
-  （最新版は常にこの URL にあります）
-    <a href="http://ipmsg.org">http://ipmsg.org</a>
+ご質問・ご要望は、下記のURLの<a href="https://groups.google.com/forum/#!forum/ipmsg-bb" target="_blank">「掲示板」</a>で受け付けています。<br>
+（商用改変等に伴うお問い合わせは shirouzu@ipmsg.org までご連絡ください）
 <br><br>
 
-障害報告の場合、バージョン, OS, 発生状況（できれば再現方法）を教えていただきますと助かります。
+障害報告の場合、バージョン, OS, 発生状況、再現方法などをなるべく詳しく記述してください。
 <br><br>
-
-典型的な質問等は、上記URLの「ご意見のページ」に載っていますので、
-  一度ご覧ください。
 
 </div>
 
-<a name="ToDo">
-<h2 class="help_head2">11. ToDo</h2>
+<a name="tips">
+<h2 class="help_head2">9. tips/ショートカット</h2>
 <div class="help_section">
 
-・画像表示可能なログビューア<br>
+	<table class="help_table" border="4">
+	<tr class="table_head"><th>機能</th><th>説明</th></tr>
+	<tr><th nowrap>ほぼ全てのウィンドウ</th>
+	<td>
+		ショートカット Ctrl-[W] を押すとウィンドウを閉じることが出来ます。
+	</td></tr>
+	<tr><th nowrap>送信/受信/ログ画面を開く</th>
+	<td>
+		ショートカットを使うと楽です。<br>
+		（標準では Ctrl+Alt - [S][R][E] ）<br>
+		送信/受信/ログ画面では、ボスがきたキー(Ctrl-[D])が使えます。
+	</td></tr>
+	<tr><th nowrap>送信画面</th>
+	<td>
+		CTRL-[F] でユーザのインクリメンタル検索ができます。<br>
+		ユーザ選択→右クリックから、表示優先度を設定しておくと便利です。<br>
+		ユーザをダブルクリックで、当該ユーザのログを開きます。<br>
+		ユーザリスト右クリックから、最近送信したユーザリスト（「ユーザ履歴」）も使えます。<br>
+		画像を右クリックすると、再編集や画像ファイル保存が可能です。<br>
+		Shift + Ctrl + 右クリックを押しながら送信すると、相手のバージョンが取得出来ます。<br>
+		Ctrl + 更新ボタンを押すと、既存ユーザリストを残したまま更新します。<br>
+	</td></tr>
+	<tr><th nowrap>受信画面</th>
+	<td>
+		画像を右クリックすると、ファイル名を指定して保存が可能です。<br>
+		送信画面に画像をドラッグ＆ドロップすることができます。
+	</td></tr>
+	<tr><th nowrap>ログビューア</th>
+	<td>
+		各種キーボードが使えます。<br><br>
+		[Space][Ret] 次のメッセージに移動。(+SHIFTで前のメッセージに移動）<br>
+		Ctrl-[T] or [Home] メッセージ先頭にジャンプ<br>
+		Ctrl-[B] or [End] メッセージ末尾にジャンプ<br>
+		Ctrl-[R] 返信（明示的なカレントメッセージ(*)があるときのみ）<br>
+		Ctrl-[S] 送信ウィンドウを開く<br>
+		Ctrl-[F] 検索窓にフォーカス（トグル）<br>
+		Ctrl-[N] 検索結果のみ表示（トグル）<br>
+		Ctrl-[U] ユーザ文字列検索（トグル）<br>
+		Ctrl-[Q] ヘッダ一覧モード（トグル）<br>
+		Ctrl-[C] 選択領域のコピー<br>
+		Ctrl-[V] クリップボード内容をペースト
+		<br>
+		検索では、AND/OR/NOT検索が可能です<br>
+		AND: "AAA BBB"<br>
+		OR: "AAA OR BBB"<br>
+		NOT: "AAA NOT BBB"（NOTを先頭には使えません）<br>
+		<br>
+		(*) 明示的なカレントメッセージ(**)＝マウスクリックによるメッセージ選択、[Ret]によるメッセージ移動など。<br>
+		(**) カレントメッセージ＝左端にグレーの縦棒の付いたメッセージ
+
+	</td></tr>
+	</table>
 </div>
 
 <a name="history"/>
-<h2 class="help_head2">12. 履歴</h2>
+<h2 class="help_head2">10. 履歴</h2>
 <div class="help_section">
 
 <table class="help_table" border="4">
-<tr><th>Version</th><th>説明</th></tr>
-<tr><td>v3.64</td><td>
-画像キャプチャ用マーカ機能で、吹き出し文字列背景を不透明に変更。<br>
-XP環境+コマンドライン送信でエラーになることがあったのを修正
+<tr class="table_head"><th>Version</th><th>説明</th></tr>
+<tr><td>v4.80</td><td>
+<a href="#update">自動アップデート機能</a>を追加<br>
+<a href="#labtest_settings">受信転送機能</a>で、Slack以外を指定可能な汎用モードを追加<br>
+送り手側が再起動しても、添付ファイルをダウンロードできるように。<br>
+その他リファイン（例外時にミニダンプ出力、コンパイラをVS2017に変更等）
 </td></tr>
-<tr><td>v3.63</td><td>
-Win10(x64)で起動時に例外が発生することがあったのを修正。<br>
-その他リファイン
+<tr><td>v4.70</td><td>
+<a href="#labtest_settings">画面ロック中着信のSlack転送機能（実験）</a>の追加。<br>
+<a href="#master">メンバマスター</a>で、exit通知なく停止したPCの自動メンバ削除が、伝搬しない問題の修正（v4.61のみ）。<br>
+重複した<a href="#cmdline">ipcmd</a>が実行できない問題の修正。<br>
+ipcmd recv で /msgfile= が動作しない問題の修正。<br>
+WinXP/Server2003で動作しない問題を修正。（なお、Server2003ではSHA256が使えないため、メンバマスター機能は利用できません）
 </td></tr>
-<tr><td>v3.62</td><td>
-Win10(x86)で起動時に例外が発生することがあったのを修正。
+<tr><td>v4.61</td><td>
+インストーラにおける、DLLプリロード攻撃対策。<br>
+スクリーンセーバ連動リネーム機能（その他/Firewall→実験中）を、ロックスクリーンや省電力モニタ電源OFF（非RDP時）でも動作するように。
 </td></tr>
-<tr><td>v3.61</td><td>
-英語モードで多言語入力ができなくなっていたのを修正。
+<tr><td>v4.60</td><td>
+ログビューアに「添付ファイルメッセージ絞込ボタン」を追加。<br>
+ログビューア表示の各種改良。<br>
+ - 末尾引用部を折り畳み表示に（設定変更可）<br>
+ - 非表示領域に跨ったメッセージのヘッダが常に表示されるように<br>
+ - unicode IVS表示/検索に対応
+返信時、先頭＆末尾の二重引用部は引用しないように。（設定変更可）<br>
+返信時、カーソル位置を先頭に。（設定変更可）<br>
+インストーラ・アンインストーラの改良。<br>
+専用コマンドライン（ipcmd.exe）が管理者権限でも動作するように。<br>
+v4.50未満の未開封メッセージの復元が失敗することがあったのを修正。<br>
+一部の環境で、インストール中のFwAPI内での例外発生に対する暫定対処。
 </td></tr>
-<tr><td>v3.60</td><td>
+<tr><td>v4.50</td><td>
+<a href="#master">メンバマスター機能</a>（ルータ越え自動メンバ認識＆連携）を追加。<br>
+<a href="#cmdline">専用コマンド(ipcmd.exe)</a>を増設し、不在設定変更、受信メッセージ取得、ファイル添付付きメッセージ送信などをコマンドラインから行えるように。<br>
+電子署名の<a href="#recv">SHA-256対応。</a><br>
+ログビューアに表示される添付ファイルを直接開けるように。<br>
+（Distributed Link Trackingにより、ファイル移動後も（可能な限り）追随します。v4.50以降の送受信メッセージから）<br>
+開封履歴から、メッセージ内容（の一部）が参照できるように。<br>
+ファイル転送高速化。<br>
+ベトナム語入力(UniKey)に対応。<br>
+古く弱い暗号モード（RSA(512bit)/RC2(40bit)）を正式廃止。<br>
+Wine環境への対応を強化。（自動環境判定＆電子署名・指紋が使えるように）<br>
+スクリーンセーバ連動で [離席中]に変更するオプション。（「その他/Firewall」）<br>
+メッセージ復元で貼付画像が表示されない問題の修正。<br>
+ログビューアのテキストログ取り込みで、SJIS/UTF-8が混在する場合にも対応。<br>
+ログビューアのサロゲートペア対応を強化。<br>
+新プロトコルフォーマット導入。(IPDict)
+</td></tr>
+<tr><td>v4.01 - v4.11</td><td>
+32bit版で、開封情報がログビューアに反映しないことがあったのを修正。<br>
+日本語を含むユーザ名でインストールに失敗する問題の修正。<br>
+返信用送信画面は「宛先のみ表示」をデフォルトに。（横の+ボタンで全員表示。設定で変更可）<br>
+Win10 Anniv.の一部環境で着信時に固まる現象に対処。（ToastAPI側の問題。別スレッド化で回避）<br>
+未開封受信数上限を100→300に変更。（HKCU\Software\HSTools\IPMsg\RecvMaxで変更可）
+宛先確認がユーザ出入りで狂う問題の修正。<br>
+Win7/Vista/XP で送受信画面でURLリンクが有効にならない問題の修正。<br>
+鍵設定を復活可能に。（設定→その他）<br>
+32bit版でのファイル転送速度を改良。<br>
+</td></tr>
+<tr><td>v4.00</td><td>
+・インライン画像表示＆全文検索＆ユーザ絞込が可能な、<a href="#logview">内蔵ログビューア</a>を追加。<br>
+・複数宛先メッセージの返信で、宛先全員の自動選択が可能に。（プロトコル拡張のため、v4.0以降同士の通信のみ）<br>
+・誤送信防止オプション（宛先変更検出）を追加。<br>
+・Windows Firewall で通信がブロックされている場合、昇格＆FW例外登録を行えるように。<br>
+・標準インストール先を \Users\(username)\AppData\Local\IPMsg に変更。<br>
+<br>
+（小改良）<br>
+・送信・返信ボタンへのマウスオーバーで宛先確認表示。<br>
+・サスペンド/休止時にExitパケットを送信し、レジューム時にEntryパケットを送信するように。<br>
+・Win10で、着信トースト表示は受信ウィンドウを開くと同時に消えるように。（iptoast.dllを追加）<br>
+・暗号ファイル転送モードの改良。（暗号転送はv4.0以降同士のみで有効に）<br>
+・16bitカラー環境で画像の貼付表示ができないことがあったのを修正。<br>
+・ユーザリスト並べ替え時、選択が解除されないように。
+</td></tr>
+<tr><td>v3.50 - v3.64</td><td>
 添付ファイルの自動保存オプションを追加。<br>
 未開封（or 非表示）のまま再起動した場合に再表示するように。<br>
-（再表示での添付ファイル情報は、送信元がv3.52以前の場合は利用できません。[自動保存済の添付ファイルを除く]）<br>
-その他リファイン。
-</td></tr>
-<tr><td>v3.52</td><td>
-最小化時のタスクトレイ表示の手動設定を不要に。
-</td></tr>
-<tr><td>v3.51</td><td>
-コマンドラインでポート番号指定が効かない問題を修正。<br>
-XPでバルーン通知が出ない問題を修正。
-</td></tr>
-<tr><td>v3.50</td><td>
-添付ファイルダウンロードの暗号通信(AES-CTR256)対応（＆要求リクエストの電子署名追加）。<br>
+添付ファイルダウンロードの暗号通信(AES-CTR256)対応。（＆要求リクエストの電子署名追加）<br>
 IPv6マルチキャストに対応。<br>
 画像キャプチャ用マーカ機能で吹き出し矢印モードを追加。<br>
 画像の再編集機能（画像右クリックで選択）を追加。<br>
 画像ファイルの貼付を追加。<br>
-libpng から GDI+ に画像処理ルーチンを移行（セキュリティ対応用）。<br>
+libpng から GDI+ に画像処理ルーチンを移行。（セキュリティ対応用）<br>
 遠隔リブート＆シャットダウン機能を追加。<br>
-複数行コマンドライン送信(/MSGEX）を増設（文中の\nを改行に置換）。<br>
+複数行コマンドライン送信(/MSGEX）を増設。（文中の\nを改行に置換）<br>
 ショートカットキーを任意のキー組み合わせに設定可能に。<br>
 </td></tr>
-<tr><td>v3.42</td><td>
-libpng を更新。（1.5.9 -> 1.5.10）<br>
-クラシックスタイルで、一部ボタンラベルが出ない問題を修正。<br>
-（Windows2000対応は、このバージョンまでの予定）
-</td></tr>
-<tr><td>v3.41</td><td>
+<tr><td>v3.00 - v3.42</td><td>
+（Windows2000対応は、このバージョンまで）<br>
 画面キャプチャへのマーキング機能をサポート。<br>
-libpng を更新。（1.5.4 -> 1.5.9。VU#523889 対策）<br>
-送信画面UI を若干変更。<br>
-貼付画像は直接表示をデフォルトに。<br>
-貼付画像→右クリックメニューから画像保存可能に。
-</td></tr>
-<tr><td>v3.32</td><td>
-優先度設定ユーザからの貼付画像は直接表示をデフォルトに。<br>
-保存画像ファイル名にメッセージ内位置情報を追加。<br>
-英語モード設定画面の文字化けを修正。(v3.31のみ)
-</td></tr>
-<tr><td>v3.31</td><td>
 設定内容のファイル書き出し機能の追加。<br>
-バルーン表示時間を30秒を越えて任意の長さに。（Vista以降のみ）<br>
-設定画面でログファイル指定ボタンが無視されていたのを修正。
-</td></tr>
-<tr><td>v3.30</td><td>
 画面（範囲指定）キャプチャ機能をサポート。<br>
-バルーン通知の表示時間等をコントロール可能に。<br>
-libpng を更新。（1.5.2 -> 1.5.4。VU#819894 対策）<br>
-その他、リファイン。
-</td></tr>
-<tr><td>v3.21</td><td>
-画像貼付メッセージ受信すると、フォアグラウンドウィンドウのフォーカスが奪われることがあったのを抑止。<br>
 64bit版リリース。
-</td></tr>
-<tr><td>v3.20</td><td>
 ユーザ（送信）履歴による送信先選択のサポート。<br>
-IPMSGアイコンのシングルクリックで送信ウィンドウが開くように（詳細設定で変更可）。<br>
-旧方式開封を選択可能に。<br>
-デスクトップがアクティブでない状態（スクリーンセーバー起動時等）での開封情報は、デスクトップアクティブ時に遅延通知するように。<br>
-未開封モニタを改良。<br>
-その他、リファイン。
-</td></tr>
-<tr><td>v3.10</td><td>
-ユーザのインクリメンタル検索化(Ctrl+F)＆検索開始時に IME OFF（設定変更可能）。<br>
-受信時およびログ記録のヘッダフォーマットを変更。<br>
-送信リストのステータスアイコン改良。<br>
-設定ダイアログを大幅変更（＆一部パラメータのデフォルト値が変化）。<br>
+ユーザのインクリメンタル検索化(Ctrl-[F])＆検索開始時に IME OFF するように。（設定変更可能）<br>
 EXEインストーラ化＆UAC環境でのインストールは特権昇格条件を必要最小限にできるように。<br>
-開封バルーンの表示時間を短く＆の内容を簡略化。<br>
-タスクトレイのポップアップ表示に未開封数を追加。<br>
-貼付画像表示ボタンを押した場合に、無駄にスクロールしないように。<br>
-貼付画像を受け取れない相手には、極力、添付情報を送らないように。<br>
-空メッセージ送信時に警告。<br>
-ESCキーで送受信画面をクローズしないように。<br>
-スクリーンロック時にノンポップアップ受信すると受信ウィンドウが開かないことがあったのを修正。
-</td></tr>
-<tr><td>v3.00</td><td>
+<br>
 画像貼り付けメッセージを機能の追加。<br>
 多言語化通信のサポート。<br>
 開封ウィンドウをバルーン通知＋未開封モニタに変更。<br>
 RSA2048bit/AES256bit暗号化通信のサポート。<br>
 RSA+SHA-1によるメッセージ署名/検証のサポート＆公開鍵指紋付きユーザ名拡張。<br>
 自セグメントへの Directed/Limited Broadcast の選択を可能に。<br>
-送信画面に右クリックメニュー代替ボタンを追加。</td></tr>
 <tr><td>v2.10</td><td>受信バルーン表示サポート。</td></tr>
 <tr><td>v2.00</td><td>ファイル/フォルダ添付機能、RSA+blowfishによる暗号通信の追加。</td></tr>
 <tr><td>v1.00</td><td>正式公開版(96/08/19)</td></tr>
 </table>
+
+</div>
+
 
 </div>
 

@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2013-2014   taskbarui.h	Ver3.50 */
+/*	@(#)Copyright (C) H.Shirouzu 2013-2016   taskbarui.h	Ver4.00 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Taskbar UI for Win7
 	Create					: 2013-03-03(Sun)
-	Update					: 2014-04-14(Mon)
+	Update					: 2016-08-17(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

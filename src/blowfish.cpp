@@ -11,6 +11,8 @@
 #include "blowfish.h"
 #include "blowfish.h2"	// holds the random digit tables
 
+typedef unsigned _int64 u64;
+
 #define S(x,i) (SBoxes[i][x.w.byte##i])
 #define bf_F(x) (((S(x,0) + S(x,1)) ^ S(x,2)) + S(x,3))
 #define ROUND(a,b,n) (a.dword ^= bf_F(b) ^ PArray[n])
@@ -154,7 +156,7 @@ inline void change_order(DWORD *val)
 DWORD CBlowFish::Encrypt(const BYTE *pInput, BYTE *pOutput, DWORD lSize, int mode, BYTE *_IV)
 {
 	DWORD 	lCount, lOutSize, *dwOutput = (DWORD *)pOutput;
-	_int64	IV = 0;
+	u64		IV = 0;
 
 	if (_IV) memcpy(&IV, _IV, sizeof(IV));
 
@@ -167,7 +169,7 @@ DWORD CBlowFish::Encrypt(const BYTE *pInput, BYTE *pOutput, DWORD lSize, int mod
 	for (lCount = 0; lCount < lOutSize; lCount += BF_BLKSIZE)
 	{
 		if (mode & BF_CBC)
-			*(_int64 *)dwOutput ^= IV;
+			*(u64 *)dwOutput ^= IV;
 
 		change_order(dwOutput); change_order(dwOutput + 1);
 
@@ -176,7 +178,7 @@ DWORD CBlowFish::Encrypt(const BYTE *pInput, BYTE *pOutput, DWORD lSize, int mod
 		change_order(dwOutput); change_order(dwOutput + 1);
 
 		if (mode & BF_CBC)
-			IV = *(_int64 *)dwOutput;
+			IV = *(u64 *)dwOutput;
 		dwOutput += 2;
 	}
 
@@ -188,8 +190,8 @@ DWORD CBlowFish::Encrypt(const BYTE *pInput, BYTE *pOutput, DWORD lSize, int mod
 DWORD CBlowFish::Decrypt(const BYTE *pInput, BYTE *pOutput, DWORD lSize, int mode, BYTE *_IV)
 {
 	DWORD	lCount, *dwOutput = (DWORD *)pOutput;
-	_int64	prevIV = 0;
-	_int64	IV = 0;
+	u64		prevIV = 0;
+	u64		IV = 0;
 
 	if (_IV) memcpy(&IV, _IV, sizeof(IV));
 
@@ -201,7 +203,7 @@ DWORD CBlowFish::Decrypt(const BYTE *pInput, BYTE *pOutput, DWORD lSize, int mod
 		if (mode & BF_CBC)
 		{
 			prevIV = IV;
-			IV = *(_int64 *)dwOutput;
+			IV = *(u64 *)dwOutput;
 		}
 
 		change_order(dwOutput); change_order(dwOutput + 1);
@@ -211,15 +213,18 @@ DWORD CBlowFish::Decrypt(const BYTE *pInput, BYTE *pOutput, DWORD lSize, int mod
 		change_order(dwOutput); change_order(dwOutput + 1);
 
 		if (mode & BF_CBC)
-			*(_int64 *)dwOutput ^= prevIV;
+			*(u64 *)dwOutput ^= prevIV;
 		dwOutput += 2;
 	}
 
 	if (mode & BF_PKCS5)
 	{
 		DWORD	paddingLen = pOutput[lCount - 1];
-		if (paddingLen <= 0 || paddingLen > BF_BLKSIZE || pOutput[lCount - paddingLen] != paddingLen)
+		if (paddingLen == 0 ||
+			paddingLen > BF_BLKSIZE ||
+			pOutput[lCount - paddingLen] != paddingLen) {
 			return	0;	// error
+		}
 		pOutput[lCount -= paddingLen] = 0;
 	}
 	return	lCount;
