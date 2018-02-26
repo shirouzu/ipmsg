@@ -297,11 +297,13 @@ BOOL TChildView::UserPopupMenu()
 }
 
 int host_to_str(LogHost *host, WCHAR *buf) {
+	WCHAR	*s = buf;
+
 	if (host->gname) {
-		return	swprintf(buf, L"%s (%s/%s/%s/%s)", host->nick.s(), host->gname.s(),
+		return	swprintf(s, L"%s (%s/%s/%s/%s)", host->nick.s(), host->gname.s(),
 			host->host.s(), host->addr.s(), host->uid.s());
 	}
-	return	swprintf(buf, L"%s (%s/%s/%s)", host->nick.s(), host->host.s(), host->addr.s(),
+	return	swprintf(s, L"%s (%s/%s/%s)", host->nick.s(), host->host.s(), host->addr.s(),
 		host->uid.s());
 }
 
@@ -930,6 +932,9 @@ BOOL TChildView::EvMouseWheel(WORD fwKeys, short zDelta, short xPos, short yPos)
 }
 
 
+//static int scr_cnt=0;
+
+
 BOOL TChildView::EventScroll(UINT uMsg, int nScrollCode, int nPos, HWND hScroll)
 {
 	int		idx_sv = curIdx;
@@ -949,7 +954,16 @@ BOOL TChildView::EventScroll(UINT uMsg, int nScrollCode, int nPos, HWND hScroll)
 			break;
 
 		case SB_LINEDOWN:
-			scrOffPix = -headCy;
+//			scrOffPix = -headCy / 3;
+//			scr_cnt++;
+//			if (scr_cnt == 1) {
+//				SetTimer(SCROLL_TIMER, 10);
+//			}
+//			if (scr_cnt == 3) {
+//				scr_cnt = 0;
+//				KillTimer(SCROLL_TIMER);
+//			}
+//			Debug("draw %d\n", scr_cnt);
 			break;
 
 		case SB_LINEUP:
@@ -1072,6 +1086,10 @@ BOOL TChildView::EvTimer(WPARAM timerID, TIMERPROC proc)
 			}
 		}
 		break;
+
+//	case SCROLL_TIMER:
+//		EventScroll(WM_VSCROLL, SB_LINEDOWN, 0, 0);
+//		break;
 	}
 
 	return	FALSE;
@@ -1625,8 +1643,16 @@ BOOL TChildView::EvMouseMoveCore(UINT fwKeys, POINTS pos)
 					LoadStrW(IDS_OPENRECVMSG) : LoadStrW(IDS_UNOPENMSG));
 			}
 			else if (item->kind & Item::USER) {
+				WCHAR	*s = mbuf1;
 				LogHost	&host = msg->msg.host[item->user_idx];
-				host_to_str(&host, mbuf1);
+
+				if (auto t = msgid_to_time(host.flags)) {
+					WCHAR	wdate[128];
+					MakeDateStrEx(t, wdate, msg->msg.date);
+					s += snwprintfz(s, wsizeof(mbuf1), LoadStrW(IDS_OPENED_FMT), wdate);
+					s += wcscpyz(s, L"  ");
+				}
+				host_to_str(&host, s);
 
 	//		Debug("msg_id=%d kind=%d/%d/%d rc=%d/%d/%d/%d\n",
 	//			item->msg_id, item->kind, item->kind_no, item->body_len,

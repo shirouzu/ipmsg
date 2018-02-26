@@ -223,7 +223,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <DelayLoadDLLs>user32.dll;winmm.dll;Comctl32.dll;crypt32.dll;Shlwapi.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>user32.dll;winmm.dll;Comctl32.dll;crypt32.dll;Shlwapi.dll;Netapi32.dll;Wininet.dll</DelayLoadDLLs>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -271,7 +271,7 @@
       <SetChecksum>true</SetChecksum>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <DelayLoadDLLs>user32.dll;winmm.dll;Comctl32.dll;crypt32.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>user32.dll;winmm.dll;Comctl32.dll;crypt32.dll;Netapi32.dll;Wininet.dll</DelayLoadDLLs>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>

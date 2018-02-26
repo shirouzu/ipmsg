@@ -141,7 +141,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>..\..\lib\tlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DelayLoadDLLs>user32.dll; imm32.dll; Shlwapi.dll; winmm.dll; ws2_32.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>user32.dll; imm32.dll; Shlwapi.dll; winmm.dll; ws2_32.dll;Netapi32.dll;Wininet.dll</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
       <Command>xcopy ..\..\obj\ReleaseTlib\*.obj obj\ReleaseTlib\ /Y /Q</Command>
@@ -170,14 +170,13 @@
       <SetChecksum>true</SetChecksum>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
-      <DelayLoadDLLs>user32.dll; imm32.dll; winmm.dll; ws2_32.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>user32.dll; imm32.dll; winmm.dll; ws2_32.dll;Netapi32.dll;Wininet.dll</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
       <Command>xcopy ..\..\x64\obj\ReleaseTlib\*.obj x64\obj\ReleaseTlib\ /Y /Q</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\ipdict.cpp" />
     <ClCompile Include="..\ipipc.cpp" />
     <ClCompile Include="..\miscfunc.cpp" />
     <ClCompile Include="cmdwin.cpp" />

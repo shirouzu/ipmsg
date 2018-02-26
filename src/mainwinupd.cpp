@@ -20,7 +20,7 @@ void TMainWin::UpdateCheckTimer()
 	time_t	now = time(NULL);
 
 	if (now - cfg->updateLast > cfg->updateSpan) {
-		UpdateCheck(UPD_SHOWERR | UPD_BUSYCONFIRM |
+		UpdateCheck(UPD_BUSYCONFIRM |
 			(((cfg->updateFlag & Cfg::UPDATE_MANUAL || !UpdateWritable())) ? UPD_CONFIRM : 0));
 	}
 }
@@ -46,12 +46,12 @@ BOOL TMainWin::UpdateCheck(DWORD flags, HWND targ_wnd)
 	updData.flags = flags;
 	updData.hWnd = targ_wnd;
 	updRetry = FALSE;
-	InetAsync(IPMSG_SITE, IPMSG_UPDATEINFO, hWnd, WM_IPMSG_UPDATERES);
+	TInetAsync(IPMSG_SITE, IPMSG_UPDATEINFO, hWnd, WM_IPMSG_UPDATERES);
 
 	return	TRUE;
 }
 
-BOOL TMainWin::UpdateCheckResCore(InetReqReply *irr, BOOL *need_update)
+BOOL TMainWin::UpdateCheckResCore(TInetReqReply *irr, BOOL *need_update)
 {
 	*need_update = FALSE;
 
@@ -124,7 +124,7 @@ BOOL TMainWin::UpdateCheckResCore(InetReqReply *irr, BOOL *need_update)
 	return	TRUE;
 }
 
-void TMainWin::UpdateCheckRes(InetReqReply *irr)
+void TMainWin::UpdateCheckRes(TInetReqReply *irr)
 {
 	BOOL	need_update = FALSE;
 	BOOL	ret = UpdateCheckResCore(irr, &need_update);
@@ -171,11 +171,11 @@ BOOL TMainWin::UpdateExec()
 	if (updData.path.Len() <= 0) {
 		return FALSE;
 	}
-	InetAsync(IPMSG_SITE, updData.path.s(), hWnd, WM_IPMSG_UPDATEDLRES);
+	TInetAsync(IPMSG_SITE, updData.path.s(), hWnd, WM_IPMSG_UPDATEDLRES);
 	return	TRUE;
 }
 
-void TMainWin::UpdateDlRes(InetReqReply *irr)
+void TMainWin::UpdateDlRes(TInetReqReply *irr)
 {
 	BYTE	hash[SHA256_SIZE] = {};
 	TDigest	d;

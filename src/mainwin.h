@@ -153,6 +153,36 @@ public:
 
 enum UpdIdleState { UPDI_IDLE=0, UPDI_WIN=1, UPDI_TRANS=2 };
 
+struct RecvCmd {
+	HWND	hWnd;
+	int64	flags;
+};
+
+struct DosHost : public TListObj {
+	DosHost() {
+		Init();
+	}
+	void Init() {
+		addr.Init();
+		portNo = 0;
+		cnt  = 0;
+		tick = 0;
+		exit = false;
+	}
+	void Set(const HostSub *hostSub, DWORD _tick, bool _exit=true) {
+		addr = hostSub->addr;
+		portNo = hostSub->portNo;
+		tick = tick;
+		exit = _exit;
+		cnt  = 0;
+	}
+	Addr	addr;
+	int		portNo;
+	int		cnt;
+	DWORD	tick;
+	bool	exit;
+};
+
 class TMainWin : public TWin {
 public:
 	struct Param {
@@ -238,10 +268,6 @@ protected:
 	DWORD		desktopLockCnt;
 	DWORD		monitorState;
 
-	struct RecvCmd {
-		HWND	hWnd;
-		int64	flags;
-	};
 	std::vector<RecvCmd>	recvCmdVec;
 
 	// Agent動作用
@@ -249,6 +275,8 @@ protected:
 	UINT		brDirAgentLast;
 	UINT		brDirAgentLimit;
 	Addr		brDirAddr;
+
+	TRecycleListEx<DosHost>	*dosHost;
 
 	std::map<SOCKET, std::shared_ptr<PktData>> tcpMap;
 
@@ -379,8 +407,9 @@ protected:
 	inline	void SetHostData(Host *destHost, HostSub *hostSub, ULONG command, time_t now_time,
 				const char *nickName="", const char *groupName="", int priority=DEFAULT_PRIORITY);
 	void	DelAllHost(void);
-	void	DelHost(HostSub *hostSub);
-	void	DelHostSub(Host *host);
+	void	test_func();
+	void	DelHost(HostSub *hostSub, BOOL caption_upd=TRUE);
+	BOOL	DelHostSub(Host *host);
 	void	RefreshHost(BOOL removeFlg=TRUE);
 	void	SetCaption(void);
 	void	SendHostList(MsgBuf *msg);
@@ -451,10 +480,12 @@ protected:
 
 	void	UpdateCheckTimer();
 
-	BOOL	UpdateCheckResCore(InetReqReply *irr, BOOL *need_update);
-	void	UpdateCheckRes(InetReqReply *irr);
-	void	UpdateDlRes(InetReqReply *irr);
+	BOOL	UpdateCheckResCore(TInetReqReply *irr, BOOL *need_update);
+	void	UpdateCheckRes(TInetReqReply *irr);
+	void	UpdateDlRes(TInetReqReply *irr);
 	BOOL	UpdateProc(U8str *errMsg=NULL);
+	DosHost *SearchDosHost(HostSub *hostSub, BOOL need_alloc);
+	BOOL	CheckDosHost(HostSub *hostSub, bool is_exit);
 #endif
 	BOOL	UpdateFileCleanup();
 

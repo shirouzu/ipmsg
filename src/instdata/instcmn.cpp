@@ -96,12 +96,15 @@ BOOL CALLBACK TerminateIPMsgProc(HWND hWnd, LPARAM lParam)
 	return	TRUE;
 }
 
+#include <ObjBase.h>
+#include <propvarutil.h>
+#include <propkey.h>
 
 /*
 	リンク
 	あらかじめ、CoInitialize(NULL); を実行しておくこと
 */
-BOOL SymLink(LPCSTR src, LPSTR dest, LPCSTR arg)
+BOOL ShellLink(LPCSTR src, LPSTR dest, LPCSTR arg, LPCSTR app_id)
 {
 	IShellLink		*shellLink;
 	IPersistFile	*persistFile;
@@ -115,6 +118,22 @@ BOOL SymLink(LPCSTR src, LPSTR dest, LPCSTR arg)
 		char	buf[MAX_PATH_U8];
 		GetParentDirU8(src, buf);
 		shellLink->SetWorkingDirectory((char *)U8toWs(buf));
+
+		if (app_id && *app_id) {
+			IPropertyStore *pps;
+			HRESULT hr = shellLink->QueryInterface(IID_PPV_ARGS(&pps));
+
+			if (SUCCEEDED(hr)) {
+				PROPVARIANT pv;
+				hr = InitPropVariantFromString(U8toWs(app_id), &pv);
+				if (SUCCEEDED(hr)) {
+					pps->SetValue(PKEY_AppUserModel_ID, pv);
+					pps->Commit();
+					PropVariantClear(&pv);
+				}
+			}
+			pps->Release();
+		}
 
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
 			if (SUCCEEDED(persistFile->Save(wdest.s(), TRUE))) {

@@ -222,11 +222,14 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ipdict.cpp" />
     <ClCompile Include="tads.cpp" />
     <ClCompile Include="tapi32ex.cpp" />
     <ClCompile Include="tapi32u8.cpp" />
     <ClCompile Include="tapp.cpp" />
     <ClCompile Include="tdlg.cpp" />
+    <ClCompile Include="texcept.cpp" />
+    <ClCompile Include="tinet.cpp" />
     <ClCompile Include="tini.cpp" />
     <ClCompile Include="tmisc.cpp" />
     <ClCompile Include="tregist.cpp" />

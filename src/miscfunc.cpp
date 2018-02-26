@@ -530,6 +530,10 @@ Host *THosts::Search(Kind kind, HostSub *hostSub, int *insertIndex)
 		int	cmp = Cmp(hostSub, &array[kind][*insertIndex]->hostSub, kind);
 
 		if (cmp == 0) {
+			if (insertIndex == &tmpIndex) {
+				auto &targ = array[kind][*insertIndex];
+			//	Debug("Search(%p) %s %p\n", this, targ->S(), targ);
+			}
 			return	array[kind][*insertIndex];
 		}
 		else if (cmp > 0) {
@@ -557,8 +561,7 @@ BOOL THosts::AddHost(Host *host)
 			if (lruIdx >= 0) {
 				lruList.splice(lruList.begin(), lruList, tmp->itr[lruIdx]);
 			}
-			Debug("already added\n");
-			Sleep(10000);
+			Debug(" *** AddHost error kind=%d %s\n", kind, host->S());
 			return	FALSE;
 		}
 	}
@@ -580,6 +583,8 @@ BOOL THosts::AddHost(Host *host)
 	host->RefCnt(1);
 	hostCnt++;
 
+//	Debug("TAddHost(%p) %s %p\n", this, host->S(), host);
+
 	if (lruIdx >= 0) {
 		lruList.push_front(host);
 		host->itr[lruIdx] = lruList.begin();
@@ -595,23 +600,27 @@ BOOL THosts::DelHost(Host *host)
 
 // すべてのインデックス種類での確認を先に行う
 	for (kind=0; kind < MAX_KIND; kind++) {
-		if (!enable[kind])
+		if (!enable[kind]) {
 			continue;
-		if (Search((Kind)kind, &host->hostSub, &insertIndex[kind]) == NULL)
+		}
+		if (Search((Kind)kind, &host->hostSub, &insertIndex[kind]) == NULL) {
+			Debug(" *** DelHost error kind=%d %s\n", kind, host->S());
 			return	FALSE;
+		}
 	}
 
 	hostCnt--;
 
 	for (kind=0; kind < MAX_KIND; kind++) {
-		if (!enable[kind])
+		if (!enable[kind]) {
 			continue;
+		}
 		memmove(array[kind] + insertIndex[kind], array[kind] + insertIndex[kind] + 1, (hostCnt - insertIndex[kind]) * sizeof(Host *));
 	}
 
 	if (lruIdx >= 0) {
 		if (lruList.end() == host->itr[lruIdx]) {
-			Debug("already erased\n");
+			Debug(" *** DelHost already erased\n");
 		}
 		else {
 			lruList.erase(host->itr[lruIdx]);
@@ -629,6 +638,7 @@ BOOL THosts::DelHost(Host *host)
 		Debug(" agent is deleted\n", host->hostSub.addr.S());
 		agents.erase(itr);
 	}
+//	Debug("TDelHost(%p) %s %p\n", this, host->S(), host);
 
 	return	TRUE;
 }
@@ -777,7 +787,9 @@ const char *Ctime(time_t *t)
 	static char	buf[] = "Mon Jan 01 00:00:00 2999";
 	time_t	tt = t ? *t : time(NULL);
 
-	strcpy(buf, ctime(&tt));
+	auto	p = ctime(&tt);
+	strcpy(buf, p ? p : "Thu Jan 01 09:00:00 1970");
+
 	if (buf[8] == ' ') {
 		buf[8] = '0';
 	}
@@ -795,7 +807,10 @@ const WCHAR *CtimeW(time_t t)
 	if (t == -1) {
 		t = time(NULL);
 	}
-	wcscpy(buf, _wctime(&t));
+
+	auto	p = _wctime(&t);
+	wcscpy(buf, p ? p : L"Thu Jan 01 09:00:00 1970");
+
 	if (buf[8] == ' ') {
 		buf[8] = '0';
 	}
@@ -1148,7 +1163,7 @@ BOOL CreateDownloadLinkW(Cfg *cfg, const WCHAR *link, const WCHAR *target, time_
 
 	MakeDownloadLinkW(cfg, link, t, is_recv, link_path);
 
-	BOOL ret = SymLinkW(target, link_path, NULL, target);
+	BOOL ret = ShellLinkW(target, link_path, NULL, target);
 
 	if (ret) {
 		size_t len = wcslen(target);
@@ -1727,6 +1742,14 @@ int MakeDateStrEx(time_t t, WCHAR *buf, SYSTEMTIME *lt)
 		tm->tm_year+1900, tm->tm_mon+1,  tm->tm_mday, tm->tm_hour, tm->tm_min);
 }
 
+int MakeDateStrEx(time_t t, WCHAR *buf, time_t lt)
+{
+	SYSTEMTIME	st;
+	time_to_SYSTEMTIME(lt, &st);
+
+	return	MakeDateStrEx(t, buf, &st);
+}
+
 int get_linenum(const WCHAR *s)
 {
 	int	lines = 0;
@@ -2004,5 +2027,50 @@ BOOL IsWritableDirW(const WCHAR *dir)
 		Sleep(200);
 	}
 	return	TRUE;
+}
+
+
+void SlackMakeJson(LPCSTR chan, LPCSTR _user, LPCSTR _body, LPCSTR _icon, U8str *json)
+{
+	U8str	body;
+	U8str	user;
+	U8str	icon;
+
+	EscapeForJson(_body, &body);
+	EscapeForJson(_user, &user);
+	EscapeForJson(_icon, &icon);
+
+	int		json_size = (int)strlen(chan) + body.Len() + user.Len() + icon.Len() + MAX_BUF;
+	json->Init(json_size);
+
+	snprintfz(json->Buf(), json_size,
+			"{ "
+				"\"channel\" : \"%s\", "
+				"\"username\" : \"%s\", "
+				"\"text\" : \"%s\", "
+//				"\"icon_emoji\" : \":%s:\" "
+				"\"icon_url\" : \"%s\" "
+			" }",
+		chan, user.s(), body.s(), icon.s());
+}
+
+BOOL SlackRequest(LPCSTR host, LPCSTR _path, LPCSTR json, DynBuf *reply, U8str *errMsg)
+{
+	U8str	path = "/services/";
+	path += _path;
+
+	DWORD	code = TInetRequest(host, path.s(), (BYTE *)json, (int)strlen(json), 
+		reply, errMsg, INETREQ_SECURE);
+
+	return	 code >= 200 && code < 300 ? TRUE : FALSE;
+}
+
+void SlackRequestAsync(LPCSTR host, LPCSTR _path, LPCSTR json, HWND hWnd, UINT uMsg, int64 id)
+{
+	U8str	path = "/services/";
+	path += _path;
+
+	TInetRequestAsync(host, path.s(), (BYTE *)json, (int)strlen(json),
+		hWnd, uMsg, id, INETREQ_SECURE);
 }
 

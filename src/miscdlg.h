@@ -97,7 +97,7 @@ public:
 
 class TMsgBox : public TDlg {
 public:
-	enum { NOCANCEL=0x1, CENTER=0x2, DBLX=0x4 };
+	enum { NOCANCEL=0x1, CENTER=0x2, DBLX=0x4, RETRY=0x8, BIGX=0x10 };
 
 protected:
 	const char *text;

@@ -1062,7 +1062,7 @@ BOOL LogDb::SelectOneData(int64 msg_id, LogMsg *msg)
 			host.host	= (WCHAR *)sqlite3_column_text16(sel_mhost, hidx++);
 			host.addr	= (WCHAR *)sqlite3_column_text16(sel_mhost, hidx++);
 			host.gname	= (WCHAR *)sqlite3_column_text16(sel_mhost, hidx++);
-			host.flags	= sqlite3_column_int(sel_mhost, hidx++);
+			host.flags	= sqlite3_column_int64(sel_mhost, hidx++);
 			msg->host.push_back(host);
 			ret = TRUE;
 		}
@@ -1705,7 +1705,7 @@ int LogDb::AddTblDataAddHost(AddTblData *atd, const vector<LogHost> &host, int64
 			uidx = 1;
 			sqlite3_bind_int(atd->ins_msghost, uidx++, host_id);
 			sqlite3_bind_int64(atd->ins_msghost, uidx++, msg_id);
-			sqlite3_bind_int(atd->ins_msghost, uidx++, itr->flags);
+			sqlite3_bind_int64(atd->ins_msghost, uidx++, itr->flags);
 			sqlite3_bind_int(atd->ins_msghost, uidx++, int(itr - host.begin()));
 			ret = sqlite3_step(atd->ins_msghost);
 			sqlite3_reset(atd->ins_msghost);
@@ -1936,7 +1936,7 @@ BOOL LogDb::UpdateOneMsgHost(int64 msg_id, LogHost *host)
 		goto ERR;
 	}
 	//Debug("flags=%d\n", host->flags);
-	sqlite3_bind_int(upd_msg,   uidx++, host->flags);
+	sqlite3_bind_int64(upd_msg, uidx++, host->flags);
 	sqlite3_bind_int64(upd_msg, uidx++, msg_id);
 	sqlite3_bind_text16(upd_msg, uidx++, host->uid.s(),  -1, SQLITE_STATIC);
 	sqlite3_bind_text16(upd_msg, uidx++, host->host.s(), -1, SQLITE_STATIC);

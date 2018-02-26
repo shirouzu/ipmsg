@@ -1,5 +1,5 @@
 ﻿static char *version_id = 
-	"@(#)Copyright (C) H.Shirouzu 2010-2017   version.cpp	Ver4.80";
+	"@(#)Copyright (C) H.Shirouzu 2010-2018   version.cpp	Ver4.83";
 
 #include "ipmsg.h"
 
@@ -73,7 +73,7 @@ BOOL GetVerInfo(VerInfo *vi_in)
 						verInfo.rev +=  1000;
 						break;
 					case 'r':	// rel N
-						verInfo.rev += 20000;
+						verInfo.rev += 10000;
 						break;
 					default:
 						break;

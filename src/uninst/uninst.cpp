@@ -17,9 +17,7 @@ static char *uninst_id =
 
 #pragma comment (lib, "comctl32.lib")
 #pragma comment (lib, "crypt32.lib")
-#ifndef _WIN64
 #pragma comment (lib, "Shlwapi.lib")
-#endif
 #pragma comment (lib, "winmm.lib")
 
 #define MAIN_EXEC

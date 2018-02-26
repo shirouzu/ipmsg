@@ -129,7 +129,7 @@ BOOL TMainWin::StartSendFile(SOCKET sd, ConnectInfo *conInfo, AcceptFileInfo *fi
 	 && (GET_OPT(fileInfo->command) & IPMSG_ENCFILEOPT)) {
 		if (fileInfo->fileCapa == (IPMSG_AES_256|IPMSG_PACKETNO_IV)) {
 			BYTE	nonce[AES_BLOCK_SIZE] = {};
-			sprintf((char *)nonce, "%d", fileInfo->ivPacketNo);
+			snprintfz((char *)nonce, sizeof(nonce), "%d", fileInfo->ivPacketNo);
 			obj->aes.Init(fileInfo->aesKey, sizeof(fileInfo->aesKey), nonce);
 		}
 		else if (fileInfo->fileCapa == IPMSG_NOENC_FILEBODY) {

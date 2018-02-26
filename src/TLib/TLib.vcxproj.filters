@@ -16,6 +16,9 @@
     <ClCompile Include="tmisc.cpp" />
     <ClCompile Include="tregist.cpp" />
     <ClCompile Include="twin.cpp" />
+    <ClCompile Include="tinet.cpp" />
+    <ClCompile Include="texcept.cpp" />
+    <ClCompile Include="ipdict.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tapi32ex.h">

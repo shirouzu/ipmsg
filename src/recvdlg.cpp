@@ -393,14 +393,6 @@ BOOL TRecvDlg::EvCreate(LPARAM lParam)
 	AppendMenuU8(hMenu, MF_SEPARATOR, NULL, NULL);
 	SetMainMenu(hMenu);
 
-	if (!IsNewShell()) {
-		ULONG_PTR	style = GetWindowLong(GWL_STYLE);
-		style &= 0xffffff0f;
-		style |= 0x00000080;
-		SetWindowLong(GWL_STYLE, style);
-	}
-//	SetForegroundWindow();
-
 	if (msg.command & IPMSG_NOADDLISTOPT) {
 		replyBtn.EnableWindow(FALSE);
 	}
@@ -965,7 +957,7 @@ BOOL TRecvDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	HDWP	hdwp = ::BeginDeferWindowPos(max_recvitem);	// MAX item number
 	WINPOS	*wpos;
 	BOOL	isFileBtn = IsWindowEnabled(GetDlgItem(FILE_BUTTON));
-	UINT	dwFlg = (IsNewShell() ? SWP_SHOWWINDOW : SWP_NOREDRAW) | SWP_NOZORDER;
+	UINT	dwFlg = SWP_SHOWWINDOW | SWP_NOZORDER;
 	UINT	dwHideFlg = SWP_HIDEWINDOW | SWP_NOZORDER;
 
 	if (hdwp == NULL) return FALSE;
@@ -1018,11 +1010,8 @@ BOOL TRecvDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	}
 	EndDeferWindowPos(hdwp);
 
-	if (IsNewShell()) {
-		if (parent) ::InvalidateRgn(editSub.hWnd, NULL, TRUE);
-	}
-	else {
-		::InvalidateRgn(hWnd, NULL, TRUE);
+	if (parent) {
+		::InvalidateRgn(editSub.hWnd, NULL, TRUE);
 	}
 
 	return	TRUE;
@@ -1238,8 +1227,6 @@ BOOL TRecvDlg::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 {
 	switch (uMsg) {
 	case WM_RBUTTONUP:
-		if (!IsNewShell())
-			PopupContextMenu(pos);
 		return	TRUE;
 	}
 	return	FALSE;

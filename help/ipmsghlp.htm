@@ -84,11 +84,11 @@
 <body bgcolor="#eeffff">
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v4.80</h1>
+<h1 class="help_head1">IP Messenger v4.83</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2017/09/19 H.Shirouzu (白水啓章)</div>
+<div align="right">2018/02/23 H.Shirouzu (白水啓章)</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -140,8 +140,8 @@
 <h2 class="help_head2">2. ライセンス＆動作環境＆インストール</h2>
 <div class="help_section">
 	<div class="help_license">
-	<strong>Copyright 1996-2017 SHIROUZU Hiroaki All rights reserved.</strong><br>
-	<strong>Copyright 2015-2017 Asahi Net, Inc. All rights reserved.</strong><br>
+	<strong>Copyright 1996-2018 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<strong>Copyright 2015-2018 Asahi Net, Inc. All rights reserved.</strong><br>
 	<br>
 	ソースとバイナリ形式の再配布および使用は、「変更の有無、商用/非商用にかかわらず」、以下の条件を満たす場合に許可されます:<br>
 	<div class="help_license_cond">
@@ -582,17 +582,24 @@
 	<div class="help_sub_section">
 
 		<table class="help_table" border="4">
-		<tr class="table_head"><th colspan="2">詳細設定</th></tr>
+		<tr class="table_head"><th colspan="2">バルーン・トースト通知</th></tr>
 		<tr><td nowrap>受信通知</td><td>受信時のバルーンの表示秒数を指定します</td></tr>
 		<tr><td nowrap>開封通知</td><td>開封時のバルーンの表示秒数を指定します</td></tr>
 		<tr><td>バルーン内にユーザ情報を出さない</td><td>（そのまま）</td></tr>
-		<tr><td nowrap>引用文字</td><td>返信時の引用文字を指定します</td></tr>
+
+		<tr class="table_head"><th colspan="2">Windowsコントロールパネルへのリンク</th></tr>
+		<tr><td>トースト通知設定</td><td>Windows側のトースト通知設定を開きます。（ここでIPMsgのトースト通知が無効になっていると、上記の設定に関わらずトーストが表示されません）</td></tr>
+		<tr><td>トレイアイコン表示設定</td><td>Windows側のトレイアイコン表示設定を開きます。（常時表示することをお勧めします）</td></tr>
+
+		<tr class="table_head"><th colspan="2">ホットキー設定</th></tr>
 		<tr><td nowrap>送受信ホットキー</td><td>送信画面、受信画面を出すショートカットを指定します</td></tr>
-		<tr><td>「送信・返信」を「発射・迎撃」に変更</td><td>1996年0.95β版時代のラベルに戻します</td></tr>
+
+		<tr class="table_head"><th colspan="2">その他</th></tr>
 		<tr><td nowrap>英語UI</td><td>英語UIに変更します。（要再起動）</td></tr>
+		<tr><td>「送信・返信」を「発射・迎撃」に変更</td><td>1996年0.95β版時代のラベルに戻します</td></tr>
+		<tr><td>起動時にタスクトレイへの<br>アイコン＆通知をONにする</td><td>タスク通知領域でタスクトレイを出す設定を自動的に行います</td></tr>
 		<tr><td nowrap>アイコン</td><td>タスクトレイ・メインアイコンを変更します</td></tr>
 		<tr><td nowrap>不在アイコン</td><td>不在時のタスクトレイアイコンを変更します</td></tr>
-		<tr><td>起動時にタスクトレイへの<br>アイコン＆通知をONにする</td><td>タスク通知領域でタスクトレイを出す設定を自動的に行います</td></tr>
 		</table>
 	<br>
 	</div>
@@ -609,6 +616,9 @@
 		<tr><td nowrap>誤送信防止</td><td>メッセージ返信先が「本来の宛先(*)」と違う場合に、一旦「送信」ボタンの表示が「確認」に変化します。<br>
 	「確認」を一度押すと「送信」ボタンに戻ります。<br>
 	（(*) 本来の宛先：元メッセージの「送信者＋（自分以外の）受信者」）</td></tr>
+		<tr><td nowrap>引用時、カーソル位置を末尾に</td><td>（そのまま）</td></tr>
+		<tr><td nowrap>引用文字</td><td>返信時の引用文字を指定します。ログビューアの折り畳み動作に影響するので、変更しないことを推奨します。</td></tr>
+
 		<tr class="table_head"><th colspan="2">受信</th></tr>
 		<tr><td nowrap>ノンポップアップ受信</td><td>受信時にポップアップする代わりに、タスクトレイアイコンが点滅します</td></tr>
 		<tr><td nowrap>引用チェックON</td><td>（そのまま）</td></tr>
@@ -925,11 +935,28 @@ ipmsg本体を常駐させた上で、ipcmd.exeを使うと、不在モードの取得・変更や、メッセー
 
 <table class="help_table" border="4">
 <tr class="table_head"><th>Version</th><th>説明</th></tr>
+
+<tr><td>v4.83</td><td>
+Win10 Fall Creators Update でトーストが出ないことがあった事象への対策<br>
+設定に、トースト・トレイアイコン関連のコントロールパネルへのリンクを追加<br>
+ログビューアで、未開封エリアと折り畳みボタンの挙動が逆転する問題の修正。<br>
+古いバージョンから引き継いだ未開封メッセージ復元で落ちることがあった問題の修正<br>
+Win7でバルーン用アイコンが出ない問題を修正（v4.81のみ）<br>
+定期updateチェック時のネットワークエラーは、メッセージを出さないように。
+</td></tr>
+<tr><td>v4.81</td><td>
+開封日時をログビューアから参照できるように。（v4.81以降のログから）<br>
+Win10 Fall Creators Update を適用するとトースト表示が出なくなる現象の修正。<br>
+コマンドライン(ipcmd)出力のリダイレクトが効かない問題の修正。<br>
+再送確認ダイアログが、受信確認パケットが到着した後も残る場合があったのを修正。<br>
+別ポート起動で、従来起動アイコンが消える問題の修正。（v4.80のみ）<br>
+メンバマスター機能をよりロバストに。
+</td></tr>
 <tr><td>v4.80</td><td>
-<a href="#update">自動アップデート機能</a>を追加<br>
-<a href="#labtest_settings">受信転送機能</a>で、Slack以外を指定可能な汎用モードを追加<br>
+<a href="#update">自動アップデート機能</a>を追加。<br>
+<a href="#labtest_settings">受信転送機能</a>で、Slack以外を指定可能な汎用モードを追加。<br>
 送り手側が再起動しても、添付ファイルをダウンロードできるように。<br>
-その他リファイン（例外時にミニダンプ出力、コンパイラをVS2017に変更等）
+その他リファイン。（例外時にミニダンプ出力、コンパイラをVS2017に変更等）
 </td></tr>
 <tr><td>v4.70</td><td>
 <a href="#labtest_settings">画面ロック中着信のSlack転送機能（実験）</a>の追加。<br>

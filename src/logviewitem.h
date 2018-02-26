@@ -75,12 +75,6 @@ struct Item {
 	bool operator !=(const Item &item) {
 		return !(*this == item);
 	}
-	Item& operator=(const Item &org) {
-		rc = org.rc;
-		drawRc = org.drawRc;
-		msg_id = org.msg_id;
-		return *this;
-	}
 };
 
 class ItemMgr {

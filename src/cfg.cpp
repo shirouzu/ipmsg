@@ -400,6 +400,7 @@ BOOL Cfg::ReadRegistry(void)
 	GetRegName(buf, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, buf);
 	DWORD		saveRegFlg = 0;
+	BOOL		isChangeApp = FALSE;
 
 	if (!reg.GetInt(NOPOPUPCHECK_STR, &NoPopupCheck))
 	{
@@ -407,6 +408,7 @@ BOOL Cfg::ReadRegistry(void)
 		reg.ChangeApp(HS_TOOLS, buf);
 		if (!reg.GetInt(NOPOPUPCHECK_STR, &NoPopupCheck)) {
 			reg.ChangeApp(HS_TOOLS, LoadStr(IDS_IPMSG));
+			isChangeApp = TRUE;
 		}
 	}
 
@@ -641,7 +643,10 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(EXITMODE_STR, &RemoteExitMode);
 	reg.GetStr(IPMSGEXIT_STR, RemoteIPMsgExit, sizeof(RemoteIPMsgExit));
 	reg.GetInt(IPMSGEXITMODE_STR, &RemoteIPMsgExitMode);
-	reg.GetInt64(LASTWND_STR, &lastWnd);
+
+	if (!isChangeApp) {
+		reg.GetInt64(LASTWND_STR, &lastWnd);
+	}
 
 	if (NoTcp) {
 		ClipMode = 0;
@@ -1272,7 +1277,7 @@ BOOL Cfg::ReadRegistry(void)
 		saveRegFlg |= CFG_ALL;
 	}
 
-	if (saveRegFlg) {
+	if (saveRegFlg && !isChangeApp) {
 		reg.CloseKey();		// close top appreg
 		WriteRegistry(saveRegFlg);
 	}
@@ -1895,7 +1900,7 @@ BOOL Cfg::LoadPacket(MsgMng *msgMng, int idx, MsgBuf *msg, char *head,
 		size = (int)offsetof(MsgBuf, msgBuf);
 		reg.GetByte(MSGHEADKEY_STR, (BYTE *)msg, &size);
 
-		if (size < 240) {	// too old version header
+		if (size <= 252) {	// too old version header
 			reg.CloseKey();
 			if (!reg.DeleteKey(key)) {
 				return FALSE;
@@ -1907,6 +1912,7 @@ BOOL Cfg::LoadPacket(MsgMng *msgMng, int idx, MsgBuf *msg, char *head,
 			msg->flags = 0;
 			msg->signMode = MsgBuf::SIGN_INIT;
 			msg->decMode = MsgBuf::DEC_INIT;
+			memset((char *)&msg->timestamp + 4, 0, 4);
 		}
 		else if (size == 252) {
 			// MsgBuf の Time_t -> time_t timestamp 移行では、

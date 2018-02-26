@@ -10,7 +10,6 @@
 
 #define IPMSG_CLASS				"ipmsg_class"
 #define IPMSG_NAME				"IPMSG for Win"
-#define IPMSG_FULLNAME			"IP Messenger for Win"
 #define IP_MSG					"IPMsg"
 #define HSTOOLS_STR				"HSTools"
 #define IPMSG_DEFAULT_PORT		0x0979
@@ -55,7 +54,7 @@ const char *UnSetupFiles [] = {
 // function prototype
 int TerminateIPMsg(HWND hWnd, const char *title, const char *msg, BOOL silent=FALSE);
 BOOL CALLBACK TerminateIPMsgProc(HWND hWnd, LPARAM lParam);
-BOOL SymLink(LPCSTR src, LPSTR dest, LPCSTR arg="");
+BOOL ShellLink(LPCSTR src, LPSTR dest, LPCSTR arg="", LPCSTR app_id=NULL);
 BOOL DeleteLink(LPCSTR path);
 BOOL DeleteLinkFolder(LPCSTR path);
 void BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title);

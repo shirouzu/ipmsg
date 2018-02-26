@@ -1,7 +1,7 @@
 ﻿static char *mainwin_id = 
 	"@(#)Copyright (C) H.Shirouzu 1996-2017   mainwin.cpp	Ver4.61";
 /* ========================================================================
-	Project  NameF			: IP Messenger for Win32
+	Project  Name			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
 	Update					: 2017-07-31(Mon)
@@ -30,7 +30,10 @@ using namespace std;
 
 #include "toast/toast.h"
 
+#pragma warning (push)
+#pragma warning (disable : 4091) // dbghelp.h(1540): warning C4091: 'typedef ' ignored...
 #include <dbghelp.h>
+#pragma warning (pop)
 
 /*
 	MainWindow の初期化
@@ -56,12 +59,12 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 
 	sprintf(title, "IPMsg ver%s", GetVersionStr());
 	InstallExceptionFilter(title, LoadStr(IDS_EXCEPTIONLOG), exception_log, dump_log,
-            MiniDumpWithPrivateReadWriteMemory | 
-            MiniDumpWithDataSegs | 
-            MiniDumpWithHandleData |
-            MiniDumpWithFullMemoryInfo | 
-            MiniDumpWithThreadInfo | 
-            MiniDumpWithUnloadedModules);
+		MiniDumpWithPrivateReadWriteMemory | 
+		MiniDumpWithDataSegs | 
+		MiniDumpWithHandleData |
+		MiniDumpWithFullMemoryInfo | 
+		MiniDumpWithThreadInfo | 
+		MiniDumpWithUnloadedModules);
 //	Debug("mscver=%d %d\n", _MSC_VER, _MSC_FULL_VER);
 
 	InitExTrace(1024 * 1024);
@@ -82,11 +85,9 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 	cfg = new Cfg(param.nicAddr, portNo);
 	cfg->ReadRegistry();
 
-#if _MSC_VER >= 1900 && _MSC_VER <= 1911
 	if ((cfg->Debug & 0x1) == 0) {
 		TGsFailureHack();
 	}
-#endif
 
 	if (cfg->Debug & 0x4) {
 		OpenDebugConsole();
@@ -108,11 +109,14 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 		TSetDefaultLCID(cfg->lcid);
 	}
 
+	TInetSetUserAgent(Fmt("IPMsg v%s", GetVersionStr()));
+
 	setupDlg = new TSetupDlg(cfg, &hosts, param.isFirstRun);
 	aboutDlg = new TAboutDlg(cfg);
 	absenceDlg = new TAbsenceDlg(cfg, this);
 	logmng = new LogMng(cfg);
 	ansList = new TRecycleListEx<AnsQueueObj>(MAX_ANSLIST);
+	dosHost = new TRecycleListEx<DosHost>(MAX_DOSHOST);
 	shareMng = new ShareMng(cfg, msgMng);
 	shareStatDlg = new TShareStatDlg(shareMng, cfg);
 	histDlg = new THistDlg(cfg, &hosts);
@@ -250,21 +254,6 @@ void TMainWin::Terminate(void)
 	}
 
 	::ExitProcess(0);
-#if 0	// 無駄
-	delete logmng;
-
-	Host *host;
-	while (hosts.HostCnt() > 0) {
-		hosts.DelHost(host = hosts.GetHost(0));
-//		delete host;
-	}
-
-	AddrObj *brObj;
-	while ((brObj = cfg->DialUpList.TopObj())) {
-		cfg->DialUpList.DelObj(brObj);
-		delete brObj;
-	}
-#endif
 }
 
 #define TOASTDLL	L"iptoast.dll"
@@ -438,6 +427,33 @@ BOOL TMainWin::FirstSetup()
 	return	TRUE;
 }
 
+//void TMainWin::test_func()
+//{
+//	static int	max_host = 2000;
+//	static HostSub *test_host = [&]() {
+//		auto hosts = new HostSub[max_host];
+//
+//		int i=0;
+//		for (int i=0; i < max_host; i++) {
+//			auto	&h = hosts[i];
+//			auto	v = (i%600);
+//			h.addr = Fmt("192.168.%d.%d", i/254 + 1, i%254+1);
+//			h.portNo = 2425;
+//			strcpy(h.u.userName, Fmt("u%d", i%601));
+//			strcpy(h.u.hostName, Fmt("h%d", i%601));
+//		}
+//		return	hosts;
+//	}();
+//
+//	static int v = 0;
+//	Debug("test_func(%d)\n", v);
+//	for (int i=0; i < max_host; i++) {
+//		AddHost(&test_host[(i+v) % max_host], IPMSG_BR_NOTIFY, "", "", "", TRUE);
+//	}
+//	SetCaption();
+//	v++;
+//}
+
 BOOL TMainWin::CleanupProc()
 {
 	static DWORD	last;
@@ -479,6 +495,8 @@ BOOL TMainWin::CleanupProc()
 		return	TRUE;
 	}
 	last = cur;
+
+//	test_func();
 
 	ConnectInfo	*connInfo = connList.TopObj();
 
@@ -811,7 +829,7 @@ void TMainWin::SendToHook(MsgBuf *msg, BOOL is_attached)
 		DynBuf	reply;
 		U8str	errMsg;
 		ReplaseKeyword(cfg->hookBody.s(), &out, &dict);
-		InetRequest(cfg->hookUrl.s(), NULL, (BYTE *)out.s(), out.Len(), &reply, &errMsg);
+		TInetRequest(cfg->hookUrl.s(), NULL, (BYTE *)out.s(), out.Len(), &reply, &errMsg);
 		U8str	res(reply.UsedSize() ? reply.s() : errMsg.s());
 		DebugU8("SendToHook=%s\n", res.s());
 	}
@@ -997,7 +1015,9 @@ BOOL TMainWin::TaskTray(int nimMode, HICON hSetIcon, LPCSTR tip)
 
 inline int strcharcount(const char *s, char c) {
 	int ret = 0;
-	while (*s) if (*s++ == c) ret++;
+	while (*s) {
+		if (*s++ == c) ret++;
+	}
 	return	ret;
 }
 /*
@@ -1012,6 +1032,7 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 	tn.uID = WM_NOTIFY_TRAY;
 	tn.uFlags = NIF_INFO|NIF_MESSAGE| ((_tray_mode == TRAY_RECV || force_icon) ? NIF_ICON : 0);
 	tn.uCallbackMessage = WM_NOTIFY_TRAY;
+	tn.hIcon = hCycleIcon[0];
 	tn.hIcon = hMainBigIcon;
 
 	if (msg && title) {
@@ -1073,7 +1094,7 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 	tn.uFlags |= NIF_SHOWTIP;
 
 	if (timer) {	// Win8.1以前は半透明秒数を加算＋タイマーで強制消去
-		DWORD new_val = (timer + (IsWin10() ? 0 : 4999)) / 1000;
+		DWORD new_val = (timer + (hToast ? 0 : 4999)) / 1000;
 		::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)(LONG_PTR)new_val, 0);
 	}
 
@@ -1093,7 +1114,7 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 	}
 
 	if (timer) {
-		if (IsWin10()) {
+		if (hToast) {
 			SetTimer(IPMSG_BALLOON_RESET_TIMER, 500);
 		} else {
 			::SystemParametersInfo(SPI_SETMESSAGEDURATION, 0, (void *)(UINT_PTR)msgDuration, 0);
@@ -1247,7 +1268,9 @@ inline void TMainWin::SetHostData(Host *destHost, HostSub *hostSub,
 	ULONG command, time_t update_time, const char *nickName, const char *groupName, int priority)
 {
 	destHost->hostStatus = GET_OPT(command) & IPMSG_ALLSTAT;
-	destHost->hostSub = *hostSub;
+	if (hostSub) {
+		destHost->hostSub = *hostSub;
+	}
 	destHost->updateTime = update_time;
 	destHost->priority = priority;
 	strncpyz(destHost->nickName, nickName, sizeof(destHost->nickName));
@@ -1288,32 +1311,40 @@ Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 	}
 
 	if ((host = hosts.GetHostByName(hostSub))) {
+		BOOL	need_dlgupdate = FALSE;
+
 		if (host->hostSub.addr != hostSub->addr || host->hostSub.portNo != hostSub->portNo) {
 			if (host->hostSub.addr.IsIPv6() && hostSub->addr.IsIPv4()
 				|| abs(now_time - host->updateTime) >= 7) {
 				if (Host *tmp_host = hosts.GetHostByAddr(hostSub)) {
 					for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-						dlg->DelHost(tmp_host);
+						dlg->DelHost(tmp_host, 0, !byHostList);
 					}
+					Debug("tmp_del (%s) %s %p\n", tmp_host->S(), tmp_host);
 					hosts.DelHost(tmp_host);
 					tmp_host->SafeRelease();
 				}
+				Debug("addr changed old=%s  new=%s %p\n", host->S(), hostSub->S(), host);
 				hosts.DelHost(host);
 				host->hostSub.addr = hostSub->addr;
 				host->hostSub.portNo = hostSub->portNo;
 				hosts.AddHost(host);
-				Debug("addr changed %s (%s)\n", hostSub->addr.S(), host->hostSub.addr.S());
+				need_dlgupdate = TRUE;
 			}
-			else Debug("change skip %s (%s)\n", hostSub->addr.S(), host->hostSub.addr.S());
+			else {
+				Debug("skip old=%s new=%s %p\n", host->S(), hostSub->S(), host);
+				hostSub = NULL;	// SetHostDataされてもAddrを変更しない
+			}
 		}
 
 		if (((command ^ host->hostStatus) &
 				(IPMSG_ABSENCEOPT|IPMSG_FILEATTACHOPT|IPMSG_ENCRYPTOPT)) ||
-			strcmp(host->nickName, nickName) || strcmp(host->groupName, groupName)) {
+			strcmp(host->nickName, nickName) || strcmp(host->groupName, groupName) ||
+			need_dlgupdate) {
 
 			SetHostData(host, hostSub, command, now_time, nickName, groupName, priority);
 			for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-				dlg->ModifyHost(host);
+				dlg->ModifyHost(host, FALSE);
 			}
 		}
 		else {
@@ -1326,7 +1357,7 @@ Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 
 	if ((host = hosts.GetHostByAddr(hostSub))) {
 		for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-			dlg->DelHost(host);
+			dlg->DelHost(host, 0, FALSE);
 		}
 		hosts.DelHost(host);
 		host->SafeRelease();
@@ -1343,11 +1374,14 @@ Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 		cfg->priorityHosts.AddHost(host);
 	}
 
-	SetCaption();
-
 	for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-		dlg->AddHost(host);
+		dlg->AddHost(host, FALSE, FALSE);
 	}
+
+	if (!byHostList) {
+		SetCaption();
+	}
+
 	PostAddHost(host, verInfo, now_time, byHostList);
 
 	return	host;
@@ -1396,15 +1430,18 @@ void TMainWin::DelAllHost(void)
 		dlg->DelAllHost();
 	}
 
-	while (hosts.HostCnt() > 0) {
-		DelHostSub(hosts.GetHost(0));
+	int	max_num = hosts.HostCnt();
+
+	while (max_num > 0) {
+		DelHostSub(hosts.GetHost(--max_num));
 	}
+	SetCaption();
 }
 
 /*
 	指定Hostの削除処理
 */
-void TMainWin::DelHost(HostSub *hostSub)
+void TMainWin::DelHost(HostSub *hostSub, BOOL caption_upd)
 {
 	Host *host;
 
@@ -1415,18 +1452,21 @@ void TMainWin::DelHost(HostSub *hostSub)
 			DirDelHost(host);
 		}
 #endif
-
 		DelHostSub(host);
+
+		if (caption_upd) {
+			SetCaption();
+		}
 	}
 }
 
 /*
 	指定Hostの削除処理Sub
 */
-void TMainWin::DelHostSub(Host *host)
+BOOL TMainWin::DelHostSub(Host *host)
 {
 	for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-		dlg->DelHost(host);
+		dlg->DelHost(host, 0, FALSE);
 	}
 
 	for (auto obj = cfg->DialUpList.TopObj(); obj; obj = cfg->DialUpList.NextObj(obj)) {
@@ -1436,7 +1476,9 @@ void TMainWin::DelHostSub(Host *host)
 			break;
 		}
 	}
-	hosts.DelHost(host);
+	if (!hosts.DelHost(host)) {
+		return	FALSE;
+	}
 
 	if (host->SafeRelease()) {
 		;
@@ -1446,7 +1488,8 @@ void TMainWin::DelHostSub(Host *host)
 			host->pubKey.UnSet();
 		}
 	}
-	SetCaption();
+
+	return	TRUE;
 }
 
 /*
@@ -1455,6 +1498,8 @@ void TMainWin::DelHostSub(Host *host)
 */
 void TMainWin::RefreshHost(BOOL removeFlg)
 {
+//	test_func();
+
 	time_t	now_time = time(NULL);
 
 	MakeBrListEx();
@@ -1491,6 +1536,7 @@ void TMainWin::RefreshHost(BOOL removeFlg)
 			}
 		}
 	}
+	SetCaption();
 	refreshStartTime = now_time;
 	EntryHost();
 
@@ -1501,6 +1547,7 @@ void TMainWin::RefreshHost(BOOL removeFlg)
 			AddHost(&ah->hostSub, ah->hostStatus|IPMSG_BR_ENTRY, ah->nickName, ah->groupName,
 				ah->verInfoRaw, TRUE);
 		}
+		SetCaption();
 	}
 #endif
 }
@@ -1517,6 +1564,10 @@ void TMainWin::SetCaption(void)
 
 	if (histDlg->UnOpenedNum()) {
 		snprintfz(buf + len, sizeof(buf)-len, LoadStrU8(IDS_CAPTIONADD), histDlg->UnOpenedNum());
+	}
+
+	for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+		dlg->DispUpdate();
 	}
 
 	if (cfg->TaskbarUI) {
@@ -1709,7 +1760,7 @@ BOOL TMainWin::AddHostListCore(char *buf, BOOL is_master, int *_cont_cnt, int *_
 			groupName = "";
 
 		if (GET_MODE(host_status) == IPMSG_BR_EXIT || host_status == 0) {
-			DelHost(&hostSub);
+			DelHost(&hostSub, FALSE);
 		} else {
 			if (GetUserNameDigestField(hostSub.u.userName) &&
 				(host_status & IPMSG_ENCRYPTOPT) == 0) {
@@ -1718,6 +1769,8 @@ BOOL TMainWin::AddHostListCore(char *buf, BOOL is_master, int *_cont_cnt, int *_
 			AddHost(&hostSub, IPMSG_BR_ENTRY|host_status, nickName, groupName, NULL, TRUE);
 		}
 	}
+	SetCaption();
+
 	return	TRUE;
 }
 
@@ -2035,6 +2088,11 @@ void TMainWin::MakeBrListEx()
 	}
 	for (auto obj=brListEx.TopObj(); obj; obj=brListEx.NextObj(obj)) {
 		Debug("brlist=%s\n", obj->addr.S());
+	}
+
+	if (selfAddr.IsEnabled()) {
+		msgMng->GetLocalHost()->addr = selfAddr;
+		msgMng->GetLocalHostA()->addr = selfAddr;
 	}
 
 	delete [] info;

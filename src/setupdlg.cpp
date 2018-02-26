@@ -391,6 +391,8 @@ BOOL TSetupSheet::SetData()
 		SetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile);
 		SetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile);
 		CheckDlgButton(TRAYICON_CHECK, cfg->TrayIcon);
+
+//		::ShowWindow(GetDlgItem(NOTIFY_BTN), IsWin8() ? SW_SHOW : SW_HIDE);
 	}
 	else if (resId == SENDRECV_SHEET) {
 		CheckDlgButton(QUOTE_CHECK, (cfg->QuoteCheck & 0x1) ? TRUE : FALSE);
@@ -1009,6 +1011,16 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			::EnableWindow(GetDlgItem(RECV_COMBO),  ret);
 			::EnableWindow(GetDlgItem(LOG_COMBO),   ret);
 			return	TRUE;
+
+#define FMT_NOTIFY_SETTINGS	L"shell32.dll,Options_RunDLL %d"
+
+		case NOTIFY_BTN:
+			::ShellExecuteW(hWnd, 0, L"rundll32.exe", FmtW(FMT_NOTIFY_SETTINGS, 5), 0, SW_SHOW);
+			return	TRUE;
+
+		case TRAY_BTN:
+			::ShellExecuteW(hWnd, 0, L"rundll32.exe", FmtW(FMT_NOTIFY_SETTINGS, 1), 0, SW_SHOW);
+			return	TRUE;
 		}
 	}
 	else if (resId == SENDRECV_SHEET) {
@@ -1175,9 +1187,7 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 				CloseDebugConsole();
 			} else {
 				OpenDebugConsole();
-				Debug(	"\n **** Start a console ***\n"
-						"  If you want to close it, push 'Console' button again.\n"
-						"(Please don't use x button... It will terminate IPMsg process).\n\n");
+				DebugW(LoadStrW(IDS_CONSOLEWARN));
 			}
 			break;
 		}
@@ -1205,7 +1215,7 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 				};
 				U8str	out(MAX_URLBUF);
 				ReplaseKeyword(body.s(), &out, &dict);
-				InetRequest(url.s(), NULL, (BYTE *)out.s(), out.Len(), &reply, &errMsg);
+				TInetRequest(url.s(), NULL, (BYTE *)out.s(), out.Len(), &reply, &errMsg);
 				U8str	res(reply.UsedSize() ? reply.s() : errMsg.s());
 				if (res.LineNum() > 2) {
 					U8str	bak = res;

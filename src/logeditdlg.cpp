@@ -59,7 +59,7 @@ BOOL TMsgHeadEditDlg::EvCreate(LPARAM lParam)
 	SetDlgItem(GNAME_EDIT, X_FIT|TOP_FIT);
 	SetDlgItem(HOST_EDIT, X_FIT|TOP_FIT);
 	SetDlgItem(IPADDR_EDIT, X_FIT|TOP_FIT);
-	SetDlgItem(IDOK, HMID_FIT|TOP_FIT);
+	SetDlgItem(IDOK, MIDX_FIT|TOP_FIT);
 
 	GetWindowRect(&rect);
 
@@ -146,7 +146,7 @@ BOOL TMsgEditDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 BOOL TMsgEditDlg::EvCreate(LPARAM lParam)
 {
 	SetDlgItem(MSG_EDIT, XY_FIT);
-	SetDlgItem(IDOK, HMID_FIT|BOTTOM_FIT);
+	SetDlgItem(IDOK, MIDX_FIT|BOTTOM_FIT);
 
 	if (GetDlgItem(IDCANCEL)) {
 		SetDlgItem(IDCANCEL, RIGHT_FIT|BOTTOM_FIT);

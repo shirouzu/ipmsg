@@ -131,7 +131,7 @@ struct LogHost {
 	Wstr	gname;
 	Wstr	host;
 	Wstr	addr;
-	DWORD	flags;	// for open status
+	int64	flags;	// for open status
 
 	LogHost() {
 		flags = 0;

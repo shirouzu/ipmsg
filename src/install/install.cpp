@@ -20,9 +20,7 @@
 
 #pragma comment (lib, "comctl32.lib")
 #pragma comment (lib, "crypt32.lib")
-#ifndef _WIN64
 #pragma comment (lib, "Shlwapi.lib")
-#endif
 #pragma comment (lib, "winmm.lib")
 
 int ExecInTempDir();
@@ -504,7 +502,7 @@ void TInstDlg::CreateShortCut(void)
 		RemoveSameLink(path, IPMSG_EXENAME);
 		MakePathU8(buf, path, IPMSG_SHORTCUT_NAME);
 		if (IsDlgButtonChecked(STARTUP_CHECK) || isSilent) {
-			SymLink(setupPath, buf);
+			ShellLink(setupPath, buf);
 		}
 		else {
 			DeleteLink(buf);
@@ -513,13 +511,13 @@ void TInstDlg::CreateShortCut(void)
 	if (!isInternal && reg.GetStr(REGSTR_DESKTOP, path, sizeof(path))) {
 		MakePathU8(buf, path, IPMSG_SHORTCUT_NAME);
 		if (IsDlgButtonChecked(DESKTOP_CHECK) || isSilent) {
-			SymLink(setupPath, buf);
+			ShellLink(setupPath, buf);
 		}
 		else {
 			DeleteLink(buf);
 		}
 	}
-	if (!isInternal && reg.GetStr(REGSTR_PROGRAMS, path, sizeof(path))) {
+	if (/*!isInternal &&*/ reg.GetStr(REGSTR_PROGRAMS, path, sizeof(path))) {
 		MakePathU8(buf, path, IPMSG_SHORTCUT_NAME);	// 旧登録の削除
 		DeleteLink(buf);
 
@@ -527,13 +525,13 @@ void TInstDlg::CreateShortCut(void)
 		CreateDirectoryU8(buf, NULL);
 
 		MakePathU8(path, buf, IPMSG_SHORTCUT_NAME);
-		SymLink(setupPath, path);
+		ShellLink(setupPath, path, IPMSG_FULLNAME, IPMSG_APPID);
 
 		MakePathU8(path, buf, UNINST_SHORTCUT_NAME);
 
 		char	uninstPath[MAX_PATH_U8];
 		MakePathU8(uninstPath, setupDir, UNINST_EXENAME);
-		SymLink(uninstPath, path);
+		ShellLink(uninstPath, path);
 	}
 }
 
@@ -581,6 +579,8 @@ BOOL TInstDlg::Install(void)
 	char	setupPath[MAX_PATH_U8];
 	MakePathU8(setupPath, setupDir, IPMSG_EXENAME);
 
+	BOOL	third_fw = FALSE;
+
 	if (IsWinVista()) {
 		BOOL	is_virtual = TIsVirtualizedDirW(U8toWs(setupDir));
 		BOOL	need_admin = TIsEnableUAC() && !::IsUserAnAdmin();
@@ -599,11 +599,14 @@ BOOL TInstDlg::Install(void)
 
 		if (!IsDlgButtonChecked(NOFW_CHK)) {
 			BOOL		is_domain  = IsDomainEnviron();
-			BOOL		third_fw   = Is3rdPartyFwEnabled();
+			BOOL		is_tout = FALSE;
 			FwStatus	fs;
 
+			third_fw = Is3rdPartyFwEnabled(TRUE, 5000, &is_tout);
+
 			GetFwStatusEx(U8toWs(setupPath), &fs);
-			reg.SetInt(FWCHECKMODE_STR, 0); // Is3rdParty../GetFwStat..で固まると次回は1に
+			// Is3rdParty../GetFwStat..で固まると次回は1に
+			reg.SetInt(FWCHECKMODE_STR, is_tout);
 
 			if (need_admin && !third_fw && fs.fwEnable && !isSilent &&	 // domain環境は拒否エントリが
 				(fs.IsBlocked() || !(is_domain || fs.IsAllowed()))) { // すでに存在する場合のみ
@@ -745,7 +748,7 @@ BOOL TInstDlg::Install(void)
 	const char *msg = LoadStr(IDS_SETUPCOMPLETE);
 	int			flg = MB_OKCANCEL|MB_ICONINFORMATION;
 
-	if (IsWinVista() && Is3rdPartyFwEnabled()) {
+	if (IsWinVista() && third_fw) {
 		msg = Fmt("%s\r\n\r\n%s", msg, LoadStr(IDS_COMPLETE_3RDFWADD));
 //		flg |= MB_DEFBUTTON2;
 	}

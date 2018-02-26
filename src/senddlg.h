@@ -198,6 +198,7 @@ protected:
 	TSubClassCtl	menuCheck;
 	TSubClassCtl	memCntText;
 	TSubClassCtl	repFilCheck;
+	TMsgBox			retryDlg;
 //	HMENU			hCurMenu;
 
 	void	AttachItemWnd();
@@ -244,9 +245,10 @@ public:
 	virtual ~TSendDlg();
 
 	DWORD	GetRecvId(void) { return recvId; }
-	void	AddHost(Host *host, BOOL is_sel=FALSE);
-	void	ModifyHost(Host *host);
-	void	DelHost(Host *host, BOOL *is_sel=NULL);
+	void	AddHost(Host *host, BOOL is_sel=FALSE, BOOL disp_upd=TRUE);
+	void	ModifyHost(Host *host, BOOL disp_upd=TRUE);
+	void	DispUpdate();
+	void	DelHost(Host *host, BOOL *is_sel=NULL, BOOL disp_upd=TRUE);
 	void	DelAllHost(void);
 	BOOL	IsSending(void);
 //	BOOL	DetachParent(HWND hTarget=NULL);

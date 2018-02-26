@@ -788,8 +788,14 @@ BOOL TMsgBox::EvCreate(LPARAM lParam)
 	SendDlgItemMessage(MESSAGE_EDIT, EM_SETTARGETDEVICE, 0, 0);
 
 	GetWindowRect(&rect);
-	if (flags & DBLX) {
-		MoveWindow(rect.x()-rect.cx(), rect.y(), rect.cx()*2, rect.cy(), FALSE);
+
+	if (flags & RETRY) {
+		SendDlgItemMessageW(IDOK, WM_SETTEXT, 0, (LPARAM)LoadStrW(IDS_RETRY));
+	}
+
+	if (flags & (DBLX|BIGX)) {
+		MoveWindow(rect.x()-rect.cx(), rect.y(), int(rect.cx()*((flags & DBLX) ? 2.0 : 1.2)),
+			rect.cy(), FALSE);
 		GetWindowRect(&rect);
 		FitMoveWindow(rect.x(), rect.y());
 		GetWindowRect(&rect);
@@ -809,7 +815,7 @@ BOOL TMsgBox::EvCreate(LPARAM lParam)
 	}
 
 	SetDlgItem(MESSAGE_EDIT, XY_FIT);
-	SetDlgItem(IDOK, BOTTOM_FIT|HMID_FIT);
+	SetDlgItem(IDOK, BOTTOM_FIT|MIDX_FIT);
 	if ((flags & NOCANCEL) == 0) {
 		SetDlgItem(IDCANCEL, BOTTOM_FIT|RIGHT_FIT);
 	}

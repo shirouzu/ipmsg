@@ -191,6 +191,7 @@
 #define MAX_NAMEBUF		80
 #define MAX_LISTBUF		(MAX_NAMEBUF * 4)
 #define MAX_ANSLIST		100
+#define MAX_DOSHOST		5
 #define MAX_FILENAME_U8	(255 * 3)
 #define MAX_MSGBODY		65536
 #define MAX_FQDN		256
@@ -208,6 +209,8 @@
 #define MSG_STR			"msg"
 #define IPMSG_CLASS		"ipmsg_class"
 #define IPMSG_FULLNAME	"IP Messenger for Win"
+#define IPMSG_APPID		"IPMSG for Win"
+#define IPMSG_APPID_W	L"IPMSG for Win"
 #define IPMSG_SITE		"ipmsg.org"
 
 #define IPMSG_UPDATEINFO		"ipmsg-update.dat"

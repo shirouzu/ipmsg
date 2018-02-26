@@ -15,10 +15,7 @@
 #pragma comment (lib, "crypt32.lib")
 #pragma comment (lib, "imm32.lib")
 #pragma comment (lib, "Iphlpapi.lib")
-#ifndef _WIN64
 #pragma comment (lib, "Shlwapi.lib")
-#endif
-#pragma comment (lib, "wininet.lib")
 #pragma comment (lib, "winmm.lib")
 #pragma comment (lib, "Ws2_32.lib")
 

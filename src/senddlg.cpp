@@ -32,7 +32,8 @@ TSendDlg::TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *_c
 	refreshBtn(this),
 	menuCheck(this),
 	memCntText(this),
-	repFilCheck(this)
+	repFilCheck(this),
+	retryDlg(this)
 {
 	TRecvDlg *recvDlg = rInfo ? rInfo->recvDlg : NULL;
 	recvId			= recvDlg ? recvDlg->twinId : 0;
@@ -187,14 +188,6 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 		::EnableWindow(GetDlgItem(PASSWORD_CHECK), FALSE);
 	}
 
-	if (!IsNewShell()) {
-		ULONG_PTR	style;
-		style = GetWindowLong(GWL_STYLE);
-		style &= 0xffffff0f;
-		style |= 0x00000080;
-		SetWindowLong(GWL_STYLE, style);
-	}
-
 	InitializeHeader();
 	hostListView.LetterKey(cfg->LetterKey);
 
@@ -220,9 +213,8 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 
 	SetupItemIcons();
 
-	if (!msgMng->IsAvailableTCP()) {
-		::DragAcceptFiles(hWnd, FALSE);
-	}
+	::DragAcceptFiles(hWnd, msgMng->IsAvailableTCP());
+
 	CheckDisp();
 	DisplayMemberCnt();
 
@@ -807,16 +799,17 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		{
 			if (wID == MENU_PRIORITY_RESET)
 			{
-				if (MessageBoxU8(LoadStrU8(IDS_DEFAULTSET), IP_MSG, MB_OKCANCEL) != IDOK)
+				if (MessageBoxU8(LoadStrU8(IDS_DEFAULTSET), IP_MSG, MB_OKCANCEL) != IDOK) {
 					return	TRUE;
-				while (cfg->priorityHosts.HostCnt() > 0)
-				{
+				}
+				while (cfg->priorityHosts.HostCnt() > 0) {
 					Host	*host = cfg->priorityHosts.GetHost(0);
 					cfg->priorityHosts.DelHost(host);
 					host->SafeRelease();
 				}
-				for (int i=0; i < hosts->HostCnt(); i++)
+				for (int i=0; i < hosts->HostCnt(); i++) {
 					hosts->GetHost(i)->priority = DEFAULT_PRIORITY;
+				}
 			}
 			else if (wID == MENU_PRIORITY_HIDDEN)
 			{
@@ -831,10 +824,9 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 					if (hostArray[i]->priority == priority || !hostListView.IsSelected(i)) {
 						continue;
 					}
-					if (hostArray[i]->priority == DEFAULT_PRIORITY)
+					if (!cfg->priorityHosts.GetHostByName(&hostArray[i]->hostSub)) {
 						cfg->priorityHosts.AddHost(hostArray[i]);
-					else if (priority == DEFAULT_PRIORITY)
-						cfg->priorityHosts.DelHost(hostArray[i]);
+					}
 					hostArray[i]->priority = priority;
 				}
 			}
@@ -1266,7 +1258,7 @@ BOOL TSendDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	HDWP	hdwp = ::BeginDeferWindowPos(max_senditem);
 	WINPOS	*wpos;
 	BOOL	isFileBtn = shareInfo && shareInfo->fileCnt > 0 ? TRUE : FALSE;
-	UINT	dwFlg = (IsNewShell() ? SWP_SHOWWINDOW : SWP_NOREDRAW) | SWP_NOZORDER;
+	UINT	dwFlg = SWP_SHOWWINDOW | SWP_NOZORDER;
 	UINT	dwHideFlg = SWP_HIDEWINDOW | SWP_NOZORDER;
 	if (!hdwp)
 		return	FALSE;
@@ -1318,15 +1310,14 @@ BOOL TSendDlg::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 
 	EndDeferWindowPos(hdwp);
 
-	if (IsNewShell()) {
-		if (cfg->PasswordUse) {
-			::InvalidateRgn(GetDlgItem(PASSWORD_CHECK), NULL, TRUE);
-		}
-		::InvalidateRgn(GetDlgItem(SECRET_CHECK), NULL, TRUE);
-		::InvalidateRgn(sendBtn.hWnd, NULL, TRUE);
-		if (parent) ::InvalidateRgn(editSub.hWnd, NULL, TRUE);
-	} else if (captureMode) {
-		::InvalidateRgn(hWnd, NULL, TRUE);
+	if (cfg->PasswordUse) {
+		::InvalidateRgn(GetDlgItem(PASSWORD_CHECK), NULL, TRUE);
+	}
+	::InvalidateRgn(GetDlgItem(SECRET_CHECK), NULL, TRUE);
+	::InvalidateRgn(sendBtn.hWnd, NULL, TRUE);
+
+	if (parent) {
+		::InvalidateRgn(editSub.hWnd, NULL, TRUE);
 	}
 
 	return	TRUE;
@@ -1458,7 +1449,8 @@ BOOL TSendDlg::EvTimer(WPARAM _timerID, TIMERPROC proc)
 		}
 	}
 	strcat(buf, LoadStrU8(IDS_RETRYSEND));
-	int ret = cmdHWnd ? IDCANCEL : MessageBoxU8(buf, IP_MSG, MB_RETRYCANCEL|MB_ICONINFORMATION);
+	retryDlg.SetFlags(TMsgBox::RETRY | TMsgBox::BIGX | TMsgBox::CENTER);
+	int ret = cmdHWnd ? IDCANCEL : retryDlg.Exec(buf, IP_MSG);
 	delete [] buf;
 
 	if (ret == IDRETRY && !IsSendFinish()) {
@@ -1569,7 +1561,7 @@ BOOL TSendDlg::IsFilterHost(Host *host)
 /*
 	HostEntryの追加
 */
-void TSendDlg::AddHost(Host *host, BOOL is_sel)
+void TSendDlg::AddHost(Host *host, BOOL is_sel, BOOL disp_upd)
 {
 	if (IsSending() || host->priority <= 0 && !hiddenDisp || !IsFilterHost(host))
 		return;
@@ -1646,7 +1638,9 @@ void TSendDlg::AddHost(Host *host, BOOL is_sel)
 			hostListView.SetSubItem(index, i, buf);
 		}
 
-		DisplayMemberCnt();
+		if (disp_upd) {
+			DisplayMemberCnt();
+		}
 	}
 	listOperateCnt--;
 }
@@ -1667,17 +1661,17 @@ int TSendDlg::GetHostIdx(Host *host, BOOL *is_sel)
 /*
 	HostEntryの修正
 */
-void TSendDlg::ModifyHost(Host *host)
+void TSendDlg::ModifyHost(Host *host, BOOL disp_upd)
 {
 	BOOL	is_sel = FALSE;
-	DelHost(host, &is_sel);
-	AddHost(host, is_sel);
+	DelHost(host, &is_sel, FALSE);
+	AddHost(host, is_sel, disp_upd);
 }
 
 /*
 	HostEntryの削除
 */
-void TSendDlg::DelHost(Host *host, BOOL *_is_sel)
+void TSendDlg::DelHost(Host *host, BOOL *_is_sel, BOOL disp_upd)
 {
 	if (IsSending())
 		return;
@@ -1696,10 +1690,18 @@ void TSendDlg::DelHost(Host *host, BOOL *_is_sel)
 	{
 		memmove(hostArray + idx, hostArray + idx +1, (memberCnt - idx -1) * sizeof(Host *));
 		memberCnt--;
-		DisplayMemberCnt();
-		CheckDisp();
+		if (disp_upd) {
+			DisplayMemberCnt();
+			CheckDisp();
+		}
 	}
 	listOperateCnt--;
+}
+
+void TSendDlg::DispUpdate(void)
+{
+	DisplayMemberCnt();
+	CheckDisp();
 }
 
 void TSendDlg::DelAllHost(void)
@@ -1981,9 +1983,10 @@ int TSendDlg::FilterHost(char *_filterStr)
 			else AddHost(host);
 		}
 		else {
-			DelHost(host);
+			DelHost(host, 0, FALSE);
 		}
 	}
+	DispUpdate();
 
 	// 選択位置を表示
 	if (selected_host) {
@@ -2429,9 +2432,10 @@ BOOL TSendDlg::SendFinishNotify(HostSub *hostSub, ULONG packet_no)
 			}
 			if (IsSendFinish() && hWnd)		//再送MessageBoxU8を消す
 			{
-				HWND	hMessageWnd = ::GetNextWindow(hWnd, GW_HWNDPREV);
-				if (hMessageWnd && ::GetWindow(hMessageWnd, GW_OWNER) == hWnd)
-					::PostMessage(hMessageWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
+				if (retryDlg.hWnd) {
+					Debug("done=%p", retryDlg.hWnd);
+					retryDlg.Destroy();
+				}
 			}
 			return	TRUE;
 		}

@@ -17,10 +17,10 @@
 TInifile::TInifile(const WCHAR *_ini_file)
 {
 	iniFile = NULL;
-	if (_ini_file) Init(_ini_file);
 	rootSec = curSec = NULL;
 //	iniSize = 0;
 	hMutex = NULL;
+	if (_ini_file) Init(_ini_file);
 }
 
 TInifile::~TInifile(void)
@@ -207,7 +207,7 @@ BOOL TInifile::WriteIni()
 	Lock();
 
 	BOOL	ret = FALSE;
-	HANDLE	hFile = ::CreateFileW(iniFile, GENERIC_WRITE, 0, 0, CREATE_ALWAYS,
+	HANDLE	hFile = ::CreateFileW(iniFile, GENERIC_WRITE, 0, 0, OPEN_ALWAYS,
 									FILE_ATTRIBUTE_NORMAL, 0);
 
 	if (hFile != INVALID_HANDLE_VALUE) {
@@ -224,7 +224,7 @@ BOOL TInifile::WriteIni()
 					int len = sprintf(p, "[%s]\r\n", sec->Name());
 					p = NextBuf(&vbuf, len, MIN_LINE_SIZE, MIN_INI_ALLOC);
 				}
-				while (key) {
+				while (key && p) {
 					if (key->Key())	{
 						int len = sprintf(p, "%s=\"%s\"\r\n", key->Key(), key->Val());
 						p = NextBuf(&vbuf, len, MIN_LINE_SIZE, MIN_INI_ALLOC);
@@ -237,8 +237,11 @@ BOOL TInifile::WriteIni()
 				}
 			}
 		}
-		DWORD	size;
-		ret = ::WriteFile(hFile, vbuf.Buf(), (DWORD)vbuf.UsedSize(), &size, 0);
+		if (p) {
+			DWORD	size;
+			ret = ::WriteFile(hFile, vbuf.Buf(), (DWORD)vbuf.UsedSize(), &size, 0);
+			::SetEndOfFile(hFile);
+		}
 		::CloseHandle(hFile);
 	}
 	UnLock();

@@ -1,5 +1,5 @@
 ======================================================================
-        IP Messenger for Win 全ソース 取り扱い説明書    2017/09/19
+        IP Messenger for Win 全ソース 取り扱い説明書    2018/02/23
 
                                                H.Shirouzu（白水啓章）
                                                https://ipmsg.org
@@ -34,8 +34,8 @@
 ・ライセンスは以下の通りです。(BSD License)
 
 /* ==============================================================
-  Copyright (c) 1996-2017 SHIROUZU Hiroaki  All rights reserved.
-  Copyright (c) 2015-2017 Asahi Net, Inc. All rights reserved.
+  Copyright (c) 1996-2018 SHIROUZU Hiroaki  All rights reserved.
+  Copyright (c) 2015-2018 Asahi Net, Inc. All rights reserved.
 
   ソースとバイナリ形式の再配布および使用は、「変更の有無、商用/
   非商用にかかわらず」、以下の条件を満たす場合に許可されます:
@@ -67,6 +67,9 @@
 ■ 4. コンパイル方法（VS2017 以降）
 
   VS2017 以降でビルドします。
+  （VS2015の場合、toast以外の全プロジェクトのプラットフォームセット
+    を v141_xp -> v140_xp に変更します。toastプロジェクトだけは
+    _xp なしの v140 を指定します）
 
   ipmsg本体だけでなく、インストーラ形式としてビルドするためには、
   下記の準備が必要になります。
@@ -75,7 +78,7 @@
      状態になっていること
      （instdataプロジェクトのビルド前イベントで使用されます）
 
-  2) ヘルプビルド用 HTML Workshop が
+  2) ヘルプビルド用 HTML Help Workshop が
       C:\Program Files (x86)\HTML Help Workshop\hhc
      にインストールされていること
 

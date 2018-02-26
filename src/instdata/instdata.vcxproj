@@ -149,7 +149,7 @@
       <SuppressStartupBanner>false</SuppressStartupBanner>
     </Lib>
     <PreBuildEvent>
-      <Command>python ../../gendat.py files_data.dat ../../Release/ipmsg.exe ../../Release/ipcmd.exe ../../Release/uninst.exe ../../help/ipmsg.chm ../../Release/iptoast.dll ../../src/res/ipmsg.png ../../src/res/ipexc.png</Command>
+      <Command>python ../../scripts/gendat.py files_data.dat ../../Release/ipmsg.exe ../../Release/ipcmd.exe ../../Release/uninst.exe ../../help/ipmsg.chm ../../Release/iptoast.dll ../../src/res/ipmsg.png ../../src/res/ipexc.png</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -176,7 +176,7 @@
       <SuppressStartupBanner>false</SuppressStartupBanner>
     </Lib>
     <PreBuildEvent>
-      <Command>python ../../gendat.py files_data64.dat ../../x64/Release/ipmsg.exe ../../x64/Release/ipcmd.exe ../../x64/Release/uninst.exe ../../help/ipmsg.chm  ../../x64/Release/iptoast.dll ../../src/res/ipmsg.png ../../src/res/ipexc.png</Command>
+      <Command>python ../../scripts/gendat.py files_data64.dat ../../x64/Release/ipmsg.exe ../../x64/Release/ipcmd.exe ../../x64/Release/uninst.exe ../../help/ipmsg.chm  ../../x64/Release/iptoast.dll ../../src/res/ipmsg.png ../../src/res/ipexc.png</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

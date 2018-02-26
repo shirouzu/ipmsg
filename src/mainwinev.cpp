@@ -20,14 +20,12 @@ using namespace std;
 
 /*
 	MainWindow 生成時の CallBack
-	New Shell なら、TaskTray に icon登録、そうでないなら icon化
 	Packet 受信開始、Entry Packetの送出
 */
 BOOL TMainWin::EvCreate(LPARAM lParam)
 {
 	SetMainWnd(hWnd);
-
-	if (IsWin10()) {
+	if (IsWin10() /* && !IsWin10Fall()*/) {	// Fall以降では不要に
 		InitToastDll();
 	}
 
@@ -95,19 +93,6 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 		isFirstBroad = FALSE;
 	}
 
-	LoadStoredPacket();
-	shareMng->LoadShare();
-
-	if (cfg->viewEpoch) {
-		if (auto view=logViewList.TopObj()) {
-			view->SetStatusCheckEpoch(cfg->viewEpoch);
-		}
-	}
-	logmng->InitDB(); // logmng自体にはアクセス可能
-	if (LogDb *logDb = logmng->GetLogDb()) {
-		logDb->PrefetchCache(hWnd, WM_LOGFETCH_DONE);
-	}
-
 	if (param.isUpdateErr) {
 		UpdateFileCleanup();
 		BalloonWindow(TRAY_NORMAL, "Update Failed", IP_MSG, 10000);
@@ -139,6 +124,20 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 			param.isUpdated ? IDS_UPDATEDONE_TRAY : IDS_INSTALLED_TRAY), title, 10000000, TRUE);
 	}
 
+	LoadStoredPacket();
+	shareMng->LoadShare();
+
+	if (cfg->viewEpoch) {
+		if (auto view=logViewList.TopObj()) {
+			view->SetStatusCheckEpoch(cfg->viewEpoch);
+		}
+	}
+	logmng->InitDB(); // logmng自体にはアクセス可能
+	if (LogDb *logDb = logmng->GetLogDb()) {
+		logDb->PrefetchCache(hWnd, WM_LOGFETCH_DONE);
+	}
+
+
 	SetTimer(IPMSG_CLEANUP_TIMER, 1000); // 1sec
 	SetTimer(IPMSG_CLEANUPDIRTCP_TIMER, 2000); // 2sec
 
@@ -148,23 +147,37 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 		SetTimer(IPMSG_DIR_TIMER, DIR_BASE_TICK);
 
 #if 0
-		time_t	t = time(NULL);
-		for (int i=0; i < 1; i++) {
-			Host	*host = new Host;
-			host->hostSub.addr.Set(Fmt("10.0.%d.%d", i / 100 + 100, (i % 100)+100));
-			Debug("%s", host->hostSub.addr.S());
-			host->hostSub.portNo = portNo;
-			sprintf(host->hostSub.u.userName, "user_%03d", i);
-			sprintf(host->hostSub.u.hostName, "host_%03d", i);
-			sprintf(host->groupName, "group_%03d", i);
-			sprintf(host->nickName, "nick_%03d", i);
-			host->hostStatus = IPMSG_CAPUTF8OPT|IPMSG_ENCRYPTOPT|IPMSG_CAPFILEENCOPT|IPMSG_FILEATTACHOPT;
-			host->updateTime = host->updateTimeDirect = t - 180;
-			host->active = TRUE;
-			allHosts.AddHost(host);
-		}
+//		time_t	t = time(NULL);
+//		for (int i=0; i < 1; i++) {
+//			Host	*host = new Host;
+//			host->hostSub.addr.Set(Fmt("10.0.%d.%d", i / 100 + 100, (i % 100)+100));
+//			Debug("%s", host->hostSub.addr.S());
+//			host->hostSub.portNo = portNo;
+//			sprintf(host->hostSub.u.userName, "user_%03d", i);
+//			sprintf(host->hostSub.u.hostName, "host_%03d", i);
+//			sprintf(host->groupName, "group_%03d", i);
+//			sprintf(host->nickName, "nick_%03d", i);
+//			host->hostStatus = IPMSG_CAPUTF8OPT|IPMSG_ENCRYPTOPT|IPMSG_CAPFILEENCOPT|IPMSG_FILEATTACHOPT;
+//			host->updateTime = host->updateTimeDirect = t - 180;
+//			host->active = TRUE;
+//			allHosts.AddHost(host);
+//		}
 #endif
 	}
+#endif
+
+#if 0
+// 署名速度確認
+	DynBuf	b(1500);
+	IPDict	d;
+	d.put_bytes("data", b, 1500);
+
+	TTick	t;
+	for (int i=0; i < 5000; i++) {
+	//	memset(b.Buf(), i, 1500);
+		msgMng->SignIPDict(&d);
+	}
+	Debug("elaps=%.2f\n", t.elaps() / 1000.0);
 #endif
 
 	switch (fwMode) {
@@ -835,11 +848,11 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 #ifndef IPMSG_PRO
 	case WM_IPMSG_UPDATERES:
-		UpdateCheckRes((InetReqReply *)lParam);
+		UpdateCheckRes((TInetReqReply *)lParam);
 		return	TRUE;
 
 	case WM_IPMSG_UPDATEDLRES:
-		UpdateDlRes((InetReqReply *)lParam);
+		UpdateDlRes((TInetReqReply *)lParam);
 		return	TRUE;
 
 	case WM_TCPDIREVENT:
@@ -1005,7 +1018,7 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_IPMSG_SLACKRES:
 		{
-			auto	*irr = (InetReqReply *)lParam;
+			auto	*irr = (TInetReqReply *)lParam;
 			Debug("slack ret=%d reply=%s err=%s\n", irr->code, irr->reply.s(), irr->errMsg.s());
 			delete irr;
 		}

@@ -214,4 +214,6 @@ BOOL TLibInit_Ntdll();
 BOOL TGenRandom(void *buf, size_t len);
 BOOL TGenRandomMT(void *buf, size_t len);
 
+void TSetPubKeyBlob(BYTE *n, int n_size, int e, DynBuf *keyblob);
+
 #endif

@@ -327,16 +327,19 @@ BOOL LogMng::WriteMsg(ULONG packetNo, LPCSTR msg, ULONG command, int opt, time_t
 
 	if (command & IPMSG_SECRETOPT)
 	{
-		if (command & IPMSG_PASSWORDOPT)
+		if (command & IPMSG_PASSWORDOPT) {
 			p += strcpyz(p, LoadStrU8(IDS_PASSWDLOG));
-		else
+		}
+		else {
 			p += strcpyz(p, LoadStrU8(IDS_SECRETLOG));
+		}
 		logMsg->flags |= DB_FLAG_SEAL;
 
 		// 未開封フラグのセット
 		for (auto itr=logMsg->host.begin(); itr != logMsg->host.end(); itr++) {
-			if ((logMsg->flags & DB_FLAG_FROM) == 0 || itr == logMsg->host.begin())
-			itr->flags |= DB_FLAGMH_UNOPEN;
+			if ((logMsg->flags & DB_FLAG_FROM) == 0 || itr == logMsg->host.begin()) {
+				itr->flags = DB_FLAGMH_UNOPEN;
+			}
 		}
 		if ((logMsg->flags & DB_FLAG_FROM)) {
 			logMsg->flags |= DB_FLAG_UNOPENR;
@@ -432,6 +435,7 @@ BOOL LogMng::ReadCheckStatus(MsgIdent *mi, BOOL is_recv, BOOL unread_tmp)
 			continue;
 		}
 		if (h.flags & DB_FLAGMH_UNOPEN) {
+			h.flags = time_to_msgid(time(NULL));
 			h.flags &= ~DB_FLAGMH_UNOPEN;
 			logDb->UpdateOneMsgHost(msg_id, &h);
 			if (msg.flags & DB_FLAG_UNOPENR) {

@@ -133,7 +133,7 @@ struct Addr {
 						return Set(&sin4.sin_addr, sizeof(sin4.sin_addr), _mask);
 					}
 				}
-				Debug("WSAStringToAddress err=%d\n", WSAGetLastError());
+				Debug("WSAStringToAddress err=%d %s\n", WSAGetLastError(), s);
 				return false;
 			}
 	bool	Resolve(const char *s, DWORD _mask=0) {
@@ -167,7 +167,7 @@ struct Addr {
 				memcpy(_addr, addr, size);
 				return	size;
 			}
-	char	*S(char *buf=NULL, DWORD bufsize=INET6_ADDRSTRLEN) {
+	char	*S(char *buf=NULL, DWORD bufsize=INET6_ADDRSTRLEN, BOOL is_mask=FALSE) {
 #define MAX_ADDRSTR_NUM	8
 				static char	_buf[MAX_ADDRSTR_NUM][INET6_ADDRSTRLEN];
 				static std::atomic<DWORD> idx = 0;
@@ -177,11 +177,17 @@ struct Addr {
 				*buf = 0;
 				if (IsIPv6()) {
 					sockaddr_in6	sin6 = { AF_INET6, 0, 0, in6 };
-					WSAAddressToString((sockaddr *)&sin6, sizeof(sin6), 0, buf, &bufsize);
+					if (!WSAAddressToString((sockaddr *)&sin6, sizeof(sin6), 0, buf, &bufsize)
+						&& is_mask && bufsize > 0) {
+						sprintf(buf + bufsize - 1, "/%d", mask);
+					}
 				}
 				else if (IsIPv4()) {
 					sockaddr_in		sin4  = { AF_INET,  0, in4 };
-					WSAAddressToString((sockaddr *)&sin4, sizeof(sin4), 0, buf, &bufsize);
+					if (WSAAddressToString((sockaddr *)&sin4, sizeof(sin4), 0, buf, &bufsize)
+						&& is_mask && bufsize > 0) {
+						sprintf(buf + bufsize - 1, "/%d", mask);
+					}
 				}
 				else {
 					strcpy(buf, "0");
@@ -243,6 +249,10 @@ struct HostSub {
 		addr   = h.addr;
 		portNo = h.portNo;
 		return	*this;
+	}
+	const char *S() {
+		return	Fmt("%s/%s (%s/%d)", u.userName, u.hostName,
+			addr.S(NULL, INET6_ADDRSTRLEN, TRUE), portNo);
 	}
 };
 
@@ -520,16 +530,6 @@ public:
 
 
 #define rRGB(r,g,b)  ((DWORD)(((BYTE)(b)|((WORD)(g) << 8))|(((DWORD)(BYTE)(r)) << 16)))
-
-// 1601年1月1日から1970年1月1日までの通算100ナノ秒
-#define UNIXTIME_BASE	((int64)0x019db1ded53e8000)
-
-inline time_t FileTime2UnixTime(FILETIME *ft) {
-	return	(time_t)((*(int64 *)ft - UNIXTIME_BASE) / 10000000);
-}
-inline void UnixTime2FileTime(time_t ut, FILETIME *ft) {
-	*(int64 *)ft = (int64)ut * 10000000 + UNIXTIME_BASE;
-}
 
 inline int64 MakeMsgId(WPARAM high, LPARAM low) {
 	return	(((int64)(DWORD)high) << 32) | (int64)(DWORD)low;

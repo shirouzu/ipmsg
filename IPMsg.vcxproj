@@ -131,8 +131,6 @@
       <TargetMachine>MachineX86</TargetMachine>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DelayLoadDLLs>
-      </DelayLoadDLLs>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -188,7 +186,7 @@
       <OutputFile>Obj\x64\Debug\IPMsg.bsc</OutputFile>
     </Bscmake>
     <PreBuildEvent>
-      <Command>x64\debug\ipcmd terminate &amp; SET ERRORLEVEL = 0</Command>
+      <Command>x64\debug\ipcmd /NIC=192.168.0.7 terminate &amp; SET ERRORLEVEL = 0</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -239,12 +237,16 @@
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SetChecksum>true</SetChecksum>
       <OptimizeReferences>true</OptimizeReferences>
-      <DelayLoadDLLs>user32.dll; Activeds.dll; comctl32.dll; crypt32.dll; Dbghelp.dll; gdiplus.dll; imm32.dll; Iphlpapi.dll; msimg32.dll; psapi.dll; Shlwapi.dll; wininet.dll; winmm.dll; Ws2_32.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>user32.dll; Activeds.dll; comctl32.dll; crypt32.dll; Dbghelp.dll; gdiplus.dll; imm32.dll; Iphlpapi.dll; msimg32.dll; psapi.dll; Shlwapi.dll; wininet.dll; winmm.dll; Ws2_32.dll;Netapi32.dll;Wininet.dll</DelayLoadDLLs>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>Obj\Release\IPMsg.bsc</OutputFile>
     </Bscmake>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
@@ -295,12 +297,16 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <SetChecksum>true</SetChecksum>
       <OptimizeReferences>true</OptimizeReferences>
-      <DelayLoadDLLs>user32.dll; Activeds.dll; comctl32.dll; crypt32.dll; Dbghelp.dll; gdiplus.dll; imm32.dll; Iphlpapi.dll; msimg32.dll; psapi.dll; wininet.dll; winmm.dll; Ws2_32.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>user32.dll; Activeds.dll; comctl32.dll; crypt32.dll; Dbghelp.dll; gdiplus.dll; imm32.dll; Iphlpapi.dll; msimg32.dll; psapi.dll; wininet.dll; winmm.dll; Ws2_32.dll;Netapi32.dll;Wininet.dll</DelayLoadDLLs>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>Obj\x64\Release\IPMsg.bsc</OutputFile>
     </Bscmake>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\aes.cpp" />
@@ -308,8 +314,6 @@
     <ClCompile Include="src\cfg.cpp" />
     <ClCompile Include="src\histdlg.cpp" />
     <ClCompile Include="src\image.cpp" />
-    <ClCompile Include="src\inet.cpp" />
-    <ClCompile Include="src\ipdict.cpp" />
     <ClCompile Include="src\ipipc.cpp" />
     <ClCompile Include="src\ipmsg.cpp" />
     <ClCompile Include="src\logchildview.cpp" />
@@ -349,7 +353,9 @@
     <ResourceCompile Include="src\ipmsg.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="src\ipmsg.exe.manifest" />
+    <Manifest Include="src\ipmsg.exe.manifest">
+      <SubType>Designer</SubType>
+    </Manifest>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\aes.h" />

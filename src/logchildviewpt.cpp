@@ -499,11 +499,15 @@ int TChildView::PaintBmpIcon(HBITMAP hBmp, TRect rc, BOOL is_direct)
 	return	ret;
 }
 
-int CalcLineCx(HDC hDc, const WCHAR *s)
+int CalcLineCx(HDC hDc, const WCHAR *s, int len)
 {
 	int		cx = 0;
 
-	for (const WCHAR *p=s; p && *p; ) {
+	if (len == -1) {
+		len = (int)wcslen(s);
+	}
+
+	for (const WCHAR *p=s; p && (p-s) < len && *p; ) {
 		const WCHAR *next_p = wcschr(p, '\n');
 		if (next_p) {
 			next_p++;
@@ -519,7 +523,7 @@ int CalcLineCx(HDC hDc, const WCHAR *s)
 
 BOOL CalcTextBoxSize(HDC hDc, const WCHAR *s, int len, TSize *sz)
 {
-	int		max_cx = CalcLineCx(hDc, s);
+	int		max_cx = CalcLineCx(hDc, s, len);
 	TRect	rc(0, 0, min(max_cx, sz->cx), sz->cy);
 
 	::DrawTextW(hDc, s, len, &rc, DT_LEFT|DT_CALCRECT|DT_NOPREFIX|DT_WORDBREAK);
@@ -660,7 +664,7 @@ int TChildView::PaintFoldBtn(ViewMsg *msg, int top_y, int cnt, int body_btm)
 		HDC		hDc  = hMemDc;
 
 		if (msg->unOpenR && bottom_y > body_btm && !IsFold(msg)) {
-			PaintUnOpenBox(0, body_btm, msg->sz.cx, bottom_y - body_btm);
+			PaintUnOpenBox(0, body_btm, msg->sz.cx, bottom_y - body_btm); // Fodlボタンの左右余白
 		}
 		PaintRect(hMemDc, hGrayPen, hShineBrush, rc, 5, 5);
 

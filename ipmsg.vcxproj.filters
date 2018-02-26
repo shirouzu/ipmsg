@@ -43,14 +43,12 @@
     <ClCompile Include="src\tipwnd.cpp" />
     <ClCompile Include="src\toolbar.cpp" />
     <ClCompile Include="src\version.cpp" />
-    <ClCompile Include="src\ipdict.cpp" />
     <ClCompile Include="src\mainwindir.cpp" />
     <ClCompile Include="src\mainwinev.cpp" />
     <ClCompile Include="src\mainwinmsg.cpp" />
     <ClCompile Include="src\mainwinfile.cpp" />
     <ClCompile Include="src\ipipc.cpp" />
     <ClCompile Include="src\mainwincmd.cpp" />
-    <ClCompile Include="src\inet.cpp" />
     <ClCompile Include="src\mainwinupd.cpp" />
   </ItemGroup>
   <ItemGroup>

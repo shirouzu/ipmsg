@@ -86,6 +86,7 @@ public:
 	virtual void	SetHeader();
 	virtual void	SetData(HistObj *obj);
 	virtual void	SetAllData();
+	virtual void	ClearData();
 	virtual int		MakeHistInfo(HostSub *hostSub, ULONG packet_no, char *buf);
 	virtual void	Show(int mode = SW_NORMAL);
 	virtual int		UnOpenedNum() { return unOpenedNum; }

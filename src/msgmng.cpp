@@ -874,6 +874,7 @@ BOOL MsgMng::ResolveDictMsg(MsgBuf *msg)
 	msg->timestamp = time(NULL);
 
 	if (!ipdict->get_int(IPMSG_VER_KEY, &val) || val != IPMSG_NEW_VERSION) return FALSE;
+	msg->version = (int)val;
 
 	if (!ipdict->get_int(IPMSG_PKTNO_KEY, &val)) return	FALSE;
 	msg->packetNo = (ULONG)val;

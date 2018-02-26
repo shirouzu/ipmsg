@@ -37,32 +37,42 @@ using namespace ABI::Windows::Foundation;
 #pragma comment (lib, "runtimeobject.lib")
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
-static const WCHAR AppId[] = L"IPMSG for Win";
+#include "../ipmsgdef.h"
+
 #define wsizeof(x) (sizeof(x)/sizeof(WCHAR))
 
 static ToastMgr *gToastMgr = NULL;
 
 //#define LOG_DEBUG
+//#define ENABLE_DEBUG
 
 #ifdef LOG_DEBUG
+
 BOOL SetDebugInfo(WCHAR *logname, CRITICAL_SECTION *cs)
 {
 	*logname = 0;
 
-	if (::GetModuleFileNameW(NULL, logname, wsizeof(logname))) {
+	if (::GetModuleFileNameW(NULL, logname, MAX_PATH)) {
 		if (WCHAR *p = wcsrchr(logname, '\\')) {
-			wcsncpy(p, L"iptoast.log", MAX_PATH - (p - logname) - 1);
+			swprintf(p + 1, MAX_PATH - (p - logname) - 1, L"iptoast.log");
 
 			HANDLE	hFile = ::CreateFileW(logname, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
 				NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 			DWORD	size = 2;
-			::WriteFile(hFile, "\xff\xfe", size, &size, 0);
+			if (hFile != INVALID_HANDLE_VALUE) {
+				::WriteFile(hFile, "\xff\xfe", size, &size, 0);
 #define LOG_HEADER	L"*** Start iptoast log ***\n"
-			size = sizeof(LOG_HEADER) - 2;
-			WriteFile(hFile, LOG_HEADER, size, &size, 0);
-			::CloseHandle(hFile);
-			::InitializeCriticalSection(cs);
+				size = sizeof(LOG_HEADER) - 2;
+				WriteFile(hFile, LOG_HEADER, size, &size, 0);
+				::CloseHandle(hFile);
+				::InitializeCriticalSection(cs);
+			}
+			else {
+				OutputDebugStringW(L"SetDebugInfo err1");
+			}
+
 		} else {
+			OutputDebugStringW(L"SetDebugInfo err2");
 			*logname = 0;
 		}
 	}
@@ -71,6 +81,7 @@ BOOL SetDebugInfo(WCHAR *logname, CRITICAL_SECTION *cs)
 }
 #endif
 
+#ifdef ENABLE_DEBUG
 void DebugW(const WCHAR *fmt,...)
 {
 #ifdef LOG_DEBUG
@@ -114,6 +125,9 @@ void DebugW(const WCHAR *fmt,...)
 	}
 #endif
 }
+#else
+#define DebugW(...)
+#endif
 
 BOOL SetNodeStr(HSTRING str, IXmlNode *node, IXmlDocument *xml)
 {
@@ -281,7 +295,7 @@ BOOL ToastObj::Init(HWND _hWnd, UINT _uMsg)
 		return FALSE;
 	}
 
-	hr = tnms->CreateToastNotifierWithId(HStr(AppId).Get(), &tnr);
+	hr = tnms->CreateToastNotifierWithId(HStr(IPMSG_APPID_W).Get(), &tnr);
 	if (!tnr) {
 		DebugW(L"CreateToastNotifierWithId err(%x)\n", hr);
 		return FALSE;
@@ -343,14 +357,14 @@ BOOL ToastObj::ToastXml(IXmlDocument** xml, const WCHAR *title, const WCHAR *msg
 
 BOOL ToastObj::Show(const WCHAR *title, const WCHAR *msg, const WCHAR *img)
 {
-	//DebugW(L"PreShow(%p)\n", toast);
+	DebugW(L"PreShow(%p)\n", toast);
 
     ComPtr<IXmlDocument> xml;
 	ToastXml(&xml, title, msg, img);
 
 	tnf->CreateToastNotification(xml.Get(), &toast);
 
-	//DebugW(L"Show(%p)\n", toast);
+	DebugW(L"Show(%p)\n", toast);
 
 	if (toast) {
 		toast->add_Activated(tEv.Get(), &evAct);
@@ -365,7 +379,7 @@ BOOL ToastObj::Show(const WCHAR *title, const WCHAR *msg, const WCHAR *img)
 	if (toast) {
 		tnr->Show(toast);
 	}
-	//DebugW(L"End Show(%p)\n", toast);
+	DebugW(L"End Show(%p)\n", toast);
 	return	TRUE;
 }
 
@@ -376,17 +390,17 @@ BOOL ToastObj::IsAlive()
 
 BOOL ToastObj::Hide()
 {
-	//DebugW(L"Hide(%p)\n", toast);
+	DebugW(L"Hide(%p)\n", toast);
 
 	DelToast();
 
-	//DebugW(L"end of Hide(%p)\n", toast);
+	DebugW(L"end of Hide(%p)\n", toast);
 	return	TRUE;
 }
 
 BOOL ToastObj::Event(ToastDismissalReason tdr)
 {
-	//DebugW(L"Dismiss(%p)\n", toast);
+	DebugW(L"Dismiss(%p)\n", toast);
 
 	LPARAM	lParam = 0;
 
@@ -410,38 +424,38 @@ BOOL ToastObj::Event(ToastDismissalReason tdr)
 
 //	DelToast();
 
-	//DebugW(L"end of Dismiss(%p)\n", toast);
+	DebugW(L"end of Dismiss(%p)\n", toast);
 
 	return	TRUE;
 }
 
 BOOL ToastObj::EventClick()
 {
-	//DebugW(L"Click(%p)\n", toast);
+	DebugW(L"Click(%p)\n", toast);
 
 	::PostMessage(hWnd, uMsg, 0, NIN_BALLOONUSERCLICK);
 
 //	DelToast();
 
-	//DebugW(L"end of Click(%p)\n", toast);
+	DebugW(L"end of Click(%p)\n", toast);
 
 	return	TRUE;
 }
 
 BOOL ToastObj::EventErr(int hint)
 {
-	//DebugW(L"EvErr(%p)\n", toast);
+	DebugW(L"EvErr(%p)\n", toast);
 	::PostMessage(hWnd, uMsg, 0, NIN_BALLOONHIDE);
 
 //	DelToast();
 
-	//DebugW(L"end of EvErr(%p)\n", toast);
+	DebugW(L"end of EvErr(%p)\n", toast);
 	return TRUE;
 }
 
 void ToastObj::DelToast()
 {
-	//DebugW(L"DelToast(%p)\n", toast);
+	DebugW(L"DelToast(%p)\n", toast);
 	if (toast) {
 		toast->remove_Activated(evAct);
 	}
@@ -453,36 +467,36 @@ void ToastObj::DelToast()
 	}
 
 	if (toast) {
-		//DebugW(L" call hide(%p)\n", toast);
+		DebugW(L" call hide(%p)\n", toast);
 		tnr->Hide(toast);
 	}
 	if (toast) {	// re-entrant?
-		//DebugW(L" end call hide (%p)\n", toast);
+		DebugW(L" end call hide (%p)\n", toast);
 		toast->Release();
-		//DebugW(L" ** Release (%p)\n", toast);
+		DebugW(L" ** Release (%p)\n", toast);
 		toast = NULL;
 	}
-	//DebugW(L"end of DelToast(%p)\n", toast);
+	DebugW(L"end of DelToast(%p)\n", toast);
 }
 
 ToastEvent::ToastEvent(ToastObj *_core) : ref(1), core(_core)
 {
-	//DebugW(L"ToastEvent()\n");
+	DebugW(L"ToastEvent()\n");
 }
 
 ToastEvent::~ToastEvent()
 {
-	//DebugW(L"~ToastEvent()\n");
+	DebugW(L"~ToastEvent()\n");
 }
 
 // ActEvent
 IFACEMETHODIMP ToastEvent::Invoke(IToastNotification*, IInspectable*)
 {
-	//DebugW(L"Invoke inspect\n");
+	DebugW(L"Invoke inspect\n");
 
 	core->EventClick();
 
-	//DebugW(L"end of Invoke inspect\n");
+	DebugW(L"end of Invoke inspect\n");
 
 	return	S_OK;
 }
@@ -490,7 +504,7 @@ IFACEMETHODIMP ToastEvent::Invoke(IToastNotification*, IInspectable*)
 // DismEvent
 IFACEMETHODIMP ToastEvent::Invoke(IToastNotification*, IToastDismissedEventArgs* ev)
 {
-	//DebugW(L"Invoke dismiss\n");
+	DebugW(L"Invoke dismiss\n");
 
 	ToastDismissalReason	tdr;
 
@@ -501,7 +515,7 @@ IFACEMETHODIMP ToastEvent::Invoke(IToastNotification*, IToastDismissedEventArgs*
 		core->EventErr(1);
 	}
 
-	//DebugW(L"end of Invoke dismiss\n");
+	DebugW(L"end of Invoke dismiss\n");
 
 	return	S_OK;
 }
@@ -509,11 +523,11 @@ IFACEMETHODIMP ToastEvent::Invoke(IToastNotification*, IToastDismissedEventArgs*
 // FailEvent
 IFACEMETHODIMP ToastEvent::Invoke(IToastNotification*, IToastFailedEventArgs*)
 {
-	//DebugW(L"ToastEvent::Invoke The toast encountered an error.\n");
+	DebugW(L"ToastEvent::Invoke The toast encountered an error.\n");
 
 	core->EventErr(2);
 
-	//DebugW(L"end of ToastEvent::Invoke The toast encountered an error.\n");
+	DebugW(L"end of ToastEvent::Invoke The toast encountered an error.\n");
 
 	return S_OK;
 }
@@ -529,7 +543,7 @@ void ToastMgr::ToastProc(void *param)
 
 void ToastMgr::ToastProcCore(ToastParam *param)
 {
-	//DebugW(L"ToastProcCore\n");
+	DebugW(L"ToastProcCore\n");
 
 	ToastObj	*toastObj = new ToastObj();
 	if (toastObj->Init(hWnd, uMsg)) {
@@ -556,12 +570,12 @@ void ToastMgr::ToastProcCore(ToastParam *param)
 
 	delete param;
 
-	//DebugW(L"end of ToastProc\n");
+	DebugW(L"end of ToastProc\n");
 }
 
 BOOL ToastMgr::Show(const WCHAR *title, const WCHAR *msg, const WCHAR *img)
 {
-	//DebugW(L"Show\n");
+	DebugW(L"Show\n");
 
 	Lock();
 
@@ -570,74 +584,74 @@ BOOL ToastMgr::Show(const WCHAR *title, const WCHAR *msg, const WCHAR *img)
 	_beginthread(ToastProc, 0, new ToastParam(title, msg, img, ++genId));
 	UnLock();
 
-	//DebugW(L"end of Show\n");
+	DebugW(L"end of Show\n");
 	return	TRUE;
 }
 
 BOOL ToastMgr::Hide()
 {
-	//DebugW(L"Hide\n");
+	DebugW(L"Hide\n");
 
 	Lock();
 	ignId = genId;
 	UnLock();
 
-	//DebugW(L"end of Hide\n");
+	DebugW(L"end of Hide\n");
 	return	TRUE;
 }
 
 BOOL ToastMgr::IsAlive()
 {
-	//DebugW(L"IsAlive\n");
+	DebugW(L"IsAlive\n");
 
 	Lock();
 	BOOL ret = ignId < genId ? TRUE : FALSE;
 	UnLock();
 
-	//DebugW(L"end of IsAlive\n");
+	DebugW(L"end of IsAlive\n");
 	return	ret;
 }
 
 BOOL ToastMgrInit(HWND hWnd, UINT uMsg)
 {
-	//DebugW(L"ToastMgrInit\n");
+	DebugW(L"ToastMgrInit\n");
 
 	gToastMgr = new ToastMgr(hWnd, uMsg);
 
-	//DebugW(L"end of ToastMgrInit\n");
+	DebugW(L"end of ToastMgrInit\n");
 	return	TRUE;
 }
 
 BOOL ToastShow(const WCHAR *title, const WCHAR *msg, const WCHAR *img)
 {
-	//DebugW(L"ToastShow\n");
+	DebugW(L"ToastShow\n");
 
 	if (!gToastMgr) return FALSE;
 	BOOL ret = gToastMgr->Show(title, msg, img);
 
-	//DebugW(L"end of ToastShow\n");
+	DebugW(L"end of ToastShow\n");
 	return	ret;
 }
 
 BOOL ToastHide()
 {
-	//DebugW(L"ToastHide\n");
+	DebugW(L"ToastHide\n");
 
 	if (!gToastMgr) return FALSE;
 	BOOL ret = gToastMgr->Hide();
 
-	//DebugW(L"end of ToastHide\n");
+	DebugW(L"end of ToastHide\n");
 	return	ret;
 }
 
 BOOL ToastIsAlive()
 {
-	//DebugW(L"ToastIsAlive\n");
+	DebugW(L"ToastIsAlive\n");
 
 	if (!gToastMgr) return FALSE;
 	BOOL ret = gToastMgr->IsAlive();
 
-	//DebugW(L"end of ToastIsAlive\n");
+	DebugW(L"end of ToastIsAlive\n");
 	return	ret;
 }
 

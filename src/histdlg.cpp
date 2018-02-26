@@ -138,7 +138,7 @@ BOOL THistDlg::EvCreate(LPARAM lParam)
 	SetDlgIcon(hWnd);
 
 	SetDlgItem(HISTORY_LIST, XY_FIT);
-	SetDlgItem(IDOK, HMID_FIT);
+	SetDlgItem(IDOK, MIDX_FIT);
 	SetDlgItem(OPENED_CHECK, LEFT_FIT);
 	SetDlgItem(CLEAR_BUTTON, RIGHT_FIT);
 
@@ -219,20 +219,7 @@ BOOL THistDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		return	TRUE;
 
 	case CLEAR_BUTTON:
-		
-		histListView.DeleteAllItems();
-		if (openedMode) {
-			while (histHash.LruTop()) histHash.UnRegister(histHash.LruTop()); // !UnRegisterLRU()
-		}
-		else {
-			for (auto obj=histHash.Top(); obj; ) {
-				auto next = obj->next;
-				if (!*obj->odate.s()) histHash.UnRegister(obj);
-				obj = next;
-			}
-			unOpenedNum = 0;
-		}
-		SetTitle();
+		ClearData();
 		return	TRUE;
 	}
 	return	FALSE;
@@ -314,9 +301,36 @@ void THistDlg::SetAllData()
 	}
 	else {
 		for (auto obj = histHash.End(); obj; obj = obj->prev) {
-			if (!*obj->odate.s()) SetData(obj);
+			if (!*obj->odate.s()) {
+				SetData(obj);
+			}
 		}
 	}
+}
+
+void THistDlg::ClearData()
+{
+	int		sel_num = histListView.GetSelectedItemCount();
+	auto	next = openedMode ? histHash.LruTop() : histHash.Top();
+
+	while (auto obj=next) {
+		next = openedMode ? obj->lruNext : obj->next;
+
+		if (!openedMode && *obj->odate.s()) {
+			continue;
+		}
+		int	idx = histListView.FindItem((LPARAM)obj);
+
+		if (idx >= 0 && (sel_num == 0 || histListView.IsSelected(idx))) {
+			histListView.DeleteItem(idx);
+			histHash.UnRegister(obj); // !UnRegisterLRU()
+			if (!openedMode) {
+				unOpenedNum--;
+				Debug("unOpenedNum=%d\n", unOpenedNum);
+			}
+		}
+	}
+	SetTitle();
 }
 
 int THistDlg::MakeHistInfo(HostSub *hostSub, ULONG packet_no, char *buf)

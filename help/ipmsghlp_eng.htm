@@ -84,11 +84,11 @@
 <body bgcolor="#eeffff">
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v4.80</h1>
+<h1 class="help_head1">IP Messenger v4.83</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2017/09/19 H.Shirouzu</div>
+<div align="right">2018/02/23 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -138,8 +138,8 @@
 <h2 class="help_head2">2. License/Environment/Install</h2>
 <div class="help_section">
 	<div class="help_license">
-	<strong>Copyright 1996-2017 SHIROUZU Hiroaki All rights reserved.</strong><br>
-	<strong>Copyright 2015-2017 Asahi Net, Inc. All rights reserved.</strong><br>
+	<strong>Copyright 1996-2018 SHIROUZU Hiroaki All rights reserved.</strong><br>
+	<strong>Copyright 2015-2018 Asahi Net, Inc. All rights reserved.</strong><br>
 	<br>
 	Redistribution and use in source and binary forms, with or
 	without modification, are permitted provided that the following
@@ -588,17 +588,24 @@ It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
 	<div class="help_sub_section">
 
 		<table class="help_table" border="4">
-		<tr class="table_head"><th colspan="2">Detal Settings</th></tr>
-		<tr><td nowrap>Receive Msg</td><td>Specify duration time(sec) at receive notification</td></tr>
-		<tr><td nowrap>Open Msg</td><td>Specify duration time(sec) at open msg notification<</td></tr>
+		<tr class="table_head"><th colspan="2">Balloon/Toast Notification</th></tr>
+		<tr><td nowrap>Receive Notify</td><td>Specify duration time(sec) at receive notification</td></tr>
+		<tr><td nowrap>Open Notify</td><td>Specify duration time(sec) at open msg notification<</td></tr>
 		<tr><td>Do not display user information</td><td>(As it is)</td></tr>
-		<tr><td nowrap>QuoteStr</td><td>Specify quote string at replying</td></tr>
+
+		<tr class="table_head"><th colspan="2">Link for Windows ControlPanel</th></tr>
+		<tr><td>Toast Notification</td><td>Open Windows toast notification settings. (This settigns overrides the above ipmsg settings.</td></tr>
+		<tr><td>Notification Area Icon</td><td>Open Windows notification area icon settings.</td></tr>
+
+		<tr class="table_head"><th colspan="2">HotKey settings</th></tr>
 		<tr><td nowrap>Use Hotkey</td><td>Open send/recv window by shortcut key</td></tr>
-		<tr><td>Change Send/Reply -&gt; Fire/Intercept<td>Back to original label(1st beta in 1996)</td></tr>
+
+		<tr class="table_head"><th colspan="2">Misc</th></tr>
 		<tr><td nowrap>English UI</td><td>Change to English UI (need restart)</td></tr>
+		<tr><td>Change Send/Reply -&gt; Fire/Intercept<td>Back to original label(1st beta in 1996)</td></tr>
+		<tr><td>Register Icon &amp; Notify<br>in TaskTray at Starting</td><td>Register Icon&Notify at starting, automatically</td></tr>
 		<tr><td nowrap>Icon</td><td>Change main/tasktray Icon</td></tr>
 		<tr><td nowrap>RevIcon</td><td>Change recv/absense Icon</td></tr>
-		<tr><td>Register Icon &amp; Notify<br>in TaskTray at Starting</td><td>Register Icon&Notify at starting, automatically</td></tr>
 		</table>
 	<br>
 	</div>
@@ -611,9 +618,10 @@ It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
 		<tr><td nowrap>1 Click Open SendDlg</td><td>Open Send Dlg by 1click in tasktray icon</td></tr>
 		<tr><td nowrap>IME auto ON</td><td>Enable IME at SendDlg opened</td></tr>
 		<tr><td nowrap>Narrow Userlist at reply</td><td>Show original addressees in userlist at replying. (if it is clicked "+" mini button, show all users)</td></tr>
-
 		<tr><td nowrap>UserHsitoryNum</td><td>Specfy the number of user history in right click menu of SendDlg</td></tr>
 		<tr><td nowrap>Prevent missend</td><td>Confirm addressee changed.</td></tr>
+		<tr><td nowrap>Set Caret to top at replying</td><td>(As it is)</td></tr>
+		<tr><td nowrap>QuoteStr</td><td>Specify quote string at replying. We recommend not to modify it, because it affects the fold action in the LogViewer.</td></tr>
 
 		<tr class="table_head"><th colspan="2">Recv Window</th></tr>
 		<tr><td nowrap>NonPopup Receive</td><td>Change "popup" to "blink tasktray Icon" at receiving</td></tr>
@@ -926,6 +934,22 @@ Software Version, Operating System, problem situation, repeatability.
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
 
+<tr><td>v4.83</td><td>
+Fix not to show Toast Notification problem in Win10 Fall Creators Update.<br>
+Add ToastNotification/NotificationAreaIcon Links in Windows ControlPanel.<br>
+Fix to swap UnOpened area and Fold Button.<br>
+Fix to exception at reproducing old version's unopend messages.<br>
+Fix not to show balloon icon in Win7 (v4.81 only).<br>
+Prevent to show the error message that occurs periodic update checking.
+</td></tr>
+
+<tr><td>v4.81</td><td>
+Support to show opened date by logviewer. (v4.81 or later's log)<br>
+Fix to show toast in Win10 Fall Creators Update.<br>
+Fix to work ipcmd redirect.<br>
+Fix to close re-send dialog if it is received a confirm packet.<br>
+Improve member master mode.
+</td></tr>
 <tr><td>v4.80</td><td>
 Support <a href="#update">Auto Update</a>.<br>
 Support General <a href="#labtest_settings">RecvMsg Transfer mode</a>. (Transfer to non slack server)<br>

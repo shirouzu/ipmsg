@@ -43,6 +43,9 @@ class TLogView;
 #define UPDATE_TIMER	1003
 #define UPDATE_TICK		5000
 
+#define SCROLL_TIMER	1004
+#define SCROLL_TICK		10
+
 struct BodyAttr {
 	int	pos;
 	int	len;
@@ -215,14 +218,14 @@ protected:
 	TListEx<MsgBmp>							bmpLru;	// 扱う実体は ViewMsg *
 
 	enum {	// UpdateUserList flags
-			UF_NONE				= 0x0000,
-			UF_FORCE			= 0x0001,
-			UF_NO_FINDMOVE		= 0x0002,
-			UF_NO_INITSEL		= 0x0004,
-			UF_NO_FITSIZE		= 0x0008,
-			UF_TO_DSC			= 0x0100,
-			UF_TO_ASC			= 0x0200,
-			UF_UPDATE_BODYLRU	= 0x1000,
+		UF_NONE				= 0x0000,
+		UF_FORCE			= 0x0001,
+		UF_NO_FINDMOVE		= 0x0002,
+		UF_NO_INITSEL		= 0x0004,
+		UF_NO_FITSIZE		= 0x0008,
+		UF_TO_DSC			= 0x0100,
+		UF_TO_ASC			= 0x0200,
+		UF_UPDATE_BODYLRU	= 0x1000,
 	};
 
 	DWORD		dispFlags;

@@ -604,8 +604,8 @@ void TMainWin::ClearDirAll()
 	}
 	segMap.clear();
 
-	while (allHosts.HostCnt() > 0) {
-		Host	*host = allHosts.GetHost(0);
+	for (int num=allHosts.HostCnt(); num > 0; ) {
+		Host	*host = allHosts.GetHost(--num);
 		allHosts.DelHost(host);
 		host->SafeRelease();
 	}
@@ -710,6 +710,8 @@ void TMainWin::DirSendAgentBroad(BOOL force_agent)
 
 void TMainWin::DirClean()
 {
+	return;
+
 	time_t	now = time(NULL);
 	auto	&lru = allHosts.lruList;
 	list<Host *>	hlist;
@@ -1085,9 +1087,15 @@ Host *TMainWin::DirAddHost(Host *host, BOOL is_poll, BOOL is_notify, BOOL *_need
 	BOOL	tmp = FALSE;
 	BOOL	&need_notify = _need_notify ? *_need_notify : tmp;
 
+	if (CheckDosHost(&host->hostSub, false)) {
+		return NULL;
+	}
+
 	need_notify = FALSE;
 
 	if (Host *nh = allHosts.GetHostByName(&host->hostSub)) {
+	//	Debug("DirAddHost %s %p %p\n", nh->S(), nh, host);
+
 		if (IsSameAddrPort(&nh->hostSub, &host->hostSub)) {
 			allHosts.UpdateLru(nh);
 			nh->updateTime = nh->updateTimeDirect = time(NULL);
@@ -1108,14 +1116,14 @@ Host *TMainWin::DirAddHost(Host *host, BOOL is_poll, BOOL is_notify, BOOL *_need
 				need_notify = TRUE;
 			}
 
-			Debug("DirAddHost need update %s/%d poll=%d\n", nh->hostSub.addr.S(), nh->hostSub.addr.mask, is_poll);
+			Debug("DirAddHost need update %s poll=%d\n", nh->S(), is_poll);
 			return nh;
 		}
 		else {	// アドレスが従来と異なる
 			if (nh->parent_seg.IsEnabled()) {
 				DelSegHost(nh);
 			}
-			Debug("DirAddHost del %s/%d poll=%d\n", nh->hostSub.addr.S(), nh->hostSub.addr.mask, is_poll);
+			Debug("DirAddHost del %s poll=%d %p %p\n", nh->S(), is_poll, nh, host);
 			allHosts.DelHost(nh);
 			nh->SafeRelease();
 
@@ -1124,7 +1132,7 @@ Host *TMainWin::DirAddHost(Host *host, BOOL is_poll, BOOL is_notify, BOOL *_need
 				if (ah->parent_seg.IsEnabled()) {
 					DelSegHost(ah);
 				}
-				Debug("DirAddHost del2 %s/%d poll=%d\n", ah->hostSub.addr.S(), ah->hostSub.addr.mask, is_poll);
+				Debug("DirAddHost del2 %s poll=%d\n", ah->S(), is_poll);
 
 				allHosts.DelHost(ah);
 				ah->SafeRelease();
@@ -1132,7 +1140,7 @@ Host *TMainWin::DirAddHost(Host *host, BOOL is_poll, BOOL is_notify, BOOL *_need
 		}
 	}
 	else {
-		Debug("DirAddHost nohost %s/%d poll=%d\n", host->hostSub.addr.S(), host->hostSub.addr.mask, is_poll);
+		Debug("DirAddHost nohost %s poll=%d\n", host->S(), is_poll);
 	}
 	Host *dh = new Host;
 	*dh = *host;
@@ -1149,7 +1157,7 @@ Host *TMainWin::DirAddHost(Host *host, BOOL is_poll, BOOL is_notify, BOOL *_need
 		need_notify = TRUE;
 	}
 
-	Debug("DirAddHost %s/%d poll=%d\n", dh->hostSub.addr.S(), dh->hostSub.addr.mask, is_poll);
+	Debug("DirAddHost %s poll=%d %p %p\n", dh->S(), is_poll, dh, host);
 
 	return	dh;
 }
@@ -1158,6 +1166,10 @@ BOOL TMainWin::DirDelHost(Host *_host, BOOL is_notify)
 {
 	Host	*host = allHosts.GetHostByName(&_host->hostSub);
 	if (!host) {
+		return FALSE;
+	}
+
+	if (CheckDosHost(&host->hostSub, true)) {
 		return FALSE;
 	}
 
@@ -1173,7 +1185,7 @@ BOOL TMainWin::DirDelHost(Host *_host, BOOL is_notify)
 		DelSegHost(host);
 	}
 
-	Debug("DelHostDir host(%s/%s)\n", host->hostSub.u.userName, host->hostSub.addr.S());
+	Debug("DelHostDir host(%s) %p\n", host->S(), host);
 
 	allHosts.DelHost(host);
 	host->SafeRelease();
@@ -1461,6 +1473,65 @@ BOOL TMainWin::CleanupDirTcp()
 	return	TRUE;
 }
 
+DosHost *TMainWin::SearchDosHost(HostSub *hostSub, BOOL need_alloc)
+{
+	for (auto obj=dosHost->TopObj(USED_LIST); obj; obj = dosHost->NextObj(USED_LIST, obj)) {
+		if (hostSub->addr == obj->addr && hostSub->portNo == obj->portNo) {
+			dosHost->UpdObj(USED_LIST, obj);
+			return	obj;
+		}
+	}
+	if (!need_alloc) {
+		return	NULL;
+	}
+
+	auto obj = dosHost->GetObj(FREE_LIST);
+	if (!obj) {
+		obj = dosHost->GetObj(USED_LIST);
+	}
+	obj->Set(hostSub, 0, true);
+	dosHost->PutObj(USED_LIST, obj);
+
+	return	obj;
+}
+
+BOOL TMainWin::CheckDosHost(HostSub *hostSub, bool is_exit)
+{
+	auto	dh = SearchDosHost(hostSub, is_exit);
+
+	if (!dh) {
+	//	Debug("CheckDosHost no ent(%s)\n", hostSub->addr.S());
+		return	FALSE;
+	}
+
+	DWORD	tick = GetTick();
+	if (!dh->tick || tick - dh->tick > 2000) {
+		if (is_exit) {
+			dh->tick = tick;
+			dh->exit = true;
+			dh->cnt  = 0;
+		//	Debug("CheckDosHost set ent(%s)\n", hostSub->addr.S());
+		}
+		else {
+			dosHost->DelObj(USED_LIST, dh);
+			dosHost->PutObj(FREE_LIST, dh);
+		//	Debug("CheckDosHost del ent(%s)\n", hostSub->addr.S());
+		}
+		return	FALSE;
+	}
+
+	dh->tick = tick;
+	if (is_exit == dh->exit) {
+		//Debug("CheckDosHost same ent(%s) %d\n", hostSub->addr.S(), dh->cnt);
+		return	FALSE;
+	}
+	dh->exit = is_exit;
+	dh->cnt++;
+
+	Debug("CheckDosHost inc ent(%s) %d\n", hostSub->addr.S(), dh->cnt);
+
+	return	dh->cnt >= 4 ? TRUE : FALSE;
+}
 
 #endif
 

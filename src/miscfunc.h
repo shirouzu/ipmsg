@@ -126,6 +126,7 @@ int CALLBACK EditNoWordBreakProc(LPTSTR str, int cur, int len, int action);
 enum MakeDateStrFlags { MDS_WITH_SEC=0x0001, MDS_WITH_DAYWEEK };
 int MakeDateStr(time_t t, WCHAR *buf, DWORD flags=0);
 int MakeDateStrEx(time_t t, WCHAR *buf, SYSTEMTIME *lt);
+int MakeDateStrEx(time_t t, WCHAR *buf, time_t lt);
 
 int get_linenum(const WCHAR *s);
 int get_linenum_n(const WCHAR *s, int max_len);
@@ -143,6 +144,10 @@ int FindTailQuoteIdx(Cfg *cfg, const Wstr& wstr, int *_top_pos=NULL);
 BOOL TruncTailQuote(Cfg *cfg, const char *src, char *dst, int max_dst);
 
 BOOL IsWritableDirW(const WCHAR *dir);
+void SlackMakeJson(LPCSTR chan, LPCSTR _user, LPCSTR _body, LPCSTR _icon, U8str *json);
+BOOL SlackRequest(LPCSTR host, LPCSTR path, LPCSTR json, DynBuf *reply, U8str *errMsg);
+void SlackRequestAsync(LPCSTR _host, LPCSTR _path, LPCSTR _json, HWND hWnd, UINT uMsg, int64 id=0);
+
 
 #endif
 

@@ -1,9 +1,9 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 4.80
-			H.Shirouzu Sep 19, 2017
+	Source code of IP Messenger for Win version 4.83
+			H.Shirouzu Feb 23, 2018
 
-	Copyright (C) 1996-2017 SHIROUZU Hiroaki All Rights Reserved.
-	Copyright (C) 2015-2017 Asahi Net, Inc. All Rights Reserved.
+	Copyright (C) 1996-2018 SHIROUZU Hiroaki All Rights Reserved.
+	Copyright (C) 2015-2018 Asahi Net, Inc. All Rights Reserved.
 ---------------------------------------------------------------------
 
 Index.
@@ -36,8 +36,8 @@ Index.
 2. License (BSD License)
 
  /* ==============================================================
-  Copyright (c) 1996-2017 SHIROUZU Hiroaki All rights reserved.
-  Copyright (C) 2015-2017 Asahi Net, Inc. All Rights Reserved.
+  Copyright (c) 1996-2018 SHIROUZU Hiroaki All rights reserved.
+  Copyright (C) 2015-2018 Asahi Net, Inc. All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or
   without modification, are permitted provided that the following
@@ -71,6 +71,18 @@ Index.
 3. Requirements
 
  - VS2017 or later
+
+ - If you want to use VS2015, you must change "Platform toolset" in
+   the all projects(except toast project) "v141_xp" to "v140_xp".
+   In the toast project, you must change it "v141" to "v140".
+
+ - If you want to build not only ipmsg.exe but also the installer,
+   it requires the environment in the following.
+
+    1) It can be used python.exe(v2.x) without path.
+
+    2) It can be used HTML Help Workshop in the
+       "C:\Program Files (x86)\HTML Help Workshop\" folder.
 
 ----------------------------------------------------------------------
 4. Directory
