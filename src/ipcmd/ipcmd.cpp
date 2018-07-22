@@ -113,34 +113,3 @@ int wmain(int argc, WCHAR **argv)
 	return app.Result();
 }
 
-void U8Out(const char *fmt,...)
-{
-	static HANDLE hStdOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
-	static BOOL isConsole = TRUE;
-
-	va_list	ap;
-	va_start(ap, fmt);
-
-	int len = vsnprintfz(NULL, 0, fmt, ap) + 1;
-
-	U8str	u8(len);
-
-	len = vsnprintfz(u8.Buf(), len, fmt, ap);
-	va_end(ap);
-
-	if (isConsole) {
-		Wstr	w(u8.s());
-		DWORD	wlen = w.Len();
-
-		if (!::WriteConsoleW(hStdOut, w.s(), wlen, &wlen, 0)) {
-			isConsole = FALSE;
-		}
-	}
-	if (!isConsole) {
-		DWORD	crlen = len * 2 + 1;
-		U8str	u8cr(crlen);
-		crlen = UnixNewLineToLocal(u8.s(), u8cr.Buf(), crlen);
-		::WriteFile(hStdOut, u8cr.s(), crlen, &crlen, 0);
-	}
-}
-

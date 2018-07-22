@@ -16,11 +16,9 @@ TWin::TWin(TWin *_parent)
 	hWnd		= NULL;
 	hTipWnd		= NULL;
 	hAccel		= NULL;
-	rect.left	= CW_USEDEFAULT;
-	rect.right	= CW_USEDEFAULT;
-	rect.top	= CW_USEDEFAULT;
-	rect.bottom	= CW_USEDEFAULT;
+	rect.InitDefault();
 	orgRect		= rect;
+	pRect.InitDefault();
 	parent		= _parent;
 	sleepBusy	= FALSE;
 	isUnicode	= TRUE;
@@ -117,7 +115,10 @@ LRESULT TWin::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (!::IsIconic(hWnd)) {
 			GetWindowRect(&rect);
 		}
-		if (!EvNcDestroy()) {// hWndを0にする前に呼び出す
+		if (parent && parent->hWnd) {
+			parent->GetWindowRect(&pRect);
+		}
+		if (!EvNcDestroy()) {	// hWndを0にする前に呼び出す
 			DefWindowProc(uMsg, wParam, lParam);
 		}
 		done = TRUE;
@@ -1061,6 +1062,22 @@ HWND TWin::SetFocus()
 		return	NULL;
 	}
 	return	::SetFocus(hWnd);
+}
+
+BOOL TWin::RestoreRectFromParent()
+{
+	if (pRect.left == CW_USEDEFAULT || !parent || !parent->hWnd) {
+		return FALSE;
+	}
+	TRect	pCurRect;
+	if (!parent->GetWindowRect(&pCurRect)) return FALSE;
+
+	rect.left	= rect.left   + (pCurRect.left   - pRect.left);
+	rect.right	= rect.right  + (pCurRect.right  - pRect.right);
+	rect.top	= rect.top    + (pCurRect.top    - pRect.top);
+	rect.bottom	= rect.bottom + (pCurRect.bottom - pRect.bottom);
+
+	return	TRUE;
 }
 
 BOOL TWin::CreateTipWnd(const WCHAR *tip, int width, int tout)

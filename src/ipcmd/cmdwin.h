@@ -53,7 +53,5 @@ public:
 	std::vector<U8str>	arg;
 };
 
-void U8Out(const char *fmt,...);
-
 #endif
 

@@ -1,5 +1,5 @@
 ﻿static char *version_id = 
-	"@(#)Copyright (C) H.Shirouzu 2010-2018   version.cpp	Ver4.83";
+	"@(#)Copyright (C) H.Shirouzu 2010-2018   version.cpp	Ver4.85";
 
 #include "ipmsg.h"
 

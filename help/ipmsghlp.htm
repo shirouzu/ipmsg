@@ -84,11 +84,11 @@
 <body bgcolor="#eeffff">
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v4.83</h1>
+<h1 class="help_head1">IP Messenger v4.85</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2018/02/23 H.Shirouzu (白水啓章)</div>
+<div align="right">2018/07/02 H.Shirouzu (白水啓章)</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -597,7 +597,6 @@
 		<tr class="table_head"><th colspan="2">その他</th></tr>
 		<tr><td nowrap>英語UI</td><td>英語UIに変更します。（要再起動）</td></tr>
 		<tr><td>「送信・返信」を「発射・迎撃」に変更</td><td>1996年0.95β版時代のラベルに戻します</td></tr>
-		<tr><td>起動時にタスクトレイへの<br>アイコン＆通知をONにする</td><td>タスク通知領域でタスクトレイを出す設定を自動的に行います</td></tr>
 		<tr><td nowrap>アイコン</td><td>タスクトレイ・メインアイコンを変更します</td></tr>
 		<tr><td nowrap>不在アイコン</td><td>不在時のタスクトレイアイコンを変更します</td></tr>
 		</table>
@@ -629,6 +628,17 @@
 		<tr><td nowrap>受信音を出さない</td><td>（そのまま）</td></tr>
 		<tr><td nowrap>未開封のまま再起動した場合、<br>メッセージを復元</td><td>（そのまま）</td></tr>
 		<tr><td nowrap>受信音</td><td>（そのまま）</td></tr>
+		</table>
+	<br>
+	</div>
+
+<a name="tray_settings"/>
+<h3 class="help_head3">タスクトレイ</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">タスクトレイ</th></tr>
+		<tr><td>起動時にタスクトレイへの<br>アイコン表示を確認</td><td>タスクトレイ（タスク通知領域）にアイコンを出す設定を確認します。</td></tr>
 		</table>
 	<br>
 	</div>
@@ -936,12 +946,23 @@ ipmsg本体を常駐させた上で、ipcmd.exeを使うと、不在モードの取得・変更や、メッセー
 <table class="help_table" border="4">
 <tr class="table_head"><th>Version</th><th>説明</th></tr>
 
+<tr><td>v4.85</td><td>
+メンバマスターモードで、消えたユーザが表示され続ける問題の修正。<br>
+メッセージ復元が動作していなかった問題の修正。<br>
+自動更新をデフォルトで有効に。
+</td></tr>
+
+<tr><td>v4.84</td><td>
+タスクトレイアイコンの表示確認設定を追加（Win10用）。<br>
+ログビューアで、下ボタンが効かなくなっていたのを修正。
+</td></tr>
+
 <tr><td>v4.83</td><td>
-Win10 Fall Creators Update でトーストが出ないことがあった事象への対策<br>
-設定に、トースト・トレイアイコン関連のコントロールパネルへのリンクを追加<br>
+Win10 Fall Creators Update でトーストが出ないことがあった事象への対策。<br>
+設定に、トースト・トレイアイコン関連のコントロールパネルへのリンクを追加。<br>
 ログビューアで、未開封エリアと折り畳みボタンの挙動が逆転する問題の修正。<br>
-古いバージョンから引き継いだ未開封メッセージ復元で落ちることがあった問題の修正<br>
-Win7でバルーン用アイコンが出ない問題を修正（v4.81のみ）<br>
+古いバージョンから引き継いだ未開封メッセージ復元で落ちることがあった問題の修正。<br>
+Win7でバルーン用アイコンが出ない問題を修正。（v4.81のみ）<br>
 定期updateチェック時のネットワークエラーは、メッセージを出さないように。
 </td></tr>
 <tr><td>v4.81</td><td>

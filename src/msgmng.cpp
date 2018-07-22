@@ -1373,9 +1373,9 @@ BOOL CheckWatchDog()
 
 BOOL MsgMng::UdpSendCore(Addr host_addr, int port_no, const char *buf, int len)
 {
-	if (!CheckWatchDog()) {
-		return	FALSE;
-	}
+//	if (!CheckWatchDog()) {
+//		return	FALSE;
+//	}
 
 	if (isV6 && host_addr.IsIPv4()) {
 		host_addr.ChangeMappedIPv6();

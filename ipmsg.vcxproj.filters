@@ -418,6 +418,21 @@
     <Image Include="res\filetb.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\pause.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\play.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\pause.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\play.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\res\tray.gif">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\res\blue.cur">
@@ -451,6 +466,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="src\res\yellow.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\gif1.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="src\res\gif2.bin">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

@@ -55,12 +55,23 @@ void DebugW(const WCHAR *fmt,...);
 void DebugU8(const char *fmt,...);
 const char *Fmt(const char *fmt,...);
 const WCHAR *FmtW(const WCHAR *fmt,...);
+void OutW(const WCHAR *fmt,...);
+
 inline void NullFunc() {}
 
 #define TrcW(...) (DebugConsoleEnabled() ? DebugW(__VA_ARGS__) : NullFunc())
 #define Trc(...) (DebugConsoleEnabled() ? Debug(__VA_ARGS__) : NullFunc())
 #define TrcU8(...) (DebugConsoleEnabled() ? DebugU8(__VA_ARGS__) : NullFunc())
 
+#if defined(_DEBUG)
+#define DBG  Debug
+#define DBGW DebugW
+#define DBG8 DebugU8
+#else
+#define DBG(...)  NullFunc()
+#define DBGW(...) NullFunc()
+#define DBG8(...) NullFunc()
+#endif
 
 #endif
 

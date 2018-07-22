@@ -180,6 +180,12 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 	Debug("elaps=%.2f\n", t.elaps() / 1000.0);
 #endif
 
+	auto	mode = GetTrayIconState();
+
+	if (mode == TIS_HIDE && !cfg->TaskbarUI && cfg->TrayIcon) {
+		PostMessage(WM_IPMSG_SETUPDLG, TRAY_SHEET, 0);
+	}
+
 	switch (fwMode) {
 	case FW_NEED:
 		PostMessage(WM_IPMSG_DELAY_FWDLG, 0, 0);

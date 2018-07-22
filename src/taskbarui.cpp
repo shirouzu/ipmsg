@@ -9,9 +9,6 @@
 	Reference				: 
 	======================================================================== */
 
-#undef _MSC_VER
-#define _MSC_VER 1500
-
 #include "ipmsg.h"
 
 #if 0

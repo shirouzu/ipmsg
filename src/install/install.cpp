@@ -704,43 +704,41 @@ BOOL TInstDlg::Install(void)
 		}
 	}
 
-	if (::IsUserAnAdmin()) {
 	// レジストリにアプリケーション情報を登録
-		TRegistry	reg(HKEY_LOCAL_MACHINE);
-		if (reg.OpenKey(REGSTR_PATH_APPPATHS)) {
-			if (reg.CreateKey(IPMSG_EXENAME)) {
-				reg.SetStr(NULL, setupPath);
-				reg.SetStr(REGSTR_PATH, setupDir);
-				reg.CloseKey();
-			}
+	TRegistry	reg(HKEY_CURRENT_USER);
+	if (reg.OpenKey(REGSTR_PATH_APPPATHS)) {
+		if (reg.CreateKey(IPMSG_EXENAME)) {
+			reg.SetStr(NULL, setupPath);
+			reg.SetStr(REGSTR_PATH, setupDir);
 			reg.CloseKey();
 		}
+		reg.CloseKey();
+	}
 
 	// レジストリにアンインストール情報を登録
-		if (reg.OpenKey(REGSTR_PATH_UNINSTALL)) {
-			if (reg.CreateKey(IPMSG_NAME)) {
-				char path[MAX_PATH_U8];
-				reg.SetStr(REGSTR_VAL_UNINSTALLER_DISPLAYNAME, IPMSG_FULLNAME);
+	if (reg.OpenKey(REGSTR_PATH_UNINSTALL)) {
+		if (reg.CreateKey(IPMSG_NAME)) {
+			char path[MAX_PATH_U8];
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_DISPLAYNAME, IPMSG_FULLNAME);
 
-				MakePath(path, setupDir, IPMSG_EXENAME);
-				reg.SetStr(REGSTR_VAL_UNINSTALLER_DISPLAYICON, path);
+			MakePath(path, setupDir, IPMSG_EXENAME);
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_DISPLAYICON, path);
 
-				MakePath(path, setupDir, UNINST_EXENAME);
-				reg.SetStr(REGSTR_VAL_UNINSTALLER_COMMANDLINE, path);
+			MakePath(path, setupDir, UNINST_EXENAME);
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_COMMANDLINE, path);
 
-				reg.SetStr(REGSTR_VAL_UNINSTALLER_DISPLAYVER, GetVersionStr());
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_DISPLAYVER, GetVersionStr());
 
-				reg.SetStr(REGSTR_VAL_UNINSTALLER_PUBLISHER, "H.Shirouzu & Asahi Net, Inc.");
-				reg.SetInt(REGSTR_VAL_UNINSTALLER_ESTIMATESIZE, 3300); // KB
-				reg.SetStr(REGSTR_VAL_UNINSTALLER_HELPLINK, LoadStrU8(IDS_IPMSGHELPURL));
-				reg.SetStr(REGSTR_VAL_UNINSTALLER_URLUPDATEINFO, LoadStrU8(IDS_IPMSGURL));
-				reg.SetStr(REGSTR_VAL_UNINSTALLER_URLINFOABOUT, LoadStrU8(IDS_SUPPORTBBS));
-				reg.SetStr(REGSTR_VAL_UNINSTALLER_COMMENTS, "shirouzu@ipmsg.org");
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_PUBLISHER, "H.Shirouzu & Asahi Net, Inc.");
+			reg.SetInt(REGSTR_VAL_UNINSTALLER_ESTIMATESIZE, 3300); // KB
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_HELPLINK, LoadStrU8(IDS_IPMSGHELPURL));
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_URLUPDATEINFO, LoadStrU8(IDS_IPMSGURL));
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_URLINFOABOUT, LoadStrU8(IDS_SUPPORTBBS));
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_COMMENTS, "shirouzu@ipmsg.org");
 
-				reg.CloseKey();
-			}
 			reg.CloseKey();
 		}
+		reg.CloseKey();
 	}
 
 

@@ -994,54 +994,6 @@ BOOL GetCurrentScreenSize(RECT *rect, HWND hRefWnd)
 	return	TRUE;
 }
 
-BOOL MakeDirU8(char *dir)
-{
-	if (GetFileAttributesU8(dir) != 0xffffffff) {
-		return	TRUE;
-	}
-	return	CreateDirectoryU8(dir, 0);
-}
-
-BOOL MakeDirW(WCHAR *dir)
-{
-	if (::GetFileAttributesW(dir) != 0xffffffff) {
-		return	TRUE;
-	}
-	return	::CreateDirectoryW(dir, 0);
-}
-
-BOOL MakeDirAllU8(char *dir)
-{
-	if (MakeDirU8(dir)) {
-		return	TRUE;
-	}
-
-	char	parent[MAX_PATH_U8];
-	if (!GetParentDirU8(dir, parent) || stricmp(dir, parent) == 0 || *parent == 0) {
-		return	FALSE;
-	}
-	if (!MakeDirAllU8(parent)) {
-		return	FALSE;
-	}
-	return	MakeDirU8(dir);
-}
-
-BOOL MakeDirAllW(WCHAR *dir)
-{
-	if (MakeDirW(dir)) {
-		return	TRUE;
-	}
-
-	WCHAR	parent[MAX_PATH];
-	if (!GetParentDirW(dir, parent) || wcsicmp(dir, parent) == 0 || *parent == 0) {
-		return	FALSE;
-	}
-	if (!MakeDirAllW(parent)) {
-		return	FALSE;
-	}
-	return	MakeDirW(dir);
-}
-
 HANDLE CreateFileWithDirU8(const char *path, DWORD flg, DWORD share, SECURITY_ATTRIBUTES *sa,
 	DWORD create_flg, DWORD attr, HANDLE hTmpl)
 {

@@ -84,11 +84,11 @@
 <body bgcolor="#eeffff">
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v4.83</h1>
+<h1 class="help_head1">IP Messenger v4.85</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2018/02/23 H.Shirouzu</div>
+<div align="right">2018/07/02 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -374,9 +374,9 @@ It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
 
 	<table class="help_table" border="4">
 	<tr class="table_head"><th colspan="2">ToolBar<br><img src="img/ipmsg_lvtoolbar_e.png"/></th></tr>
-	<tr><th nowrap>Jump to lastest message button</th>
+	<tr><th nowrap>Jump to latest message button</th>
 	<td>
-		Jump to lastest message.<br>
+		Jump to latest message.<br>
 		Then, it will be auto scroll mode and this button icon will be broken line arrow.<br>
 		(with Shift key, jump to oldest message)
 	</td></tr>
@@ -637,6 +637,17 @@ It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
 	<br>
 	</div>
 
+<a name="tray_settings"/>
+<h3 class="help_head3">TaskTray</h3>
+	<div class="help_sub_section">
+
+		<table class="help_table" border="4">
+		<tr class="table_head"><th colspan="2">TaskTray</th></tr>
+		<tr><td>Confirm IPMsgIcon<br>in TaskTray at Starting</td><td>Confirm to show IPMsgIcon in TaskTray(TaskNotificationArea)</td></tr>
+		</table>
+	<br>
+	</div>
+
 <a name="capture_settings"/>
 <h3 class="help_head3">Image/Capture</h3>
 	<div class="help_sub_section">
@@ -756,9 +767,9 @@ Download size will be added up while IPMsg hasn't be operated manually<br>
 	<div class="help_sub_section">
 		<table class="help_table" border="4">
 		<tr class="table_head"><th colspan="2">Auto Update</th></tr>
-		<tr><td nowrap>Regularly check the lastest version</td><td>Regularly check the lastest version and if new version is released, updating IPMsg.</td></tr>
-		<tr><td nowrap>Check the lastest version, but no install</td><td>If new version exists, it shows balloon notification and if click it, the update confirm dialog will be shown.</td></tr>
-		<tr><td nowrap>Check Update</td><td>Check the lastest version now, and if new version exists, the button label will be changed "Start to Update"<br>
+		<tr><td nowrap>Regularly check the latest version</td><td>Regularly check the latest version and if new version is released, updating IPMsg.</td></tr>
+		<tr><td nowrap>Check the latest version, but no install</td><td>If new version exists, it shows balloon notification and if click it, the update confirm dialog will be shown.</td></tr>
+		<tr><td nowrap>Check Update</td><td>Check the latest version now, and if new version exists, the button label will be changed "Start to Update"<br>
 		</table>
 	<br>
 	</div>
@@ -816,7 +827,7 @@ Please open these port.<br>
 <div class="help_section">
 
 v4.5 or later, special command(ipcmd.exe) is enabled. <br>
-(Its parent folder can be opened by right click menu in task tray icon(<img src="img/ipmsg_tasktray.png"/>) -&gt; Lastest &amp; Help etc -&gt; Installed Folder)<br>
+(Its parent folder can be opened by right click menu in task tray icon(<img src="img/ipmsg_tasktray.png"/>) -&gt; Latest &amp; Help etc -&gt; Installed Folder)<br>
 <br>
 
 If ipcmd.exe is used, it can be enabled "get/set absence mode", "send/recv messages", or etc.<br>
@@ -933,6 +944,17 @@ Software Version, Operating System, problem situation, repeatability.
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
+
+<tr><td>v4.85</td><td>
+Fix an issue that exited members were displayed in member master mode.<br>
+Fix message reproduce problem at restarting.<br>
+Enable auto updating by default.
+</td></tr>
+
+<tr><td>v4.84</td><td>
+Added display confirmation setting of task tray icon (Win 10).<br>
+Fixed a problem that the following buttons do not work in log viewer.
+</td></tr>
 
 <tr><td>v4.83</td><td>
 Fix not to show Toast Notification problem in Win10 Fall Creators Update.<br>

@@ -15,7 +15,6 @@
 using namespace Gdiplus;
 
 #pragma comment (lib, "msimg32.lib")
-#pragma comment (lib, "gdiplus.lib")
 
 //bool GetEncoderClsid(const WCHAR* mime, CLSID* pClsid)
 //{

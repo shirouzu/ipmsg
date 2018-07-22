@@ -16,6 +16,11 @@
 #include "master.dat"
 #endif
 
+static HICON hPlayIcon;
+static HICON hPauseIcon;
+
+using namespace std;
+
 /*
 	Setup用Sheet
 */
@@ -64,6 +69,8 @@ BOOL TSetupSheet::EvCreate(LPARAM lParam)
 			::MoveWindow(hw, hr.left, hr.top, hr.cx(), hr.cy(), TRUE);
 			::MoveWindow(sw, sr.left, sr.top, sr.cx(), sr.cy(), TRUE);
 		}
+	}
+	else if (resId == TRAY_SHEET) {
 	}
 
 	SetData();
@@ -165,6 +172,8 @@ BOOL TSetupSheet::CheckData()
 	}
 	else if (resId == LABTEST_SHEET) {
 	}
+	else if (resId == TRAY_SHEET) {
+	}
 #ifdef IPMSG_PRO
 	else if (resId == SERVER_SHEET) {
 	}
@@ -257,6 +266,9 @@ void TSetupSheet::ShowHelp()
 	else if (resId == LABTEST_SHEET) {
 		section = "#labtest_settings";
 	}
+	else if (resId == TRAY_SHEET) {
+		section = "#tray_settings";
+	}
 #ifdef IPMSG_PRO
 	else if (resId == SERVER_SHEET) {
 	}
@@ -305,6 +317,8 @@ void TSetupSheet::ReflectDisp()
 		for (auto &id: slack_ids) {
 			::ShowWindow(GetDlgItem(id), ss);
 		}
+	}
+	else if (resId == TRAY_SHEET) {
 	}
 }
 
@@ -390,7 +404,6 @@ BOOL TSetupSheet::SetData()
 
 		SetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile);
 		SetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile);
-		CheckDlgButton(TRAYICON_CHECK, cfg->TrayIcon);
 
 //		::ShowWindow(GetDlgItem(NOTIFY_BTN), IsWin8() ? SW_SHOW : SW_HIDE);
 	}
@@ -558,6 +571,21 @@ BOOL TSetupSheet::SetData()
 
 		ReflectDisp();
 	}
+	else if (resId == TRAY_SHEET) {
+		CheckDlgButton(TRAYICON_CHECK, cfg->TrayIcon);
+
+		SendDlgItemMessage(PLAY_BTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hPlayIcon);
+
+		gwin = make_unique<TGifWin>(this);
+		gwin->SetGif(TRAY_GIF);
+
+		TRect	rc;
+		::GetWindowRect(GetDlgItem(TRAY_STATIC), &rc);
+		rc.ScreenToClient(hWnd);
+		gwin->Create(rc.x() + 10, rc.bottom + 5);
+		gwin->Show();
+	}
+
 #ifdef IPMSG_PRO
 #define SETUP_SETDATA
 #include "miscext.dat"
@@ -698,7 +726,6 @@ BOOL TSetupSheet::GetData()
 
 		GetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile, sizeof(cfg->IconFile));
 		GetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile, sizeof(cfg->RevIconFile));
-		cfg->TrayIcon = IsDlgButtonChecked(TRAYICON_CHECK);
 
 		::SendMessage(GetMainWnd(), WM_IPMSG_INITICON, 0, 0);
 		SetDlgIcon(hWnd);
@@ -886,6 +913,10 @@ BOOL TSetupSheet::GetData()
 			}
 		}
 	}
+	else if (resId == TRAY_SHEET) {
+		cfg->TrayIcon = IsDlgButtonChecked(TRAYICON_CHECK);
+	}
+
 #ifdef IPMSG_PRO
 	else if (resId == SERVER_SHEET) {
 		//cfg->autoUpdateMode = IsDlgButtonChecked(AUTOUPDATE_CHECK);
@@ -1255,6 +1286,27 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			ReflectDisp();
 		}
 	}
+	else if (resId == TRAY_SHEET) {
+		if (wID == PLAY_BTN) {
+			if (gwin->IsPlay()) {
+				if (gwin->IsPause()) {
+					gwin->Resume();
+					SendDlgItemMessage(PLAY_BTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hPauseIcon);
+				}
+				else {
+					gwin->Pause();
+					SendDlgItemMessage(PLAY_BTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hPlayIcon);
+				}
+			}
+			else if (gwin->Play(WM_IPMSG_PLAYFIN)) {
+				SendDlgItemMessage(PLAY_BTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hPauseIcon);
+				if (::GetFocus() == GetDlgItem(PLAY_BTN)) {
+					SetFocus();
+				}
+			}
+			return	TRUE;
+		}
+	}
 #ifdef IPMSG_PRO
 	else if (resId == SERVER_SHEET) {
 #define SETUP_EVCMD
@@ -1302,8 +1354,14 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 
 BOOL TSetupSheet::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if (resId == TRAY_SHEET) {
+		if (uMsg == WM_IPMSG_PLAYFIN) {
+			SendDlgItemMessage(PLAY_BTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hPlayIcon);
+		}
+		return	TRUE;
+	}
 #ifndef IPMSG_PRO
-	if (resId == UPDATE_SHEET) {
+	else if (resId == UPDATE_SHEET) {
 		BOOL	ret = (BOOL)wParam;
 		auto	ur = (UpdateReply *)lParam;
 
@@ -1336,6 +1394,23 @@ BOOL TSetupSheet::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return	TRUE;
 }
 
+void TSetupSheet::Show(int mode)
+{
+	TDlg::Show(mode);
+
+	if (resId == TRAY_SHEET) {
+		if (mode == SW_SHOW) {
+			EvCommand(0, PLAY_BTN, 0);
+		}
+		else {
+			if (gwin->IsPlay()) {
+				gwin->Stop();
+			}
+		}
+	}
+}
+
+
 /*
 	Setup Dialog初期化処理
 */
@@ -1343,6 +1418,14 @@ TSetupDlg::TSetupDlg(Cfg *_cfg, THosts *_hosts, BOOL is_first, TWin *_parent)
 	: TDlg(SETUP_DIALOG, _parent), tipWnd(this)
 {
 	hAccel = ::LoadAccelerators(TApp::hInst(), (LPCSTR)IPMSG_ACCEL);
+
+	if (!hPlayIcon) {
+		hPlayIcon = ::LoadIcon(TApp::hInst(), (LPCSTR)PLAY_ICON);
+	}
+	if (!hPauseIcon) {
+		hPauseIcon = ::LoadIcon(TApp::hInst(), (LPCSTR)PAUSE_ICON);
+	}
+
 	cfg		= _cfg;
 	hosts	= _hosts;
 	curIdx	= -1;
@@ -1355,6 +1438,7 @@ TSetupDlg::TSetupDlg(Cfg *_cfg, THosts *_hosts, BOOL is_first, TWin *_parent)
 #endif
 	idVec.push_back(DETAIL_SHEET);
 	idVec.push_back(SENDRECV_SHEET);
+	idVec.push_back(TRAY_SHEET);
 	idVec.push_back(IMAGE_SHEET);
 	idVec.push_back(LINK_SHEET);
 	if (cfg->PasswordUse) {
@@ -1412,6 +1496,8 @@ BOOL TSetupDlg::EvCreate(LPARAM lParam)
 	//	FirstMode();
 		isFirstMode = FALSE;
 	}
+
+	PostMessage(WM_IPMSG_FOCUS, 0, 0);
 
 	return	TRUE;
 }
@@ -1513,5 +1599,14 @@ TSetupSheet *TSetupDlg::GetSheet(int sheet_id)
 	}
 
 	return sheet + itr->second;
+}
+
+BOOL TSetupDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (uMsg == WM_IPMSG_FOCUS) {
+		setupList.SetFocus();
+		return	TRUE;
+	}
+	return	FALSE;
 }
 

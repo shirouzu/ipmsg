@@ -19,6 +19,9 @@
     <ClCompile Include="tinet.cpp" />
     <ClCompile Include="texcept.cpp" />
     <ClCompile Include="ipdict.cpp" />
+    <ClCompile Include="tgdiplus.cpp" />
+    <ClCompile Include="tcmndlg.cpp" />
+    <ClCompile Include="tstr.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tapi32ex.h">
@@ -31,6 +34,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tmisc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tcmndlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

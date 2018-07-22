@@ -280,17 +280,20 @@ void TUninstDlg::DeleteShortcut(void)
 void TUninstDlg::RemoveAppRegs(void)
 {
 // レジストリからアプリケーション情報を削除
-	TRegistry	reg(HKEY_LOCAL_MACHINE);
+	TRegistry	reg(HKEY_CURRENT_USER);
 
-	if (reg.OpenKey(REGSTR_PATH_APPPATHS)) {
-		reg.DeleteKey(IPMSG_EXENAME);
-		reg.CloseKey();
-	}
+	for (int i=0; i < 2; i++) {
+		if (reg.OpenKey(REGSTR_PATH_APPPATHS)) {
+			reg.DeleteKey(IPMSG_EXENAME);
+			reg.CloseKey();
+		}
 
-// レジストリからアンインストール情報を削除
-	if (reg.OpenKey(REGSTR_PATH_UNINSTALL)) {
-		reg.DeleteKey(IPMSG_NAME);
-		reg.CloseKey();
+	// レジストリからアンインストール情報を削除
+		if (reg.OpenKey(REGSTR_PATH_UNINSTALL)) {
+			reg.DeleteKey(IPMSG_NAME);
+			reg.CloseKey();
+		}
+		reg.ChangeTopKey(HKEY_LOCAL_MACHINE);
 	}
 }
 
@@ -327,7 +330,11 @@ BOOL TUninstDlg::DeletePubkey(void)
 
 BOOL TUninstDlg::UnInstall(void)
 {
-	if (IsAppRegistered() && IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
+	char	setupDir[MAX_PATH_U8];		// セットアップディレクトリ情報を保存
+	GetDlgItemTextU8(RESETUP_EDIT, setupDir, sizeof(setupDir));
+
+	if ((IsAppRegistered() || TIsVirtualizedDirW(U8toWs(setupDir)))
+		&& IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
 		if (isSilent) {
 			DebugU8("Require admin privilege for deleting AppInfo in Control Panel\n");
 			TApp::Exit(-1);
@@ -399,9 +406,6 @@ BOOL TUninstDlg::UnInstall(void)
 		}
 		reg.DeleteChildTree(ipmsg_reg);
 	}
-
-	char	setupDir[MAX_PATH_U8];		// セットアップディレクトリ情報を保存
-	GetDlgItemTextU8(RESETUP_EDIT, setupDir, sizeof(setupDir));
 
 	for (int i=0; UnSetupFiles[i]; i++) {
 		char	path[MAX_PATH_U8];

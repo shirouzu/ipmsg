@@ -403,6 +403,8 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\filetb.bmp" />
+    <Image Include="res\pause.ico" />
+    <Image Include="res\play.ico" />
     <Image Include="src\res\asc.bmp" />
     <Image Include="src\res\basehead.bmp" />
     <Image Include="src\res\bottom.bmp" />
@@ -467,6 +469,8 @@
     <Image Include="src\res\narrow.bmp" />
     <Image Include="src\res\narrowd.bmp" />
     <Image Include="src\res\noclip.bmp" />
+    <Image Include="src\res\pause.ico" />
+    <Image Include="src\res\play.ico" />
     <Image Include="src\res\refresh.ico" />
     <Image Include="src\res\reply.bmp" />
     <Image Include="src\res\replyhide.bmp" />
@@ -479,6 +483,7 @@
     <Image Include="src\res\tomsg2.bmp" />
     <Image Include="src\res\top.bmp" />
     <Image Include="src\res\tophot.bmp" />
+    <Image Include="src\res\tray.gif" />
     <Image Include="src\res\unopen.bmp" />
     <Image Include="src\res\unopenbig.bmp" />
     <Image Include="src\res\unopenr.bmp" />
@@ -492,6 +497,8 @@
     <None Include="src\res\gengreen.cur" />
     <None Include="src\res\genred.cur" />
     <None Include="src\res\genyellow.cur" />
+    <None Include="src\res\gif1.bin" />
+    <None Include="src\res\gif2.bin" />
     <None Include="src\res\green.cur" />
     <None Include="src\res\LOUPE.cur" />
     <None Include="src\res\red.cur" />

@@ -710,8 +710,6 @@ void TMainWin::DirSendAgentBroad(BOOL force_agent)
 
 void TMainWin::DirClean()
 {
-	return;
-
 	time_t	now = time(NULL);
 	auto	&lru = allHosts.lruList;
 	list<Host *>	hlist;

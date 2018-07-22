@@ -964,6 +964,7 @@ BOOL TChildView::EventScroll(UINT uMsg, int nScrollCode, int nPos, HWND hScroll)
 //				KillTimer(SCROLL_TIMER);
 //			}
 //			Debug("draw %d\n", scr_cnt);
+			scrOffPix = -headCy;
 			break;
 
 		case SB_LINEUP:

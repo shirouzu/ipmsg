@@ -2021,7 +2021,13 @@ BOOL TRecvDlg::EndRecvFile(BOOL manual_suspend)
 		}
 	}
 
-	SetFileButton(this, FILE_BUTTON, shareInfo, autoSaves);
+	if (shareInfo) {
+		SetFileButton(this, FILE_BUTTON, shareInfo, autoSaves);
+	}
+	else {
+		MessageBoxU8("Illegal status(recvEndDlg5)", IP_MSG, MB_OK);
+		return TRUE;
+	}
 	EvSize(SIZE_RESTORED, 0, 0);
 
 	if (isInsertImage) {

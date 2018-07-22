@@ -12,6 +12,7 @@
 #define SETUPDLG_H
 
 #include "tipwnd.h"
+#include "TLib/tgdiplus.h"
 
 class TSetupDlg;
 
@@ -23,6 +24,7 @@ protected:
 //	UrlObj		*curUrl;	// for sheet
 	TSetupDlg	*parentDlg;
 	BOOL		updateReady;
+	std::unique_ptr<TGifWin> gwin;
 
 public:
 	TSetupSheet() {
@@ -37,10 +39,12 @@ public:
 	BOOL CheckData();
 	void ReflectDisp();
 	void ShowHelp();
+
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvNcDestroy(void);
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl);
 	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual	void	Show(int mode);
 };
 
 #define MAIN_SHEET     SETUP_SHEET1
@@ -56,6 +60,7 @@ public:
 #define DIRMODE_SHEET  SETUP_SHEET11
 #define LABTEST_SHEET  SETUP_SHEET12
 #define UPDATE_SHEET   SETUP_SHEET13
+#define TRAY_SHEET     SETUP_SHEET14
 #define PASSWORD_SHEET SETUP_SHEET18
 #define URL_SHEET      SETUP_SHEET19
 
@@ -77,6 +82,8 @@ public:
 	virtual ~TSetupDlg();
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 	virtual BOOL	EvCreate(LPARAM lParam);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 	void		SetSheet(int sheet_id);
 	TSetupSheet	*GetSheet(int sheet_id);
 };

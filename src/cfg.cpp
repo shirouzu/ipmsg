@@ -332,7 +332,8 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 //#define ICON_STR			"icon"
 
 #define UPDATE_STR			"Update"
-#define UPDATEFLAG_STR		"flag"
+#define UPDATEFLAG_STR		"flag2"
+#define UPDATEFLAGOLD_STR	"flag"
 #define UPDATESPAN_STR		"span"
 #define UPDATELAST_STR		"last"
 
@@ -350,6 +351,14 @@ char	*DefaultDirectOpenExt =
 	"mp3 mp4 avi mpeg mov wma wmv "			"\r\n" \
 	"c cpp h hpp cs java class clj d dart"	"\r\n" \
 	"erl go hs lua lisp r rs scala scm";
+
+char *GetIdsIPMSG()
+{
+	static char *ids_ipmsg = strdup(LoadStr(IDS_IPMSG)); // for TSetThreadLocale
+
+	return	ids_ipmsg;
+}
+
 
 Cfg::Cfg(const Addr &_nicAddr, int _portNo) :
 	nicAddr(_nicAddr),
@@ -407,7 +416,7 @@ BOOL Cfg::ReadRegistry(void)
 		GetRegName(buf, 0, portNo);
 		reg.ChangeApp(HS_TOOLS, buf);
 		if (!reg.GetInt(NOPOPUPCHECK_STR, &NoPopupCheck)) {
-			reg.ChangeApp(HS_TOOLS, LoadStr(IDS_IPMSG));
+			reg.ChangeApp(HS_TOOLS, GetIdsIPMSG());
 			isChangeApp = TRUE;
 		}
 	}
@@ -1263,10 +1272,14 @@ BOOL Cfg::ReadRegistry(void)
 
 #ifndef IPMSG_PRO
 	if (reg.CreateKey(UPDATE_STR)) {
-		updateFlag = 0;
+		updateFlag = UPDATE_ON;
 		updateSpan = 3600 * 24;
 		updateLast = 0;
-		reg.GetInt(UPDATEFLAG_STR, (int *)&updateFlag);
+		if (!reg.GetInt(UPDATEFLAG_STR, (int *)&updateFlag)) {
+			if (reg.GetInt(UPDATEFLAGOLD_STR, (int *)&updateFlag) && updateFlag == 0) {
+				updateFlag = UPDATE_ON;
+			}
+		}
 		reg.GetInt(UPDATESPAN_STR, (int *)&updateSpan);
 		reg.GetInt64(UPDATELAST_STR, &updateLast);
 		reg.CloseKey();
@@ -1802,7 +1815,8 @@ BOOL Cfg::WriteFontRegistry(TRegistry *reg, char *key, LOGFONT *font)
 
 void Cfg::GetRegName(char *buf, Addr nic_addr, int port_no)
 {
-	buf += sprintf(buf, "%s", LoadStr(IDS_IPMSG));
+
+	buf += sprintf(buf, "%s", GetIdsIPMSG());
 	if (port_no != IPMSG_DEFAULT_PORT) {
 		buf += sprintf(buf, "%d", port_no);
 	}
@@ -1900,19 +1914,12 @@ BOOL Cfg::LoadPacket(MsgMng *msgMng, int idx, MsgBuf *msg, char *head,
 		size = (int)offsetof(MsgBuf, msgBuf);
 		reg.GetByte(MSGHEADKEY_STR, (BYTE *)msg, &size);
 
-		if (size <= 252) {	// too old version header
+		if (size < 252) {	// too old version header
 			reg.CloseKey();
 			if (!reg.DeleteKey(key)) {
 				return FALSE;
 			}
 			continue;
-		}
-		if (size == 240) {	// old version header
-			memmove((BYTE *)msg + 184, (BYTE *)msg + 180, (224-180));
-			msg->flags = 0;
-			msg->signMode = MsgBuf::SIGN_INIT;
-			msg->decMode = MsgBuf::DEC_INIT;
-			memset((char *)&msg->timestamp + 4, 0, 4);
 		}
 		else if (size == 252) {
 			// MsgBuf の Time_t -> time_t timestamp 移行では、

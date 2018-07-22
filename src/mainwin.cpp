@@ -14,9 +14,6 @@
 #include <gdiplus.h>
 using namespace Gdiplus;
 
-static GdiplusStartupInput	gdisi;
-static ULONG_PTR			gditk = NULL;
-
 static HICON hMainIcon = NULL;
 static HICON hMainMstIcon = NULL;
 static HICON hMainBigIcon = NULL;
@@ -69,7 +66,7 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 
 	InitExTrace(1024 * 1024);
 
-	::GdiplusStartup(&gditk, &gdisi, NULL);
+	TGdiplusInit();
 
 	hosts.Enable(THosts::NAME, TRUE);
 	hosts.Enable(THosts::ADDR, TRUE);

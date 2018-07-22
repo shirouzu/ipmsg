@@ -98,6 +98,9 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (!::IsIconic(hWnd)) {
 			GetWindowRect(&rect);
 		}
+		if (parent && parent->hWnd) {
+			parent->GetWindowRect(&pRect);
+		}
 		EvNcDestroy();
 		TApp::GetApp()->DelWin(this);
 		hWnd = 0;
