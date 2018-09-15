@@ -408,18 +408,19 @@ public:
 	const GBuf& operator =(const GBuf &) = delete;
 };
 
+//#define DYNBUF_DBG
+
 class DynBuf {
 protected:
-	char	*buf;
-	size_t	size;
-	size_t	usedSize;
+	char	*buf = NULL;
+	size_t	size = 0;
+	size_t	usedSize = 0;
+#ifdef DYNBUF_DBG
+	VBuf	vbuf;
+#endif
 
 public:
 	DynBuf(size_t _size=0, void *init_buf=NULL) {
-		buf = NULL;
-		size = 0;
-		usedSize = 0;
-
 		if (_size > 0) {
 			if (init_buf) {
 				Init(init_buf, _size);
@@ -432,12 +433,26 @@ public:
 		*this = org;
 	}
 	~DynBuf() {
+#ifndef DYNBUF_DBG
 		free(buf);
+#endif
 	}
 	char *Alloc(size_t _size) {
-		if (buf) {
-			free(buf);
+#ifdef DYNBUF_DBG
+		buf = NULL;
+		size = 0;
+		usedSize = 0;
+		vbuf.FreeBuf();
+		if (_size > 0) {
+			vbuf.AllocBuf(ALIGN_SIZE(_size, PAGE_SIZE));
+			size_t mod = _size % PAGE_SIZE;
+			size_t diff = mod ? (PAGE_SIZE - mod) : 0;
+			buf = (char *)vbuf + diff;
+			size = _size;
 		}
+		return	buf;
+#else
+		free(buf);
 		buf = NULL;
 		size = 0;
 		usedSize = 0;
@@ -448,6 +463,7 @@ public:
 			size = _size;
 			memset(buf, 0, min(sizeof(WCHAR), size));
 		}
+#endif
 		return	buf;
 	}
 	void Init(void *init_buf, size_t _size) {
@@ -459,17 +475,34 @@ public:
 	}
 	void Free() 		{ Alloc(0); }
 	BYTE *Buf()			{ return (BYTE *)buf; }
-	const char *s() const { return (const char *)buf; }
+	const char *s() const { return (buf && size) ? (const char *)buf : ""; }
+	char *S() { return (char *)buf; }
 	operator char*()	{ return (char *)buf; }
+	operator const char*() const { return (const char *)buf; }
 	operator BYTE*()	{ return (BYTE *)buf; }
+	operator const BYTE*() const { return (const BYTE *)buf; }
 	operator WCHAR*()	{ return (WCHAR *)buf; }
+	operator const WCHAR*() const { return (const WCHAR *)buf; }
 	operator void*()	{ return (void *)buf; }
+	operator bool() { return (buf && size) ? true : false; }
 	size_t Size() const		{ return size; }
 	size_t WSize() const	{ return size / sizeof(WCHAR); }
 	size_t UsedSize() const	{ return usedSize; }
 	size_t SetUsedSize(size_t _usedSize) { return usedSize = _usedSize; }
 	size_t	RemainSize(void) const { return size - usedSize; }
 	size_t	AddUsedSize(size_t _used_size) { return usedSize += _used_size; }
+
+	size_t SetByStr(const char *s, int len=-1) {
+		if (!s) s = "";
+		if (len == -1) {
+			len = (int)strlen(s);
+		}
+		Alloc(len + 1);
+		memcpy(Buf(), s, len);
+		Buf()[len] = 0;
+		SetUsedSize(len);
+		return	len;
+	}
 
 	DynBuf& operator =(const DynBuf &d) {
 		if (Alloc(d.size) && d.size > 0) {

@@ -868,12 +868,11 @@ BOOL TEditSub::ExpandSel()
 		return TRUE;
 	}
 
-	WCHAR	*wbuf = new WCHAR[MAX_UDPBUF];
-	UrlObj	*obj = NULL;
+	unique_ptr<WCHAR []> wbuf = make_unique<WCHAR[]>(MAX_UDPBUF);
 	BOOL	modify = FALSE;
 	WCHAR	*terminate_chars = L"\r\n\t \x3000";	// \x3000 ... 全角空白
 
-	int max_len = ExGetText(wbuf, MAX_UDPBUF, GT_DEFAULT, 1200);	// 1200 == UNICODE
+	int max_len = ExGetText(wbuf.get(), MAX_UDPBUF, GT_DEFAULT, 1200);	// 1200 == UNICODE
 //	int max_len = ::GetWindowTextW(hWnd, wbuf, MAX_UDPBUF);
 	max_len = min(max_len, MAX_UDPBUF-1);
 	end = min(end, MAX_UDPBUF - 1);
@@ -890,33 +889,32 @@ BOOL TEditSub::ExpandSel()
 		SendMessageW(EM_EXSETSEL, 0, (LPARAM)&cr);
 //		SendMessageW(EM_SETSEL, start, end);
 	}
-	memmove(wbuf, wbuf + start, (end - start) * sizeof(WCHAR));
+	memmove(wbuf.get(), wbuf.get() + start, (end - start) * sizeof(WCHAR));
 	wbuf[end - start] = 0;
-	char	*url_ptr;
-	char	*u8buf = WtoU8(wbuf);
+	auto u8buf = scope_raii(WtoU8(wbuf.get()), [](auto p) { delete[] p; });
 
-	if ((url_ptr = strstr(u8buf, URL_STR))) {
+	UrlObj	*obj = NULL;
+	char	*url_ptr = NULL;
+	if ((url_ptr = strstr(u8buf.get(), URL_STR))) {
 		char	proto[MAX_NAMEBUF];
 
-		strncpyz(proto, u8buf, int(min(url_ptr - u8buf + 1, sizeof(proto))));
+		strncpyz(proto, u8buf.get(), int(min(url_ptr - u8buf.get() + 1, sizeof(proto))));
 		for (int i=0; proto[i]; i++) {
 			if ((obj = SearchUrlObj(&cfg->urlList, proto + i))) {
-				url_ptr = u8buf + i;
+				url_ptr = u8buf.get() + i;
 				break;
 			}
 		}
 	}
 	if (obj && *obj->program) {
-		if (LONG_RDC(ShellExecuteU8(NULL, NULL, obj->program, url_ptr ? url_ptr : u8buf,
+		if (LONG_RDC(ShellExecuteU8(NULL, NULL, obj->program, url_ptr ? url_ptr : u8buf.get(),
 				NULL, SW_SHOW)) <= WINEXEC_ERR_MAX) {
 			MessageBoxU8(obj->program, LoadStrU8(IDS_CANTEXEC), MB_OK|MB_ICONINFORMATION);
 		}
 	}
 	else if (!url_ptr && cfg->ShellExec || url_ptr && cfg->DefaultUrl) {
-		ShellExecuteU8(NULL, NULL, url_ptr ? url_ptr : u8buf, NULL, NULL, SW_SHOW);
+		ShellExecuteU8(NULL, NULL, url_ptr ? url_ptr : u8buf.get(), NULL, NULL, SW_SHOW);
 	}
-	delete [] u8buf;
-	delete	[] wbuf;
 	return	TRUE;
 }
 

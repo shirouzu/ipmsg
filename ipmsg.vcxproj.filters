@@ -50,6 +50,8 @@
     <ClCompile Include="src\ipipc.cpp" />
     <ClCompile Include="src\mainwincmd.cpp" />
     <ClCompile Include="src\mainwinupd.cpp" />
+    <ClCompile Include="src\sendmsg.cpp" />
+    <ClCompile Include="src\sendmng.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\ipmsg.rc">

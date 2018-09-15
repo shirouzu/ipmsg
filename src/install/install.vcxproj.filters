@@ -13,6 +13,8 @@
   <ItemGroup>
     <ClCompile Include="install.cpp" />
     <ClCompile Include="..\version.cpp" />
+    <ClCompile Include="instcmn.cpp" />
+    <ClCompile Include="instcore.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="install.rc">

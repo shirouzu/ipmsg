@@ -264,19 +264,20 @@ struct Host {
 	char	groupName[MAX_NAMEBUF];
 	char	alterName[MAX_NAMEBUF];
 	char	verInfoRaw[MAX_VERBUF];
-	ULONG	hostStatus;
-	time_t	updateTime;
-	time_t	updateTimeDirect;
-	DWORD	lastList;
-	DWORD	lastPoll;
-	int		priority;
-	int		refCnt;
+	ULONG	hostStatus = 0;
+	time_t	updateTime = 0;
+	time_t	updateTimeDirect = 0;
+	DWORD	lastList = 0;
+	DWORD	lastPoll = 0;
+	int		priority = 0;
+	int		refCnt = 0;
 	PubKey	pubKey;
-	bool	active;
-	bool	agent;
-	std::list<Host *>::iterator itr[MAX_LRU];
+	bool	active = false;
+	bool	agent = true;
 	Addr	parent_seg;
-	int		agentVal;
+	int		agentVal = 0;
+
+	std::list<Host *>::iterator itr[MAX_LRU];
 
 	Host(void) {
 		Init();
@@ -288,20 +289,10 @@ struct Host {
 	}
 
 	void Init() {
-		refCnt     = 0;
 		*nickName  = 0;
 		*groupName = 0;
 		*alterName = 0;
 		*verInfoRaw = 0;
-		hostStatus = 0;
-		updateTime = 0;
-		updateTimeDirect = 0;
-		lastList = 0;
-		lastPoll = 0;
-		priority   = 0;
-		active     = false;
-		agent      = true;
-		agentVal   = 0;
 		parent_seg.Init();
 	}
 	int	RefCnt(int cnt=0) {

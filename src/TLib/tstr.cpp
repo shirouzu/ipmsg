@@ -384,6 +384,13 @@ void rev_order(const BYTE *src, BYTE *dst, size_t size)
 	}
 }
 
+void byte_xor(const BYTE *in1, const BYTE *in2, BYTE *out, size_t len)
+{
+	while (len-- > 0) {
+		*out++ = *in1++ ^ *in2++;
+	}
+}
+
 int snprintfz(char *buf, int size, const char *fmt,...)
 {
 	va_list	ap;

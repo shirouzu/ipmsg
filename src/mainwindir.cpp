@@ -10,7 +10,7 @@
 	======================================================================== */
 
 #include "ipmsg.h"
-#include "instdata/instcmn.h"
+#include "install/instcmn.h"
 #include <process.h>
 
 using namespace std;
@@ -466,20 +466,20 @@ BOOL TMainWin::MsgDirRequest(MsgBuf *msg)
 
 	Debug("MsgDirRequest start\n");
 
-	DynMsgBuf	wmsg;
+	MsgBuf	wmsg;
 
 	if (!SetBrDirAddr(msg)) {
 		Debug("MsgDirRequest SetBrDirAddr err\n");
 		return	FALSE;
 	}
 
-	if (!GetWrappedMsg(msg, wmsg.msg)) {
+	if (!GetWrappedMsg(msg, &wmsg)) {
 		Debug("MsgDirRequest GetWrappedMsg err\n");
 		return	FALSE;
 	}
 
 	int64	cmd = 0;
-	if (!wmsg.msg->ipdict.get_int(IPMSG_CMD_KEY, &cmd)) {
+	if (!wmsg.ipdict.get_int(IPMSG_CMD_KEY, &cmd)) {
 		Debug("cmd not found in dir request=%x\n", cmd);
 		return	FALSE;
 	}
@@ -495,7 +495,7 @@ BOOL TMainWin::MsgDirRequest(MsgBuf *msg)
 
 	IPDict	dict;
 	msgMng->InitIPDict(&dict, IPMSG_DIR_AGENTPACKET);
-	dict.put_dict(IPMSG_WRAPPED_KEY, wmsg.msg->ipdict);
+	dict.put_dict(IPMSG_WRAPPED_KEY, wmsg.ipdict);
 
 	Debug("fire IPMSG_DIR_AGENTPACKET (%s)\n", brDirAddr.S());
 
@@ -516,13 +516,13 @@ BOOL TMainWin::MsgDirAgentPacket(MsgBuf *msg)
 
 	Debug("MsgDirAgentPacket start\n");
 
-	DynMsgBuf	wmsg;
-	if (!GetWrappedMsg(msg, wmsg.msg, TRUE)) {
+	MsgBuf	wmsg;
+	if (!GetWrappedMsg(msg, &wmsg, TRUE)) {
 		return	FALSE;
 	}
 
 	Debug("MsgDirAgentPacket (%s)\n", msg->hostSub.addr.S());
-	return	MsgDirPacket(wmsg.msg, TRUE);
+	return	MsgDirPacket(&wmsg, TRUE);
 }
 
 BOOL TMainWin::MsgDirPacket(MsgBuf *msg, BOOL is_agent)
@@ -539,19 +539,19 @@ BOOL TMainWin::MsgDirPacket(MsgBuf *msg, BOOL is_agent)
 
 	TrcW(L"MsgDirPacket start\n");
 
-	DynMsgBuf	wmsg;
-	if (!GetWrappedMsg(msg, wmsg.msg)) {
+	MsgBuf	wmsg;
+	if (!GetWrappedMsg(msg, &wmsg)) {
 		return	FALSE;
 	}
 
-	switch (GET_MODE(wmsg.msg->command)) {
+	switch (GET_MODE(wmsg.command)) {
 	case IPMSG_ANSLIST_DICT:
 	//	Debug("MsgDirPacket to AddHostListDict\n");
-		AddHostListDict(&wmsg.msg->ipdict);
+		AddHostListDict(&wmsg.ipdict);
 		break;
 
 	default:
-		Debug("Illegal MsgDirPacket(%x)\n", wmsg.msg->command);
+		Debug("Illegal MsgDirPacket(%x)\n", wmsg.command);
 		return	FALSE;
 	}
 
@@ -918,6 +918,8 @@ void TMainWin::DirSendAnsHosts(const list<Host *> &hlist)
 			msgMng->SignIPDict(&dict);
 
 			DirSendAll(&dict);
+			dlist.clear();
+			total_size = 0;
 		}
 	}
 }
@@ -1236,7 +1238,7 @@ void TMainWin::DirSendHostList(MsgBuf *msg, Host *host)
 		if ((host->hostStatus & (IPMSG_CAPUTF8OPT|IPMSG_UTF8OPT)) == 0) {
 			msg->command &= ~(IPMSG_CAPUTF8OPT|IPMSG_UTF8OPT);
 		}
-		*msg->msgBuf = 0;
+		// msg->msgBuf.Free();
 		SendHostList(msg);
 	}
 }

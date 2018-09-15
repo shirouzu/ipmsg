@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2017   mainwin.h	Ver4.61 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2018   mainwin.h	Ver4.90 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 2013-03-03(Sun)
-	Update					: 2017-07-31(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -223,6 +223,8 @@ protected:
 	TDlgListEx<ConnectInfo>	connList;
 	TListEx<TLogView>		logViewList;
 	THosts					hosts;
+	int						maxHostNum;
+	int						recvIdx;
 
 	enum { FW_OK, FW_NEED, FW_PENDING, FW_CANCEL } fwMode;
 
@@ -237,6 +239,7 @@ protected:
 	MsgMng			*msgMng;
 	LogMng			*logmng;
 	ShareMng		*shareMng;
+	SendMng			*sendMng;
 	Cfg				*cfg;
 	TRecycleListEx<AnsQueueObj> *ansList;
 	TBrList			brListEx;	// master & dialup & 手動brlist込み
@@ -331,7 +334,7 @@ protected:
 	void	LoadStoredPacket();
 	void	RemoveMessageFilters();
 
-	enum TrayMode { TRAY_NORMAL, TRAY_INST, TRAY_UPDATE, TRAY_RECV, TRAY_OPENMSG };
+	enum TrayMode { TRAY_NORMAL, TRAY_INST, TRAY_UPDATE, TRAY_RECV, TRAY_OPENMSG, TRAY_DELAY };
 	TrayMode	trayMode;
 	char		trayMsg[MAX_BUF];
 	int			msgDuration;
@@ -388,8 +391,8 @@ protected:
 	BOOL	GetInfoByDomain();
 
 	BOOL	SendDlgOpen(DWORD recvid=0, ReplyInfo *ri=NULL);
-	void	SendDlgHide(DWORD sendid);
 	void	SendDlgExit(DWORD sendid);
+	void	SendDlgExitEx(DWORD sendid);
 	BOOL	RecvDlgOpenCore(TRecvDlg *dlg, MsgBuf *msg, const char *rep_head, BOOL is_rproc);
 	BOOL	RecvDlgOpen(MsgBuf *msg, const char *rep_head=NULL, ULONG clipBase=0,
 				const char *auto_saved=NULL);
@@ -479,6 +482,7 @@ protected:
 	void	MsgAnsListDict(MsgBuf *msg);
 
 	void	UpdateCheckTimer();
+	void	SetUserAgent();
 
 	BOOL	UpdateCheckResCore(TInetReqReply *irr, BOOL *need_update);
 	void	UpdateCheckRes(TInetReqReply *irr);
@@ -534,6 +538,7 @@ public:
 	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	char	*GetNickNameEx(void);
+	char	*GetNickName(void);
 	ULONG	HostStatus(void);
 	Addr	GetSelfAddr() { return selfAddr; }
 	std::vector<Addr> GetAllSelfAddrs() { return allSelfAddrs; }

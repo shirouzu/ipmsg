@@ -74,24 +74,28 @@
     <TargetName>iptoast</TargetName>
     <OutDir>..\..\Debug</OutDir>
     <IntDir>..\..\Obj\DebugToast\</IntDir>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <TargetName>iptoast</TargetName>
     <OutDir>..\..\x64\Debug\</OutDir>
     <IntDir>..\..\x64\Obj\DebugToast\</IntDir>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>..\..\Release\</OutDir>
     <TargetName>iptoast</TargetName>
     <IntDir>..\..\Obj\ReleaseToast\</IntDir>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>..\..\x64\Release\</OutDir>
     <TargetName>iptoast</TargetName>
     <IntDir>..\..\x64\Obj\ReleaseToast\</IntDir>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -155,6 +159,7 @@
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>user32.dll; Activeds.dll; comctl32.dll; crypt32.dll; Dbghelp.dll; gdiplus.dll; imm32.dll; Iphlpapi.dll; msimg32.dll; psapi.dll; wininet.dll; winmm.dll; Ws2_32.dll;Netapi32.dll;Wininet.dll</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
       <Command>
@@ -187,6 +192,7 @@
       <SetChecksum>true</SetChecksum>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>user32.dll; Activeds.dll; comctl32.dll; crypt32.dll; Dbghelp.dll; gdiplus.dll; imm32.dll; Iphlpapi.dll; msimg32.dll; psapi.dll; wininet.dll; winmm.dll; Ws2_32.dll;Netapi32.dll;Wininet.dll</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
       <Command>

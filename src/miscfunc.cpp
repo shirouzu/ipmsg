@@ -1,10 +1,10 @@
 ﻿static char *miscfunc_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2017   miscfunc.cpp	Ver4.60";
+	"@(#)Copyright (C) H.Shirouzu 2011-2018   miscfunc.cpp	Ver4.90";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc functions
 	Create					: 2011-05-03(Tue)
-	Update					: 2017-06-12(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -48,6 +48,29 @@ void SetDlgIcon(HWND hWnd)
 		oldHBigIcon = hBigIcon;
 	}
 }
+
+void ChangeWindowTitle(TWin *wnd, Cfg *cfg)
+{
+	WCHAR		wbuf[MAX_BUF];
+	vector<Wstr> wvec;
+
+	if (cfg && (cfg->NoTcp || cfg->NoFileTrans)) {
+		wvec.push_back(cfg->NoFileTrans == 2 ? L" (No Share Transfer)" : L" (No File Transfer)");
+	}
+
+	if (!gEnableHook) {
+		wvec.push_back(L" (Non Hook)");
+	}
+
+	if (wvec.size() > 0) {
+		wnd->GetWindowTextW(wbuf, wsizeof(wbuf));
+		for (auto &w: wvec) {
+			wcsncatz(wbuf, w.s(), wsizeof(wbuf));
+		}
+		wnd->SetWindowTextW(wbuf);
+	}
+}
+
 #endif
 
 /*
@@ -1161,16 +1184,24 @@ BOOL ConfirmDownloadLinkW(Cfg *cfg, const WCHAR *link_path, BOOL is_update, WCHA
 	return	::GetFileAttributesW(targ) != 0xffffffff;
 }
 
+BOOL MakeImagePath(Cfg *cfg, const char *fname, char *path)
+{
+	if (!MakeImageFolderName(cfg, path)) {
+		return FALSE;
+	}
+	AddPathU8(path, fname, MAX_PATH_U8);
+	return	TRUE;
+}
+
 BOOL SaveImageFile(Cfg *cfg, const char *fname, VBuf *buf)
 {
 	char	path[MAX_PATH_U8];
 	DWORD	size;
 	HANDLE	hFile;
 
-	if (!MakeImageFolderName(cfg, path)) {
+	if (!MakeImagePath(cfg, fname, path)) {
 		return FALSE;
 	}
-	AddPathU8(path, fname, MAX_PATH_U8);
 
 	if ((hFile = CreateFileWithDirU8(path, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL,
 				CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)) == INVALID_HANDLE_VALUE) return FALSE;

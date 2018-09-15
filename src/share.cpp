@@ -78,9 +78,9 @@ void ShareMng::LoadShare()
 
 void ShareMng::SaveShare(ShareInfo *info)
 {
-	if (info->fileCnt <= info->clipCnt) {	// clip only
-		return;
-	}
+//	if (info->fileCnt <= info->clipCnt) {	// clip only
+//		return;
+//	}
 
 	IPDict	dict;
 
@@ -106,13 +106,20 @@ BOOL ShareMng::AddShareCore(ShareInfo *shareInfo, FileInfo *fileInfo, BOOL isCli
 	return	TRUE;
 }
 
-BOOL ShareMng::AddFileShare(ShareInfo *shareInfo, char *fname)
+BOOL ShareMng::AddFileShare(ShareInfo *shareInfo, char *fname, int pos)
 {
 	for (int i=0; i < shareInfo->fileCnt; i++) {
 		if (strcmp(fname, shareInfo->fileInfo[i]->Fname()) == 0)
 			return	FALSE;
 	}
-	return	AddShareCore(shareInfo, SetFileInfo(fname), FALSE);
+	auto fi = SetFileInfo(fname);
+	bool as_clip = (pos >= 0);
+	if (as_clip) {
+		fi->SetAttr(IPMSG_FILE_CLIPBOARD);
+		fi->SetMtime(time(NULL));
+		fi->SetPos(pos);
+	}
+	return	AddShareCore(shareInfo, fi, as_clip);
 }
 
 BOOL ShareMng::AddMemShare(ShareInfo *shareInfo, char *dummy_name, BYTE *data, int size, int pos)
@@ -170,11 +177,11 @@ FileInfo *ShareMng::SetFileInfo(char *fname)
 	return	info;
 }
 
-BOOL ShareMng::AddHostShare(ShareInfo *info, SendEntry *entry, int entryNum)
+BOOL ShareMng::AddHostShare(ShareInfo *info, std::shared_ptr<SendMsg> sendMsg)
 {
 	IPDict	dict;
 
-	info->host = new Host *[info->hostCnt = entryNum];
+	info->host = new Host *[info->hostCnt = (int)sendMsg->Size()];
 
 	info->lastPkt = new UINT [info->hostCnt];
 	memset(info->lastPkt, 0, sizeof(UINT) * info->hostCnt);
@@ -182,17 +189,17 @@ BOOL ShareMng::AddHostShare(ShareInfo *info, SendEntry *entry, int entryNum)
 	info->transStat = new char [info->hostCnt * info->fileCnt];
 	memset(info->transStat, TRANS_INIT, info->hostCnt * info->fileCnt);
 
-	for (int i=0; i < entryNum; i++)
+	for (int i=0; i < sendMsg->Size(); i++)
 	{
-		auto h = cfg->fileHosts.GetHostByNameAddr(&entry[i].Host()->hostSub);
+		auto h = cfg->fileHosts.GetHostByNameAddr(&sendMsg->Entry(i)->Host()->hostSub);
 		if (h == NULL)
 		{
 			h = new Host;
-			h->hostSub = entry[i].Host()->hostSub;
-			h->hostStatus = entry[i].Host()->hostStatus;
-			h->updateTime = entry[i].Host()->updateTime;
-			h->priority = entry[i].Host()->priority;
-			strncpyz(h->nickName, entry[i].Host()->nickName, MAX_NAMEBUF);
+			h->hostSub = sendMsg->Entry(i)->Host()->hostSub;
+			h->hostStatus = sendMsg->Entry(i)->Host()->hostStatus;
+			h->updateTime = sendMsg->Entry(i)->Host()->updateTime;
+			h->priority = sendMsg->Entry(i)->Host()->priority;
+			strncpyz(h->nickName, sendMsg->Entry(i)->Host()->nickName, MAX_NAMEBUF);
 			cfg->fileHosts.AddHost(h);
 		}
 		else h->RefCnt(1);
@@ -478,7 +485,7 @@ void ShareMng::Cleanup()
 			cur_time = time(NULL);
 		}
 
-		int	clip_host = 0;
+		int	mem_host = 0;
 		int	i=0, j=0;
 		for (i = 0; i < info->fileCnt; i++) {
 			for (j=0; j < info->hostCnt; j++) {
@@ -486,11 +493,11 @@ void ShareMng::Cleanup()
 					break;
 				}
 				if (info->transStat[info->fileCnt * j + i] == TRANS_INIT) {
-					if (GET_MODE(info->fileInfo[i]->Attr()) != IPMSG_FILE_CLIPBOARD) {
+					if (!info->fileInfo[i]->MemData()) {
 						break;
 					}
 					if (info->host[j]->hostStatus & IPMSG_CLIPBOARDOPT) {
-						clip_host++;
+						mem_host++;
 					}
 				}
 			}
@@ -502,7 +509,7 @@ void ShareMng::Cleanup()
 			SaveShare(info);
 		}
 		if (i == info->fileCnt && j == info->hostCnt) {
-			if (clip_host > 0 && info->attachTime + 1200 > cur_time) {
+			if (mem_host > 0 && info->attachTime + 1200 > cur_time) {
 				continue;
 			}
 			DestroyShare(info);

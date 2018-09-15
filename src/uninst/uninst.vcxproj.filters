@@ -11,9 +11,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\instdata\instcmn.cpp" />
     <ClCompile Include="uninst.cpp" />
     <ClCompile Include="..\version.cpp" />
+    <ClCompile Include="..\install\instcmn.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="uninst.rc">

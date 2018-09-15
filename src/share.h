@@ -117,11 +117,11 @@ public:
 	~ShareMng();
 	ShareInfo *CreateShare(int packetNo);
 	void	DestroyShare(ShareInfo *info);
-	BOOL	AddFileShare(ShareInfo *info, char *fname);
+	BOOL	AddFileShare(ShareInfo *info, char *fname, int pos=-1);
 	BOOL	AddMemShare(ShareInfo *info, char *dummy_name, BYTE *data, int size, int pos);
 	BOOL	DelFileShare(ShareInfo *info, int fileNo);
 
-	BOOL	AddHostShare(ShareInfo *info, SendEntry *entry, int entryNum);
+	BOOL	AddHostShare(ShareInfo *info, std::shared_ptr<SendMsg> sendMsg);
 	BOOL	EndHostShare(int packetNo, HostSub *hostSub, FileInfo *fileInfo=NULL, BOOL done=TRUE);
 
 	ShareInfo	*Search(int packetNo);

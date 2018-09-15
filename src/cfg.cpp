@@ -4,7 +4,7 @@
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration
 	Create					: 1996-09-27(Sat)
-	Update					: 2017-07-16(Sun)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -17,6 +17,12 @@ using namespace std;
 
 #ifdef IPMSG_PRO
 #include "master.dat"
+#endif
+
+#ifdef DISALBE_HOOK
+volatile int64 gEnableHook = 0;
+#else
+volatile int64 gEnableHook = ENABLE_HOOK;
 #endif
 
 // Official RSA key for update
@@ -49,6 +55,7 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 #define IPMSG_DEFAULT_DELAY			250
 #define IPMSG_DEFAULT_UPDATETIME	10
 #define IPMSG_DEFAULT_KEEPHOSTTIME	(3600 * 24 * 180)	// 180日間
+#define IPMSG_DEFAULT_DISPHOSTTIME	(3600 * 24 * 30)	// 180日間
 #define IPMSG_DEFAULT_QUOTE			">"
 #define IPMSG_DEFAULT_CLIPMODE		(CLIP_ENABLE|CLIP_SAVE)
 #define IPMSG_DEFAULT_CLIPMAX		10
@@ -100,6 +107,7 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 #define RETRYMSEC_STR		"RetryMSec3"
 #define RETRYMAX_STR		"RetryMax2"
 #define RECVMAX_STR			"RecvMax"
+#define LASTRECV_STR		"LastRecv"
 #define NOERASE_STR			"NoErase"
 #define REPROMSG_STR		"ReproMsg"
 #define DEBUG_STR			"Debug"
@@ -144,6 +152,7 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 #define SORT_STR			"Sort"
 #define UPDATETIME_STR		"UpdateTime"
 #define KEEPHOSTTIME_STR	"KeepHostTime"
+#define DISPHOSTTIME_STR	"DispHostTime"
 #define MSGMINIMIZE_STR		"MsgMinimize"
 #define DEFAULTURL_STR		"DefaultUrl"
 #define SHELLEXEC_STR		"ShellExec"
@@ -167,6 +176,7 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 #define LVFINDMAX_STR		"LvFindMax"
 #define UPLOADPKT_STR		"UploadPkt"
 #define LISTCONFIRMKEY_STR	"ListConfirm"
+#define DELAYSEND_STR		"DelaySend"
 
 #define LINKACT_STR			"LinkAct"
 #define DIRECTOPENEXT_STR	"DirectOpenExt"
@@ -282,7 +292,8 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 #define PITCHANDFAMILY_STR	"PitchAndFamily"
 #define FACENAME_STR		"FaceName"
 
-#define HOSTINFO_STR		"HostInfo"
+#define HOSTINFO_STR		"HostInfo2"
+#define HOSTINFOOLD_STR		"HostInfo"
 #define USERNAME_STR		"UserName"
 #define HOSTNAME_STR		"HostName"
 #define IPADDROLD_STR		"IPAddr"
@@ -402,14 +413,26 @@ Cfg::~Cfg()
 #undef  CFG_FUNCS
 #endif
 
-BOOL Cfg::ReadRegistry(void)
+#define PRIORITY_KEY	"PR"
+#define HOSTSTAT_KEY	"HS"
+#define UNAME_KEY		"UN"
+#define HNAME_KEY		"HN"
+#define ADDR_KEY		"AD"
+#define PORT_KEY		"PT"
+#define NICK_KEY		"NK"
+#define GROUP_KEY		"GP"
+#define ALTER_KEY		"AL"
+#define UPTIME_KEY		"UT"
+#define PUBKEY_KEY		"PB"
+
+bool Cfg::ReadRegistry(void)
 {
 	char	buf[MAX_BUF];
 
 	GetRegName(buf, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, buf);
 	DWORD		saveRegFlg = 0;
-	BOOL		isChangeApp = FALSE;
+	bool		isChangeApp = false;
 
 	if (!reg.GetInt(NOPOPUPCHECK_STR, &NoPopupCheck))
 	{
@@ -417,7 +440,7 @@ BOOL Cfg::ReadRegistry(void)
 		reg.ChangeApp(HS_TOOLS, buf);
 		if (!reg.GetInt(NOPOPUPCHECK_STR, &NoPopupCheck)) {
 			reg.ChangeApp(HS_TOOLS, GetIdsIPMSG());
-			isChangeApp = TRUE;
+			isChangeApp = true;
 		}
 	}
 
@@ -443,6 +466,7 @@ BOOL Cfg::ReadRegistry(void)
 	RetryMSec = IPMSG_DEFAULT_RETRYMSEC;
 	RetryMax = IPMSG_DEFAULT_RETRYMAX;
 	RecvMax = IPMSG_DEFAULT_RECVMAX;
+	LastRecv = 0;
 	NoErase = FALSE;
 	ReproMsg = TRUE;
 	Debug = 0;
@@ -483,6 +507,7 @@ BOOL Cfg::ReadRegistry(void)
 	Sort = IPMSG_NAMESORT;
 	UpdateTime = IPMSG_DEFAULT_UPDATETIME;
 	KeepHostTime = IPMSG_DEFAULT_KEEPHOSTTIME;
+	DispHostTime = IPMSG_DEFAULT_DISPHOSTTIME;
 	DefaultUrl = TRUE;
 	ShellExec = FALSE;
 	ExtendEntry = TRUE;
@@ -499,6 +524,7 @@ BOOL Cfg::ReadRegistry(void)
 	ResolveOpt = 0;
 	LetterKey = IsLang(LANG_JAPANESE) ? FALSE : TRUE;
 	ListConfirm = FALSE;
+	DelaySend = TRUE;
 
 	RemoteGraceSec = IPMSG_DEFAULT_REMOTEGRACE;
 	RemoteRebootMode = 0;
@@ -553,9 +579,9 @@ BOOL Cfg::ReadRegistry(void)
 	SendWidth[SW_PRIORITY] = IPMSG_DEFAULT_PRIORITYWIDTH;
 
 	ColumnItems = 0;
-	SetItem(&ColumnItems, SW_NICKNAME, TRUE);
-	SetItem(&ColumnItems, SW_GROUP, TRUE);
-	SetItem(&ColumnItems, SW_HOST, TRUE);
+	SetItem(&ColumnItems, SW_NICKNAME, true);
+	SetItem(&ColumnItems, SW_GROUP, true);
+	SetItem(&ColumnItems, SW_HOST, true);
 
 	for (int i=0; i < MAX_SENDWIDTH; i++) {
 		SendOrder[i] = i;
@@ -616,6 +642,7 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(RETRYMSEC_STR, (int *)&RetryMSec);
 	reg.GetInt(RETRYMAX_STR, (int *)&RetryMax);
 	reg.GetInt(RECVMAX_STR, (int *)&RecvMax);
+	reg.GetInt64(LASTRECV_STR, (int64 *)&LastRecv);
 	reg.GetInt(NOERASE_STR, &NoErase);
 	reg.GetInt(REPROMSG_STR, &ReproMsg);
 	reg.GetInt(DEBUG_STR, &Debug);
@@ -644,6 +671,7 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetInt(RESOLVEOPT_STR, &ResolveOpt);
 	reg.GetInt(LETTERKEY_STR, &LetterKey);
 	reg.GetInt(LISTCONFIRMKEY_STR, &ListConfirm);
+	reg.GetInt(DELAYSEND_STR, &DelaySend);
 
 	reg.GetInt(REMOTEGRACE_STR, &RemoteGraceSec);
 	reg.GetStr(REBOOT_STR, RemoteReboot, sizeof(RemoteReboot));
@@ -820,6 +848,7 @@ BOOL Cfg::ReadRegistry(void)
 	reg.GetLong(SORT_STR, (long *)&Sort);
 //	reg.GetInt(UPDATETIME_STR, &UpdateTime);
 	reg.GetInt(KEEPHOSTTIME_STR, &KeepHostTime);
+	reg.GetInt(DISPHOSTTIME_STR, &DispHostTime);
 	reg.GetInt(DEFAULTURL_STR, &DefaultUrl);
 	reg.GetInt(SHELLEXEC_STR, &ShellExec);
 	reg.GetInt(EXTENDENTRY_STR, &ExtendEntry);
@@ -1079,59 +1108,72 @@ BOOL Cfg::ReadRegistry(void)
 		reg.CloseKey();
 	}
 
-	if (reg.CreateKey(HOSTINFO_STR)) {
-		int		priority = DEFAULT_PRIORITY;
-		Host	*host;
-		time_t	default_time = time(NULL) - KeepHostTime / 2;	// 90 日
+	priorityHosts.Enable(THosts::NAME, true);
+	fileHosts.Enable(THosts::NAME_ADDR, true);
 
-		priorityHosts.Enable(THosts::NAME, TRUE);
-		fileHosts.Enable(THosts::NAME_ADDR, TRUE);
-		for (int i=0; reg.EnumValue(i, buf, sizeof(buf)) || reg.EnumKey(i, buf, sizeof(buf));
-				i++) {
-			if (!reg.OpenKey(buf)) {
-				break;
-			}
-			BYTE	pubkey[512];
-			int		pubkeySize = sizeof(pubkey);
+	if (reg.OpenKey(HOSTINFO_STR)) {
+		char		key[MAX_BUF];
+		time_t		default_time = time(NULL) - KeepHostTime / 2;	// 90 日
+		DynBuf		data(MAX_UDPBUF);
+		list<U8str>	del_item;
 
-			if (!reg.GetByte(PUBLICKEY_STR, pubkey, &pubkeySize)) pubkeySize = 0;
+		for (int i=0; reg.EnumValue(i, key, sizeof(key)); i++) {
+			IPDict	d;
+			int		len = MAX_UDPBUF;
+			auto	host = new Host;
 
-			if ((!reg.GetInt(PRIORITY_STR, &priority) || priority == DEFAULT_PRIORITY)
-					&& pubkeySize == 0) {
-				saveRegFlg |= CFG_HOSTINFO|CFG_DELHOST;
-			}
-			else {
-				host = new Host;
-				host->priority = priority;
-				reg.GetStr(USERNAME_STR, host->hostSub.u.userName, MAX_NAMEBUF);
-				reg.GetStr(HOSTNAME_STR, host->hostSub.u.hostName, MAX_NAMEBUF);
+			do {
+				if (!reg.GetByte(key, data, &len) || !len || d.unpack(data, len) != len) break;
+				int64	val;
+				U8str	s;
 
-				if (reg.GetStr(IPADDR_STR, buf, sizeof(buf))) {
-					host->hostSub.addr.Set(buf);
+				if (!d.get_int(PRIORITY_KEY, &val)) break;
+				host->priority = (int)val;
+				if (!d.get_int(HOSTSTAT_KEY, &val)) break;
+				host->hostStatus = (ULONG)val & ~IPMSG_ABSENCEOPT;
+
+				if (!d.get_str(UNAME_KEY, &s)) break;
+				strncpyz(host->hostSub.u.userName, s.s(), MAX_NAMEBUF);
+				if (!d.get_str(HNAME_KEY, &s)) break;
+				strncpyz(host->hostSub.u.hostName, s.s(), MAX_NAMEBUF);
+
+				if (!d.get_str(ADDR_KEY, &s)) break;
+				host->hostSub.addr.Set(s.s());
+				if (!d.get_int(PORT_KEY, &val)) break;
+				host->hostSub.portNo = (int)val;
+
+				if (!d.get_str(NICK_KEY, &s)) break;
+				strncpyz(host->nickName, s.s(), MAX_NAMEBUF);
+				if (!d.get_str(GROUP_KEY, &s)) break;
+				strncpyz(host->groupName, s.s(), MAX_NAMEBUF);
+				if (d.get_str(ALTER_KEY, &s)) {
+					strncpyz(host->alterName, s.s(), MAX_NAMEBUF);
 				}
-				else {
-					reg.GetLong(IPADDROLD_STR, (long *)&host->hostSub.addr);
-				}
+				if (!d.get_int(UPTIME_KEY, &val)) break;
+				host->updateTime = (int)val;
+				if (host->updateTime < default_time) break;
 
-				if (!reg.GetInt(PORTNO_STR, &host->hostSub.portNo)) {
-					if (!reg.GetInt(PORTNOOLD_STR, &host->hostSub.portNo)) {
-						host->hostSub.portNo = ::htons(host->hostSub.portNo);
-					}
-				}
-				reg.GetStr(NICKNAME_STR, host->nickName, MAX_NAMEBUF);
-				reg.GetStr(GROUPNAME_STR, host->groupName, MAX_NAMEBUF);
-				reg.GetStr(ALTERNAME_STR, host->alterName, MAX_NAMEBUF);
-				if (!reg.GetInt64(UPDATETIME_STR, &host->updateTime)) {
-					host->updateTime = default_time;
-				}
-				if (pubkeySize) {
-					host->pubKey.DeSerialize(pubkey, pubkeySize);
+				DynBuf	pub;
+				if (d.get_bytes(PUBKEY_KEY, &pub)) {
+					host->pubKey.DeSerialize(pub.Buf(), (int)pub.UsedSize());
 				}
 				priorityHosts.AddHost(host);
+				host = NULL;
+			} while (0);
+
+			if (host) {
+				delete host;
+				del_item.push_back(key);
 			}
-			reg.CloseKey();
+		}
+		for (auto &k: del_item) {
+			reg.DeleteValue(k.s());
 		}
 		reg.CloseKey();
+	}
+	else {
+		ConvertHostInfo(&reg);
+		saveRegFlg |= CFG_HOSTINFO;
 	}
 
 // Self private/public key (1024/2048)
@@ -1167,8 +1209,8 @@ BOOL Cfg::ReadRegistry(void)
 
 	if (::GetUserNameW(wbuf, &wLen)) {
 		U8str	user(wbuf);
-		BOOL	is_set   = *regOwner ? TRUE : FALSE;
-		BOOL	is_owner = !is_set || strcmpi(user.s(), regOwner) == 0;
+		bool	is_set   = *regOwner ? true : false;
+		bool	is_owner = !is_set || strcmpi(user.s(), regOwner) == 0;
 
 		if (!is_set || !is_owner) {
 			strncpyz(regOwner, user.s(), sizeof(regOwner));
@@ -1207,67 +1249,57 @@ BOOL Cfg::ReadRegistry(void)
 		reg.CloseKey();
 	}
 
-	if (reg.CreateKey(UPLOADPKT_STR)) {
-		WCHAR	key[MAX_BUF];
-		Wstr	wstr(MAX_MSGBODY);
+#ifdef IPMSG_PRO
+#define CFG_LOADUPLOAD
+#include "miscext.dat"
+#undef CFG_LOADUPLOAD
+#endif
 
-		for (int i=0; reg.EnumValueW(i, key, wsizeof(key)); i++) {
-			int		pkt_no = wcstoul(key, 0, 10);
-			int		len = 0;
+	if (gEnableHook) {
+		if (reg.CreateKey(HOOK_STR)) {
+			hookMode = -1;
+			hookKind = 1;
+			hookUrl =
+				"https://hooks.slack.com/services/Txxxxxxxx/Bxxxxxxxx/xxxxxxxxxxxxxxxxxxxxxxxx";
+			hookBody =
+				"{ \"channel\":\"@user\", \"username\":\"$(sender)\", \"text\":\"$(msg)\" }";
 
-			if (reg.GetByteW(key, 0, &len) && len > 0) {
-				TUpLogObj	*ul = new TUpLogObj(pkt_no, TUpLogObj::STORED);
-				ul->buf.Alloc(len);
+			reg.GetInt(HOOKMODE_STR, &hookMode);
+			reg.GetInt(HOOKKIND_STR, &hookKind);
 
-				if (reg.GetByteW(key, ul->buf, &len)) {
-					upLogList.AddObj(ul);
-				}
+			if (reg.GetStr(HOOKURL_STR, buf, sizeof(buf))) {
+				hookUrl = buf;
 			}
+			if (reg.GetStr(BODY_STR, buf, sizeof(buf))) {
+				hookBody = buf;
+			}
+			reg.CloseKey();
 		}
-		reg.CloseKey();
-	}
 
-	if (reg.CreateKey(HOOK_STR)) {
-		hookMode = -1;
-		hookKind = 1;
-		hookUrl = "https://hooks.slack.com/services/Txxxxxxxx/Bxxxxxxxx/xxxxxxxxxxxxxxxxxxxxxxxx";
-		hookBody = "{ \"channel\":\"@user\", \"username\":\"$(sender)\", \"text\":\"$(msg)\" }";
+		if (reg.CreateKey(SLACK_STR)) {
+			if (hookMode == -1) {
+				hookMode = 0;
+				reg.GetInt(HOOKMODEOLD_STR, &hookMode);
+			}
+			slackHost = "hooks.slack.com";
+			slackKey = "/Txxxxxxxx/Bxxxxxxxx/xxxxxxxxxxxxxxxxxxxxxxxx";
+			slackChan = "@username";
+			slackIcon = "https://ipmsg.org/ipmsg-slack.png";
 
-		reg.GetInt(HOOKMODE_STR, &hookMode);
-		reg.GetInt(HOOKKIND_STR, &hookKind);
-
-		if (reg.GetStr(HOOKURL_STR, buf, sizeof(buf))) {
-			hookUrl = buf;
+			if (reg.GetStr(HOST_STR, buf, sizeof(buf))) {
+				slackHost = buf;
+			}
+			if (reg.GetStr(KEY_STR, buf, sizeof(buf))) {
+				slackKey = buf;
+			}
+			if (reg.GetStr(CHAN_STR, buf, sizeof(buf))) {
+				slackChan = buf;
+			}
+			if (reg.GetStr(ICON_STR, buf, sizeof(buf))) {
+				slackIcon = buf;
+			}
+			reg.CloseKey();
 		}
-		if (reg.GetStr(BODY_STR, buf, sizeof(buf))) {
-			hookBody = buf;
-		}
-		reg.CloseKey();
-	}
-
-	if (reg.CreateKey(SLACK_STR)) {
-		if (hookMode == -1) {
-			hookMode = 0;
-			reg.GetInt(HOOKMODEOLD_STR, &hookMode);
-		}
-		slackHost = "hooks.slack.com";
-		slackKey = "/Txxxxxxxx/Bxxxxxxxx/xxxxxxxxxxxxxxxxxxxxxxxx";
-		slackChan = "@username";
-		slackIcon = "https://ipmsg.org/ipmsg-slack.png";
-
-		if (reg.GetStr(HOST_STR, buf, sizeof(buf))) {
-			slackHost = buf;
-		}
-		if (reg.GetStr(KEY_STR, buf, sizeof(buf))) {
-			slackKey = buf;
-		}
-		if (reg.GetStr(CHAN_STR, buf, sizeof(buf))) {
-			slackChan = buf;
-		}
-		if (reg.GetStr(ICON_STR, buf, sizeof(buf))) {
-			slackIcon = buf;
-		}
-		reg.CloseKey();
 	}
 
 #ifndef IPMSG_PRO
@@ -1295,10 +1327,54 @@ BOOL Cfg::ReadRegistry(void)
 		WriteRegistry(saveRegFlg);
 	}
 
-	return	TRUE;
+	return	true;
 }
 
-BOOL Cfg::ReadFontRegistry(TRegistry *reg, char *key, LOGFONT *font)
+void Cfg::ConvertHostInfo(TRegistry *reg)
+{
+	if (!reg->OpenKey(HOSTINFOOLD_STR)) return;
+
+	char	key[MAX_BUF];
+	for (int i=0; reg->EnumKey(i, key, sizeof(key)); i++) {
+		if (!reg->OpenKey(key)) continue;
+
+		auto	host = new Host;
+		do {
+			int		priority = DEFAULT_PRIORITY;
+			reg->GetInt(PRIORITY_STR, &priority);
+			host->priority = priority;
+			host->hostStatus = IPMSG_FULLSTAT;
+			if (!reg->GetStr(USERNAME_STR, host->hostSub.u.userName, MAX_NAMEBUF)) break;
+			if (!reg->GetStr(HOSTNAME_STR, host->hostSub.u.hostName, MAX_NAMEBUF)) break;
+
+			char	buf[MAX_BUF];
+			if (reg->GetStr(IPADDR_STR, buf, sizeof(buf))) {
+				host->hostSub.addr.Set(buf);
+			}
+			reg->GetInt(PORTNO_STR, &host->hostSub.portNo);
+			reg->GetStr(NICKNAME_STR, host->nickName, MAX_NAMEBUF);
+			reg->GetStr(GROUPNAME_STR, host->groupName, MAX_NAMEBUF);
+			reg->GetStr(ALTERNAME_STR, host->alterName, MAX_NAMEBUF);
+			reg->GetInt64(UPDATETIME_STR, &host->updateTime);
+			BYTE	pubkey[512];
+			int		pubkeySize = sizeof(pubkey);
+			if (!reg->GetByte(PUBLICKEY_STR, pubkey, &pubkeySize)) pubkeySize = 0;
+			if (pubkeySize) {
+				host->pubKey.DeSerialize(pubkey, pubkeySize);
+			}
+			priorityHosts.AddHost(host);
+			host = NULL;
+		} while (0);
+
+		if (host) {
+			delete host;
+		}
+		reg->CloseKey();
+	}
+	reg->CloseKey();
+}
+
+bool Cfg::ReadFontRegistry(TRegistry *reg, char *key, LOGFONT *font)
 {
 	if (reg->CreateKey(key)) {
 		int		tmp = 0;
@@ -1319,11 +1395,11 @@ BOOL Cfg::ReadFontRegistry(TRegistry *reg, char *key, LOGFONT *font)
 		reg->GetStrA(FACENAME_STR, font->lfFaceName, sizeof(font->lfFaceName));
 		reg->CloseKey();
 	}
-	return	TRUE;
+	return	true;
 }
 
 
-BOOL Cfg::WriteRegistry(int ctl_flg)
+bool Cfg::WriteRegistry(int ctl_flg)
 {
 	char	buf[MAX_LISTBUF];
 
@@ -1343,6 +1419,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(RETRYMSEC_STR, (int)RetryMSec);
 		reg.SetInt(RETRYMAX_STR, (int)RetryMax);
 //		reg.SetInt(RECVMAX_STR, RecvMax);
+		reg.SetInt64(LASTRECV_STR, LastRecv);
 		reg.SetInt(NOERASE_STR, NoErase);
 		reg.SetInt(REPROMSG_STR, ReproMsg);
 //		reg.SetInt(DEBUG_STR, Debug);
@@ -1358,6 +1435,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(RESOLVEOPT_STR, ResolveOpt);
 //		reg.SetInt(LETTERKEY_STR, LetterKey);
 		reg.SetInt(LISTCONFIRMKEY_STR, ListConfirm);
+		reg.SetInt(DELAYSEND_STR, DelaySend);
 
 //		reg.SetInt(REMOTEGRACE_STR, RemoteGraceSec);
 		reg.SetStr(REBOOT_STR, RemoteReboot);
@@ -1449,6 +1527,7 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.SetLong(SORT_STR, Sort);
 		reg.SetInt(UPDATETIME_STR, UpdateTime);
 		reg.SetInt(KEEPHOSTTIME_STR, KeepHostTime);
+		reg.SetInt(DISPHOSTTIME_STR, DispHostTime);
 		reg.SetInt(EXTENDENTRY_STR, ExtendEntry);
 		reg.SetInt(EXTENDBROADCAST_STR, ExtendBroadcast);
 		reg.SetInt(MULTICASTMODE_STR, MulticastMode);
@@ -1624,41 +1703,18 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 
 	if ((ctl_flg & CFG_HOSTINFO) && reg.CreateKey(HOSTINFO_STR)) {
 		time_t	now_time = time(NULL);
-		BYTE	pubkey[MAX_BUF];
-		int		pubkeySize;
 
 		if (ctl_flg & CFG_DELHOST) {
 			reg.DeleteChildTree();
 		}
 		for (int i=0; i < priorityHosts.HostCnt(); i++) {
 			Host	*host = priorityHosts.GetHost(i);
-			int		to_store_size = 2048 / 8; // 2048bits RSA key
-			sprintf(buf, "%s:%s", host->hostSub.u.userName, host->hostSub.u.hostName);
 
-			if (host->updateTime + KeepHostTime < now_time ||
-				(host->pubKey.KeyLen() < to_store_size && host->priority == DEFAULT_PRIORITY)) {
-				if (ctl_flg & CFG_DELCHLDHOST) {
-					reg.DeleteChildTree(buf);
-				}
+			if (host->updateTime + KeepHostTime < now_time) {
+				DelHost(host, &reg);
 			}
-			else if (reg.CreateKey(buf)) {
-				reg.SetStr(USERNAME_STR, host->hostSub.u.userName);
-				reg.SetStr(HOSTNAME_STR, host->hostSub.u.hostName);
-				reg.SetStr(IPADDR_STR, host->hostSub.addr.S());
-				reg.SetInt(PORTNO_STR, host->hostSub.portNo);
-				reg.SetStr(NICKNAME_STR, host->nickName);
-				reg.SetStr(GROUPNAME_STR, host->groupName);
-				if (*host->alterName) reg.SetStr(ALTERNAME_STR, host->alterName);
-				reg.SetInt(PRIORITY_STR, host->priority);
-				reg.SetInt64(UPDATETIME_STR, host->updateTime);
-
-				if (host->pubKey.KeyLen() >= to_store_size) {
-					char	*p = (char *)GetUserNameDigestField(host->hostSub.u.userName);
-					if (p && (pubkeySize = host->pubKey.Serialize(pubkey, sizeof(pubkey))) > 0) {
-						reg.SetByte(PUBLICKEY_STR, pubkey, pubkeySize);
-					}
-				}
-				reg.CloseKey();
+			else {
+				WriteHost(host, &reg);
 			}
 		}
 		reg.CloseKey();
@@ -1742,40 +1798,28 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 		reg.CloseKey();
 	}
 
-	if ((ctl_flg & CFG_UPLOADPKT) && reg.CreateKey(UPLOADPKT_STR)) {
-		for (auto obj=upLogList.TopObj(); obj; ) {
-			auto next = upLogList.NextObj(obj);
-			WCHAR	key[MAX_BUF];
-			swprintf(key, L"%d", obj->packetNo);
+#ifdef IPMSG_PRO
+#define CFG_SAVEUPLOAD
+#include "miscext.dat"
+#undef CFG_SAVEUPLOAD
+#endif
 
-			if (obj->status == TUpLogObj::INIT) {
-				reg.SetByteW(key, obj->buf, (int)obj->buf.Size());
-				obj->status = TUpLogObj::STORED;
-			}
-			else if (obj->status == TUpLogObj::UPLOADED) {
-				reg.DeleteValueW(key);
-				upLogList.DelObj(obj);
-				delete obj;
-			}
-			obj = next;
+	if (gEnableHook) {
+		if ((ctl_flg & CFG_HOOKOPT) && reg.CreateKey(HOOK_STR)) {
+			reg.SetInt(HOOKMODE_STR, hookMode);
+			reg.SetInt(HOOKKIND_STR, hookKind);
+			reg.SetStr(HOOKURL_STR, hookUrl.s());
+			reg.SetStr(BODY_STR, hookBody.s());
+			reg.CloseKey();
 		}
-		reg.CloseKey();
-	}
 
-	if ((ctl_flg & CFG_HOOKOPT) && reg.CreateKey(HOOK_STR)) {
-		reg.SetInt(HOOKMODE_STR, hookMode);
-		reg.SetInt(HOOKKIND_STR, hookKind);
-		reg.SetStr(HOOKURL_STR, hookUrl.s());
-		reg.SetStr(BODY_STR, hookBody.s());
-		reg.CloseKey();
-	}
-
-	if ((ctl_flg & CFG_SLACKOPT) && reg.CreateKey(SLACK_STR)) {
-		reg.SetStr(HOST_STR, slackHost.s());
-		reg.SetStr(KEY_STR, slackKey.s());
-		reg.SetStr(CHAN_STR, slackChan.s());
-		reg.SetStr(ICON_STR, slackIcon.s());
-		reg.CloseKey();
+		if ((ctl_flg & CFG_SLACKOPT) && reg.CreateKey(SLACK_STR)) {
+			reg.SetStr(HOST_STR, slackHost.s());
+			reg.SetStr(KEY_STR, slackKey.s());
+			reg.SetStr(CHAN_STR, slackChan.s());
+			reg.SetStr(ICON_STR, slackIcon.s());
+			reg.CloseKey();
+		}
 	}
 
 #ifndef IPMSG_PRO
@@ -1787,11 +1831,11 @@ BOOL Cfg::WriteRegistry(int ctl_flg)
 	}
 #endif
 
-	return	TRUE;
+	return	true;
 }
 
 
-BOOL Cfg::WriteFontRegistry(TRegistry *reg, char *key, LOGFONT *font)
+bool Cfg::WriteFontRegistry(TRegistry *reg, char *key, LOGFONT *font)
 {
 	if (reg->CreateKey(key)) {
 		reg->SetInt(HEIGHT_STR, (int)font->lfHeight);
@@ -1810,7 +1854,7 @@ BOOL Cfg::WriteFontRegistry(TRegistry *reg, char *key, LOGFONT *font)
 		reg->SetStrA(FACENAME_STR, font->lfFaceName);
 		reg->CloseKey();
 	}
-	return	TRUE;
+	return	true;
 }
 
 void Cfg::GetRegName(char *buf, Addr nic_addr, int port_no)
@@ -1848,19 +1892,19 @@ static void MakeSavedPacketKey(const MsgBuf *msg, char *key)
 		msg->packetNo, msg->hostSub.u.userName, msg->msgId);
 }
 
-BOOL Cfg::SavePacket(const MsgBuf *msg, const char *head, ULONG img_base)
+bool Cfg::SavePacket(const MsgBuf *msg, const char *head, ULONG img_base)
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, key);
 
 	if (!reg.CreateKey(SAVEPACKETKEY_STR)) {
-		return FALSE;
+		return false;
 	}
 
 	MakeSavedPacketKey(msg, key);
 	if (!reg.CreateKey(key)) {
-		return FALSE;
+		return false;
 	}
 
 	reg.SetByte(MSGHEADKEY_STR, (BYTE *)msg, (int)offsetof(MsgBuf, msgBuf));
@@ -1870,8 +1914,8 @@ BOOL Cfg::SavePacket(const MsgBuf *msg, const char *head, ULONG img_base)
 		reg.SetByte(MSGDICTKEY_STR, buf, (int)size);
 	}
 	else {
-		reg.SetByte(MSGBUFKEY_STR, (BYTE *)msg->msgBuf, (int)strlen(msg->msgBuf)+1);
-		reg.SetByte(MSGEXBUFKEY_STR, (BYTE *)msg->exBuf, (int)strlen(msg->exBuf)+1);
+		reg.SetByte(MSGBUFKEY_STR, msg->msgBuf, (int)strlen(msg->msgBuf)+1);
+		reg.SetByte(MSGEXBUFKEY_STR, (const BYTE *)msg->exBuf, (int)strlen(msg->exBuf.s())+1);
 	}
 	reg.SetByte(MSGPKTNOKEY_STR, (BYTE *)msg->packetNoStr, (int)strlen(msg->packetNoStr)+1);
 	reg.SetByte(HEADKEY_STR, (BYTE *)head, (int)strlen(head)+1);
@@ -1880,107 +1924,123 @@ BOOL Cfg::SavePacket(const MsgBuf *msg, const char *head, ULONG img_base)
 		reg.SetInt64(MSGID_STR, msg->msgId);
 	}
 
-	return TRUE;
+	return true;
 }
 
-BOOL Cfg::UpdatePacket(const MsgBuf *msg, const char *auto_saved)
+bool Cfg::UpdatePacket(const MsgBuf *msg, const char *auto_saved)
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, key);
 
-	if (!reg.OpenKey(SAVEPACKETKEY_STR)) return FALSE;
+	if (!reg.OpenKey(SAVEPACKETKEY_STR)) return false;
 
 	MakeSavedPacketKey(msg, key);
 
-	if (!reg.OpenKey(key)) return FALSE;
+	if (!reg.OpenKey(key)) return false;
 	return	reg.SetStr(AUTOSAVED_STR, auto_saved);
 }
 
-BOOL Cfg::LoadPacket(MsgMng *msgMng, int idx, MsgBuf *msg, char *head,
+bool Cfg::LoadPacket(MsgMng *msgMng, int idx, MsgBuf *msg, char *head,
 	ULONG *img_base, char *auto_saved)
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, key);
+	time_t		timestamp = 0;
 
-	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return FALSE;
+	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return false;
 
-	int		size = 0;
 	while (1) {
-		if (!reg.EnumKey(idx, key, sizeof(key))) return FALSE;
-		if (!reg.OpenKey(key)) return FALSE;
+		bool	broken_data = false;
+		if (!reg.EnumKey(idx, key, sizeof(key))) return false;
+		if (!reg.OpenKey(key)) return false;
 
-		size = (int)offsetof(MsgBuf, msgBuf);
+		int size = (int)offsetof(MsgBuf, msgBuf);
 		reg.GetByte(MSGHEADKEY_STR, (BYTE *)msg, &size);
 
 		if (size < 252) {	// too old version header
-			reg.CloseKey();
-			if (!reg.DeleteKey(key)) {
-				return FALSE;
-			}
-			continue;
+			broken_data = true;
 		}
 		else if (size == 252) {
 			// MsgBuf の Time_t -> time_t timestamp 移行では、
 			// 後続の int64 により4byteギャップが存在
 			// 結果 252byte。ギャップ部分だけ 0 クリア
 			memset((char *)&msg->timestamp + 4, 0, 4);
+			timestamp = msg->timestamp;
+
+			if (!IsSavedPacket(msg) || msg->timestamp == 0) {
+				broken_data = true;
+			}
+		}
+		if (broken_data) {
+			reg.CloseKey();
+			if (!reg.DeleteKey(key)) {
+				return false;
+			}
+			continue;
 		}
 		break;
 	}
 
-	size = (int)sizeof(msg->msgBuf);
-	if (reg.GetByte(MSGDICTKEY_STR, (BYTE *)msg->msgBuf, &size)) {
-		if (msg->ipdict.unpack((BYTE *)msg->msgBuf, size) <= 0 ||
-			!msgMng->ResolveDictMsg(msg)) {
-			return	FALSE;
+	DynBuf	dbuf(MAX_UDPBUF);
+	int size = MAX_UDPBUF;
+	if (reg.GetByte(MSGDICTKEY_STR, dbuf.Buf(), &size)) {
+		msg->msgBuf.SetByStr(dbuf.s(), size);
+		if (msg->ipdict.unpack(dbuf, size) <= 0 || !msgMng->ResolveDictMsg(msg)) {
+			return	false;
 		}
+		msg->timestamp = timestamp; // ResolveDictMsg で現在になったのを戻す
 	}
 	else {
-		reg.GetByte(MSGBUFKEY_STR, (BYTE *)msg->msgBuf, &size);
-		size = (int)sizeof(msg->exBuf);
-		reg.GetByte(MSGEXBUFKEY_STR, (BYTE *)msg->exBuf, &size);
+		reg.GetByte(MSGBUFKEY_STR, dbuf.Buf(), &size);
+		msg->msgBuf.SetByStr(dbuf.s(), size);
+
+		size = MAX_UDPBUF;
+		reg.GetByte(MSGEXBUFKEY_STR, dbuf.Buf(), &size);
+		msg->exBuf.SetByStr(dbuf.s(), size);
 	}
 	size = (int)sizeof(msg->packetNoStr);
 	reg.GetByte(MSGPKTNOKEY_STR, (BYTE *)msg->packetNoStr, &size);
+
 	size = MAX_LISTBUF;
 	reg.GetByte(HEADKEY_STR, (BYTE *)head, &size);
 	reg.GetInt(IMGBASEKEY_STR, (int *)img_base);
+
 	*auto_saved = 0;
 	reg.GetStr(AUTOSAVED_STR, auto_saved, MAX_PATH);
 	msg->msgId = 0;
 	reg.GetInt64(MSGID_STR, &msg->msgId);
 
-	return TRUE;
+	return true;
 }
 
-BOOL Cfg::DeletePacket(const MsgBuf *msg)
+bool Cfg::DeletePacket(const MsgBuf *msg)
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, key);
 
-	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return FALSE;
+	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return false;
 
 	MakeSavedPacketKey(msg, key);
 
 	return	reg.DeleteKey(key);
 }
 
-BOOL Cfg::IsSavedPacket(const MsgBuf *msg)
+bool Cfg::IsSavedPacket(const MsgBuf *msg)
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, key);
 
-	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return FALSE;
+	if (!reg.CreateKey(SAVEPACKETKEY_STR)) return false;
 
 	MakeSavedPacketKey(msg, key);
 	return	reg.OpenKey(key);
 }
 
-BOOL Cfg::CleanupPackets()
+bool Cfg::CleanupPackets()
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
@@ -1989,7 +2049,7 @@ BOOL Cfg::CleanupPackets()
 	return	reg.DeleteChildTree(SAVEPACKETKEY_STR);
 }
 
-BOOL Cfg::InitLinkRe()
+bool Cfg::InitLinkRe()
 {
 #define URL_RE		L"([a-z]+)://[a-z.0-9!%%#$&'*+,/:;=?@\\-_~\\[\\]]+"
 #define FILEURL_RE	L"file://[a-z.0-9!%%#$&'*+,/:;=?@\\-_~\\[\\]]+"
@@ -2027,10 +2087,10 @@ BOOL Cfg::InitLinkRe()
 
 	fileurl_re = new wregex(FILEURL_RE, regex_constants::icase);
 
-	return TRUE;
+	return true;
 }
 
-BOOL Cfg::StrToExtVec(const char *_s, vector<Wstr> *extVec)
+bool Cfg::StrToExtVec(const char *_s, vector<Wstr> *extVec)
 {
 	U8str	u(_s);
 	extVec->clear();
@@ -2039,80 +2099,212 @@ BOOL Cfg::StrToExtVec(const char *_s, vector<Wstr> *extVec)
 	for (auto s=strtok(u.Buf(), EXT_SEP); s; s=strtok(NULL, EXT_SEP)) {
 		extVec->push_back(s);
 	}
-	return	TRUE;
+	return	true;
 }
 
 #define SAVESHARE_STR	"SaveShare"
 #define SHAREDICT_STR	"ShareDict"
 
-BOOL Cfg::SaveShare(UINT packet_no, const IPDict& dict)
+bool Cfg::SaveShare(UINT packet_no, const IPDict& dict)
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, key);
 
 	if (!reg.CreateKey(SAVESHARE_STR)) {
-		return FALSE;
+		return false;
 	}
 
 	snprintfz(key, sizeof(key), "%x", packet_no);
 	if (!reg.CreateKey(key)) {
-		return FALSE;
+		return false;
 	}
 
 	DynBuf	dbuf;
 	if (dict.pack(&dbuf) == 0) {
 		reg.CloseKey();
 		reg.DeleteChildTree(key);
-		return	FALSE;
+		return	false;
 	}
 
 	reg.SetByte(SHAREDICT_STR, dbuf.Buf(), (int)dbuf.UsedSize());
 
-	return TRUE;
+	return true;
 }
 
-BOOL Cfg::LoadShare(int idx, IPDict *dict)
+bool Cfg::LoadShare(int idx, IPDict *dict)
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, key);
 
 	if (!reg.OpenKey(SAVESHARE_STR)) {
-		return FALSE;
+		return false;
 	}
 
 	if (!reg.EnumKey(idx, key, sizeof(key))) {
-		return FALSE;
+		return false;
 	}
 	if (!reg.OpenKey(key)) {
-		return FALSE;
+		return false;
 	}
 	int	size = 0;
 	if (!reg.GetByte(SHAREDICT_STR, 0, &size)) {
-		return FALSE;
+		return false;
 	}
 
 	DynBuf	dbuf(size);
 	if (!reg.GetByte(SHAREDICT_STR, dbuf.Buf(), &size)) {
-		return FALSE;
+		return false;
 	}
 
 	return	dict->unpack(dbuf.Buf(), size) > 0;
 }
 
-BOOL Cfg::DeleteShare(UINT packet_no)
+bool Cfg::DeleteShare(UINT packet_no)
 {
 	char	key[MAX_LISTBUF];
 	GetRegName(key, nicAddr, portNo);
 	TRegistry	reg(HS_TOOLS, key);
 
 	if (!reg.OpenKey(SAVESHARE_STR)) {
-		return FALSE;
+		return false;
 	}
 
 	snprintfz(key, sizeof(key), "%x", packet_no);
 	return	reg.DeleteChildTree(key);
 }
 
+
+#define SENDPKT_STR		"SendPkt"
+#define SENDDICT_STR	"SendDict"
+
+bool Cfg::SaveSendPkt(ULONG packet_no, const IPDict& dict)
+{
+	char	key[MAX_LISTBUF];
+	GetRegName(key, nicAddr, portNo);
+	TRegistry	reg(HS_TOOLS, key);
+
+	if (!reg.CreateKey(SENDPKT_STR)) {
+		return false;
+	}
+
+	DynBuf	dbuf;
+	dict.pack(&dbuf);
+	snprintfz(key, sizeof(key), "%x", packet_no);
+	reg.SetByte(key, dbuf.Buf(), (int)dbuf.UsedSize());
+
+	return true;
+}
+
+bool Cfg::LoadSendPkt(int idx, IPDict *dict)
+{
+	char	key[MAX_LISTBUF];
+	GetRegName(key, nicAddr, portNo);
+	TRegistry	reg(HS_TOOLS, key);
+
+	if (!reg.OpenKey(SENDPKT_STR)) {
+		return false;
+	}
+
+	if (!reg.EnumValue(idx, key, sizeof(key))) {
+		return false;
+	}
+
+	int	size = 0;
+	if (!reg.GetByte(key, 0, &size)) {
+		return false;
+	}
+
+	DynBuf	dbuf(size);
+	if (!reg.GetByte(key, dbuf.Buf(), &size)) {
+		return false;
+	}
+
+	return	dict->unpack(dbuf.Buf(), size) > 0;
+}
+
+bool Cfg::DelSendPkt(ULONG packet_no)
+{
+	char	key[MAX_LISTBUF];
+	GetRegName(key, nicAddr, portNo);
+	TRegistry	reg(HS_TOOLS, key);
+
+	if (!reg.OpenKey(SENDPKT_STR)) {
+		return false;
+	}
+
+	snprintfz(key, sizeof(key), "%x", packet_no);
+	return	reg.DeleteValue(key);
+}
+
+void Cfg::WriteHost(Host *host, TRegistry *reg)
+{
+	TRegistry	*reg_sv = reg;
+
+	if (!reg) {
+		char	key[MAX_LISTBUF];
+		GetRegName(key, nicAddr, portNo);
+		reg = new TRegistry(HS_TOOLS, key);
+
+		reg->CreateKey(HOSTINFO_STR);
+	}
+
+	char	key[MAX_BUF];
+	sprintf(key, "%s:%s", host->hostSub.u.userName, host->hostSub.u.hostName);
+
+	IPDict	d;
+
+	d.put_int(PRIORITY_KEY, host->priority);
+	d.put_int(HOSTSTAT_KEY, host->hostStatus);
+
+	d.put_str(UNAME_KEY, host->hostSub.u.userName);
+	d.put_str(HNAME_KEY, host->hostSub.u.hostName);
+
+	d.put_str(ADDR_KEY, host->hostSub.addr.S());
+	d.put_int(PORT_KEY, host->hostSub.portNo);
+
+	d.put_str(NICK_KEY, host->nickName);
+	d.put_str(GROUP_KEY, host->groupName);
+	if (*host->alterName) {
+		d.put_str(ALTER_KEY, host->alterName);
+	}
+	d.put_int(UPTIME_KEY, host->updateTime);
+
+	if (host->pubKey.KeyLen()) {
+		BYTE	pub[MAX_BUF];
+		int		plen = host->pubKey.Serialize(pub, sizeof(pub));
+		if (plen > 0) {
+			d.put_bytes(PUBKEY_KEY, pub, plen);
+		}
+	}
+	DynBuf	buf;
+	d.pack(&buf);
+	reg->SetByte(key, buf, (int)buf.UsedSize());
+
+	if (!reg_sv) {
+		delete reg;
+	}
+}
+
+void Cfg::DelHost(Host *host, TRegistry *reg)
+{
+	TRegistry	*reg_sv = reg;
+
+	if (!reg) {
+		char	key[MAX_LISTBUF];
+		GetRegName(key, nicAddr, portNo);
+		reg = new TRegistry(HS_TOOLS, key);
+	}
+
+	if (reg_sv || reg->OpenKey(HOSTINFO_STR)) {
+		char	key[MAX_BUF];
+		sprintf(key, "%s:%s", host->hostSub.u.userName, host->hostSub.u.hostName);
+		reg->DeleteValue(key);
+	}
+
+	if (!reg_sv) {
+		delete reg;
+	}
+}
 

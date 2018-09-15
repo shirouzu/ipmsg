@@ -27,8 +27,8 @@ struct RecvFileObj {
 	ConnectInfo	*conInfo;
 	FileInfo	*fileInfo;
 
-	BOOL		isDir;
-	BOOL		isClip;
+	bool		isDir;
+	bool		isClip;
 	FileInfo	curFileInfo;
 
 	int64		offset;		// read offset
@@ -60,7 +60,7 @@ struct RecvFileObj {
 struct ClipBuf : public TListObj {
 	VBuf	vbuf;
 	int		pos;
-	BOOL	finished;
+	bool	finished;
 	ClipBuf(int size, int _pos) : vbuf(size), pos(_pos) {
 		finished = FALSE;
 	}
@@ -92,8 +92,8 @@ protected:
 	RECT			headRect;
 	Cfg				*cfg;
 	LogMng			*logmng;
-	BOOL			openFlg;
-	BOOL			isRep;	// reproduction
+	bool			openFlg;
+	bool			isRep;	// reproduction
 	static HFONT	hHeadFont;
 	static HFONT	hEditFont;
 	static LOGFONT	orgFont;
@@ -105,7 +105,7 @@ protected:
 	SelfStatus		status;
 
 	int64			autoSavedSize;
-	BOOL			isAutoSave;
+	bool			isAutoSave;
 	char			autoSaves[MAX_BUF];
 	std::vector<HostSub> replyList;
 	std::vector<HostSub> recvList;
@@ -131,45 +131,45 @@ protected:
 			};
 	WINPOS	item[max_recvitem];
 
-	BOOL	InitCliped(ULONG *clipBase);
-	BOOL	InitAutoSaved(const char *auto_saved);
+	bool	InitCliped(ULONG *clipBase);
+	bool	InitAutoSaved(const char *auto_saved);
 
 	void 	SetReplyInfo();
-	void	SetFont(BOOL force_reset=FALSE);
+	void	SetFont(bool force_reset=FALSE);
 	void	SetSize(void);
 	void	SetMainMenu(HMENU hMenu);
 	void	PopupContextMenu(POINTS pos);
-	BOOL	TcpEvent(SOCKET sd, LPARAM lParam);
-	BOOL	StartRecvFile(void);
-	BOOL	ConnectRecvFile(void);
+	bool	TcpEvent(SOCKET sd, LPARAM lParam);
+	bool	StartRecvFile(void);
+	bool	ConnectRecvFile(void);
 	static UINT WINAPI RecvFileThread(void *_recvDlg);
-	BOOL	SaveFile(BOOL auto_save=FALSE, BOOL is_first=TRUE);
-	BOOL	OpenRecvFile(void);
-	BOOL	RecvFile(void);
-	BOOL	RecvDirFile(void);
-	BOOL	CloseRecvFile(BOOL setAttr=FALSE);
-	BOOL	EndRecvFile(BOOL manual_suspend=FALSE);
+	bool	SaveFile(bool auto_save=FALSE, bool is_first=TRUE);
+	bool	OpenRecvFile(void);
+	bool	RecvFile(void);
+	bool	RecvDirFile(void);
+	bool	CloseRecvFile(bool setAttr=FALSE);
+	bool	EndRecvFile(bool manual_suspend=FALSE);
 	void	SetTransferButtonText(void);
-	BOOL	CheckSpecialCommand();
-	BOOL	DecodeDirEntry(char *buf, FileInfo *info, char *u8fname);
-	BOOL	LoadClipFromFile(void);
-	BOOL	AutoSaveCheck(void);
+	bool	CheckSpecialCommand();
+	bool	DecodeDirEntry(char *buf, FileInfo *info, char *u8fname);
+	bool	LoadClipFromFile(void);
+	bool	AutoSaveCheck(void);
 
 public:
 	TRecvDlg(MsgMng *_msgmng, THosts *hosts, Cfg *cfg, LogMng *logmng, TWin *_parent=NULL);
 	virtual ~TRecvDlg();
 
-	virtual SelfStatus Init(MsgBuf *_msg, const char *rep_head=NULL, ULONG clipBase=0,
-		const char *auto_saved=NULL);
-	virtual BOOL	IsClosable(void) {
-						return openFlg &&
-							(!fileObj || !fileObj->conInfo) && !clipList.TopObj() && !recvEndDlg;
-					}
-	virtual BOOL	IsOpened(void) {
-						return	openFlg;
-					}
-	virtual BOOL	IsSamePacket(MsgBuf *test_msg);
-	virtual BOOL	SendFinishNotify(HostSub *hostSub, ULONG packet_no);
+	SelfStatus Init(MsgBuf *_msg, const char *rep_head=NULL, ULONG clipBase=0,
+					const char *auto_saved=NULL);
+	bool	IsClosable(void) {
+				return openFlg &&
+					(!fileObj || !fileObj->conInfo) && !clipList.TopObj() && !recvEndDlg;
+			}
+	bool	IsOpened(void) {
+				return	openFlg;
+			}
+	bool	IsSamePacket(MsgBuf *test_msg);
+	bool	SendFinishNotify(HostSub *hostSub, ULONG packet_no);
 
 	virtual BOOL	PreProcMsg(MSG *msg);
 	virtual BOOL	EvCreate(LPARAM lParam);
@@ -186,26 +186,26 @@ public:
 	virtual BOOL	EvNotify(UINT ctlID, NMHDR *pNmHdr);
 
 	virtual void	Show(int mode = SW_NORMAL);
-	virtual BOOL	InsertImages(void);
+	bool	InsertImages(void);
 
 	SelfStatus	Status() { return status; }
 	void		SetStatus(SelfStatus _status);
 	static int	GetCreateCnt(void) { return createCnt; }
 	time_t		GetRecvTime() { return msg.timestamp; }
 	MsgBuf		*GetMsgBuf() { return &msg; }
-	BOOL		GetLogStr(U8str *u);
-	BOOL		IsRep() { return isRep; }
+	bool		GetLogStr(U8str *u);
+	bool		IsRep() { return isRep; }
 
 	int			UseClipboard() { return useClipBuf; }
-	BOOL		FileAttached() { return !!shareInfo; }
+	bool		FileAttached() { return !!shareInfo; }
 	int			FileAttacheRemain() { return shareInfo ? shareInfo->fileCnt : 0; }
-	BOOL		IsOpenMsgSending() { return timerID ? TRUE : FALSE; }
+	bool		IsOpenMsgSending() { return timerID ? TRUE : FALSE; }
 	void		CleanupAutoSaveSize();
-	BOOL		IsAutoSaved() { return *autoSaves ? TRUE : FALSE; }
+	bool		IsAutoSaved() { return *autoSaves ? TRUE : FALSE; }
 	const std::vector<HostSub> &GetReplyList() const { return replyList; }
 
 	// test
-	BOOL		hookCheck;
+	bool		hookCheck;
 };
 
 #endif

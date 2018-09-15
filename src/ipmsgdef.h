@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2011-2017   ipmsgcmn.h	Ver4.50 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2011-2018   ipmsgcmn.h	Ver4.90 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Define Header
 	Create					: 2011-05-03(Tue)
-	Update					: 2017-06-12(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -84,7 +84,7 @@
 #define WM_SENDDLG_OPEN			(WM_APP + 121)
 #define WM_SENDDLG_CREATE		(WM_APP + 122)
 #define WM_SENDDLG_EXIT			(WM_APP + 123)
-#define WM_SENDDLG_HIDE			(WM_APP + 124)
+#define WM_SENDDLG_EXITEX		(WM_APP + 124)
 #define WM_SENDDLG_RESIZE		(WM_APP + 125)
 #define WM_SENDDLG_FONTCHANGED	(WM_APP + 126)
 #define WM_UDPEVENT				(WM_APP + 130)
@@ -136,6 +136,9 @@
 #define WM_IPMSG_UPDATEDLRES	(WM_APP + 271)
 #define WM_IPMSG_UPDINFORESULT	(WM_APP + 272)
 #define WM_IPMSG_UPDDATARESULT	(WM_APP + 273)
+
+#define WM_DELAYMSG_BALLOON		(WM_APP + 280)
+#define WM_DELAYSEND_DEL		(WM_APP + 281)
 
 #define WM_CROPMENU				(WM_APP + 300)
 #define WM_CROPMENU_MAX			(WM_APP + 399)
@@ -249,5 +252,8 @@
 #include "ipmsgext.dat"
 #undef IPMSGDEF_HEAD
 #endif
+
+extern volatile int64 gEnableHook;	// for global
+#define ENABLE_HOOK	(0x0d762de84d9f01a4LL) // a4 01 9f 4d e8 2d 76 0d
 
 #endif

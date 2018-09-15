@@ -102,6 +102,7 @@ clip_tbl (
 #define DB_FLAG_SEAL		0x00040000
 #define DB_FLAG_LOCK		0x00080000
 #define DB_FLAG_MULTI		0x00100000
+#define DB_FLAG_DELAY		0x00200000
 
 #define DB_FLAGMH_UNOPEN	0x00000001	// for msghost_tbl.flag
 

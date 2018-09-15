@@ -74,21 +74,25 @@
     <IntDir>Obj\Debug\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <LibraryWPath />
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>x64\Debug\</OutDir>
     <IntDir>x64\Obj\Debug\</IntDir>
     <LinkIncremental>true</LinkIncremental>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>Release\</OutDir>
     <IntDir>Obj\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>x64\Release\</OutDir>
     <IntDir>x64\Obj\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -342,6 +346,8 @@
     <ClCompile Include="src\remotedlg.cpp" />
     <ClCompile Include="src\richedit.cpp" />
     <ClCompile Include="src\senddlg.cpp" />
+    <ClCompile Include="src\sendmng.cpp" />
+    <ClCompile Include="src\sendmsg.cpp" />
     <ClCompile Include="src\setupdlg.cpp" />
     <ClCompile Include="src\share.cpp" />
     <ClCompile Include="src\taskbarui.cpp" />

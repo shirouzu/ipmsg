@@ -84,11 +84,11 @@
 <body bgcolor="#eeffff">
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v4.85</h1>
+<h1 class="help_head1">IP Messenger v4.92</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2018/07/02 H.Shirouzu (白水啓章)</div>
+<div align="right">2018/09/14 H.Shirouzu (白水啓章)</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -165,8 +165,9 @@
 <h3 class="help_head3">インストール等</h3>
 	<div class="help_sub_section">
 		インストールは、ipmsg4xx_installer.exeを実行します。<br>
+		（/h で /silent や /extract 等のオプションが表示されます）<br>
 		アンインストールは、スタートメニューの「IP Messenger for Win」フォルダの「Uninstall IPMSG」からアンインストールします。<br>
-		（管理者権限でインストールした場合、コントロールパネルの「プログラムの追加と削除」から行います）<br>
+		（コントロールパネルの「プログラムの追加と削除」からも行えます）<br>
 	</div>
 </div>
 
@@ -604,10 +605,16 @@
 	</div>
 
 <a name="sendrecv_settings"/>
-<h3 class="help_head3">送受信画面</h3>
+<h3 class="help_head3">送受信画面</h3> 
+<a name="delaysend"/>
 	<div class="help_sub_section">
 		<table class="help_table" border="4">
 		<tr class="table_head"><th colspan="2">送信</th></tr>
+		<tr><td nowrap>遅延送信を有効化（受信先が起動していない時）</td><td>送信相手がIPMsgを起動していない場合、一旦送信キューに貯めて相手が起動し次第、送信します。（メッセージ末尾に（IPMsg遅延送信:日時）が付与されます）<br>
+		IPMsgを終了しているユーザは、送信画面では灰色で表示されます。<br>
+		<br>
+		過去１ヶ月以内にアクティブだったユーザが表示されます。（非表示にしたい場合、ユーザ選択→右クリック→ユーザ表示優先度→非表示）<br>
+		（この機能を使う場合、<a href="#log_settings">ログ記録</a>を有効である必要があります。そうでない場合、遅延送信時に貼付画像が送れないことがあります）</td></tr>
 		<tr><td nowrap>シングルクリックで開く</td><td>タスクトレイアイコンを1クリックで送信画面を開きます</td></tr>
 		<tr><td nowrap>IME自動ON</td><td>送信画面オープン時にIMEをONにします</td></tr>
 		<tr><td nowrap>返信時は宛先のみ表示</td><td>送信画面でオリジナルの宛先のみ表示します（ユーザリスト横の「+」ボタンで全員表示）</td></tr>
@@ -945,6 +952,19 @@ ipmsg本体を常駐させた上で、ipcmd.exeを使うと、不在モードの取得・変更や、メッセー
 
 <table class="help_table" border="4">
 <tr class="table_head"><th>Version</th><th>説明</th></tr>
+
+<tr><td>v4.91-4.92</td><td>
+<a href="#delaysend">遅延送信モード</a>で表示するユーザを過去１ヶ月以内にアクティブだったユーザに限定（HKCU\Software\HSTools\IPMsg\DispHostTimeで変更可）<br>
+インストーラ修正（マルチバイト文字フォルダからの起動での問題）
+</td></tr>
+
+<tr><td>v4.90</td><td>
+相手が起動していない場合の、<a href="#delaysend">遅延送信モード</a>の追加。（相手が起動すると自動送信されます）<br>
+再送ダイアログで「再送」を選択してもキャンセル扱いになる問題を修正（v4.81-v4.85）<br>
+メンバマスターモードで、ユーザ数が多い場合に過剰にユーザリストパケットが出る問題を修正<br>
+x86/x64同梱インストーラ対応<br>
+インストールオプション拡充（/silent, /extract 等。 /h で確認可）
+</td></tr>
 
 <tr><td>v4.85</td><td>
 メンバマスターモードで、消えたユーザが表示され続ける問題の修正。<br>

@@ -84,11 +84,11 @@
 <body bgcolor="#eeffff">
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v4.85</h1>
+<h1 class="help_head1">IP Messenger v4.91</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2018/07/02 H.Shirouzu</div>
+<div align="right">2018/09/13 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -179,12 +179,14 @@
 		Windows XP/Vista/Win7/8/8.1/10 (and Windows2003/2008/2012/2016)<br>
 	</div>
 
-	<a name="uninstall"/>
-	<h3 class="help_head3">Uninstall</h3>
+	<a name="install"/>
+	<h3 class="help_head3">Install/Uninstall</h3>
 	<div class="help_section">
 		<div class="help_sub_section">
-			If it was installed in administrative privilege, the uninstallation can be used in control panel. <br>
-			If it was not, the uninstallation can be used in Start Menu.
+			To install, run inpmsg4xx_installer.exe.<br>
+			(/silent, /extract or etc options will be shown by /h option)<br>
+			To uninstall, run uninstaller(setup.exe) in Start Menu.<br>
+			(Or in "Program and Features" in control panel)
 		</div>
 	</div>
 </div>
@@ -254,7 +256,7 @@
    Sort/Filter display order priority
      Sort priority is from small to large number. <br>
      If there are identical priority data, then go to the detail
-     setting -> approx. level user sort setting
+     setting -&gt approx. level user sort setting
 	<br><br>
 	</div>
 
@@ -613,8 +615,14 @@ It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
 <a name="sendrecv_settings"/>
 <h3 class="help_head3">Send/Recv Wnd</h3>
 	<div class="help_sub_section">
+<a name="delaysend"/>
 		<table class="help_table" border="4">
 		<tr class="table_head"><th colspan="2">Send Window</th></tr>
+		<tr><td nowrap>Use Send Queue when a recever is inactive.</td><td>If the receiver's PC is inactive, the message is saved in the send queue. It will be sent when the receiver is active. ("IPMsg Delayed Send:DATE" will be added at the end of the message)<br><br>
+		Inactive users are shown as gray in the send screen.<br>
+		Users who were active within the past month will be displayed. (When you want to hide, select user -&gt RightClick -&gt PrioritySettings -&gt Move to No Display)<br>
+		(If you use this function, please use <a href="#log_settings">logging</a>, otherwise inline images may not be sent at delayed sending)
+		</td></tr>
 		<tr><td nowrap>1 Click Open SendDlg</td><td>Open Send Dlg by 1click in tasktray icon</td></tr>
 		<tr><td nowrap>IME auto ON</td><td>Enable IME at SendDlg opened</td></tr>
 		<tr><td nowrap>Narrow Userlist at reply</td><td>Show original addressees in userlist at replying. (if it is clicked "+" mini button, show all users)</td></tr>
@@ -945,6 +953,22 @@ Software Version, Operating System, problem situation, repeatability.
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
 
+<tr><td>v4.91-v4.92</td><td>
+In <a href="#delaysend">Send Queue mode</a>, Only Users who were active within the past month will be displayed. (It can be changed in the registry HKCU\Software\HSTools\IPMsg\DispHostTime)<br>
+Fix Installer (Multi-byte string folder problem)
+</td></tr>
+
+<tr><td>v4.90</td><td>
+Added <a href="#delaysend">Send Queue mode (Delayed Send)</a> when the receiver is inactive. (The message will be sent when the receiver is active) <br>
+Fix not to resend even if "retry" is selected in the resend dialog (v 4.81 - v 4.85) <br>
+Fix user list packet was output excessively in member master mode when the number of users was large <br>
+Commonization of x86 / x64 installer.<br>
+Add installation options. (/silent, /extract, or etc. to confirm, please use /h)
+</td></tr>
+
+<tr><td>v4.86</td><td>
+</td></tr>
+
 <tr><td>v4.85</td><td>
 Fix an issue that exited members were displayed in member master mode.<br>
 Fix message reproduce problem at restarting.<br>
@@ -1019,7 +1043,7 @@ Fix installer failure when logon name includes multi-byte charactor.<br>
 Narrow userlist(original addresees only) at replying as default. (Click "+" button, show all)<br>
 Fix not to freeze at receiving in Win10 anniv. (ToastAPI problem. Avoid by multi thread)<br>
 Improve logviewer. (Add unopend filter button. Enable to reply in message blank area.)<br>
-Change a number of unopen receive window is 100 -> 300. (it can be changed HKCU\Software\HSTools\IPMsg\RecvMax)
+Change a number of unopen receive window is 100 -&gt 300. (it can be changed HKCU\Software\HSTools\IPMsg\RecvMax)
 </td></tr>
 <tr><td>v4.00</td><td>
 Support Powerful LogViewer<br>
@@ -1034,7 +1058,7 @@ Support auto download option for attached files.<br>
 Support reproduce message for unopened/hidden message at restarting.<br>
 Support to encryption/sign(AES-CTR256bit) for file/folder transfer<br>
 Support IPv6 multicast<br>
-Change image processing library (libpng -> GDI+)<br>
+Change image processing library (libpng -&gt GDI+)<br>
 Add new marker function(arrow with text/rectangle).<br>
 Support to re-edit image.<br>
 Support to paste image by file.<br>

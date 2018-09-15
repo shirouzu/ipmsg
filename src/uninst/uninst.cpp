@@ -21,7 +21,7 @@ static char *uninst_id =
 #pragma comment (lib, "winmm.lib")
 
 #define MAIN_EXEC
-#include "../instdata/instcmn.h"
+#include "../install/instcmn.h"
 
 /*
 	WinMain
@@ -62,6 +62,15 @@ void TUninstApp::InitWindow(void)
 }
 
 
+#define SILENT_OPT	L"/SILENT"
+#define HELP_OPT	L"/h"
+#define RUNAS_OPT	L"/runas="
+
+#define USAGE_STR	L"\r\n \
+USAGE: \r\n \
+	/SILENT ... silent uninstall\r\n \
+"
+
 /*
 	メインダイアログクラス
 */
@@ -69,24 +78,45 @@ TUninstDlg::TUninstDlg(char *cmdLine) :
 	TDlg(UNINSTALL_DIALOG),
 	runasBtn(this)
 {
+	isSilent = FALSE;
 	runasWnd = NULL;
+	OpenDebugConsole(ODC_PARENT);
 
-	isSilent = strstr(cmdLine, "/SILENT") ? TRUE : FALSE;
-	if (isSilent) {
-		OpenDebugConsole(ODC_NONE);
-	}
+	int		orgArgc;
+	auto	orgArgv = CommandLineToArgvExW(::GetCommandLineW(), &orgArgc);
 
-	char	*p = strstr(cmdLine, "runas=");
-	if (p) {
-		runasWnd = (HWND)strtoull(p + 6, 0, 16);
-		if (!runasWnd) {
-			TApp::Exit(0);
+	for (int i=1; orgArgv[i] /*&& orgArgv[i][0] == '/'*/; i++) {
+		auto	arg = orgArgv[i];
+
+		if (wcsicmp(arg, SILENT_OPT) == 0) {
+			isSilent = TRUE;
+		}
+		else if (wcsnicmp(arg, RUNAS_OPT, wsizeof(RUNAS_OPT)-1) == 0) {
+			auto	p = arg + wsizeof(RUNAS_OPT)-1;
+			runasWnd = (HWND)wcstoull(p, 0, 16);
+		}
+		else {
+			ErrMsg(USAGE_STR, (wcsicmp(arg, HELP_OPT) == 0) ? NULL :
+				FmtW(L"Unrecognized option: %s", arg));
+			TApp::Exit(-1);
 		}
 	}
 }
 
 TUninstDlg::~TUninstDlg()
 {
+}
+
+void TUninstDlg::ErrMsg(const WCHAR *body, const WCHAR *title)
+{
+	auto	s = title ? FmtW(L"%s: %s\n", title, body) : body;
+
+	if (isSilent) {
+		OutW(s);
+		TApp::Exit(-1);
+	} else {
+		MessageBoxW(s, IP_MSG_W);
+	}
 }
 
 BOOL IsAppRegistered()
@@ -453,7 +483,7 @@ BOOL TUninstDlg::UnInstall(void)
 	}
 	else {
 		if (isSilent) {
-			DebugU8("%s can't remove\n", setupDir);
+			OutW(L"%s can't remove\n", U8toWs(setupDir));
 		}
 		else {
 			ShellExecuteU8(NULL, NULL, setupDir, 0, 0, SW_SHOW);

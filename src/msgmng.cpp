@@ -22,7 +22,7 @@ HostSub MsgMng::localA;
 
 MsgMng::MsgMng(Addr nicAddr, int portNo, Cfg *_cfg, THosts *_hosts)
 {
-	status = FALSE;
+	status = false;
 	packetNo = (ULONG)time(NULL);
 	udp_sd = tcp_sd = INVALID_SOCKET;
 	hAsyncWnd = 0;
@@ -64,7 +64,7 @@ MsgMng::MsgMng(Addr nicAddr, int portNo, Cfg *_cfg, THosts *_hosts)
 	WtoA(wbuf, localA.u.userName, sizeof(localA.u.userName));
 	orgLocal = local;
 
-	status = TRUE;
+	status = true;
 }
 
 MsgMng::~MsgMng()
@@ -74,17 +74,17 @@ MsgMng::~MsgMng()
 
 static bool is_wsock_startup = 0;
 
-BOOL MsgMng::WSockStartup()
+bool MsgMng::WSockStartup()
 {
 	if (!is_wsock_startup) {
 		WSADATA	wsaData;
 		if (::WSAStartup(MAKEWORD(2,2), &wsaData) &&
 			::WSAStartup(MAKEWORD(1,1), &wsaData)) {
-			return	GetSockErrorMsg("WSAStart()"), FALSE;
+			return	GetSockErrorMsg("WSAStart()"), false;
 		}
 		is_wsock_startup = true;
 	}
-	return	TRUE;
+	return	true;
 }
 
 void MsgMng::WSockCleanup()
@@ -95,9 +95,9 @@ void MsgMng::WSockCleanup()
 	}
 }
 
-BOOL MsgMng::MulticastJoin()
+bool MsgMng::MulticastJoin()
 {
-	if (!isV6 || !cfg) return FALSE;
+	if (!isV6 || !cfg) return false;
 
 	if ((cfg->MulticastMode & 0x1) == 0) {
 		int val = 32;
@@ -122,12 +122,12 @@ BOOL MsgMng::MulticastJoin()
 			GetSockErrorMsg("setsockopt(IPV6_DROP_MEMBERSHIP2) error");
 		}
 	}
-	return	TRUE;
+	return	true;
 }
 
-BOOL MsgMng::MulticastLeave()
+bool MsgMng::MulticastLeave()
 {
-	if (!isV6 || !cfg) return FALSE;
+	if (!isV6 || !cfg) return false;
 
 	if ((cfg->MulticastMode & 0x1) == 0) {
 		ipv6_mreq	mreq = {};
@@ -147,36 +147,36 @@ BOOL MsgMng::MulticastLeave()
 			GetSockErrorMsg("setsockopt(IPV6_DROP_MEMBERSHIP2) error");
 		}
 	}
-	return	TRUE;
+	return	true;
 }
 
-BOOL MsgMng::WSockInit()
+bool MsgMng::WSockInit()
 {
-	BOOL		flg; // socket flag
-	ULONG		family = isV6 ? AF_INET6 : AF_INET;
+	int		flg; // socket flag
+	ULONG	family = isV6 ? AF_INET6 : AF_INET;
 
-	if (!WSockStartup()) return FALSE;
+	if (!WSockStartup()) return false;
 
 	if ((udp_sd = ::socket(family, SOCK_DGRAM, 0)) == INVALID_SOCKET)
-		return	GetSockErrorMsg("Please setup TCP/IP(controlpanel->network)\r\n"), FALSE;
+		return	GetSockErrorMsg("Please setup TCP/IP(controlpanel->network)\r\n"), false;
 
 	if (family == AF_INET6) {
-		flg = cfg && cfg->IPv6Mode == 1 ? TRUE : FALSE;
+		flg = (cfg && cfg->IPv6Mode == 1) ? 1 : 0;
 		if (::setsockopt(udp_sd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&flg, sizeof(flg)))
-			return	GetSockErrorMsg("setsockopt(IPV6_V6ONLY)"), FALSE;
+			return	GetSockErrorMsg("setsockopt(IPV6_V6ONLY)"), false;
 	}
 
-	if (!cfg) return TRUE;
+	if (!cfg) return true;
 
 	if (!cfg->NoTcp) {
 		if ((tcp_sd = ::socket(family, SOCK_STREAM, 0)) == INVALID_SOCKET)
-			return	GetSockErrorMsg("Please setup2 TCP/IP(controlpanel->network)\r\n"), FALSE;
+			return	GetSockErrorMsg("Please setup2 TCP/IP(controlpanel->network)\r\n"), false;
 	}
 
 	if (IsAvailableTCP() && family == AF_INET6) {
-		flg = cfg && cfg->IPv6Mode == 1 ? TRUE : FALSE;
+		flg = (cfg && cfg->IPv6Mode == 1) ? 1 : 0;
 		if (::setsockopt(tcp_sd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&flg, sizeof(flg)))
-			return	GetSockErrorMsg("setsockopt2(IPV6_V6ONLY)"), FALSE;
+			return	GetSockErrorMsg("setsockopt2(IPV6_V6ONLY)"), false;
 	}
 
 	sockaddr_in6	addr6 = {};
@@ -199,7 +199,7 @@ BOOL MsgMng::WSockInit()
 		}
 	}
 
-	if (::bind(udp_sd, addr, size)) return GetSockErrorMsg("bind()"), FALSE;
+	if (::bind(udp_sd, addr, size)) return GetSockErrorMsg("bind()"), false;
 
 	if (isV6 && cfg) {
 		MulticastJoin();
@@ -211,16 +211,16 @@ BOOL MsgMng::WSockInit()
 		GetSockErrorMsg("bind(tcp) error. Can't support file attach");
 	}
 
-	flg = TRUE;	// Non Block
+	flg = 1;	// Non Block
 	if (::ioctlsocket(udp_sd, FIONBIO, (unsigned long *)&flg))
-		return	GetSockErrorMsg("ioctlsocket(nonblock)"), FALSE;
+		return	GetSockErrorMsg("ioctlsocket(nonblock)"), false;
 
 	if (IsAvailableTCP() && ::ioctlsocket(tcp_sd, FIONBIO, (unsigned long *)&flg))
-		return	GetSockErrorMsg("ioctlsocket tcp(nonblock)"), FALSE;
+		return	GetSockErrorMsg("ioctlsocket tcp(nonblock)"), false;
 
-	flg = TRUE;			// allow broadcast
+	flg = 1;			// allow broadcast
 	if (::setsockopt(udp_sd, SOL_SOCKET, SO_BROADCAST, (char *)&flg, sizeof(flg)))
-		return	GetSockErrorMsg("setsockopt(broadcast)"), FALSE;
+		return	GetSockErrorMsg("setsockopt(broadcast)"), false;
 
 	int	buf_size = MAX_SOCKBUF, buf_minsize = MAX_SOCKBUF / 2;		// UDP バッファ設定
 	if (::setsockopt(udp_sd, SOL_SOCKET, SO_SNDBUF, (char *)&buf_size, sizeof(int))
@@ -232,16 +232,16 @@ BOOL MsgMng::WSockInit()
 	&&	::setsockopt(udp_sd, SOL_SOCKET, SO_RCVBUF, (char *)&buf_minsize, sizeof(int)))
 		GetSockErrorMsg("setsockopt(recvbuf)");
 
-	flg = TRUE;	// REUSE ADDR
+	flg = 1;	// REUSE ADDR
 	if (IsAvailableTCP()
 		&& ::setsockopt(tcp_sd, SOL_SOCKET, SO_REUSEADDR, (char *)&flg, sizeof(flg))) {
 		GetSockErrorMsg("setsockopt tcp(reuseaddr)");
 	}
 
 	if (IsAvailableTCP() && ::listen(tcp_sd, 100))
-		return	FALSE;
+		return	false;
 
-	return	TRUE;
+	return	true;
 }
 
 void MsgMng::WSockTerm(void)
@@ -265,13 +265,13 @@ void MsgMng::CloseSocket(void)
 	udp_sd = INVALID_SOCKET;
 }
 
-BOOL MsgMng::WSockReset(void)
+bool MsgMng::WSockReset(void)
 {
 	WSockTerm();
 	return	WSockInit();
 }
 
-BOOL MsgMng::Send(HostSub *hostSub, ULONG command, int val)
+bool MsgMng::Send(HostSub *hostSub, ULONG command, int val)
 {
 	char	buf[MAX_NAMEBUF];
 
@@ -279,13 +279,13 @@ BOOL MsgMng::Send(HostSub *hostSub, ULONG command, int val)
 	return	Send(hostSub, command, buf);
 }
 
-BOOL MsgMng::Send(HostSub *hostSub, ULONG command, const char *message, const char *exMsg,
+bool MsgMng::Send(HostSub *hostSub, ULONG command, const char *message, const char *exMsg,
 	const IPDict *ipdict)
 {
 	return	Send(hostSub->addr, hostSub->portNo, command, message, exMsg, ipdict);
 }
 
-BOOL MsgMng::Send(Addr host, int port_no, ULONG command, const char *message, const char *exMsg,
+bool MsgMng::Send(Addr host, int port_no, ULONG command, const char *message, const char *exMsg,
 	const IPDict *ipdict)
 {
 	DynBuf	buf(MAX_UDPBUF);
@@ -295,36 +295,36 @@ BOOL MsgMng::Send(Addr host, int port_no, ULONG command, const char *message, co
 	return	UdpSend(host, port_no, buf, trans_len);
 }
 
-BOOL MsgMng::Send(HostSub *hostSub, IPDict *ipdict)
+bool MsgMng::Send(HostSub *hostSub, IPDict *ipdict)
 {
 	return	Send(hostSub->addr, hostSub->portNo, ipdict);
 }
 
-BOOL MsgMng::Send(Addr host, int port_no, IPDict *ipdict)
+bool MsgMng::Send(Addr host, int port_no, IPDict *ipdict)
 {
 	DynBuf	buf(MAX_UDPBUF);
 
 	if (!MakeMsg(ipdict, &buf)) {
-		return	FALSE;
+		return	false;
 	}
 	return	UdpSend(host, port_no, buf, (int)buf.UsedSize());
 }
 
-BOOL MsgMng::AsyncSelectRegister(HWND hWnd)
+bool MsgMng::AsyncSelectRegister(HWND hWnd)
 {
 	if (hAsyncWnd == 0)
 		hAsyncWnd = hWnd;
 
 	if (::WSAAsyncSelect(udp_sd, hWnd, WM_UDPEVENT, FD_READ) == SOCKET_ERROR)
-		return	FALSE;
+		return	false;
 
 	if (::WSAAsyncSelect(tcp_sd, hWnd, WM_TCPEVENT, FD_ACCEPT|FD_CLOSE) == SOCKET_ERROR)
-		return	FALSE;
+		return	false;
 
-	return	TRUE;
+	return	true;
 }
 
-BOOL MsgMng::RecvCore(RecvBuf *buf, MsgBuf *msg)
+bool MsgMng::RecvCore(RecvBuf *buf, MsgBuf *msg)
 {
 	memcpy(lastPacket.Buf(), buf->msgBuf, buf->size);
 	lastPacket.Buf()[buf->size] = 0;
@@ -333,18 +333,18 @@ BOOL MsgMng::RecvCore(RecvBuf *buf, MsgBuf *msg)
 	return	ResolveMsg(buf, msg);
 }
 
-BOOL MsgMng::Recv(MsgBuf *msg)
+bool MsgMng::Recv(MsgBuf *msg)
 {
 	RecvBuf		buf;
 
 	if (!UdpRecv(&buf) || buf.size == 0) {
-		return	FALSE;
+		return	false;
 	}
 
 	return	RecvCore(&buf, msg);
 }
 
-BOOL MsgMng::PseudoRecv(RecvBuf *buf, MsgBuf *msg)
+bool MsgMng::PseudoRecv(RecvBuf *buf, MsgBuf *msg)
 {
 	return	RecvCore(buf, msg);
 }
@@ -377,6 +377,7 @@ ULONG MsgMng::InitIPDict(IPDict *ipdict, ULONG cmd, ULONG flags, ULONG _pktno)
 #ifndef USE_ADMIN
 	if (mainWin) {
 		ipdict->put_str(IPMSG_NICK_KEY, mainWin->GetNickNameEx());
+//		ipdict->put_str(IPMSG_NICKORG_KEY, mainWin->GetNickNameEx());
 		ipdict->put_int(IPMSG_STAT_KEY, mainWin->HostStatus());
 	}
 #endif
@@ -384,17 +385,17 @@ ULONG MsgMng::InitIPDict(IPDict *ipdict, ULONG cmd, ULONG flags, ULONG _pktno)
 	return	pkt_no;
 }
 
-BOOL MsgMng::MakeMsg(IPDict *ipdict, DynBuf *buf)
+bool MsgMng::MakeMsg(IPDict *ipdict, DynBuf *buf)
 {
 	buf->Alloc(ipdict->pack_size());
 
 	size_t	size = ipdict->pack(buf->Buf(), buf->Size());
 	buf->SetUsedSize(size);
 
-	return	size ? TRUE : FALSE;
+	return	size ? true : false;
 }
 
-BOOL MsgMng::SignIPDict(IPDict *ipdict)
+bool MsgMng::SignIPDict(IPDict *ipdict)
 {
 	TrcW(L"SignIPDict\n");
 
@@ -419,7 +420,7 @@ BOOL MsgMng::SignIPDict(IPDict *ipdict)
 
 	HCRYPTHASH	hHash;
 	HCRYPTPROV	csp	= cfg->priv[KEY_2048].hCsp;
-	BOOL		ret = FALSE;
+	bool		ret = false;
 	DWORD		sigLen = 0;
 
 	if (::CryptCreateHash(csp, CALG_SHA_256, 0, 0, &hHash)) {
@@ -432,7 +433,7 @@ BOOL MsgMng::SignIPDict(IPDict *ipdict)
 		}
 		::CryptDestroyHash(hHash);
 	}
-	if (!sigLen) return FALSE;
+	if (!sigLen) return false;
 
 	swap_s(dbuf, sigLen);
 	ipdict->put_bytes(IPMSG_SIGN_KEY, dbuf, sigLen);
@@ -441,30 +442,30 @@ BOOL MsgMng::SignIPDict(IPDict *ipdict)
 		Debug("Illegal siglen=%d\n", sigLen);
 	}
 
-	return	TRUE;
+	return	true;
 }
 
-BOOL MsgMng::EncIPDict(IPDict *ipdict, PubKey *pub, DynBuf *dbuf)
+bool MsgMng::EncIPDict(IPDict *ipdict, PubKey *pub, DynBuf *dbuf)
 {
 	IPDict	out_dict;
 
 	if (!EncIPDict(ipdict, pub, &out_dict)) {
-		return	FALSE;
+		return	false;
 	}
 	if (!dbuf->Alloc(out_dict.pack_size())) {
-		return	FALSE;
+		return	false;
 	}
 
 	size_t	size = out_dict.pack(dbuf->Buf(), dbuf->Size());
 	dbuf->SetUsedSize(size);
 
-	return	size > 0 ? TRUE : FALSE;
+	return	size > 0 ? true : false;
 }
 
-BOOL MsgMng::EncIPDict(IPDict *ipdict, PubKey *pub, IPDict *out_dict)
+bool MsgMng::EncIPDict(IPDict *ipdict, PubKey *pub, IPDict *out_dict)
 {
 	if (!SignIPDict(ipdict)) {
-		return FALSE;
+		return false;
 	}
 
 	DynBuf	dbuf(MAX_UDPBUF);
@@ -472,7 +473,7 @@ BOOL MsgMng::EncIPDict(IPDict *ipdict, PubKey *pub, IPDict *out_dict)
 	dbuf.SetUsedSize(dsize);
 
 	if (dsize == 0) {
-		return FALSE;
+		return false;
 	}
 
 	// データの共通鍵暗号化（AES256 / CTR）
@@ -494,14 +495,14 @@ BOOL MsgMng::EncIPDict(IPDict *ipdict, PubKey *pub, IPDict *out_dict)
 
 	HCRYPTKEY	hExKey = 0;
 	if (!::CryptImportKey(cfg->priv[KEY_2048].hPubCsp, blob, blob_len, 0, 0, &hExKey)) {
-		return FALSE;
+		return false;
 	}
 
 	// 共通鍵の暗号化＆セット
 	DWORD	enc_keylen = key_len;
 	if (!::CryptEncrypt(hExKey, 0, TRUE, 0, key, &enc_keylen, sizeof(key))) {
 		::CryptDestroyKey(hExKey);
-		return FALSE;
+		return false;
 	}
 	swap_s(key, enc_keylen);
 
@@ -514,7 +515,7 @@ BOOL MsgMng::EncIPDict(IPDict *ipdict, PubKey *pub, IPDict *out_dict)
 
 	::CryptDestroyKey(hExKey);
 
-	return	TRUE;
+	return	true;
 }
 
 size_t MsgMng::DecIPDict(BYTE *data, size_t size, IPDict *dict)
@@ -534,22 +535,22 @@ size_t MsgMng::DecIPDict(BYTE *data, size_t size, IPDict *dict)
 	return	dsize;
 }
 
-BOOL MsgMng::DecIPDict(IPDict *wdict, IPDict *dict)
+bool MsgMng::DecIPDict(IPDict *wdict, IPDict *dict)
 {
 	DynBuf	iv;
 	DynBuf	key;
 	DynBuf	enc_body;
 
-	if (!wdict->get_bytes(IPMSG_ENCIV_KEY, &iv) || iv.UsedSize() != AES_BLOCK_SIZE) return FALSE;
-	if (!wdict->get_bytes(IPMSG_ENCKEY_KEY, &key)) return FALSE;
-	if (!wdict->get_bytes(IPMSG_ENCBODY_KEY, &enc_body)) return FALSE;
+	if (!wdict->get_bytes(IPMSG_ENCIV_KEY, &iv) || iv.UsedSize() != AES_BLOCK_SIZE) return false;
+	if (!wdict->get_bytes(IPMSG_ENCKEY_KEY, &key)) return false;
+	if (!wdict->get_bytes(IPMSG_ENCBODY_KEY, &enc_body)) return false;
 
 	swap_s(key.Buf(), key.UsedSize());
 
 	// 共通鍵の暗号化＆セット
 	DWORD	key_len = (DWORD)key.UsedSize();
 	if (!::CryptDecrypt(cfg->priv[KEY_2048].hKey, 0, TRUE, 0, key.Buf(), &key_len)) {
-		return FALSE;
+		return false;
 	}
 
 	DynBuf	body(enc_body.UsedSize());
@@ -557,20 +558,20 @@ BOOL MsgMng::DecIPDict(IPDict *wdict, IPDict *dict)
 	aes.DecryptCTR(enc_body.Buf(), body.Buf(), enc_body.UsedSize());
 
 	if (dict->unpack(body.Buf(), enc_body.UsedSize()) != enc_body.UsedSize()) {
-		return	FALSE;
+		return	false;
 	}
-	return	TRUE;
+	return	true;
 }
 
 ULONG MsgMng::MakeMsg(char *buf, ULONG _packetNo, ULONG command, const char *msg,
 	const char *exMsg, const IPDict *ipdict, int *packet_len)
 {
 	int			cmd = GET_MODE(command);
-	BOOL		is_br_cmd =	cmd == IPMSG_BR_ENTRY ||
+	bool		is_br_cmd =	cmd == IPMSG_BR_ENTRY ||
 							cmd == IPMSG_BR_EXIT  ||
 							cmd == IPMSG_BR_NOTIFY ||
-							cmd == IPMSG_NOOPERATION ? TRUE : FALSE;
-	BOOL		is_utf8		= (command & IPMSG_UTF8OPT);
+							cmd == IPMSG_NOOPERATION ? true : false;
+	bool		is_utf8		= (command & IPMSG_UTF8OPT);
 	HostSub		*host		= is_utf8 ? &local : &localA;
 	MBCSstr		msg_a;
 	MBCSstr		exmsg_a;
@@ -638,7 +639,7 @@ ULONG MsgMng::MakeMsg(char *buf, ULONG _packetNo, ULONG command, const char *msg
 	return	_packetNo;
 }
 
-BOOL MsgMng::GetPubKey(HostSub *hostSub, BOOL isAuto)
+bool MsgMng::GetPubKey(HostSub *hostSub, bool isAuto)
 {
 	char	buf[128];
 
@@ -658,7 +659,7 @@ int MsgMng::GetEncryptMaxMsgLen()
 	return len;
 }
 
-BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_extenc,
+bool MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_extenc,
 	char *share, char *ulist_str, char *buf)
 {
 	HCRYPTKEY	hExKey = 0, hKey = 0;
@@ -674,7 +675,7 @@ BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_e
 	int			capa = host->pubKey.Capa() & cfg->GetCapa();
 	int			kt = (capa & IPMSG_RSA_2048) ? KEY_2048 : 
 					 (capa & IPMSG_RSA_1024) ? KEY_1024 : -1;
-	if (kt == -1) return FALSE;
+	if (kt == -1) return false;
 
 	HCRYPTPROV	enc_csp  = cfg->priv[kt].hPubCsp;
 	HCRYPTPROV	sign_csp = cfg->priv[kt].hCsp;
@@ -683,7 +684,7 @@ BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_e
 	double		stringify_coef = 2.0; // hex encoding (default)
 	int			(*bin2str_revendian)(const BYTE *, size_t, char *) = bin2hexstr_revendian;
 	int			(*bin2str)(const BYTE *, size_t, char *)           = bin2hexstr;
-	BOOL		is_mbcs = (host->hostStatus & IPMSG_CAPUTF8OPT) ? FALSE : TRUE;
+	bool		is_mbcs = (host->hostStatus & IPMSG_CAPUTF8OPT) ? false : true;
 	MBCSstr		msg_a;
 	MBCSstr		share_a;
 
@@ -708,7 +709,7 @@ BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_e
 	else if ((capa & IPMSG_RSA_1024) && (capa & IPMSG_BLOWFISH_128)) {
 		capa &= IPMSG_RSA_1024 | IPMSG_BLOWFISH_128 | IPMSG_PACKETNO_IV | IPMSG_ENCODE_BASE64;
 	}
-	else return	FALSE;
+	else return	false;
 
 	if (capa & IPMSG_ENCODE_BASE64) {	// change to base64 encoding
 #pragma warning ( disable : 4056 )
@@ -744,7 +745,7 @@ BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_e
 #else
 		host->pubKey.UnSet();
 #endif
-		return GetLastErrorMsg("CryptImportKey"), FALSE;
+		return GetLastErrorMsg("CryptImportKey"), false;
 	}
 
 	// IV の初期化
@@ -770,14 +771,14 @@ BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_e
 	if (capa & IPMSG_AES_256) {	// AES
 		// AES 用ランダム鍵作成
 		if (!::CryptGenRandom(enc_csp, len = 256/8, data))
-			return	GetLastErrorMsg("CryptGenRandom"), FALSE;
+			return	GetLastErrorMsg("CryptGenRandom"), false;
 
 		// AES 用共通鍵のセット
 		AES		aes(data, len, iv);
 
 		//共通鍵の暗号化
 		if (!::CryptEncrypt(hExKey, 0, TRUE, 0, data, (DWORD *)&len, MAX_BUF))
-			return GetLastErrorMsg("CryptEncrypt"), FALSE;
+			return GetLastErrorMsg("CryptEncrypt"), false;
 		bin2str_revendian(data, len, (char *)skey);	// 鍵をhex文字列に
 
 		// メッセージ暗号化
@@ -786,14 +787,14 @@ BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_e
 	else if (capa & IPMSG_BLOWFISH_128) {	// blowfish
 		// blowfish 用ランダム鍵作成
 		if (!::CryptGenRandom(enc_csp, len = 128/8, data))
-			return	GetLastErrorMsg("CryptGenRandom"), FALSE;
+			return	GetLastErrorMsg("CryptGenRandom"), false;
 
 		// blowfish 用共通鍵のセット
 		CBlowFish	bl(data, len);
 
 		//共通鍵の暗号化
 		if (!::CryptEncrypt(hExKey, 0, TRUE, 0, data, (DWORD *)&len, MAX_BUF))
-			return GetLastErrorMsg("CryptEncrypt"), FALSE;
+			return GetLastErrorMsg("CryptEncrypt"), false;
 		bin2str_revendian(data, len, (char *)skey);	// 鍵をhex文字列に
 
 		// メッセージ暗号化
@@ -827,33 +828,33 @@ BOOL MsgMng::MakeEncryptMsg(Host *host, ULONG packet_no, char *msgstr, bool is_e
 		len += bin2str_revendian(sign, (int)sigLen, buf + len);
 	}
 
-	return TRUE;
+	return true;
 }
 
-BOOL MsgMng::GetWrappedMsg(MsgBuf *msg, MsgBuf *wmsg)
+bool MsgMng::GetWrappedMsg(MsgBuf *msg, MsgBuf *wmsg)
 {
 	if (msg->wrdict.key_num() <= 0) {
-		return	FALSE;
+		return	false;
 	}
 	wmsg->ipdict = msg->wrdict;
 	if (!ResolveDictMsg(wmsg)) {
-		return	FALSE;
+		return	false;
 	}
 
-	return	TRUE;
+	return	true;
 }
 
-BOOL MsgMng::ResolveMsg(RecvBuf *buf, MsgBuf *msg)
+bool MsgMng::ResolveMsg(RecvBuf *buf, MsgBuf *msg)
 {
 	msg->hostSub.addr   = buf->addr;
 	msg->hostSub.portNo = buf->port;
 
-	if (!ResolveMsg(buf->msgBuf, buf->size, msg)) return	FALSE;
+	if (!ResolveMsg(buf->msgBuf, buf->size, msg)) return	false;
 
-	return	TRUE;
+	return	true;
 }
 
-BOOL MsgMng::ResolveDictMsg(MsgBuf *msg)
+bool MsgMng::ResolveDictMsg(MsgBuf *msg)
 {
 	int64	val;
 	U8str	u8;
@@ -866,30 +867,30 @@ BOOL MsgMng::ResolveDictMsg(MsgBuf *msg)
 		ipdict->clear();
 		if (!DecIPDict(&edict, ipdict)) {
 			msg->decMode = MsgBuf::DEC_NG;
-			return FALSE;
+			return false;
 		}
 		msg->decMode = MsgBuf::DEC_OK;
 	}
 
 	msg->timestamp = time(NULL);
 
-	if (!ipdict->get_int(IPMSG_VER_KEY, &val) || val != IPMSG_NEW_VERSION) return FALSE;
+	if (!ipdict->get_int(IPMSG_VER_KEY, &val) || val != IPMSG_NEW_VERSION) return false;
 	msg->version = (int)val;
 
-	if (!ipdict->get_int(IPMSG_PKTNO_KEY, &val)) return	FALSE;
+	if (!ipdict->get_int(IPMSG_PKTNO_KEY, &val)) return	false;
 	msg->packetNo = (ULONG)val;
 	snprintfz(msg->packetNoStr, sizeof(msg->packetNoStr), "%d", msg->packetNo); // for IV
 
-	if (!ipdict->get_str(IPMSG_UID_KEY, &u8)) return FALSE;
+	if (!ipdict->get_str(IPMSG_UID_KEY, &u8)) return false;
 	msg->hostSub.u.SetUserName(u8.s());
 
-	if (!ipdict->get_str(IPMSG_HOST_KEY, &u8)) return FALSE;
+	if (!ipdict->get_str(IPMSG_HOST_KEY, &u8)) return false;
 	msg->hostSub.u.SetHostName(u8.s());
 
-	if (!ipdict->get_int(IPMSG_CMD_KEY, &val)) return FALSE;
+	if (!ipdict->get_int(IPMSG_CMD_KEY, &val)) return false;
 	msg->command = (UINT)val;
 
-	if (!ipdict->get_int(IPMSG_FLAGS_KEY, &val)) return FALSE;
+	if (!ipdict->get_int(IPMSG_FLAGS_KEY, &val)) return false;
 	msg->flags = (UINT)val;
 
 	ULONG	hostStatus = 0;
@@ -909,7 +910,9 @@ BOOL MsgMng::ResolveDictMsg(MsgBuf *msg)
 
 
 	if (ipdict->get_str(IPMSG_BODY_KEY, &u8)) {
-		UnixNewLineToLocal(u8.s(), msg->msgBuf, MAX_UDPBUF);
+		DynBuf dbuf(MAX_UDPBUF);
+		UnixNewLineToLocal(u8.s(), dbuf, (int)dbuf.Size());
+		msg->msgBuf.SetByStr(dbuf.s());
 	}
 
 	if (ipdict->get_str(IPMSG_NICK_KEY, &u8)) {
@@ -941,7 +944,7 @@ BOOL MsgMng::ResolveDictMsg(MsgBuf *msg)
 			}
 		}
 		else {
-			return	FALSE;
+			return	false;
 		}
 	}
 
@@ -949,15 +952,15 @@ BOOL MsgMng::ResolveDictMsg(MsgBuf *msg)
 
 	TrcU8("ResolveMsgDict: cmd=%x flags=%x\n", GET_MODE(msg->command), msg->flags);
 
-	return	TRUE;
+	return	true;
 }
 
-BOOL CheckVerifyIPDict(HCRYPTPROV csp, const IPDict *ipdict, PubKey *pub)
+bool CheckVerifyIPDict(HCRYPTPROV csp, const IPDict *ipdict, PubKey *pub)
 {
 	DynBuf	dbuf;
 
 	if (!ipdict->get_bytes(IPMSG_SIGN_KEY, &dbuf) || dbuf.UsedSize() != RSA2048_SIGN_SIZE) {
-		return	FALSE;
+		return	false;
 	}
 
 	BYTE	sign[RSA2048_SIGN_SIZE];
@@ -968,7 +971,7 @@ BOOL CheckVerifyIPDict(HCRYPTPROV csp, const IPDict *ipdict, PubKey *pub)
 	HCRYPTKEY	hExKey = 0;
 	BYTE		blob[1024];
 	int			bloblen;
-	BOOL		ret = FALSE;
+	bool		ret = false;
 
 	size_t		max_packnum = ipdict->key_num() - 1; // 末尾SIGNを除外
 	dbuf.Alloc(ipdict->pack_size(max_packnum));
@@ -983,7 +986,7 @@ BOOL CheckVerifyIPDict(HCRYPTPROV csp, const IPDict *ipdict, PubKey *pub)
 	if (::CryptCreateHash(csp, CALG_SHA_256, 0, 0, &hHash)) {
 		if (::CryptHashData(hHash, dbuf, pack_size, 0)) {
 			if (::CryptVerifySignature(hHash, sign, RSA2048_SIGN_SIZE, hExKey, 0, 0)) {
-				ret = TRUE;
+				ret = true;
 		//		Debug("CryptVerifySignature OK!\n");
 			}
 			else {
@@ -998,7 +1001,7 @@ BOOL CheckVerifyIPDict(HCRYPTPROV csp, const IPDict *ipdict, PubKey *pub)
 }
 
 
-BOOL MsgMng::CheckVerify(MsgBuf *msg, const IPDict *ipdict)
+bool MsgMng::CheckVerify(MsgBuf *msg, const IPDict *ipdict)
 {
 	msg->signMode = MsgBuf::SIGN_INIT;
 
@@ -1014,7 +1017,7 @@ BOOL MsgMng::CheckVerify(MsgBuf *msg, const IPDict *ipdict)
 			cfg->priorityHosts.AddHost(host);	// pubkey 保存用
 		}
 		if (!DictPubToHost(&msg->ipdict, host)) {
-			return FALSE;
+			return false;
 		}
 	}
 
@@ -1025,24 +1028,24 @@ BOOL MsgMng::CheckVerify(MsgBuf *msg, const IPDict *ipdict)
 		msg->signMode = MsgBuf::SIGN_NG;
 	}
 
-	return	msg->signMode == MsgBuf::SIGN_OK ? TRUE : FALSE;
+	return	msg->signMode == MsgBuf::SIGN_OK ? true : false;
 }
 
 
-BOOL MsgMng::ResolveMsg(char *buf, int size, MsgBuf *msg)
+bool MsgMng::ResolveMsg(char *buf, int size, MsgBuf *msg)
 {
-	if (size <= 0) return FALSE;
+	if (size <= 0) return false;
 
 	size_t used = msg->ipdict.unpack((BYTE *)buf, size);
 	if (used == size) {
 		if (!cfg->IPDictEnabled()) {
-			return FALSE;
+			return false;
 		}
 		return	 ResolveDictMsg(msg);
 	}
 	if (used > 0) {
 		Debug("partial resolve(remain=%zd / org=%d)\n", used, size);
-		return	FALSE;
+		return	false;
 	}
 
 	char	*exStr  = NULL;
@@ -1064,27 +1067,27 @@ BOOL MsgMng::ResolveMsg(char *buf, int size, MsgBuf *msg)
 	}
 
 	if ((tok = sep_tok(buf, ':', &p)) == NULL)
-		return	FALSE;
+		return	false;
 	if ((msg->version = atoi(tok)) != IPMSG_VERSION)
-		return	FALSE;
+		return	false;
 
 	if ((tok = sep_tok(NULL, ':', &p)) == NULL)
-		return	FALSE;
+		return	false;
 	msg->packetNo = strtoul(tok, 0, 10);
 	strncpyz(msg->packetNoStr, tok, sizeof(msg->packetNoStr)); // for IV
 
 	if ((uname = sep_tok(NULL, ':', &p)) == NULL)
-		return	FALSE;
+		return	false;
 
 	if ((hname = sep_tok(NULL, ':', &p)) == NULL)
-		return	FALSE;
+		return	false;
 
 	if ((tok = sep_tok(NULL, ':', &p)) == NULL)
-		return	FALSE;
+		return	false;
 	msg->command = atol(tok);
 
 	ULONG	cmd = GET_MODE(msg->command);
-	BOOL	is_utf8 = (msg->command & IPMSG_UTF8OPT);
+	bool	is_utf8 = (msg->command & IPMSG_UTF8OPT);
 
 	msg->hostSub.u.SetUserName(is_utf8 ? uname : AtoU8s(uname));
 	msg->hostSub.u.SetHostName(is_utf8 ? hname : AtoU8s(hname));
@@ -1092,15 +1095,16 @@ BOOL MsgMng::ResolveMsg(char *buf, int size, MsgBuf *msg)
 	msg->timestamp = time(NULL);
 
 	int		cnt = 0;
-	*msg->msgBuf = 0;
+	DynBuf  dbuf(MAX_UDPBUF);
 	if ((tok = sep_tok(NULL, 0, &p))) { // 改行をUNIX形式からDOS形式に変換
 		if (!is_utf8) {
 			tok = AtoU8s(tok);
 		}
-		UnixNewLineToLocal(tok, msg->msgBuf, MAX_UDPBUF);
+		UnixNewLineToLocal(tok, dbuf, (int)dbuf.Size());
+		msg->msgBuf.SetByStr(dbuf);
 
 		if (cmd == IPMSG_BR_ENTRY || cmd == IPMSG_BR_NOTIFY || cmd == IPMSG_ANSENTRY) {
-			msg->nick = msg->msgBuf;
+			msg->nick = dbuf.s();
 		}
 	}
 
@@ -1109,7 +1113,7 @@ BOOL MsgMng::ResolveMsg(char *buf, int size, MsgBuf *msg)
 			if ((msg->command & IPMSG_UTF8OPT) == 0) {
 				exStr = AtoU8s(exStr);
 			}
-			strncpyz(msg->exBuf, exStr, sizeof(msg->exBuf));
+			msg->exBuf.SetByStr(exStr);
 
 			if (cmd == IPMSG_BR_ENTRY || cmd == IPMSG_BR_NOTIFY || cmd == IPMSG_ANSENTRY
 			|| cmd == IPMSG_DIR_POLL) {
@@ -1149,10 +1153,10 @@ BOOL MsgMng::ResolveMsg(char *buf, int size, MsgBuf *msg)
 					DynBuf	dbuf(strlen(tok+3));
 					size_t	dsize = b64str2bin(tok+3, dbuf.Buf(), dbuf.Size());
 					if (dsize == 0) {
-						return FALSE;
+						return false;
 					}
 					if (msg->ipdict.unpack(dbuf.Buf(), dsize) != dsize) {
-						return FALSE;
+						return false;
 					}
 				}
 			}
@@ -1163,13 +1167,13 @@ BOOL MsgMng::ResolveMsg(char *buf, int size, MsgBuf *msg)
 	}
 	TrcU8("ResolveMsg: cmd=%x flags=%x\n", GET_MODE(msg->command), GET_OPT(msg->command));
 
-	return	TRUE;
+	return	true;
 }
 
 /*
 	メッセージの復号化
 */
-BOOL MsgMng::DecryptMsg(MsgBuf *_msg, UINT *_cryptCapa, UINT *_logOpt)
+bool MsgMng::DecryptMsg(MsgBuf *_msg, UINT *_cryptCapa, UINT *_logOpt)
 {
 	MsgBuf		&msg = *_msg;
 	UINT		&cryptCapa = *_cryptCapa;
@@ -1190,13 +1194,13 @@ BOOL MsgMng::DecryptMsg(MsgBuf *_msg, UINT *_cryptCapa, UINT *_logOpt)
 	DynBuf		tmpBuf(MAX_UDPBUF);
 
 	if ((capa_hex = sep_tok(msg.msgBuf, ':', &p)) == NULL) {
-		return	FALSE;
+		return	false;
 	}
 	cryptCapa = strtoul(capa_hex, 0, 16);
 
 	int	kt = (cryptCapa & IPMSG_RSA_2048) ? KEY_2048 :
 			 (cryptCapa & IPMSG_RSA_1024) ? KEY_1024 : -1;
-	if (kt == -1) return FALSE;
+	if (kt == -1) return false;
 
 	dec_csp		= cfg->priv[kt].hCsp;
 	hExKey		= cfg->priv[kt].hKey;
@@ -1208,20 +1212,20 @@ BOOL MsgMng::DecryptMsg(MsgBuf *_msg, UINT *_cryptCapa, UINT *_logOpt)
 
 	if (cryptCapa & IPMSG_COMMON_KEYS) {
 		if ((skey_hex = sep_tok(NULL, ':', &p)) == NULL) {
-			return	FALSE;
+			return	false;
 		}
 	}
 	else {
-		return	FALSE;
+		return	false;
 	}
 
 	if ((msg_hex = sep_tok(NULL, ':', &p)) == NULL) {
-		return	FALSE;
+		return	false;
 	}
 
 	if (cryptCapa & (IPMSG_SIGN_SHA1|IPMSG_SIGN_SHA256)) {
 		if ((hash_hex = sep_tok(NULL, ':', &p)) == NULL)
-			return	FALSE;
+			return	false;
 	}
 
 	// IV の初期化
@@ -1232,7 +1236,7 @@ BOOL MsgMng::DecryptMsg(MsgBuf *_msg, UINT *_cryptCapa, UINT *_logOpt)
 		len = (int)str2bin_revendian(skey_hex, skey, sizeof(skey));
 		// 公開鍵取得
 		if (!::CryptDecrypt(hExKey, 0, TRUE, 0, (BYTE *)skey, (DWORD *)&len))
-			return	sprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), FALSE;
+			return	sprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), false;
 
 		AES		aes(skey, len, iv);
 		encMsgLen = (int)str2bin(msg_hex, tmpBuf, tmpBuf.Size());
@@ -1242,14 +1246,14 @@ BOOL MsgMng::DecryptMsg(MsgBuf *_msg, UINT *_cryptCapa, UINT *_logOpt)
 		len = (int)str2bin_revendian(skey_hex, skey, sizeof(skey));
 		// 公開鍵取得
 		if (!::CryptDecrypt(hExKey, 0, TRUE, 0, (BYTE *)skey, (DWORD *)&len))
-			return	sprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), FALSE;
+			return	sprintf(msg.msgBuf, "CryptDecrypt Err(%X)", GetLastError()), false;
 
 		CBlowFish	bl(skey, len);
 		encMsgLen = (int)str2bin(msg_hex, tmpBuf, tmpBuf.Size());
 		msgLen = bl.Decrypt(tmpBuf, tmpBuf, encMsgLen, BF_CBC|BF_PKCS5, iv);
 	}
 	else {
-		return	FALSE;
+		return	false;
 	}
 
 	// 電子署名の検証
@@ -1294,9 +1298,9 @@ BOOL MsgMng::DecryptMsg(MsgBuf *_msg, UINT *_cryptCapa, UINT *_logOpt)
 	// 暗号化添付メッセージ
 	if ((msg.command & IPMSG_ENCEXTMSGOPT)) {
 		if ((len = (int)strlen(tmpBuf) + 1) < msgLen) {
-			len += strncpyz(msg.exBuf, (char *)tmpBuf + len, MAX_UDPBUF) + 1;
+			len += (int)msg.exBuf.SetByStr(tmpBuf.s() + len) + 1;
 			if (len < msgLen) {
-				strncpyz(msg.uList, (char *)tmpBuf + len, MAX_ULISTBUF);
+				msg.uList.SetByStr(tmpBuf.s() + len);
 			}
 		}
 	}
@@ -1304,13 +1308,13 @@ BOOL MsgMng::DecryptMsg(MsgBuf *_msg, UINT *_cryptCapa, UINT *_logOpt)
 	TruncateMsg(tmpBuf, (msg.command & IPMSG_UTF8OPT) == 0, MAX_UDPBUF);
 
 	// UNIX 形式の改行を変換
-	UnixNewLineToLocal(tmpBuf, msg.msgBuf, sizeof(msg.msgBuf));
+	DynBuf  dbuf(MAX_UDPBUF);
+	UnixNewLineToLocal(tmpBuf, dbuf, (int)dbuf.Size());
 
-	if ((msg.command & IPMSG_UTF8OPT) == 0) {
-		strncpyz(msg.msgBuf, AtoU8s(msg.msgBuf), sizeof(msg.msgBuf));
-	}
+	char *targ = (msg.command & IPMSG_UTF8OPT) ? dbuf : AtoU8s(dbuf);
+	msg.msgBuf.SetByStr(targ);
 
-	return	TRUE;
+	return	true;
 }
 
 ULONG MsgMng::MakePacketNo(void)
@@ -1325,12 +1329,12 @@ ULONG MsgMng::MakePacketNo(void)
 }
 
 
-BOOL MsgMng::UdpSend(Addr host_addr, int port_no, const char *buf)
+bool MsgMng::UdpSend(Addr host_addr, int port_no, const char *buf)
 {
 	return	UdpSend(host_addr, port_no, buf, (int)strlen(buf) +1);
 }
 
-BOOL MsgMng::UdpSend(Addr host_addr, int port_no, const char *buf, int len)
+bool MsgMng::UdpSend(Addr host_addr, int port_no, const char *buf, int len)
 {
 #ifdef IPMSG_PRO
 #define MSG_UDPSEND
@@ -1343,38 +1347,38 @@ BOOL MsgMng::UdpSend(Addr host_addr, int port_no, const char *buf, int len)
 
 /* パケット大量送信等の異常動作時に強制停止 */
 /* （将来、受信側も宛先毎のフィルタを入れてもよいかも） */
-BOOL CheckWatchDog()
+bool CheckWatchDog()
 {
 	static DWORD	watchDog;
 	static DWORD	watchCnt;
-	static BOOL		isBlocked = FALSE;
+	static bool		isBlocked = false;
 
 	if (isBlocked) {
-		return	FALSE;
+		return	false;
 	}
 	if ((watchCnt++ % 100)) {
-		return	TRUE;
+		return	true;
 	}
 
 	DWORD cur = ::GetTick();
 	if (watchDog == 0 || (cur - watchDog) > 10000) {
 		watchDog = cur;
 		watchCnt = 0;
-		return	TRUE;
+		return	true;
 	}
 	if (watchCnt >= 10000) {
-		isBlocked = TRUE;
+		isBlocked = true;
 		::MessageBox(0, Fmt("Too many sendto. Exit process...%u", cur - watchDog), IP_MSG, MB_OK);
 		::ExitProcess(-1);
-		return	FALSE;
+		return	false;
 	}
-	return	TRUE;
+	return	true;
 }
 
-BOOL MsgMng::UdpSendCore(Addr host_addr, int port_no, const char *buf, int len)
+bool MsgMng::UdpSendCore(Addr host_addr, int port_no, const char *buf, int len)
 {
 //	if (!CheckWatchDog()) {
-//		return	FALSE;
+//		return	false;
 //	}
 
 	if (isV6 && host_addr.IsIPv4()) {
@@ -1387,7 +1391,7 @@ BOOL MsgMng::UdpSendCore(Addr host_addr, int port_no, const char *buf, int len)
 	int				size  = host_addr.size == 16 ? sizeof(addr6)      : sizeof(addr4);
 
 	if (host_addr.size != 16 && host_addr.size != 4) {
-		return FALSE;
+		return false;
 	}
 
 	if (host_addr.size == 16) {
@@ -1411,38 +1415,39 @@ BOOL MsgMng::UdpSendCore(Addr host_addr, int port_no, const char *buf, int len)
 		case WSAENETDOWN:
 			break;
 		case WSAEHOSTUNREACH:
-			static	BOOL	done;
+			static	bool	done;
 			if (!done) {
-				done = TRUE;
+				done = true;
 //				MessageBox(0, LoadStr(IDS_HOSTUNREACH), ::inet_ntoa(*(LPIN_ADDR)&host_addr), MB_OK);
 			}
-			return	FALSE;
+			return	false;
 		default:
 			Debug("sendto(%s) error=%d\n", host_addr.S(), ret);
-			return	FALSE;
+			return	false;
 		}
 
-		if (!WSockReset()) return FALSE;
+		if (!WSockReset()) return false;
 
-		if (hAsyncWnd && !AsyncSelectRegister(hAsyncWnd)) return FALSE;
+		if (hAsyncWnd && !AsyncSelectRegister(hAsyncWnd)) return false;
 
-		if (::sendto(udp_sd, buf, len, 0, addr, size) == SOCKET_ERROR) return FALSE;
+		if (::sendto(udp_sd, buf, len, 0, addr, size) == SOCKET_ERROR) return false;
 	}
 
-	return	TRUE;
+	return	true;
 }
 
 
-BOOL MsgMng::UdpRecv(RecvBuf *buf)
+bool MsgMng::UdpRecv(RecvBuf *buf)
 {
 	sockaddr_in6	addr6;
 	sockaddr_in		addr4;
 	sockaddr		*addr = isV6 ? (sockaddr *)&addr6 : (sockaddr *)&addr4;
 	int				size  = isV6 ? sizeof(addr6) : sizeof(addr4);
+	DynBuf          dbuf(MAX_UDPBUF);
 
-	buf->size = ::recvfrom(udp_sd, buf->msgBuf, MAX_UDPBUF -1, 0, addr, &size);
-	if (buf->size == SOCKET_ERROR) return	FALSE;
-	buf->msgBuf[buf->size] = 0;
+	buf->size = ::recvfrom(udp_sd, dbuf.S(), MAX_UDPBUF -1, 0, addr, &size);
+	if (buf->size == SOCKET_ERROR) return	false;
+	buf->msgBuf.SetByStr(dbuf.s(), buf->size);
 
 	if (size == sizeof(addr6)) {
 		buf->addr.Set(&addr6.sin6_addr, 16);
@@ -1452,23 +1457,23 @@ BOOL MsgMng::UdpRecv(RecvBuf *buf)
 		buf->addr.Set(&addr4.sin_addr, 4);
 		buf->port = ::htons(addr4.sin_port);
 	}
-	else return FALSE;
+	else return false;
 
 	TrcU8("recvfrom: addr=%s size=%d\n", buf->addr.S(), buf->size);
 
-	return	TRUE;
+	return	true;
 }
 
-BOOL MsgMng::Accept(HWND hWnd, ConnectInfo *info)
+bool MsgMng::Accept(HWND hWnd, ConnectInfo *info)
 {
 	sockaddr_in6	addr6;
 	sockaddr_in		addr4;
 	sockaddr		*addr = isV6 ? (sockaddr *)&addr6 : (sockaddr *)&addr4;
 	int				size  = isV6 ? sizeof(addr6) : sizeof(addr4);
-	int				flg=TRUE;
 
-	if ((info->sd = ::accept(tcp_sd, addr, &size)) == INVALID_SOCKET) return FALSE;
+	if ((info->sd = ::accept(tcp_sd, addr, &size)) == INVALID_SOCKET) return false;
 
+	int		flg = 1;
 	::setsockopt(info->sd, SOL_SOCKET, TCP_NODELAY, (char *)&flg, sizeof(flg));
 
 	if (isV6) {
@@ -1479,7 +1484,7 @@ BOOL MsgMng::Accept(HWND hWnd, ConnectInfo *info)
 		info->addr.Set(&addr4.sin_addr, 4);
 		info->port = ::htons(addr4.sin_port);
 	}
-	info->server = info->complete = TRUE;
+	info->server = info->complete = true;
 
 	TrcU8("accept: addr=%s\n", info->addr.S());
 
@@ -1490,31 +1495,29 @@ BOOL MsgMng::Accept(HWND hWnd, ConnectInfo *info)
 
 	if (AsyncSelectConnect(hWnd, info)) {
 		info->startTick = info->lastTick = ::GetTick();
-		return	TRUE;
+		return	true;
 	}
 
 	::closesocket(info->sd);
 	info->sd = INVALID_SOCKET;
-	return	FALSE;
+	return	false;
 }
 
-BOOL MsgMng::Connect(HWND hWnd, ConnectInfo *info)
+bool MsgMng::Connect(HWND hWnd, ConnectInfo *info)
 {
-	BOOL flg = FALSE;
-
-	info->server = FALSE;
+	info->server = false;
 
 	if ((info->sd = ::socket(isV6 ? AF_INET6 : AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
 		goto ERR;
 	}
 
-	flg = FALSE;
+	int	flg = 0;
 	if (isV6 && ::setsockopt(info->sd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&flg, sizeof(flg))) {
 		GetSockErrorMsg("setsockopt3(IPV6_V6ONLY)");
 		goto ERR;
 	}
 
-	flg = TRUE;	// Non Block
+	flg = 1;	// Non Block
 	if (hWnd) {
 		if (::ioctlsocket(info->sd, FIONBIO, (unsigned long *)&flg)) {
 			goto ERR;
@@ -1556,34 +1559,34 @@ BOOL MsgMng::Connect(HWND hWnd, ConnectInfo *info)
 
 		if (info->complete || ::WSAGetLastError() == WSAEWOULDBLOCK) {
 			info->startTick = info->lastTick = ::GetTick();
-			return	TRUE;
+			return	true;
 		}
 	}
 
 ERR:
 	::closesocket(info->sd);
 	info->sd = INVALID_SOCKET;
-	return	FALSE;
+	return	false;
 }
 
-BOOL MsgMng::AsyncSelectConnect(HWND hWnd, ConnectInfo *info)
+bool MsgMng::AsyncSelectConnect(HWND hWnd, ConnectInfo *info)
 {
 	if (::WSAAsyncSelect(info->sd, hWnd, info->uMsg,
 			  (info->server ? FD_READ : FD_CONNECT)|FD_CLOSE|info->addEvFlags) == SOCKET_ERROR) {
-		return	FALSE;
+		return	false;
 	}
-	return	TRUE;
+	return	true;
 }
 
 /*
 	非同期系の抑制
 */
-BOOL MsgMng::ConnectDone(HWND hWnd, ConnectInfo *info)
+bool MsgMng::ConnectDone(HWND hWnd, ConnectInfo *info)
 {
 	::WSAAsyncSelect(info->sd, hWnd, 0, 0);	// 非同期メッセージの抑制
-	BOOL	flg = FALSE;
+	int	flg = 0;
 	::ioctlsocket(info->sd, FIONBIO, (unsigned long *)&flg);
-	return	TRUE;
+	return	true;
 }
 
 void GetIPAddrsGw(IP_ADAPTER_GATEWAY_ADDRESS *first_gw, AddrInfo *ai)

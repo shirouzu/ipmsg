@@ -14,9 +14,17 @@
 #include "install.h"
 #include "../version.h"
 
-#include "../instdata/instcmn.h"
-#include "../instdata/instcore.h"
+#include "instcmn.h"
+#include "instcore.h"
 #include "../ipmsgdef.h"
+
+using namespace std;
+
+#ifdef DISALBE_HOOK
+volatile int64 gEnableHook = 0;
+#else
+volatile int64 gEnableHook = ENABLE_HOOK;
+#endif
 
 #pragma comment (lib, "comctl32.lib")
 #pragma comment (lib, "crypt32.lib")
@@ -25,8 +33,45 @@
 
 int ExecInTempDir();
 
-#define TEMPDIR_OPT	L"/TEMPDIR"
-#define RUNAS_OPT	L"/runas="
+#define TEMPDIR_OPT		L"/TEMPDIR"
+#define UPDATE_OPT		L"/UPDATE"
+#define SILENT_OPT		L"/SILENT"
+#define EXTRACT_OPT		L"/EXTRACT"
+#define EXTRACT32_OPT	L"/EXTRACT32"
+#define EXTRACT64_OPT	L"/EXTRACT64"
+#define INSTDIR_OPT		L"/INSTDIR="
+#define DIR_OPT			L"/DIR="
+#define NOPROG_OPT		L"/NOPROG"
+#define NODESK_OPT		L"/NODESK"
+#define NOAPP_OPT		L"/NOAPP"
+#define NOSTARTUP_OPT	L"/NOSTARTUP"
+#define NOEXEC_OPT		L"/NOEXEC"
+#define NOSUBDIR_OPT	L"/NOSUBDIR"
+#define UPDATED_OPT		L"/UPDATED"
+#define INTERNAL_OPT	L"/INTERNAL"
+#define HELP_OPT		L"/h"
+#define TEMPDIR_OPT		L"/TEMPDIR"
+#define RUNAS_OPT		L"/runas="
+
+#define USAGE_STR	L"\r\n \
+USAGE: \r\n \
+	/SILENT ... silent install\r\n \
+	/DIR=<dir> ... setup/target dir\r\n\r\n \
+	/NOPROG ... no create program menu\r\n \
+	/NODESK ... no create desktop shortcut\r\n \
+	/NOSTARTUP ... no create startup shortcut\r\n \
+	/NOAPP  ... no register application to OS\r\n\r\n \
+	/EXTRACT   ... extract files\r\n \
+	/EXTRACT32 ... extract 32bit files\r\n \
+	/EXTRACT64 ... extract 64bit files\r\n \
+	/NOSUBDIR  ... no create subdir with /EXTRACT \r\n\r\n \
+"
+
+char *SetupFiles [] = {
+	IPMSG_EXE, UNINST_EXE, IPCMD_EXE, IPTOAST_DLL, IPMSG_CHM, IPEXC_PNG, IPMSG_PNG
+};
+char *DualFiles [] = { IPMSG_EXE, UNINST_EXE, IPCMD_EXE, IPTOAST_DLL };
+
 /*
 	WinMain
 */
@@ -168,13 +213,18 @@ TInstDlg::TInstDlg(char *cmdLine) :
 	runasWnd = NULL;
 	isFirst = FALSE;
 	isSilent = FALSE;
+	isExt64 = TOs64();
+	isExtract = FALSE;
 	isInternal = FALSE;
 	stat = INST_INIT;
 	*setupDir = 0;
+	*extractDir = 0;
 
+	OpenDebugConsole(ODC_PARENT);
 	fwCheckMode = 0;
+
 	TRegistry	reg(HKEY_CURRENT_USER);
-	if (reg.ChangeApp(HSTOOLS_STR, IP_MSG)) {
+	if (reg.ChangeApp(HSTOOLS_STR, IP_MSG, TRUE)) {
 		reg.GetInt(FWCHECKMODE_STR, &fwCheckMode);
 	}
 }
@@ -183,58 +233,150 @@ TInstDlg::~TInstDlg()
 {
 }
 
+void TInstDlg::ErrMsg(const WCHAR *body, const WCHAR *title)
+{
+	auto	s = title ? FmtW(L"%s: %s\n", title, body) : body;
+
+	if (isSilent) {
+		OutW(s);
+		TApp::Exit(-1);
+	} else {
+		MessageBoxW(s, IP_MSG_W);
+	}
+}
+
 BOOL TInstDlg::ParseCmdLine()
 {
-#define USAGE_STR	\
-		"IPMsg_installer usage\r\n"					\
-		"  /SILENT ... silent install mode\r\n"		\
-		"  /INSTDIR=\"path\" ... default path\r\n"		\
-		"  /HELP ... show help(this message)"
+	programLink = TRUE;
+	desktopLink = TRUE;
+	startupLink = TRUE;
+	isAppReg    = TRUE;
+	isExec      = TRUE;
+	isSubDir    = TRUE;
 
-	U8str	cmdlineU8(::GetCommandLineW());
-	char	*cmdu8 = cmdlineU8.Buf();
+	isAuto     = FALSE;
+	isSilent   = FALSE;
+	isExtract  = FALSE;
+	isExt64    = TOs64();
 
-	if (strstr(cmdu8, "/HELP")) {
-		goto ERR;
-	}
+	*setupDir  = 0;
+	*extractDir = 0;
 
-	if (strstr(cmdu8, "/SILENT")) {
-		isSilent = TRUE;
-	}
+	orgArgv = CommandLineToArgvExW(::GetCommandLineW(), &orgArgc);
 
-	if (strstr(cmdu8, "/INTERNAL")) {
-		isInternal = TRUE;
-		isSilent = TRUE;
-	}
+	for (int i=1; orgArgv[i] /*&& orgArgv[i][0] == '/'*/; i++) {
+		auto	arg = orgArgv[i];
 
-	if (char *p = strstr(cmdu8, "/INSTDIR=")) {
-		char	*top = p + 9;
-		size_t	len = strlen(top);
-
-		if (*top == '"') {
-			top++;
-			if (char *end = strchr(top, '"')) {
-				len = end - top;
-			} else {
-				goto ERR;
+		if (wcsicmp(arg, UPDATE_OPT) == 0) {
+			isAuto = TRUE;
+			desktopLink = FALSE;
+			startupLink = FALSE;
+			programLink = FALSE;
+		}
+		else if (wcsicmp(arg, SILENT_OPT) == 0) {
+			isSilent = TRUE;
+		}
+		else if (wcsicmp(arg, EXTRACT_OPT) == 0) {
+			isExtract = TRUE;
+		}
+		else if (wcsicmp(arg, EXTRACT32_OPT) == 0) {
+			isExtract = TRUE;
+			isExt64   = FALSE;
+		}
+		else if (wcsicmp(arg, EXTRACT64_OPT) == 0) {
+			isExtract = TRUE;
+			isExt64   = TRUE;
+		}
+		else if (wcsicmp(arg, NOPROG_OPT) == 0) {
+			programLink = FALSE;
+		}
+		else if (wcsicmp(arg, NODESK_OPT) == 0) {
+			desktopLink = FALSE;
+		}
+		else if (wcsicmp(arg, NOAPP_OPT) == 0) {
+			isAppReg = FALSE;
+		}
+		else if (wcsicmp(arg, NOSTARTUP_OPT) == 0) {
+			startupLink = FALSE;
+		}
+		else if (wcsicmp(arg, NOEXEC_OPT) == 0) {
+			isExec = FALSE;
+		}
+		else if (wcsicmp(arg, NOSUBDIR_OPT) == 0) {
+			isSubDir = FALSE;
+		}
+		else if (wcsnicmp(arg, DIR_OPT, wsizeof(DIR_OPT)-1) == 0) {
+			WtoU8(arg + wsizeof(DIR_OPT)-1, setupDir, sizeof(setupDir));
+			strcpy(extractDir, setupDir);
+		}
+		else if (wcsnicmp(arg, INSTDIR_OPT, wsizeof(INSTDIR_OPT)-1) == 0) {
+			WtoU8(arg + wsizeof(INSTDIR_OPT)-1, setupDir, sizeof(setupDir));
+			strcpy(extractDir, setupDir);
+		}
+		else if (wcsicmp(arg, INTERNAL_OPT) == 0) {
+			isInternal = TRUE;
+			isSilent = TRUE;
+		}
+		else if (wcsnicmp(arg, RUNAS_OPT, wsizeof(RUNAS_OPT)-1) == 0) {
+			auto	p = arg + wsizeof(RUNAS_OPT)-1;
+			runasWnd = (HWND)wcstoull(p, 0, 16);
+			if ((p = wcsstr(p, L",imm="))) {
+				runasImm = wcstol(p+5, 0, 10);
 			}
 		}
-		else if (char *end = strchr(top, ' ')) {
-			len = end - top;
+		else if (wcsicmp(arg, TEMPDIR_OPT) == 0) {
+			// nothing
 		}
-		if (len + 1 >= MAX_PATH_U8) {
-			goto ERR;
+		else {
+			ErrMsg(USAGE_STR, (wcsicmp(arg, HELP_OPT) == 0) ? NULL :
+				FmtW(L"Unrecognized option: %s", arg));
+			TApp::Exit(-1);
 		}
-		memcpy(setupDir, top, len);
-		setupDir[len] = 0;
-		Debug("exp path=<%s> len=%d\n", setupDir, len);
+	}
+	if (isExtract) {
+		isAuto = TRUE;
+		isSilent = TRUE;
+		isAppReg = FALSE;
+		isExec = FALSE;
+		desktopLink = FALSE;
+		programLink = FALSE;
+		startupLink = FALSE;
+	}
+
+	if (isInternal) {
+		isAuto = TRUE;
+		isSilent = TRUE;
+		desktopLink = FALSE;
+		programLink = FALSE;
+		startupLink = FALSE;
 	}
 
 	return	TRUE;
+}
 
-ERR:
-	MessageBox(USAGE_STR);
-	return	FALSE;
+
+BOOL TInstDlg::VerifyDict()
+{
+	GetIPDictBySelf(&ipDict);
+
+	ipDict.get_str(VER_KEY, &ver);
+
+	DynBuf	dict_hash;
+	if (!ipDict.get_bytes(SHA256_KEY, &dict_hash)) return FALSE;
+	ipDict.del_key(SHA256_KEY);
+
+	DynBuf	dbuf;
+	auto	size = ipDict.pack(&dbuf);
+	if (size == 0) return FALSE;
+
+	TDigest	digest;
+	BYTE	sha256[SHA256_SIZE];
+
+	digest.Init(TDigest::SHA256);
+	digest.Update(dbuf.Buf(), (DWORD)size);
+	if (!digest.GetVal(sha256)) return FALSE;
+
+	return	memcmp(dict_hash.Buf(), sha256, SHA256_SIZE) == 0 ? TRUE : FALSE;
 }
 
 /*
@@ -242,69 +384,28 @@ ERR:
 */
 BOOL TInstDlg::EvCreate(LPARAM lParam)
 {
-	if (!ParseCmdLine()) {
-		TApp::Exit(0);
+	ParseCmdLine();
+
+	if (!VerifyDict()) {
+		if (isSilent) {
+			OutW(L"Installer is broken.\n");
+		} else {
+			MessageBox("Installer is broken.", "IPMsg");
+		}
+		TApp::Exit(-1);
 		return	FALSE;
-	}
-
-	HICON hBigIcon = (HICON)::LoadImage(TApp::hInst(), (LPCSTR)IPMSG_ICON, IMAGE_ICON,
-		32, 32, LR_DEFAULTCOLOR);
-	HICON hSmallIcon = (HICON)::LoadImage(TApp::hInst(), (LPCSTR)IPMSG_ICON, IMAGE_ICON,
-		16, 16, LR_DEFAULTCOLOR);
-
-	SendMessage(WM_SETICON, ICON_BIG, (LPARAM)hBigIcon);
-	SendMessage(WM_SETICON, ICON_SMALL, (LPARAM)hSmallIcon);
-
-	if (IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
-		runasBtn.AttachWnd(GetDlgItem(RUNAS_BUTTON));
-		runasBtn.CreateTipWnd(LoadStrW(IDS_LABLE_RUNAS));
-		runasBtn.ShowWindow(SW_SHOW);
-		runasBtn.SendMessage(BCM_SETSHIELD, 0, 1);
 	}
 
 	SetStat(INST_INIT);
 
-	char	title[256];
-	char	title2[256];
-
-	GetWindowText(title, sizeof(title));
-	sprintf(title2, "%s ver%s", title, GetVersionStr());
-	SetWindowText(title2);
-
-	GetWindowRect(&rect);
-	int		cx = ::GetSystemMetrics(SM_CXFULLSCREEN), cy = ::GetSystemMetrics(SM_CYFULLSCREEN);
-	int		xsize = rect.right - rect.left, ysize = rect.bottom - rect.top;
-
-	::SetClassLong(hWnd, GCL_HICON, LONG_RDC(::LoadIcon(TApp::hInst(), (LPCSTR)SETUP_ICON)));
-
-	if (isSilent) {
-		Show(SW_HIDE);
-	}
-	else {
-		MoveWindow((cx - xsize)/2, (cy - ysize)/2, xsize, ysize, TRUE);
-		Show();
-	}
-
 	InitDir();
+	SetupDlg();
 
-	SetDlgItemTextU8(FILE_EDIT, setupDir);
-	CheckDlgButton(STARTUP_CHECK, 1);
-	CheckDlgButton(DESKTOP_CHECK, 1);
-	CheckDlgButton(EXTRACT_CHECK, 0);
-	if (fwCheckMode) {
-		CheckDlgButton(NOFW_CHK, 1);
-	}
-
-	char	*p = strstr(GetCommandLine(), "runas=");
-	if (p) {
-		runasWnd = (HWND)strtoull(p+6, 0, 16);
-		if (!runasWnd || !IsWindow(runasWnd)) {
-			TApp::Exit(0);
+	if (runasWnd) {
+		if (!IsWindow(runasWnd)) {
+			TApp::Exit(-1);
 			return	FALSE;
 		}
-		if ((p = strstr(p, ",imm="))) runasImm = atoi(p+5);
-
-		CheckDlgButton(EXTRACT_CHECK, ::IsDlgButtonChecked(runasWnd, EXTRACT_CHECK));
 		CheckDlgButton(STARTUP_CHECK, ::IsDlgButtonChecked(runasWnd, STARTUP_CHECK));
 		CheckDlgButton(DESKTOP_CHECK, ::IsDlgButtonChecked(runasWnd, DESKTOP_CHECK));
 		CheckDlgButton(NOFW_CHK,      ::IsDlgButtonChecked(runasWnd, NOFW_CHK));
@@ -314,20 +415,26 @@ BOOL TInstDlg::EvCreate(LPARAM lParam)
 		SetDlgItemTextU8(FILE_EDIT, WtoU8s(wbuf));
 
 		::SendMessage(runasWnd, WM_IPMSG_HIDE, 0, 0);
-		if (runasImm) {
-			PostMessage(WM_IPMSG_INSTALL, 0, 0);
-		}
 	}
 
-	msgStatic.AttachWnd(GetDlgItem(INST_STATIC));
-
-	progBar.AttachWnd(GetDlgItem(INST_PROG));
-	progBar.SendMessage(PBM_SETRANGE, 0, MAKELPARAM(0, 9));
-	progBar.SendMessage(PBM_SETSTEP, 1, 0);
-	progBar.EnableWindow(FALSE);
-
-	if (isSilent) {
+	if (isSilent || runasImm) {
 		PostMessage(WM_IPMSG_INSTALL, 0, 0);
+	}
+
+	if (!isSilent) {
+		GetWindowRect(&rect);
+		int		cx = ::GetSystemMetrics(SM_CXFULLSCREEN), cy = ::GetSystemMetrics(SM_CYFULLSCREEN);
+		int		xsize = rect.right - rect.left, ysize = rect.bottom - rect.top;
+		MoveWindow((cx - xsize)/2, (cy - ysize)/2, xsize, ysize, TRUE);
+		EnableWindow(TRUE);
+		Show();
+	}
+
+	if (!gEnableHook) {
+		char	buf[MAX_BUF];
+		GetWindowText(buf, sizeof(buf));
+		strncatz(buf, " (Non Hook)", sizeof(buf));
+		SetWindowText(buf);
 	}
 
 	return	TRUE;
@@ -349,13 +456,12 @@ BOOL TInstDlg::InitDir()
 	MakePathU8(dir, buf, IP_MSG);
 
 // 既にセットアップされている場合は、セットアップディレクトリを読み出す
+	isFirst = TRUE;
 	TRegistry	reg(HKEY_CURRENT_USER);
-	if (reg.ChangeApp(HSTOOLS_STR, IP_MSG)) {
+	if (reg.ChangeApp(HSTOOLS_STR, IP_MSG, TRUE)) {
 		if (reg.GetStr(REGSTR_PATH, buf, sizeof(buf)) && *buf) {
+			isFirst = FALSE;
 			strcpy(dir, buf);
-		}
-		else {
-			isFirst = TRUE;
 		}
 		reg.CloseKey();
 	}
@@ -365,6 +471,52 @@ BOOL TInstDlg::InitDir()
 	}
 
 	return	TRUE;
+}
+
+void TInstDlg::SetupDlg()
+{
+	SetDlgItemTextU8(FILE_EDIT, setupDir);
+	CheckDlgButton(STARTUP_CHECK, 1);
+	CheckDlgButton(DESKTOP_CHECK, 1);
+	if (fwCheckMode) {
+		CheckDlgButton(NOFW_CHK, 1);
+	}
+
+	HICON hBigIcon = (HICON)::LoadImage(TApp::hInst(), (LPCSTR)IPMSG_ICON, IMAGE_ICON,
+		32, 32, LR_DEFAULTCOLOR);
+	HICON hSmallIcon = (HICON)::LoadImage(TApp::hInst(), (LPCSTR)IPMSG_ICON, IMAGE_ICON,
+		16, 16, LR_DEFAULTCOLOR);
+
+	SendMessage(WM_SETICON, ICON_BIG, (LPARAM)hBigIcon);
+	SendMessage(WM_SETICON, ICON_SMALL, (LPARAM)hSmallIcon);
+
+	msgStatic.AttachWnd(GetDlgItem(INST_STATIC));
+
+	progBar.AttachWnd(GetDlgItem(INST_PROG));
+	progBar.SendMessage(PBM_SETRANGE, 0, MAKELPARAM(0, 9));
+	progBar.SendMessage(PBM_SETSTEP, 1, 0);
+	progBar.EnableWindow(FALSE);
+
+	char	title[256];
+	char	title2[256];
+
+	GetWindowText(title, sizeof(title));
+	sprintf(title2, "%s ver%s", title, GetVersionStr());
+	SetWindowText(title2);
+
+	::SetClassLong(hWnd, GCL_HICON, LONG_RDC(::LoadIcon(TApp::hInst(), (LPCSTR)SETUP_ICON)));
+
+	WCHAR	buf[128];
+	GetDlgItemTextW(SETUP_GRP, buf, wsizeof(buf));
+	swprintf(buf + wcslen(buf), L"  (For %s)", isExt64 ? L"x64" : L"x86");
+	SetDlgItemTextW(SETUP_GRP, buf);
+
+	if (IsWinVista() && !::IsUserAnAdmin() && TIsEnableUAC()) {
+		runasBtn.AttachWnd(GetDlgItem(RUNAS_BUTTON));
+		runasBtn.CreateTipWnd(LoadStrW(IDS_LABLE_RUNAS));
+		runasBtn.ShowWindow(SW_SHOW);
+		runasBtn.SendMessage(BCM_SETSHIELD, 0, 1);
+	}
 }
 
 BOOL TInstDlg::EvNcDestroy(void)
@@ -384,10 +536,10 @@ BOOL TInstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 	switch (wID)
 	{
 	case IDOK:
+		isExtract = FALSE;
 		switch (stat) {
 		case INST_INIT:
 		case INST_RETRY:
-			CheckDlgButton(EXTRACT_CHECK, 0);
 			Install();
 			break;
 
@@ -410,8 +562,8 @@ BOOL TInstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		return	TRUE;
 
 	case EXTRACT_BUTTON:
-		CheckDlgButton(EXTRACT_CHECK, 1);
-		Install();
+		isExtract = TRUE;
+		Extract();
 		return	TRUE;
 
 	case FILE_BUTTON:
@@ -436,9 +588,10 @@ BOOL TInstDlg::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return	TRUE;
 
 	case WM_IPMSG_INSTALL:
-		Install();
-		if (isSilent) {
-			TApp::Exit(0);
+		if (isExtract) {
+			Extract();
+		} else {
+			Install();
 		}
 		return	TRUE;
 	}
@@ -482,7 +635,7 @@ BOOL TInstDlg::Progress() // call by ExtractAll
 		return	FALSE;
 	}
 	progBar.SendMessage(PBM_STEPIT, 0, 0);
-	this->Sleep(200);
+	this->Sleep(100);
 	return	TRUE;
 }
 
@@ -498,214 +651,66 @@ void TInstDlg::CreateShortCut(void)
 	if (!reg.OpenKey(REGSTR_SHELLFOLDERS)) {
 		return;
 	}
-	if (!isInternal && reg.GetStr(REGSTR_STARTUP, path, sizeof(path))) {
-		RemoveSameLink(path, IPMSG_EXENAME);
-		MakePathU8(buf, path, IPMSG_SHORTCUT_NAME);
-		if (IsDlgButtonChecked(STARTUP_CHECK) || isSilent) {
-			ShellLink(setupPath, buf);
-		}
-		else {
-			DeleteLink(buf);
-		}
-	}
-	if (!isInternal && reg.GetStr(REGSTR_DESKTOP, path, sizeof(path))) {
-		MakePathU8(buf, path, IPMSG_SHORTCUT_NAME);
-		if (IsDlgButtonChecked(DESKTOP_CHECK) || isSilent) {
-			ShellLink(setupPath, buf);
-		}
-		else {
-			DeleteLink(buf);
+	if (startupLink) {
+		if (reg.GetStr(REGSTR_STARTUP, path, sizeof(path))) {
+			RemoveSameLink(path, IPMSG_EXENAME);
+			MakePathU8(buf, path, IPMSG_SHORTCUT_NAME);
+			if (IsDlgButtonChecked(STARTUP_CHECK) || isSilent) {
+				ShellLink(setupPath, buf);
+			}
+			else {
+			//	DeleteLink(buf);
+			}
 		}
 	}
-	if (/*!isInternal &&*/ reg.GetStr(REGSTR_PROGRAMS, path, sizeof(path))) {
-		MakePathU8(buf, path, IPMSG_SHORTCUT_NAME);	// 旧登録の削除
-		DeleteLink(buf);
+	if (desktopLink) {
+		if (reg.GetStr(REGSTR_DESKTOP, path, sizeof(path))) {
+			MakePathU8(buf, path, IPMSG_SHORTCUT_NAME);
+			if (IsDlgButtonChecked(DESKTOP_CHECK) || isSilent) {
+				ShellLink(setupPath, buf);
+			}
+			else {
+			//	DeleteLink(buf);
+			}
+		}
+	}
 
-		MakePathU8(buf, path, IPMSG_FULLNAME);
-		CreateDirectoryU8(buf, NULL);
+	if (programLink) {
+		if (reg.GetStr(REGSTR_PROGRAMS, path, sizeof(path))) {
+			MakePathU8(buf, path, IPMSG_SHORTCUT_NAME);	// 旧登録の削除
+			DeleteLink(buf);
 
-		MakePathU8(path, buf, IPMSG_SHORTCUT_NAME);
-		ShellLink(setupPath, path, IPMSG_FULLNAME, IPMSG_APPID);
+			MakePathU8(buf, path, IPMSG_FULLNAME);
+			CreateDirectoryU8(buf, NULL);
 
-		MakePathU8(path, buf, UNINST_SHORTCUT_NAME);
+			MakePathU8(path, buf, IPMSG_SHORTCUT_NAME);
+			ShellLink(setupPath, path, IPMSG_FULLNAME, IPMSG_APPID);
 
-		char	uninstPath[MAX_PATH_U8];
-		MakePathU8(uninstPath, setupDir, UNINST_EXENAME);
-		ShellLink(uninstPath, path);
+			MakePathU8(path, buf, UNINST_SHORTCUT_NAME);
+
+			char	uninstPath[MAX_PATH_U8];
+			MakePathU8(uninstPath, setupDir, UNINST_EXENAME);
+			ShellLink(uninstPath, path);
+		}
 	}
 }
 
-BOOL TInstDlg::SetStat(Stat _stat)
+void TInstDlg::RegisterAppInfo(void)
 {
-	stat = _stat;
+	if (!isAppReg) return;
 
-	int	chk_sw = (stat == INST_INIT || stat == INST_RETRY) ? SW_SHOW : SW_HIDE;
-	int	msg_sw = (stat == INST_INIT || stat == INST_RETRY) ? SW_HIDE : SW_SHOW;
+	TRegistry	reg(HKEY_CURRENT_USER);
+	char		setupPath[MAX_PATH_U8];
 
-	::ShowWindow(GetDlgItem(STARTUP_CHECK), chk_sw);
-	::ShowWindow(GetDlgItem(DESKTOP_CHECK), chk_sw);
-//	::ShowWindow(GetDlgItem(EXTRACT_CHECK), chk_sw);
-	::ShowWindow(GetDlgItem(RUNAS_BUTTON), ::IsUserAnAdmin() ? SW_HIDE : chk_sw);
-	::ShowWindow(GetDlgItem(INST_STATIC),   msg_sw);
-
-	UINT id =	(stat == INST_INIT)  ? IDS_LABEL_START :
-				(stat == INST_RETRY) ? IDS_LABEL_RETRY :
-				(stat == INST_RUN)   ? IDS_LABEL_CANCEL :
-				(stat == INST_END)   ? IDS_LABEL_COMPLETE : IDS_LABEL_START;
-	::SetWindowText(GetDlgItem(IDOK), LoadStr(id));
-
-	if (stat == INST_INIT || stat == INST_RETRY) {
-		progBar.SendMessage(PBM_SETPOS, 0, 0);
-	}
-	::ShowWindow(GetDlgItem(NOFW_CHK),
-		(fwCheckMode && (stat == INST_INIT || stat == INST_RETRY)) ? SW_SHOW : SW_HIDE);
-
-	return	TRUE;
-}
-
-BOOL TInstDlg::Install(void)
-{
-	BOOL	extract_only = IsDlgButtonChecked(EXTRACT_CHECK);
-
-// 現在、起動中の ipmsg を終了
-	int		st = extract_only ? 0 :
-		TerminateIPMsg(hWnd, LoadStr(IDS_TERMINATE), INSTALL_STR, isSilent);
-	if (st == 1) {	// 手動中断
-		return	FALSE;
-	}
-
-// インストールパス設定
-	GetDlgItemTextU8(FILE_EDIT, setupDir, sizeof(setupDir));
-	char	setupPath[MAX_PATH_U8];
 	MakePathU8(setupPath, setupDir, IPMSG_EXENAME);
 
-	BOOL	third_fw = FALSE;
-
-	if (IsWinVista()) {
-		BOOL	is_virtual = TIsVirtualizedDirW(U8toWs(setupDir));
-		BOOL	need_admin = TIsEnableUAC() && !::IsUserAnAdmin();
-
-		if (is_virtual && need_admin) {
-			if (isSilent || MessageBox(LoadStr(IDS_REQUIREADMIN), INSTALL_STR,
-					MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) {
-				return	FALSE;
-			}
-			return	RunAsAdmin(hWnd, TRUE);
-		}
-
-		TRegistry	reg(HKEY_CURRENT_USER);
-		reg.ChangeApp(HSTOOLS_STR, IP_MSG);
-		reg.SetInt(FWCHECKMODE_STR, 1);
-
-		if (!IsDlgButtonChecked(NOFW_CHK)) {
-			BOOL		is_domain  = IsDomainEnviron();
-			BOOL		is_tout = FALSE;
-			FwStatus	fs;
-
-			third_fw = Is3rdPartyFwEnabled(TRUE, 5000, &is_tout);
-
-			GetFwStatusEx(U8toWs(setupPath), &fs);
-			// Is3rdParty../GetFwStat..で固まると次回は1に
-			reg.SetInt(FWCHECKMODE_STR, is_tout);
-
-			if (need_admin && !third_fw && fs.fwEnable && !isSilent &&	 // domain環境は拒否エントリが
-				(fs.IsBlocked() || !(is_domain || fs.IsAllowed()))) { // すでに存在する場合のみ
-				if (MessageBox(LoadStr(IDS_REQUIREADMIN_FW), INSTALL_STR,
-						MB_OKCANCEL|MB_ICONINFORMATION) == IDOK) {
-					return	RunAsAdmin(hWnd, TRUE);
-				}
-				if (MessageBox(LoadStr(IDS_NOADMIN_CONTINUE), INSTALL_STR,
-						MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) {
-					return	FALSE;
-				}
-			}
-		}
-	}
-
-	if (st == 2) {
-		if (!isSilent) {
-			MessageBox(LoadStr(IDS_CANTTERMINATE), INSTALL_STR);
-			return	FALSE;
-		}
-	}
-//	if (!runasImm && !isSilent &&
-//		MessageBox(LoadStr(IDS_START), INSTALL_STR, MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) {
-//		return	FALSE;
-//	}
-	runasImm = FALSE;
-
-	SetStat(INST_RUN);
-	msgStatic.SetWindowTextU8(LoadStrU8(IDS_MSG_INSTALL));
-
-	progBar.EnableWindow(TRUE);
-
-// ファイル生成
-	if (!ExtractAll(setupDir, isSilent, isSilent ? NULL : this)) {
-		const char *msg = "";
-		const char *err_msg = NULL;
-		ExtractErr err = GetExtractErr(&msg);
-
-		switch (err) {
-		case CREATE_DIR_ERR:
-			if (!isSilent) {
-				msg = LoadStrU8(IDS_NOTCREATEDIR);
-			}
-			break;
-
-		case CREATE_FILE_ERR:
-			if (!isSilent) {
-				msg = Fmt("%s\r\n%s", LoadStrU8(IDS_NOTCREATEFILE), err_msg);
-			}
-			break;
-
-		case DATA_BROKEN:
-			if (!isSilent) {
-				msg = LoadStrU8(IDS_BROKENARCHIVE);
-			}
-			break;
-
-		case USER_CANCEL:
-			if (!isSilent) {
-				msg = LoadStrU8(IDS_USERCANCEL);
-			}
-			break;
-		}
-		if (isInternal) {	// 自動アップデート失敗の場合は、起動は行う
-			AppKick(INTERNAL_ERR);
-		}
-		else {
-			//msgStatic.SetWindowTextU8(msg);
-			MessageBoxU8(msg, INSTALL_STR);
-		}
-		SetStat(INST_RETRY);
-		return	FALSE;
-	}
-	SetStat(INST_END);
-
-// 展開のみ
-	if (extract_only) {
-		ShellExecuteW(NULL, NULL, U8toWs(setupDir), 0, 0, SW_SHOW);
-		return TRUE;
-	}
-
-	// Firewall 登録
-	if (IsUserAnAdmin()) {
-		SetFwStatusEx(U8toWs(setupPath), IP_MSG_W);
-	}
-	if (!isInternal) {
-	// スタートアップ＆デスクトップにショートカットを登録
-		CreateShortCut();
-
 	// パス情報を登録
-		TRegistry	reg(HKEY_CURRENT_USER);
-		if (reg.ChangeApp(HSTOOLS_STR, IP_MSG)) {
-			reg.SetStr(REGSTR_PATH, setupDir);
-			reg.CloseKey();
-		}
+	if (reg.ChangeApp(HSTOOLS_STR, IP_MSG)) {
+		reg.SetStr(REGSTR_PATH, setupDir);
+		reg.CloseKey();
 	}
 
 	// レジストリにアプリケーション情報を登録
-	TRegistry	reg(HKEY_CURRENT_USER);
 	if (reg.OpenKey(REGSTR_PATH_APPPATHS)) {
 		if (reg.CreateKey(IPMSG_EXENAME)) {
 			reg.SetStr(NULL, setupPath);
@@ -740,7 +745,281 @@ BOOL TInstDlg::Install(void)
 		}
 		reg.CloseKey();
 	}
+}
 
+BOOL TInstDlg::SetStat(Stat _stat)
+{
+	stat = _stat;
+
+	int	chk_sw = (stat == INST_INIT || stat == INST_RETRY) ? SW_SHOW : SW_HIDE;
+	int	msg_sw = (stat == INST_INIT || stat == INST_RETRY) ? SW_HIDE : SW_SHOW;
+
+	::ShowWindow(GetDlgItem(STARTUP_CHECK), chk_sw);
+	::ShowWindow(GetDlgItem(DESKTOP_CHECK), chk_sw);
+	::ShowWindow(GetDlgItem(RUNAS_BUTTON), ::IsUserAnAdmin() ? SW_HIDE : chk_sw);
+	::ShowWindow(GetDlgItem(INST_STATIC),   msg_sw);
+
+	UINT id =	(stat == INST_INIT)  ? IDS_LABEL_START :
+				(stat == INST_RETRY) ? IDS_LABEL_RETRY :
+				(stat == INST_RUN)   ? IDS_LABEL_CANCEL :
+				(stat == INST_END)   ? IDS_LABEL_COMPLETE : IDS_LABEL_START;
+	::SetWindowText(GetDlgItem(IDOK), LoadStr(id));
+
+	if (stat == INST_INIT || stat == INST_RETRY) {
+		progBar.SendMessage(PBM_SETPOS, 0, 0);
+	}
+	::ShowWindow(GetDlgItem(NOFW_CHK),
+		(fwCheckMode && (stat == INST_INIT || stat == INST_RETRY)) ? SW_SHOW : SW_HIDE);
+
+	return	TRUE;
+}
+
+BOOL TInstDlg::CheckFw(BOOL *third_fw)
+{
+	BOOL	is_virtual = TIsVirtualizedDirW(U8toWs(setupDir));
+	BOOL	need_admin = TIsEnableUAC() && !::IsUserAnAdmin();
+
+	if (is_virtual && need_admin) {
+		if (isSilent || MessageBox(LoadStr(IDS_REQUIREADMIN), INSTALL_STR,
+				MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) {
+			return	FALSE;
+		}
+		return	RunAsAdmin(hWnd, TRUE), FALSE;
+	}
+
+	TRegistry	reg(HKEY_CURRENT_USER);
+	reg.ChangeApp(HSTOOLS_STR, IP_MSG);
+	reg.SetInt(FWCHECKMODE_STR, 1);
+
+	if (!IsDlgButtonChecked(NOFW_CHK)) {
+		BOOL		is_domain  = IsDomainEnviron();
+		BOOL		is_tout = FALSE;
+		FwStatus	fs;
+		char		setupPath[MAX_PATH_U8];
+
+		MakePathU8(setupPath, setupDir, IPMSG_EXENAME);
+
+		*third_fw = Is3rdPartyFwEnabled(TRUE, 5000, &is_tout);
+
+		GetFwStatusEx(U8toWs(setupPath), &fs);
+		// Is3rdParty../GetFwStat..で固まると次回は1に
+		reg.SetInt(FWCHECKMODE_STR, is_tout);
+
+		if (need_admin && !*third_fw && fs.fwEnable && !isSilent && // domain環境は拒否エントリ
+			(fs.IsBlocked() || !(is_domain || fs.IsAllowed()))) {  // がすでに存在する場合のみ
+			if (MessageBox(LoadStr(IDS_REQUIREADMIN_FW), INSTALL_STR,
+					MB_OKCANCEL|MB_ICONINFORMATION) == IDOK) {
+				return	RunAsAdmin(hWnd, TRUE), FALSE;
+			}
+			if (MessageBox(LoadStr(IDS_NOADMIN_CONTINUE), INSTALL_STR,
+					MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) {
+				return	FALSE;
+			}
+		}
+	}
+	return	TRUE;
+}
+
+BOOL TInstDlg::MakeExtractDir(char *extractDir)
+{
+	if (isSilent) {
+		if (*extractDir == 0) {
+			GetCurrentDirectoryU8(sizeof(extractDir), extractDir);
+		}
+	}
+	else {
+		::SHGetSpecialFolderPathU8(0, extractDir, CSIDL_DESKTOPDIRECTORY, FALSE);
+
+		SetDlgItemTextU8(EXTRACT_EDIT, extractDir);
+
+		if (!BrowseDirDlg(this, EXTRACT_EDIT, LoadStrU8(IDS_EXTRACTDIR), &isExt64)) {
+			return FALSE;
+		}
+		if (!GetDlgItemTextU8(EXTRACT_EDIT, extractDir, MAX_PATH_U8)) {
+			return FALSE;
+		}
+	}
+
+	if (isSubDir) {
+		auto	p = scope_raii(strdup(GetVersionStr()), [&](auto p) { free(p); });
+		auto	major = strtok(p, ".");
+		auto	minor = strtok(0, "");
+		AddPathU8(extractDir, Fmt("ipmsg%s%s%s%s", major, minor,
+			gEnableHook ? "" : "-n", isExt64 ? "_x64" : ""));
+	}
+	MakeDirAllU8(extractDir);
+	return	TRUE;
+}
+
+void GetDictName(const char *fname, char *dname, BOOL is_x64)
+{
+	strcpy(dname, fname);
+
+	if (is_x64 && find_if(begin(DualFiles), end(DualFiles),
+		[&](auto v) { return !strcmp(v, fname); }) != end(DualFiles)) {
+		strcat(dname, ".x64");
+	}
+}
+
+BOOL TInstDlg::ExtractAll(const char *dir)
+{
+	BOOL	need_prog = (isSilent || isExtract) ? FALSE : TRUE;
+
+	if (need_prog && !Progress()) {
+		SetExtractErr(USER_CANCEL, dir);
+		return	FALSE;
+	}
+
+	CreateDirectoryU8(dir, NULL);
+
+	DWORD	attr = GetFileAttributesU8(dir);
+
+	if (attr == 0xffffffff || (attr & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+		SetExtractErr(CREATE_DIR_ERR, dir);
+		return	FALSE;
+	}
+
+	int		max_retry = isSilent ? 10 : 1;
+
+	if (need_prog && !Progress()) {
+		SetExtractErr(USER_CANCEL, dir);
+		return	FALSE;
+	}
+
+// ファイル生成
+	for (auto &fname: SetupFiles) {
+		BOOL	is_rotate = FALSE;
+		char	path[MAX_PATH_U8];
+		char	dname[MAX_PATH_U8];
+
+		MakePath(path, dir, fname);
+		GetDictName(fname, dname, isExt64);
+
+		if (!IPDictCopy(&ipDict, dname, path, &is_rotate) &&
+			!IsSameFileDict(&ipDict, dname, path)) {
+			return	FALSE;
+		}
+		if (need_prog && !Progress()) {
+			SetExtractErr(USER_CANCEL, dir);
+			return	FALSE;
+		}
+	}
+
+	return	TRUE;
+}
+
+// ファイル生成
+BOOL TInstDlg::ExtractCore(char *dir)
+{
+	if (!ExtractAll(dir)) {
+		const char *msg = "";
+		const char *err_msg = NULL;
+		ExtractErr err = GetExtractErr(&msg);
+
+		switch (err) {
+		case CREATE_DIR_ERR:
+			msg = LoadStrU8(IDS_NOTCREATEDIR);
+			break;
+
+		case CREATE_FILE_ERR:
+			msg = Fmt("%s\r\n%s", LoadStrU8(IDS_NOTCREATEFILE), err_msg);
+			break;
+
+		case DATA_BROKEN:
+			msg = LoadStrU8(IDS_BROKENARCHIVE);
+			break;
+
+		case USER_CANCEL:
+			msg = LoadStrU8(IDS_USERCANCEL);
+			break;
+		}
+		if (isInternal) {	// 自動アップデート失敗の場合は、起動は行う
+			AppKick(INTERNAL_ERR);
+		}
+		else {
+			//msgStatic.SetWindowTextU8(msg);
+			if (isSilent) {
+				OutW(U8toWs(msg));
+			} else {
+				MessageBoxU8(msg, INSTALL_STR);
+			}
+		}
+		SetStat(INST_RETRY);
+		return	FALSE;
+	}
+	SetStat(INST_END);
+	return	TRUE;
+}
+
+// 展開のみ
+BOOL TInstDlg::Extract(void)
+{
+	if (!MakeExtractDir(extractDir)) {
+		return FALSE;
+	}
+
+	if (!ExtractCore(extractDir)) {
+		return	FALSE;
+	}
+	if (isSilent) {
+		OutW(L"succeeded\n");
+	} else {
+		ShellExecuteW(NULL, NULL, U8toWs(extractDir), 0, 0, SW_SHOW);
+	}
+	TApp::Exit(0);
+	return TRUE;
+}
+
+BOOL TInstDlg::Install(void)
+{
+// 現在、起動中の ipmsg を終了
+	int	st = TerminateIPMsg(hWnd, LoadStr(IDS_TERMINATE), INSTALL_STR, isSilent);
+	if (st == 1) {	// 手動中断
+		return	FALSE;
+	}
+
+// インストールパス設定
+	GetDlgItemTextU8(FILE_EDIT, setupDir, sizeof(setupDir));
+	char	setupPath[MAX_PATH_U8];
+	MakePathU8(setupPath, setupDir, IPMSG_EXENAME);
+
+// FW check
+	BOOL	third_fw = FALSE;
+	if (IsWinVista()) {
+		if (!CheckFw(&third_fw)) {
+			return	FALSE;
+		}
+	}
+
+	if (st == 2) {
+		if (!isSilent) {
+			MessageBox(LoadStr(IDS_CANTTERMINATE), INSTALL_STR);
+			return	FALSE;
+		}
+	}
+//	if (!runasImm && !isSilent &&
+//		MessageBox(LoadStr(IDS_START), INSTALL_STR, MB_OKCANCEL|MB_ICONINFORMATION) != IDOK) {
+//		return	FALSE;
+//	}
+	runasImm = FALSE;
+
+	SetStat(INST_RUN);
+	msgStatic.SetWindowTextU8(LoadStrU8(IDS_MSG_INSTALL));
+	progBar.EnableWindow(TRUE);
+
+// 展開
+	if (!ExtractCore(setupDir)) {
+		return	FALSE;
+	}
+
+	// Firewall 登録
+	if (IsUserAnAdmin()) {
+		SetFwStatusEx(U8toWs(setupPath), IP_MSG_W);
+	}
+
+	// スタートアップ＆デスクトップにショートカットを登録
+	CreateShortCut();
+	RegisterAppInfo();
 
 // コピーしたアプリケーションを起動
 	const char *msg = LoadStr(IDS_SETUPCOMPLETE);
@@ -750,16 +1029,18 @@ BOOL TInstDlg::Install(void)
 		msg = Fmt("%s\r\n\r\n%s", msg, LoadStr(IDS_COMPLETE_3RDFWADD));
 //		flg |= MB_DEFBUTTON2;
 	}
-	TLaunchDlg	dlg(msg, isFirst, this);
-	if (isSilent /*|| dlg.Exec() == IDOK*/ || TRUE) {
+//	TLaunchDlg	dlg(msg, isFirst, this);
+	if (isExec) {
 		Mode	mode = isInternal ? INTERNAL : SIMPLE;
 
 		if (!isSilent) {
 			if (isFirst) {
 				mode = FIRST;
-			} else if (dlg.needHist) {
-				mode = HISTORY;
-			} else {
+			}
+			//else if (dlg.needHist) {
+			//	mode = HISTORY;
+			// }
+			else {
 				mode = INSTALLED;
 			}
 		}
@@ -780,10 +1061,14 @@ BOOL TInstDlg::Install(void)
 		runasWnd = NULL;
 	}
 
-	msgStatic.SetWindowTextU8(LoadStrU8(IDS_INST_SUCCESS));
+	if (isSilent) {
+		OutW(L"succeeded\n");
+	}
 
-	::SetWindowText(GetDlgItem(IDOK), LoadStr(IDS_LABEL_COMPLETE));
+//	msgStatic.SetWindowTextU8(LoadStrU8(IDS_INST_SUCCESS));
+//	::SetWindowText(GetDlgItem(IDOK), LoadStr(IDS_LABEL_COMPLETE));
 
+	TApp::Exit(0);
 	return	TRUE;
 }
 
@@ -867,7 +1152,7 @@ BOOL TInputDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 /*
 	ディレクトリダイアログ用汎用ルーチン
 */
-void BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title)
+BOOL BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title, BOOL *is_x64)
 { 
 	IMalloc			*iMalloc = NULL;
 	BROWSEINFOW		brInfo;
@@ -878,10 +1163,11 @@ void BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title)
 
 	parentWin->GetDlgItemTextU8(editCtl, buf, sizeof(buf));
 	U8toW(buf, wbuf, wsizeof(wbuf));
-	if (!SUCCEEDED(SHGetMalloc(&iMalloc)))
-		return;
+	if (!SUCCEEDED(SHGetMalloc(&iMalloc))) {
+		return FALSE;
+	}
 
-	TBrowseDirDlg	dirDlg(buf, sizeof(buf));
+	TBrowseDirDlg	dirDlg(buf, sizeof(buf), is_x64);
 	brInfo.hwndOwner = parentWin->hWnd;
 	brInfo.pidlRoot = 0;
 	brInfo.pszDisplayName = wbuf;
@@ -891,16 +1177,20 @@ void BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title)
 	brInfo.lParam = (LPARAM)&dirDlg;
 	brInfo.iImage = 0;
 
+	BOOL	ret = FALSE;
 	do {
 		if ((pidlBrowse = ::SHBrowseForFolderW(&brInfo))) {
-			if (::SHGetPathFromIDListW(pidlBrowse, wbuf))
+			if (::SHGetPathFromIDListW(pidlBrowse, wbuf)) {
 				::SetDlgItemTextW(parentWin->hWnd, editCtl, wbuf);
+				ret = TRUE;
+			}
 			iMalloc->Free(pidlBrowse);
 			break;
 		}
 	} while (dirDlg.IsDirty());
 
 	iMalloc->Release();
+ 	return	ret;
 }
 
 /*
@@ -939,24 +1229,24 @@ BOOL TBrowseDirDlg::AttachWnd(HWND _hWnd)
 	SetWindowText(IPMSG_FULLNAME);
 
 // ボタン作成
-#if 0
-	RECT	tmp_rect;
-	::GetWindowRect(GetDlgItem(IDOK), &tmp_rect);
-	POINT	pt = { tmp_rect.left, tmp_rect.top };
-	::ScreenToClient(hWnd, &pt);
-	int		cx = (pt.x - 30) / 2, cy = tmp_rect.bottom - tmp_rect.top;
+	if (is_x64) {
+		TPoint	pt = { 30, 30 };
+		TSize	sz = { 80, 30 };
 
-	::CreateWindowU8(BUTTON_CLASS, LoadStrU8(IDS_MKDIR), WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,
-		10, pt.y, cx, cy, hWnd, (HMENU)MKDIR_BUTTON, TApp::hInst(), NULL);
-	::CreateWindowU8(BUTTON_CLASS, LoadStrU8(IDS_RMDIR), WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,
-		18 + cx, pt.y, cx, cy, hWnd, (HMENU)RMDIR_BUTTON, TApp::hInst(), NULL);
+		::CreateWindow(BUTTON_CLASS, "For x86", WS_CHILD|WS_VISIBLE|BS_AUTORADIOBUTTON|WS_GROUP,
+			pt.x, pt.y, sz.cx, sz.cy, hWnd, (HMENU)X86_RADIO, TApp::GetInstance(), NULL);
 
-	HFONT	hDlgFont = (HFONT)SendDlgItemMessage(IDOK, WM_GETFONT, 0, 0L);
-	if (hDlgFont) {
-		SendDlgItemMessage(MKDIR_BUTTON, WM_SETFONT, (WPARAM)hDlgFont, 0L);
-		SendDlgItemMessage(RMDIR_BUTTON, WM_SETFONT, (WPARAM)hDlgFont, 0L);
+		::CreateWindow(BUTTON_CLASS, "For x64", WS_CHILD|WS_VISIBLE|BS_AUTORADIOBUTTON,
+			pt.x + sz.cx, pt.y, sz.cx, sz.cy, hWnd, (HMENU)X64_RADIO, TApp::GetInstance(), NULL);
+
+		CheckDlgButton(*is_x64 ? X64_RADIO : X86_RADIO, TRUE);
+
+		HFONT	hDlgFont = (HFONT)SendDlgItemMessage(IDOK, WM_GETFONT, 0, 0L);
+		if (hDlgFont) {
+			SendDlgItemMessage(X86_RADIO, WM_SETFONT, (LPARAM)hDlgFont, 0L);
+			SendDlgItemMessage(X64_RADIO, WM_SETFONT, (LPARAM)hDlgFont, 0L);
+		}
 	}
-#endif
 
 	return	ret;
 }
@@ -991,6 +1281,14 @@ BOOL TBrowseDirDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 			dirtyFlg = TRUE;
 			PostMessage(WM_CLOSE, 0, 0);
 		}
+		return	TRUE;
+
+	case X86_RADIO:
+		*is_x64 = FALSE;
+		return	TRUE;
+
+	case X64_RADIO:
+		*is_x64 = TRUE;
 		return	TRUE;
 	}
 	return	FALSE;

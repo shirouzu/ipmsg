@@ -16,6 +16,8 @@
 //#define OFFICIAL_SVR
 #endif
 
+//#define DISALBE_HOOK
+
 #ifdef IPMSG_PRO
 #define ENV_DEF
 #include "ipmsgext.dat"

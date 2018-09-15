@@ -1,10 +1,10 @@
 ﻿static char *logdb_id = 
-	"@(#)Copyright (C) H.Shirouzu 2015-2017   logdbcponv.cpp	Ver4.50";
+	"@(#)Copyright (C) H.Shirouzu 2015-2018   logdbcponv.cpp	Ver4.90";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Log Converter
 	Create					: 2015-04-10(Sat)
-	Update					: 2017-06-12(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -441,6 +441,8 @@ BOOL ParseOption(const LineInfo *l, LogMsg *m)
 		{ DB_FLAG_SEAL,					L"(sealed)" },
 		{ DB_FLAG_LOCK,					L"(錠)" },
 		{ DB_FLAG_LOCK,					L"(locked)" },
+		{ DB_FLAG_DELAY,				L"(遅延)" },
+		{ DB_FLAG_DELAY,				L"(Delayed)" },
 		{ 0, 0, 0 }
 	};
 	if (Opt[0].len == 0) {	// first init

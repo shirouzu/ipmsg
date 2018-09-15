@@ -163,8 +163,18 @@ Host *TMainWin::FindHostForCmd(shared_ptr<U8str> u)
 	for (int i=0; i < hosts.HostCnt(); i++) {
 		auto	h = hosts.GetHost(i);
 		if (!strcmp(h->hostSub.u.userName, s)
+		 || !strcmp(h->hostSub.u.hostName, s)
 		 || !strcmp(h->hostSub.addr.S(), s)) {
 			return	h;
+		}
+	}
+	time_t disp_time = time(NULL) - cfg->DispHostTime;
+	for (int i=0; i < cfg->priorityHosts.HostCnt(); i++) {
+		auto	h = cfg->priorityHosts.GetHost(i);
+		if (h->updateTime > disp_time) {
+			if (!strcmp(h->hostSub.u.userName, s)) {
+				return	h;
+			}
 		}
 	}
 	return	NULL;

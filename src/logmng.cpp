@@ -345,6 +345,10 @@ BOOL LogMng::WriteMsg(ULONG packetNo, LPCSTR msg, ULONG command, int opt, time_t
 			logMsg->flags |= DB_FLAG_UNOPENR;
 		}
 	}
+	if (opt & LOG_DELAY) {
+		p += strcpyz(p, LoadStrU8(IDS_DELAYSEND));
+		logMsg->flags |= DB_FLAG_DELAY;
+	}
 
 	if (shareInfo && (command & IPMSG_FILEATTACHOPT))
 	{

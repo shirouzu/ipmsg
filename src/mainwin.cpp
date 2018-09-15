@@ -1,10 +1,10 @@
 ﻿static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2017   mainwin.cpp	Ver4.61";
+	"@(#)Copyright (C) H.Shirouzu 1996-2018   mainwin.cpp	Ver4.90";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2017-07-31(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -106,8 +106,6 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 		TSetDefaultLCID(cfg->lcid);
 	}
 
-	TInetSetUserAgent(Fmt("IPMsg v%s", GetVersionStr()));
-
 	setupDlg = new TSetupDlg(cfg, &hosts, param.isFirstRun);
 	aboutDlg = new TAboutDlg(cfg);
 	absenceDlg = new TAbsenceDlg(cfg, this);
@@ -115,6 +113,7 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 	ansList = new TRecycleListEx<AnsQueueObj>(MAX_ANSLIST);
 	dosHost = new TRecycleListEx<DosHost>(MAX_DOSHOST);
 	shareMng = new ShareMng(cfg, msgMng);
+	sendMng = new SendMng(cfg, msgMng);
 	shareStatDlg = new TShareStatDlg(shareMng, cfg);
 	histDlg = new THistDlg(cfg, &hosts);
 	logViewList.AddObj(new TLogView(cfg, logmng, TRUE));
@@ -142,6 +141,7 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 	brDirAgentLast = 0;
 	brDirAgentLimit = 0;
 	lastExitTick = 0;
+	maxHostNum = 0;
 
 	desktopLockCnt = 0;
 	monitorState = 0x1;
@@ -267,6 +267,9 @@ static HMODULE hToast;
 void TMainWin::InitToastDll(void)
 {
 	if ((hToast = TLoadLibraryExW(TOASTDLL, TLT_EXEDIR)) == NULL) {
+		auto	msg = Fmt("Load iptoast err=%d\n", GetLastError());
+		Debug(msg);
+		MessageBox(msg);
 		return;
 	}
 
@@ -488,7 +491,15 @@ BOOL TMainWin::CleanupProc()
 	}
 #endif
 
+	if (hosts.HostCnt() > maxHostNum) {
+		maxHostNum = hosts.HostCnt();
+	}
+
 	if (cur - last < 10000) {
+		return	TRUE;
+	}
+	if (last == 0) {
+		last = cur;
 		return	TRUE;
 	}
 	last = cur;
@@ -498,7 +509,6 @@ BOOL TMainWin::CleanupProc()
 	ConnectInfo	*connInfo = connList.TopObj();
 
 	if (connInfo) {
-
 		while (connInfo) {
 			ConnectInfo	*next = connList.NextObj(connInfo);
 			if (cur - connInfo->startTick > 10000) {
@@ -594,7 +604,7 @@ BOOL TMainWin::SendDlgOpen(DWORD recvId, ReplyInfo *_rInfo)
 
 	if (recvDlg) {
 		for (sendDlg = sendList.TopObj(); sendDlg; sendDlg = sendList.NextObj(sendDlg)) {
-			if (sendDlg->GetRecvId() == recvDlg->twinId && !sendDlg->IsSending())
+			if (sendDlg->GetRecvId() == recvDlg->twinId)
 				return	ActiveDlg(sendDlg), TRUE;
 		}
 	}
@@ -604,7 +614,7 @@ BOOL TMainWin::SendDlgOpen(DWORD recvId, ReplyInfo *_rInfo)
 		rInfo.isMultiRecv = (recvDlg->GetMsgBuf()->command & IPMSG_MULTICASTOPT) ? TRUE : FALSE;
 	}
 
-	if (!(sendDlg = new TSendDlg(msgMng, shareMng, &hosts, cfg, logmng,
+	if (!(sendDlg = new TSendDlg(msgMng, shareMng, sendMng, &hosts, cfg, logmng,
 		 &rInfo, cfg->TaskbarUI ? (TWin *)this : 0))) {
 		return	FALSE;
 	}
@@ -630,7 +640,7 @@ BOOL TMainWin::SendDlgOpen(DWORD recvId, ReplyInfo *_rInfo)
 	送信Dialog Hide通知(WM_SENDDLG_HIDE)処理。
 	伝えてきた送信Dialogに対応する、受信Dialogを破棄
 */
-void TMainWin::SendDlgHide(DWORD sendid)
+void TMainWin::SendDlgExitEx(DWORD sendid)
 {
 	TSendDlg *sendDlg = sendList.Search(sendid);
 	if (!sendDlg) return;
@@ -643,6 +653,7 @@ void TMainWin::SendDlgHide(DWORD sendid)
 			recvdlg->PostMessage(WM_COMMAND, IDCANCEL, 0);
 		}
 	}
+	SendDlgExit(sendid);
 }
 
 /*
@@ -654,8 +665,7 @@ void TMainWin::SendDlgExit(DWORD sendid)
 	TSendDlg *sendDlg = sendList.Search(sendid);
 	if (!sendDlg || sendDlg->modalCount) return;
 
-	if (!sendDlg->IsSending())	// 送信中の場合は HIDE で実行済み
-		ControlIME(sendDlg, FALSE);
+	ControlIME(sendDlg, FALSE);
 	sendList.DelObj(sendDlg);
 	delete sendDlg;
 }
@@ -806,6 +816,8 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg, const char *rep_head, ULONG img_base,
 
 void TMainWin::SendToHook(MsgBuf *msg, BOOL is_attached)
 {
+	if (gEnableHook == 0) return;
+
 	char	nick[MAX_LISTBUF] = "";
 
 	MakeNick(cfg, &msg->hostSub, &hosts, nick);
@@ -814,7 +826,7 @@ void TMainWin::SendToHook(MsgBuf *msg, BOOL is_attached)
 	}
 
 	U8str	json;
-	char	*body = *msg->msgBuf ? msg->msgBuf : "(no body text)";
+	char	*body = *msg->msgBuf.s() ? msg->msgBuf.s() : "(no body text)";
 
 	if (cfg->hookKind == 0) {
 		std::map<U8str, U8str> dict = {
@@ -1029,7 +1041,6 @@ BOOL TMainWin::BalloonWindow(TrayMode _tray_mode, LPCSTR msg, LPCSTR title, DWOR
 	tn.uID = WM_NOTIFY_TRAY;
 	tn.uFlags = NIF_INFO|NIF_MESSAGE| ((_tray_mode == TRAY_RECV || force_icon) ? NIF_ICON : 0);
 	tn.uCallbackMessage = WM_NOTIFY_TRAY;
-	tn.hIcon = hCycleIcon[0];
 	tn.hIcon = hMainBigIcon;
 
 	if (msg && title) {
@@ -1280,8 +1291,6 @@ inline void TMainWin::SetHostData(Host *destHost, HostSub *hostSub,
 Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 	const char *groupName, const char *verInfo, BOOL byHostList)
 {
-	Host	*host;
-	Host	*priorityHost;
 	time_t	now_time = time(NULL);
 	int		priority = DEFAULT_PRIORITY;
 
@@ -1302,20 +1311,23 @@ Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 		}
 	}
 
-	if ((priorityHost = cfg->priorityHosts.GetHostByName(hostSub))) {
+	Host	*priorityHost = cfg->priorityHosts.GetHostByName(hostSub);
+	if (priorityHost) {
 		priority = priorityHost->priority;
 //		command |= priorityHost->hostStatus & IPMSG_ENCRYPTOPT;
 	}
 
-	if ((host = hosts.GetHostByName(hostSub))) {
+	Host	*host = hosts.GetHostByName(hostSub);
+	if (host) {
 		BOOL	need_dlgupdate = FALSE;
 
-		if (host->hostSub.addr != hostSub->addr || host->hostSub.portNo != hostSub->portNo) {
+		if (!IsSameAddrPort(&host->hostSub, hostSub)) {
 			if (host->hostSub.addr.IsIPv6() && hostSub->addr.IsIPv4()
 				|| abs(now_time - host->updateTime) >= 7) {
 				if (Host *tmp_host = hosts.GetHostByAddr(hostSub)) {
+					tmp_host->active = false;
 					for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-						dlg->DelHost(tmp_host, 0, !byHostList);
+						dlg->ModifyHost(tmp_host, !byHostList);
 					}
 					Debug("tmp_del (%s) %s %p\n", tmp_host->S(), tmp_host);
 					hosts.DelHost(tmp_host);
@@ -1325,6 +1337,7 @@ Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 				hosts.DelHost(host);
 				host->hostSub.addr = hostSub->addr;
 				host->hostSub.portNo = hostSub->portNo;
+				host->active = true;
 				hosts.AddHost(host);
 				need_dlgupdate = TRUE;
 			}
@@ -1339,6 +1352,7 @@ Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 			strcmp(host->nickName, nickName) || strcmp(host->groupName, groupName) ||
 			need_dlgupdate) {
 
+			host->active = true;
 			SetHostData(host, hostSub, command, now_time, nickName, groupName, priority);
 			for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
 				dlg->ModifyHost(host, FALSE);
@@ -1353,8 +1367,9 @@ Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 	}
 
 	if ((host = hosts.GetHostByAddr(hostSub))) {
+		host->active = false;
 		for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-			dlg->DelHost(host, 0, FALSE);
+			dlg->ModifyHost(host, FALSE);
 		}
 		hosts.DelHost(host);
 		host->SafeRelease();
@@ -1363,16 +1378,16 @@ Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 	if ((host = priorityHost) == NULL) {
 		host = new Host;
 	}
-
 	SetHostData(host, hostSub, command, now_time, nickName, groupName, priority);
 
 	hosts.AddHost(host);
 	if (priorityHost == NULL) {
 		cfg->priorityHosts.AddHost(host);
 	}
+	host->active = true;
 
 	for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-		dlg->AddHost(host, FALSE, FALSE);
+		dlg->ModifyHost(host, FALSE);
 	}
 
 	if (!byHostList) {
@@ -1387,6 +1402,7 @@ Host *TMainWin::AddHost(HostSub *hostSub, ULONG command, const char *nickName,
 void TMainWin::PostAddHost(Host *host, const char *verInfo, time_t now_time, BOOL byHostList)
 {
 	host->active = TRUE;
+	sendMng->AddHostEvent(host);
 
 	if (host->hostStatus & IPMSG_CAPIPDICTOPT) {
 		if ( (host->pubKey.Capa() & IPMSG_SIGN_SHA1)
@@ -1424,7 +1440,7 @@ void TMainWin::PostAddHost(Host *host, const char *verInfo, time_t now_time, BOO
 void TMainWin::DelAllHost(void)
 {
 	for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-		dlg->DelAllHost();
+		dlg->ModifyAllHost();
 	}
 
 	int	max_num = hosts.HostCnt();
@@ -1462,10 +1478,6 @@ void TMainWin::DelHost(HostSub *hostSub, BOOL caption_upd)
 */
 BOOL TMainWin::DelHostSub(Host *host)
 {
-	for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-		dlg->DelHost(host, 0, FALSE);
-	}
-
 	for (auto obj = cfg->DialUpList.TopObj(); obj; obj = cfg->DialUpList.NextObj(obj)) {
 		if (obj->addr == host->hostSub.addr && obj->portNo == host->hostSub.portNo) {
 			cfg->DialUpList.DelObj(obj);
@@ -1475,6 +1487,10 @@ BOOL TMainWin::DelHostSub(Host *host)
 	}
 	if (!hosts.DelHost(host)) {
 		return	FALSE;
+	}
+	host->active = false;
+	for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
+		dlg->ModifyHost(host, FALSE);
 	}
 
 	if (host->SafeRelease()) {
@@ -1986,13 +2002,40 @@ char *TMainWin::GetNickNameEx(void)
 	return	buf;
 }
 
+char *TMainWin::GetNickName(void)
+{
+	static char buf[MAX_LISTBUF];
+
+	strcpy(buf, *cfg->NickNameStr ? cfg->NickNameStr : msgMng->GetOrgLocalHost()->u.userName);
+
+	return	buf;
+}
+
+#ifndef IPMSG_PRO
+void TMainWin::SetUserAgent()
+{
+	static auto icld = ::GetUserDefaultLCID();
+
+	TInetSetUserAgent(Fmt("IPMsg ver%s %04x/%d%d%d%d/%d %s",
+		GetVersionStr(),
+		icld,
+		min((u_int)cfg->DirMode, 9),
+		cfg->LogCheck ? 1 : 0,
+		recvIdx,
+		gEnableHook ? cfg->hookMode : 9,
+		maxHostNum,
+		TGetHashedMachineIdStr()
+	));
+}
+#endif
+
 void TMainWin::ControlIME(TWin *win, BOOL open)
 {
 	if (!cfg->ControlIME) return;
 
 	if (!open) {
 		for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-			if (dlg != win && !dlg->IsSending()) return;
+			if (dlg != win) return;
 		}
 	}
 

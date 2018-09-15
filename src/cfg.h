@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2017   cfg.h	Ver4.60 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2018   cfg.h	Ver4.90 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration Manager
 	Create					: 2013-03-03(Sun)
-	Update					: 2017-07-16(Sun)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -17,10 +17,10 @@
 enum SendWidth {
 	SW_NICKNAME, SW_ABSENCE, SW_GROUP, SW_HOST, SW_IPADDR, SW_USER, SW_PRIORITY, MAX_SENDWIDTH
 };
-inline BOOL GetItem(UINT columnItems, int sw) {
+inline bool GetItem(UINT columnItems, int sw) {
 	return (columnItems & (1 << sw)) ? TRUE : FALSE;
 }
-inline void SetItem(UINT *columnItems, int sw, BOOL on) {
+inline void SetItem(UINT *columnItems, int sw, bool on) {
 	if (on) *columnItems |= (1 << sw);
 	else    *columnItems &= ~(1 << sw);
 }
@@ -88,10 +88,11 @@ class ShareInfo;
 
 struct Cfg {
 protected:
-	BOOL	ReadFontRegistry(TRegistry *reg, char *key, LOGFONT *font);
-	BOOL	WriteFontRegistry(TRegistry *reg, char *key, LOGFONT *font);
-	BOOL	InitLinkRe();
-	BOOL	StrToExtVec(const char *_s, std::vector<Wstr> *extVec);
+	bool	ReadFontRegistry(TRegistry *reg, char *key, LOGFONT *font);
+	bool	WriteFontRegistry(TRegistry *reg, char *key, LOGFONT *font);
+	void	ConvertHostInfo(TRegistry *reg);
+	bool	InitLinkRe();
+	bool	StrToExtVec(const char *_s, std::vector<Wstr> *extVec);
 
 #ifdef IPMSG_PRO
 #define CFG_HEAD
@@ -191,6 +192,7 @@ public:
 	int		ResolveOpt;
 	BOOL	LetterKey;
 	BOOL	ListConfirm;
+	BOOL	DelaySend;
 
 	int		ClipMode;
 	int		ClipMax;
@@ -228,6 +230,7 @@ public:
 	UINT	RetryMSec;
 	UINT	RetryMax;
 	int		RecvMax;
+	time_t	LastRecv;
 	char	IconFile[MAX_PATH_U8];
 	char	RevIconFile[MAX_PATH_U8];
 	char	lastSaveDir[MAX_PATH_U8];
@@ -249,6 +252,7 @@ public:
 	ULONG	Sort;
 	int		UpdateTime;
 	int		KeepHostTime;
+	int		DispHostTime;
 	BOOL	DefaultUrl;
 	BOOL	ShellExec;
 	BOOL	ExtendEntry;
@@ -333,39 +337,50 @@ public:
 	TListEx<UsersObj>	lruUserList;
 	int					lruUserMax;
 
-	TListEx<TUpLogObj>	upLogList;
+#ifdef IPMSG_PRO
+#define CFG_HEAD3
+#include "miscext.dat"
+#undef  CFG_HEAD3
+#endif
 
 	Cfg(const Addr &_nicAddr, int _portNo);
 	~Cfg();
 	enum PART { FIND };
 
-	BOOL	ReadRegistry(void);
-	BOOL	WriteRegistry(int ctl_flg = CFG_ALL);
+	bool	ReadRegistry(void);
+	bool	WriteRegistry(int ctl_flg = CFG_ALL);
 	void	GetRegName(char *buf, Addr nic_addr, int port_no);
 	void	GetSelfRegName(char *buf);
-	BOOL	GetBaseDir(char *dir) { return GetParentDirU8(LogFile, dir); }
-	BOOL	GetBaseDirW(WCHAR *dir) {
+	bool	GetBaseDir(char *dir) { return GetParentDirU8(LogFile, dir); }
+	bool	GetBaseDirW(WCHAR *dir) {
 				Wstr w(LogFile);
 				return GetParentDirW(w.s(), dir);
 			}
-	BOOL	SavePacket(const MsgBuf *msg, const char *head, ULONG img_base);
-	BOOL	UpdatePacket(const MsgBuf *msg, const char *auto_saved);
-	BOOL	LoadPacket(MsgMng *msgMng, int idx, MsgBuf *msg, char *head,
+	bool	SavePacket(const MsgBuf *msg, const char *head, ULONG img_base);
+	bool	UpdatePacket(const MsgBuf *msg, const char *auto_saved);
+	bool	LoadPacket(MsgMng *msgMng, int idx, MsgBuf *msg, char *head,
 				ULONG *img_base, char *auto_saved);
-	BOOL	DeletePacket(const MsgBuf *msg);
-	BOOL	IsSavedPacket(const MsgBuf *msg);
-	BOOL	CleanupPackets();
+	bool	DeletePacket(const MsgBuf *msg);
+	bool	IsSavedPacket(const MsgBuf *msg);
+	bool	CleanupPackets();
 
-	BOOL	SaveShare(UINT packet_no, const IPDict &dict);
-	BOOL	LoadShare(int idx, IPDict *dict);
-	BOOL	DeleteShare(UINT packet_no);
+	bool	SaveShare(UINT packet_no, const IPDict &dict);
+	bool	LoadShare(int idx, IPDict *dict);
+	bool	DeleteShare(UINT packet_no);
+
+	bool	SaveSendPkt(ULONG packetNo, const IPDict &dict);
+	bool	LoadSendPkt(int idx, IPDict *dict);
+	bool	DelSendPkt(ULONG packet_no);
 
 	int		GetCapa() {
 		return	pub[KEY_1024].Capa() | pub[KEY_2048].Capa();
 	}
-	BOOL	IPDictEnabled() {
-		return	(pub[KEY_2048].Capa() & IPMSG_SIGN_SHA256) ? TRUE : FALSE;
+	bool	IPDictEnabled() {
+		return	(pub[KEY_2048].Capa() & IPMSG_SIGN_SHA256) ? true : false;
 	}
+	void	WriteHost(Host *host, TRegistry *reg=NULL);
+	void	DelHost(Host *host, TRegistry *reg=NULL);
+
 };
 
 #endif

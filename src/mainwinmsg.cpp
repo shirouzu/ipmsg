@@ -1,16 +1,16 @@
 ﻿static char *mainwinmsg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2017   mainwinmsg.cpp	Ver4.50";
+	"@(#)Copyright (C) H.Shirouzu 1996-2018   mainwinmsg.cpp	Ver4.90";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window Message
 	Create					: 1996-06-01(Sat)
-	Update					: 2017-06-12(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
 #include "ipmsg.h"
-#include "instdata/instcmn.h"
+#include "install/instcmn.h"
 #include <process.h>
 
 using namespace std;
@@ -212,7 +212,7 @@ void TMainWin::MsgSendMsg(MsgBuf *msg)
 		}
 		return;
 	}
-
+	cfg->LastRecv = msg->timestamp;
 	if (!RecvDlgOpen(msg)) return;
 
 	if ((msg->command & IPMSG_BROADCASTOPT) == 0 && (msg->command & IPMSG_AUTORETOPT) == 0) {
@@ -404,10 +404,7 @@ void TMainWin::MsgAnsPubKey(MsgBuf *msg)
 		host->pubKey.Set(key, key_len, e, capa);
 	}
 
-	for (auto dlg=sendList.TopObj(); dlg; dlg=sendList.NextObj(dlg)) {
-		if (dlg->SendPubKeyNotify(&msg->hostSub, key, key_len, e, capa))
-			break;
-	}
+	sendMng->SendPubKeyNotify(&msg->hostSub, key, key_len, e, capa);
 }
 
 /*
@@ -429,20 +426,9 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 			msgMng->Send(&msg->hostSub, IPMSG_ANSREADMSG, msg->packetNo);
 		}
 	}
-	else {
-		if (cmd == IPMSG_ANSREADMSG) {
-			for (auto dlg=recvList.TopObj(); dlg; dlg=recvList.NextObj(dlg)) {
-				if (dlg->SendFinishNotify(&msg->hostSub, packet_no))
-					break;
-			}
-			return;
-		}
-
-		TSendDlg *dlg;
-		for (dlg = sendList.TopObj(); dlg; dlg = sendList.NextObj(dlg)) {
-			if (dlg->SendFinishNotify(&msg->hostSub, packet_no)) break;
-		}
-		if (dlg == NULL) return;
+	else if (cmd == IPMSG_ANSREADMSG || cmd == IPMSG_RECVMSG) {
+		sendMng->SendFinishNotify(&msg->hostSub, packet_no);
+		return;
 	}
 	if (IsLastPacket(msg))		//重複チェック
 		return;
@@ -484,10 +470,12 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 		break;
 
 	case IPMSG_SENDINFO:
+		sendMng->SendFinishNotify(&msg->hostSub, packet_no);
 		histDlg->OpenNotify(&msg->hostSub, msg->packetNo, msg->msgBuf);
 		return;
 
 	case IPMSG_SENDABSENCEINFO:
+		sendMng->SendFinishNotify(&msg->hostSub, packet_no);
 		show_mode = SW_SHOW;
 		break;
 

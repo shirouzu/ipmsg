@@ -1,10 +1,10 @@
 ﻿static char *setupdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2017   setupdlg.cpp	Ver4.61";
+	"@(#)Copyright (C) H.Shirouzu 1996-2018   setupdlg.cpp	Ver4.90";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Setup Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2017-07-31(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -50,24 +50,26 @@ BOOL TSetupSheet::EvCreate(LPARAM lParam)
 		SendDlgItemMessage(IPMSGEXIT_EDIT, EM_SETWORDBREAKPROC, 0, (LPARAM)EditNoWordBreakProc);
 	}
 	else if (resId == LABTEST_SHEET) {
-		int hook_ids[]  = { HOOKURL_STATIC,   HOOKURL_EDIT,   HOOKBODY_STATIC, HOOKBODY_EDIT };
-		int slack_ids[] = { SLACKCHAN_STATIC, SLACKCHAN_EDIT, SLACKKEY_STATIC, SLACKKEY_EDIT };
+		if (gEnableHook) {
+			int hook_ids[]  = { HOOKURL_STATIC,   HOOKURL_EDIT,   HOOKBODY_STATIC, HOOKBODY_EDIT };
+			int slack_ids[] = { SLACKCHAN_STATIC, SLACKCHAN_EDIT, SLACKKEY_STATIC, SLACKKEY_EDIT };
 
-		for (auto &&id: hook_ids) {
-			HWND	hw = GetDlgItem(id);
-			size_t	diff = &id - &hook_ids[0];
-			Debug("diff=%zd id=%d\n", diff, slack_ids[diff]);
-			HWND	sw = GetDlgItem(slack_ids[&id - &hook_ids[0]]);
-			TRect	hr;
-			TRect	sr;
-			::GetWindowRect(hw, &hr);
-			::GetWindowRect(sw, &sr);
-			hr.left = sr.left;
-			sr.right = hr.right;
-			hr.ScreenToClient(hWnd);
-			sr.ScreenToClient(hWnd);
-			::MoveWindow(hw, hr.left, hr.top, hr.cx(), hr.cy(), TRUE);
-			::MoveWindow(sw, sr.left, sr.top, sr.cx(), sr.cy(), TRUE);
+			for (auto &&id: hook_ids) {
+				HWND	hw = GetDlgItem(id);
+				size_t	diff = &id - &hook_ids[0];
+				Debug("diff=%zd id=%d\n", diff, slack_ids[diff]);
+				HWND	sw = GetDlgItem(slack_ids[&id - &hook_ids[0]]);
+				TRect	hr;
+				TRect	sr;
+				::GetWindowRect(hw, &hr);
+				::GetWindowRect(sw, &sr);
+				hr.left = sr.left;
+				sr.right = hr.right;
+				hr.ScreenToClient(hWnd);
+				sr.ScreenToClient(hWnd);
+				::MoveWindow(hw, hr.left, hr.top, hr.cx(), hr.cy(), TRUE);
+				::MoveWindow(sw, sr.left, sr.top, sr.cx(), sr.cy(), TRUE);
+			}
 		}
 	}
 	else if (resId == TRAY_SHEET) {
@@ -306,16 +308,18 @@ void TSetupSheet::ReflectDisp()
 		}
 	}
 	else if (resId == LABTEST_SHEET) {
-		int hook_ids[]  = { HOOKURL_STATIC,   HOOKURL_EDIT,   HOOKBODY_STATIC, HOOKBODY_EDIT };
-		int slack_ids[] = { SLACKCHAN_STATIC, SLACKCHAN_EDIT, SLACKKEY_STATIC, SLACKKEY_EDIT };
+		if (gEnableHook) {
+			int hook_ids[]  = { HOOKURL_STATIC,   HOOKURL_EDIT,   HOOKBODY_STATIC, HOOKBODY_EDIT };
+			int slack_ids[] = { SLACKCHAN_STATIC, SLACKCHAN_EDIT, SLACKKEY_STATIC, SLACKKEY_EDIT };
 
-		int hs = IsDlgButtonChecked(HOOKGENERAL_RADIO) ? SW_SHOW : SW_HIDE;
-		for (auto &id: hook_ids) {
-			::ShowWindow(GetDlgItem(id), hs);
-		}
-		int ss = IsDlgButtonChecked(HOOKSLACK_RADIO) ? SW_SHOW : SW_HIDE;
-		for (auto &id: slack_ids) {
-			::ShowWindow(GetDlgItem(id), ss);
+			int hs = IsDlgButtonChecked(HOOKGENERAL_RADIO) ? SW_SHOW : SW_HIDE;
+			for (auto &id: hook_ids) {
+				::ShowWindow(GetDlgItem(id), hs);
+			}
+			int ss = IsDlgButtonChecked(HOOKSLACK_RADIO) ? SW_SHOW : SW_HIDE;
+			for (auto &id: slack_ids) {
+				::ShowWindow(GetDlgItem(id), ss);
+			}
 		}
 	}
 	else if (resId == TRAY_SHEET) {
@@ -408,6 +412,8 @@ BOOL TSetupSheet::SetData()
 //		::ShowWindow(GetDlgItem(NOTIFY_BTN), IsWin8() ? SW_SHOW : SW_HIDE);
 	}
 	else if (resId == SENDRECV_SHEET) {
+		CheckDlgButton(DELAYSEND_CHECK, cfg->DelaySend);
+
 		CheckDlgButton(QUOTE_CHECK, (cfg->QuoteCheck & 0x1) ? TRUE : FALSE);
 		CheckDlgButton(QUOTEREDUCE_CHECK, (cfg->QuoteCheck & 0x2) ? FALSE : TRUE);
 		CheckDlgButton(QUOTECARET_CHECK, (cfg->QuoteCheck & 0x10) ? TRUE : FALSE);
@@ -557,19 +563,21 @@ BOOL TSetupSheet::SetData()
 		CheckDlgButton(USELOCKNAME_CHK, cfg->useLockName ? TRUE : FALSE);
 	}
 	else if (resId == LABTEST_SHEET) {
-		for (UINT id=IDS_HOOKNONE; id <= IDS_HOOKTRANSALL; id++) {
-			SendDlgItemMessage(HOOK_CMB, CB_ADDSTRING, 0, (LPARAM)LoadStr(id));
+		if (gEnableHook) {
+			for (UINT id=IDS_HOOKNONE; id <= IDS_HOOKTRANSALL; id++) {
+				SendDlgItemMessage(HOOK_CMB, CB_ADDSTRING, 0, (LPARAM)LoadStr(id));
+			}
+			SendDlgItemMessage(HOOK_CMB, CB_SETCURSEL, cfg->hookMode, 0);
+
+			CheckDlgButton(cfg->hookKind ? HOOKSLACK_RADIO : HOOKGENERAL_RADIO, TRUE);
+			SetDlgItemTextU8(HOOKURL_EDIT, cfg->hookUrl.s());
+			SetDlgItemTextU8(HOOKBODY_EDIT, cfg->hookBody.s());
+
+			SetDlgItemTextU8(SLACKCHAN_EDIT, cfg->slackChan.s());
+			SetDlgItemTextU8(SLACKKEY_EDIT, cfg->slackKey.s());
+
+			ReflectDisp();
 		}
-		SendDlgItemMessage(HOOK_CMB, CB_SETCURSEL, cfg->hookMode, 0);
-
-		CheckDlgButton(cfg->hookKind ? HOOKSLACK_RADIO : HOOKGENERAL_RADIO, TRUE);
-		SetDlgItemTextU8(HOOKURL_EDIT, cfg->hookUrl.s());
-		SetDlgItemTextU8(HOOKBODY_EDIT, cfg->hookBody.s());
-
-		SetDlgItemTextU8(SLACKCHAN_EDIT, cfg->slackChan.s());
-		SetDlgItemTextU8(SLACKKEY_EDIT, cfg->slackKey.s());
-
-		ReflectDisp();
 	}
 	else if (resId == TRAY_SHEET) {
 		CheckDlgButton(TRAYICON_CHECK, cfg->TrayIcon);
@@ -733,6 +741,7 @@ BOOL TSetupSheet::GetData()
 		SetHotKey(cfg);
 	}
 	else if (resId == SENDRECV_SHEET) {
+		cfg->DelaySend = IsDlgButtonChecked(DELAYSEND_CHECK);
 		cfg->QuoteCheck = IsDlgButtonChecked(QUOTE_CHECK);
 		cfg->QuoteCheck |= (IsDlgButtonChecked(QUOTEREDUCE_CHECK) ? 0 : 0x2);
 		cfg->QuoteCheck |= (IsDlgButtonChecked(QUOTECARET_CHECK) ? 0x10 : 0);
@@ -893,23 +902,25 @@ BOOL TSetupSheet::GetData()
 		cfg->useLockName = IsDlgButtonChecked(USELOCKNAME_CHK);
 	}
 	else if (resId == LABTEST_SHEET) {
-		cfg->hookMode = (int)SendDlgItemMessage(HOOK_CMB, CB_GETCURSEL, 0, 0);
-		cfg->hookKind = IsDlgButtonChecked(HOOKSLACK_RADIO) ? 1 : 0;
+		if (gEnableHook) {
+			cfg->hookMode = (int)SendDlgItemMessage(HOOK_CMB, CB_GETCURSEL, 0, 0);
+			cfg->hookKind = IsDlgButtonChecked(HOOKSLACK_RADIO) ? 1 : 0;
 
-		if (cfg->hookKind == 0) {
-			if (GetDlgItemTextU8(HOOKURL_EDIT, buf, sizeof(buf))) {
-				cfg->hookUrl = buf;
+			if (cfg->hookKind == 0) {
+				if (GetDlgItemTextU8(HOOKURL_EDIT, buf, sizeof(buf))) {
+					cfg->hookUrl = buf;
+				}
+				if (GetDlgItemTextU8(HOOKBODY_EDIT, buf, sizeof(buf))) {
+					cfg->hookBody = buf;
+				}
 			}
-			if (GetDlgItemTextU8(HOOKBODY_EDIT, buf, sizeof(buf))) {
-				cfg->hookBody = buf;
-			}
-		}
-		else if (cfg->hookKind == 1) {
-			if (GetDlgItemTextU8(SLACKCHAN_EDIT, buf, sizeof(buf))) {
-				cfg->slackChan = buf;
-			}
-			if (GetDlgItemTextU8(SLACKKEY_EDIT, buf, sizeof(buf))) {
-				cfg->slackKey = buf;
+			else if (cfg->hookKind == 1) {
+				if (GetDlgItemTextU8(SLACKCHAN_EDIT, buf, sizeof(buf))) {
+					cfg->slackChan = buf;
+				}
+				if (GetDlgItemTextU8(SLACKKEY_EDIT, buf, sizeof(buf))) {
+					cfg->slackKey = buf;
+				}
 			}
 		}
 	}
@@ -1224,66 +1235,69 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		}
 	}
 	else if (resId == LABTEST_SHEET) {
-		switch (wID) {
-		case HOOKTEST_BTN:
-			if (IsDlgButtonChecked(HOOKGENERAL_RADIO)) {
-				DynBuf	url(MAX_URLBUF);
-				DynBuf	body(MAX_URLBUF);
-				U8str	json;
-				DynBuf	reply;
-				U8str	errMsg;
+		if (gEnableHook) {
+			switch (wID) {
+			case HOOKTEST_BTN:
+				if (IsDlgButtonChecked(HOOKGENERAL_RADIO)) {
+					DynBuf	url(MAX_URLBUF);
+					DynBuf	body(MAX_URLBUF);
+					U8str	json;
+					DynBuf	reply;
+					U8str	errMsg;
 
-				GetDlgItemTextU8(HOOKBODY_EDIT, (char *)body.Buf(), (int)body.Size());
-				GetDlgItemTextU8(HOOKURL_EDIT, (char *)url.Buf(), (int)url.Size());
+					GetDlgItemTextU8(HOOKBODY_EDIT, (char *)body.Buf(), (int)body.Size());
+					GetDlgItemTextU8(HOOKURL_EDIT, (char *)url.Buf(), (int)url.Size());
 
-				if (!*body.s() || !*url.s()) {
-					break;
+					if (!*body.s() || !*url.s()) {
+						break;
+					}
+					std::map<U8str, U8str> dict = {
+						{ "$(sender)", IP_MSG },
+						{ "$(icon)",   cfg->slackIcon.s() },
+						{ "$(msg)",    "Transfer test to hook host from IPMsg" }
+					};
+					U8str	out(MAX_URLBUF);
+					ReplaseKeyword(body.s(), &out, &dict);
+					TInetRequest(url.s(), NULL, (BYTE *)out.s(), out.Len(), &reply, &errMsg);
+					U8str	res(reply.UsedSize() ? reply.s() : errMsg.s());
+					if (res.LineNum() > 2) {
+						U8str	bak = res;
+						res = "Error Message from HookHost\r\n";
+						res += bak.s();
+					}
+					SetDlgItemTextU8(HOOKTEST_EDIT, res.s());
 				}
-				std::map<U8str, U8str> dict = {
-					{ "$(sender)", IP_MSG },
-					{ "$(icon)",   cfg->slackIcon.s() },
-					{ "$(msg)",    "Transfer test to hook host from IPMsg" }
-				};
-				U8str	out(MAX_URLBUF);
-				ReplaseKeyword(body.s(), &out, &dict);
-				TInetRequest(url.s(), NULL, (BYTE *)out.s(), out.Len(), &reply, &errMsg);
-				U8str	res(reply.UsedSize() ? reply.s() : errMsg.s());
-				if (res.LineNum() > 2) {
-					U8str	bak = res;
-					res = "Error Message from HookHost\r\n";
-					res += bak.s();
+				else {
+					char	key[MAX_PATH];
+					char	chan[MAX_PATH];
+					U8str	json;
+					DynBuf	reply;
+					U8str	errMsg;
+
+					GetDlgItemTextU8(SLACKCHAN_EDIT, chan, sizeof(chan));
+					GetDlgItemTextU8(SLACKKEY_EDIT, key, sizeof(key));
+
+					if (!*key || !*chan) {
+						break;
+					}
+					SlackMakeJson(chan, IP_MSG,
+						"Transfer test to slack from IPMsg", cfg->slackIcon.s(), &json);
+					SlackRequest(cfg->slackHost.s(), key, json.s(), &reply, &errMsg);
+					U8str	res(reply.UsedSize() ? reply.s() : errMsg.s());
+					if (res.LineNum() > 2) {
+						U8str	bak = res;
+						res = "Error Message from Slack\r\n";
+						res += bak.s();
+					}
+					SetDlgItemTextU8(HOOKTEST_EDIT, res.s());
 				}
-				SetDlgItemTextU8(HOOKTEST_EDIT, res.s());
+				break;
+
+			case HOOKGENERAL_RADIO:
+			case HOOKSLACK_RADIO:
+				ReflectDisp();
+				break;
 			}
-			else {
-				char	key[MAX_PATH];
-				char	chan[MAX_PATH];
-				U8str	json;
-				DynBuf	reply;
-				U8str	errMsg;
-
-				GetDlgItemTextU8(SLACKCHAN_EDIT, chan, sizeof(chan));
-				GetDlgItemTextU8(SLACKKEY_EDIT, key, sizeof(key));
-
-				if (!*key || !*chan) {
-					break;
-				}
-				SlackMakeJson(chan, IP_MSG,
-					"Transfer test to slack from IPMsg", cfg->slackIcon.s(), &json);
-				SlackRequest(cfg->slackHost.s(), key, json.s(), &reply, &errMsg);
-				U8str	res(reply.UsedSize() ? reply.s() : errMsg.s());
-				if (res.LineNum() > 2) {
-					U8str	bak = res;
-					res = "Error Message from Slack\r\n";
-					res += bak.s();
-				}
-				SetDlgItemTextU8(HOOKTEST_EDIT, res.s());
-			}
-			break;
-
-		case HOOKGENERAL_RADIO:
-		case HOOKSLACK_RADIO:
-			ReflectDisp();
 		}
 	}
 	else if (resId == TRAY_SHEET) {
@@ -1447,7 +1461,9 @@ TSetupDlg::TSetupDlg(Cfg *_cfg, THosts *_hosts, BOOL is_first, TWin *_parent)
 	idVec.push_back(LOG_SHEET);
 	idVec.push_back(AUTOSAVE_SHEET);
 	idVec.push_back(REMOTE_SHEET);
-	idVec.push_back(LABTEST_SHEET);
+	if (gEnableHook) {
+		idVec.push_back(LABTEST_SHEET);
+	}
 #ifdef IPMSG_PRO
 	idVec.push_back(SERVER_SHEET);
 #else
@@ -1498,6 +1514,8 @@ BOOL TSetupDlg::EvCreate(LPARAM lParam)
 	}
 
 	PostMessage(WM_IPMSG_FOCUS, 0, 0);
+
+	ChangeWindowTitle(this, cfg);
 
 	return	TRUE;
 }

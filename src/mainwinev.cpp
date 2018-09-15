@@ -1,16 +1,16 @@
 ﻿static char *mainwinev_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2017   mainwinev.cpp	Ver4.61";
+	"@(#)Copyright (C) H.Shirouzu 1996-2018   mainwinev.cpp	Ver4.90";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window Event
 	Create					: 1996-06-01(Sat)
-	Update					: 2017-07-31(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
 #include "ipmsg.h"
-#include "instdata/instcmn.h"
+#include "install/instcmn.h"
 #include <process.h>
 #include <gdiplus.h>
 
@@ -126,6 +126,7 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 
 	LoadStoredPacket();
 	shareMng->LoadShare();
+	sendMng->LoadSendPkt();
 
 	if (cfg->viewEpoch) {
 		if (auto view=logViewList.TopObj()) {
@@ -147,21 +148,23 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 		SetTimer(IPMSG_DIR_TIMER, DIR_BASE_TICK);
 
 #if 0
-//		time_t	t = time(NULL);
-//		for (int i=0; i < 1; i++) {
-//			Host	*host = new Host;
-//			host->hostSub.addr.Set(Fmt("10.0.%d.%d", i / 100 + 100, (i % 100)+100));
-//			Debug("%s", host->hostSub.addr.S());
-//			host->hostSub.portNo = portNo;
-//			sprintf(host->hostSub.u.userName, "user_%03d", i);
-//			sprintf(host->hostSub.u.hostName, "host_%03d", i);
-//			sprintf(host->groupName, "group_%03d", i);
-//			sprintf(host->nickName, "nick_%03d", i);
-//			host->hostStatus = IPMSG_CAPUTF8OPT|IPMSG_ENCRYPTOPT|IPMSG_CAPFILEENCOPT|IPMSG_FILEATTACHOPT;
-//			host->updateTime = host->updateTimeDirect = t - 180;
-//			host->active = TRUE;
-//			allHosts.AddHost(host);
-//		}
+		time_t	t = time(NULL);
+		for (int i=0; i < 1000; i++) {
+			Host	*host = new Host;
+			host->hostSub.addr.Set(Fmt("10.0.%d.%d", i / 100 + 100, (i % 100)+100));
+			Debug("%s", host->hostSub.addr.S());
+			host->hostSub.portNo = portNo;
+			sprintf(host->hostSub.u.userName, "user_%03d", i);
+			sprintf(host->hostSub.u.hostName, "host_%03d", i);
+			sprintf(host->groupName, "group");
+			sprintf(host->nickName, "nick_%03d", i);
+			host->hostStatus = IPMSG_ALLSTAT;
+//				IPMSG_CAPUTF8OPT|IPMSG_ENCRYPTOPT
+//				|IPMSG_CAPFILEENCOPT|IPMSG_FILEATTACHOPT;
+			host->updateTime = host->updateTimeDirect = t;
+			host->active = TRUE;
+			allHosts.AddHost(host);
+		}
 #endif
 	}
 #endif
@@ -199,17 +202,18 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 		break;
 	}
 
+	TaskTray(NIM_ADD, hCycleIcon[0], IP_MSG);
+
 	return	TRUE;
 }
 
 void TMainWin::LoadStoredPacket()
 {
 	for (int i=0; i < cfg->RecvMax; i++) {
-		char		head[MAX_LISTBUF];
-		char		auto_saved[MAX_PATH_U8];
-		ULONG		img_base;
-		DynMsgBuf	dmsg;
-		MsgBuf		&msg = *dmsg.msg;
+		char	head[MAX_LISTBUF];
+		char	auto_saved[MAX_PATH_U8];
+		ULONG	img_base;
+		MsgBuf	msg;
 
 		if (!cfg->LoadPacket(msgMng, i, &msg, head, &img_base, auto_saved)) {
 			break;
@@ -303,6 +307,7 @@ BOOL TMainWin::EvTimer(WPARAM timerID, TIMERPROC proc)
 
 	case IPMSG_CLEANUP_TIMER:
 		CleanupProc();
+		sendMng->TimerProc();
 		return	TRUE;
 
 #ifndef IPMSG_PRO
@@ -317,6 +322,7 @@ BOOL TMainWin::EvTimer(WPARAM timerID, TIMERPROC proc)
 		KillTimer(timerID);
 		if (timerID == IPMSG_BALLOON_RECV_TIMER && trayMode == TRAY_RECV ||
 			timerID == IPMSG_BALLOON_OPEN_TIMER && trayMode == TRAY_OPENMSG ||
+			timerID == IPMSG_BALLOON_OPEN_TIMER && trayMode == TRAY_DELAY ||
 			timerID == IPMSG_BALLOON_INST_TIMER &&
 				(trayMode == TRAY_INST || trayMode == TRAY_UPDATE)) {
 			trayMode = TRAY_NORMAL;
@@ -699,12 +705,6 @@ BOOL TMainWin::EventButton(UINT uMsg, int nHitTest, POINTS pos)
 			msgList.ActiveListDlg();
 		}
 
-		for (auto dlg = sendList.TopObj(); dlg; dlg = sendList.NextObj(dlg)) {
-			if (dlg->IsSending()) {
-				dlg->SetForegroundWindow();	// 再送信確認ダイアログを前に
-			}
-		}
-
 		if (PopupCheck()) {
 			return TRUE;
 		}
@@ -771,8 +771,8 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		SendDlgExit((DWORD)lParam);
 		return	TRUE;
 
-	case WM_SENDDLG_HIDE:
-		SendDlgHide((DWORD)lParam);
+	case WM_SENDDLG_EXITEX:
+		SendDlgExitEx((DWORD)lParam);
 		return	TRUE;
 
 	case WM_SENDDLG_FONTCHANGED:
@@ -822,6 +822,9 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 				ShowUpdateDlg();
 			}
 #endif
+			else if (trayMode == TRAY_DELAY) {
+				SendMessage(WM_HISTDLG_OPEN, 2, 0);
+			}
 			else if (trayMode != TRAY_OPENMSG) {
 				SendMessage(WM_RECVDLG_OPEN, 0, 0);
 			}
@@ -897,7 +900,12 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return	TRUE;
 
 	case WM_HISTDLG_OPEN:
-		if (wParam == 1) histDlg->SetMode(TRUE);
+		if (wParam == 1) {
+			histDlg->SetMode(TRUE);
+		}
+		if (wParam == 2) {
+			histDlg->SetMode((bool)lParam);
+		}
 		MiscDlgOpen(histDlg);
 		return	TRUE;
 
@@ -908,7 +916,7 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_HISTDLG_NOTIFY:
 		{
 			HistNotify *hn = (HistNotify *)wParam;
-			histDlg->SendNotify(hn->hostSub, hn->packetNo, hn->msg);
+			histDlg->SendNotify(hn->hostSub, hn->packetNo, hn->msg, hn->delayed);
 			SetCaption();
 		}
 		return	TRUE;
@@ -1089,6 +1097,20 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		return	TRUE;
 
+	case WM_DELAYMSG_BALLOON:
+		{
+			char *alloced_msg = (char *)lParam;
+			BalloonWindow(TRAY_DELAY, alloced_msg, IP_MSG, 3000, TRUE);
+			delete [] alloced_msg;
+		}
+		return	TRUE;
+
+	case WM_DELAYSEND_DEL:
+		if (auto histObj = (HistObj *)lParam) {
+			sendMng->Del(&histObj->hostSub, histObj->packetNo);
+		}
+		return	TRUE;
+
 //	case WM_IPMSG_SVRDETECT:
 //		if (cfg->DirMode == DIRMODE_MASTER) {
 //			if (dirPhase == DIRPH_NONE) {
@@ -1129,13 +1151,13 @@ BOOL TMainWin::EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam)
 */
 BOOL TMainWin::UdpEvent(LPARAM lParam)
 {
-	DynMsgBuf	dmsg;
+	MsgBuf	msg;
 
-	if (WSAGETSELECTERROR(lParam) || !msgMng->Recv(dmsg.msg)) {
+	if (WSAGETSELECTERROR(lParam) || !msgMng->Recv(&msg)) {
 		return	FALSE;
 	}
 
-	return	UdpEventCore(dmsg.msg);
+	return	UdpEventCore(&msg);
 }
 
 BOOL TMainWin::UdpEventCore(MsgBuf *msg)

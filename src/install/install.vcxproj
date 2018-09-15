@@ -74,23 +74,27 @@
     <IntDir>..\..\Obj\DebugInst\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <LibraryWPath />
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>..\..\x64\Debug\</OutDir>
     <IntDir>..\..\x64\Obj\DebugInst\</IntDir>
     <LinkIncremental>true</LinkIncremental>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>..\..\Release\</OutDir>
     <IntDir>..\..\obj\ReleaseInst\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <TargetName>$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>..\..\x64\Release\</OutDir>
     <IntDir>..\..\x64\Obj\ReleaseInst\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <TargetName>$(ProjectName)</TargetName>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -121,7 +125,7 @@
       <Culture>0x0411</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>..\..\lib\zlib_d.lib;..\..\lib\tlib_d.lib;..\..\lib\instdata_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\lib\zlib_d.lib;..\..\lib\tlib_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>..\..\Debug\install.pdb</ProgramDatabaseFile>
@@ -135,7 +139,8 @@
       <OutputFile>Debug\install.bsc</OutputFile>
     </Bscmake>
     <PreBuildEvent>
-      <Command>python ../../gendat.py files_data.dat ../../Release/ipmsg.exe ../../Release/uninst.exe ../../help/ipmsg.chm</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -167,7 +172,7 @@
       <Culture>0x0411</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>..\..\x64\lib\zlib_d.lib;..\..\x64\lib\tlib_d.lib;..\..\x64\lib\instdata_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\x64\lib\zlib_d.lib;..\..\x64\lib\tlib_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>..\..\x64\Debug\install.pdb</ProgramDatabaseFile>
@@ -180,7 +185,8 @@
       <OutputFile>..\..\x64\Debug\install.bsc</OutputFile>
     </Bscmake>
     <PreBuildEvent>
-      <Command>python ../../gendat.py files_data64.dat ../../x64/Release/ipmsg.exe ../../x64/Release/uninst.exe ../../help/ipmsg.chm</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -213,7 +219,7 @@
       <Culture>0x0411</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>..\..\lib\zlib.lib;..\..\lib\tlib.lib;..\..\lib\instdata.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\lib\zlib.lib;..\..\lib\tlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>false</SuppressStartupBanner>
       <ProgramDatabaseFile>..\..\obj\Release\install.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
@@ -230,7 +236,8 @@
       <OutputFile>Release\install.bsc</OutputFile>
     </Bscmake>
     <PreBuildEvent>
-      <Command>xcopy ..\..\obj\ReleaseTlib\*.obj obj\ReleaseTlib\ /Y /Q</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -261,7 +268,7 @@
       <Culture>0x0411</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>..\..\x64\lib\zlib.lib;..\..\x64\lib\tlib.lib;..\..\x64\lib\instdata.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\x64\lib\zlib.lib;..\..\x64\lib\tlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>false</SuppressStartupBanner>
       <ProgramDatabaseFile>..\..\x64\Release\install.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
@@ -278,12 +285,15 @@
       <OutputFile>Release\install.bsc</OutputFile>
     </Bscmake>
     <PreBuildEvent>
-      <Command>xcopy ..\..\x64\obj\ReleaseTlib\*.obj x64\obj\ReleaseTlib\ /Y /Q</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="install.cpp" />
     <ClCompile Include="..\version.cpp" />
+    <ClCompile Include="instcmn.cpp" />
+    <ClCompile Include="instcore.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="install.rc" />

@@ -787,18 +787,19 @@ BOOL TMsgBox::EvCreate(LPARAM lParam)
 	SendDlgItemMessage(MESSAGE_EDIT, EM_SETBKGNDCOLOR, FALSE, ::GetSysColor(COLOR_3DFACE));
 	SendDlgItemMessage(MESSAGE_EDIT, EM_SETTARGETDEVICE, 0, 0);
 
-	GetWindowRect(&rect);
-
 	if (flags & RETRY) {
 		SendDlgItemMessageW(IDOK, WM_SETTEXT, 0, (LPARAM)LoadStrW(IDS_RETRY));
 	}
 
-	if (flags & (DBLX|BIGX)) {
-		MoveWindow(rect.x()-rect.cx(), rect.y(), int(rect.cx()*((flags & DBLX) ? 2.0 : 1.2)),
-			rect.cy(), FALSE);
+	if (rect.left == CW_USEDEFAULT) {
 		GetWindowRect(&rect);
-		FitMoveWindow(rect.x(), rect.y());
-		GetWindowRect(&rect);
+		if (flags & (DBLX|BIGX)) {
+			MoveWindow(rect.x()-rect.cx(), rect.y(), int(rect.cx()*((flags & DBLX) ? 2.0 : 1.2)),
+				rect.cy(), FALSE);
+			GetWindowRect(&rect);
+			FitMoveWindow(rect.x(), rect.y());
+			GetWindowRect(&rect);
+		}
 	}
 
 	POINT	pt = { x, y };
@@ -857,11 +858,7 @@ BOOL TAboutDlg::EvCreate(LPARAM lParam)
 	snprintfz(buf2, sizeof(buf2), buf, GetVersionStr());
 	SetDlgItemTextU8(ABOUT_TEXT, buf2);
 
-	if (cfg->NoTcp || cfg->NoFileTrans) {
-		GetWindowTextU8(buf, sizeof(buf));
-		strcat(buf, cfg->NoFileTrans == 2 ? " (No Share Transfer)" : " (No File Transfer)");
-		SetWindowTextU8(buf);
-	}
+	ChangeWindowTitle(this, cfg);
 
 #ifdef IPMSG_PRO
 	::ShowWindow(GetDlgItem(IPMSGUPD_BTN), SW_HIDE);

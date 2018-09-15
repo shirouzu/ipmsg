@@ -390,7 +390,7 @@ LPSTR LoadStrU8(UINT resId, HINSTANCE hI)
 
 void TSetDefaultLCID(LCID lcid)
 {
-	defaultLCID = lcid ? lcid : ::GetSystemDefaultLCID();
+	defaultLCID = lcid ? lcid : ::GetUserDefaultLCID();
 
 	TSetThreadLocale(defaultLCID);
 }
@@ -404,6 +404,10 @@ HMODULE TLoadLibrary(LPSTR dllname)
 {
 	HMODULE	hModule = ::LoadLibrary(dllname);
 
+	if (!hModule) {
+		Debug("TLoadLibrary err=%d\n", GetLastError());
+	}
+
 	if (defaultLCID) {
 		TSetThreadLocale(defaultLCID);
 	}
@@ -414,6 +418,10 @@ HMODULE TLoadLibrary(LPSTR dllname)
 HMODULE TLoadLibraryW(WCHAR *dllname)
 {
 	HMODULE	hModule = LoadLibraryW(dllname);
+
+	if (!hModule) {
+		Debug("TLoadLibraryW err=%d\n", GetLastError());
+	}
 
 	if (defaultLCID) {
 		TSetThreadLocale(defaultLCID);
@@ -2042,7 +2050,7 @@ void bo_test()
 	bo_test_core(p);
 }
 
-#if !defined(_DEBUG) &&  _MSC_VER >= 1900 && _MSC_VER <= 1914
+#if !defined(_DEBUG) &&  _MSC_VER >= 1900 && _MSC_VER <= 1915
 #define ENABLE_GS_FAILURE_HACK
 extern "C" __declspec(noreturn) void __cdecl __raise_securityfailure(PEXCEPTION_POINTERS const exception_pointers);
 #endif

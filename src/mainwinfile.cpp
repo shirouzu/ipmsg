@@ -1,16 +1,16 @@
 ﻿static char *mainwinfile_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2017   mainwinfile.cpp	Ver4.50";
+	"@(#)Copyright (C) H.Shirouzu 1996-2018   mainwinfile.cpp	Ver4.90";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window File Transfer
 	Create					: 1996-06-01(Sat)
-	Update					: 2017-06-12(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
 #include "ipmsg.h"
-#include "instdata/instcmn.h"
+#include "install/instcmn.h"
 #include <process.h>
 
 using namespace std;
@@ -44,34 +44,33 @@ BOOL TMainWin::RecvTcpMsg(SOCKET sd)
 		}
 	}
 
-	DynMsgBuf	dmsg;
-	MsgBuf		*msg = dmsg.msg;
-	msg->hostSub.addr = conInfo->addr;
-	msg->hostSub.portNo = portNo; // TCP用portは使わない
+	MsgBuf	msg;
+	msg.hostSub.addr = conInfo->addr;
+	msg.hostSub.portNo = portNo; // TCP用portは使わない
 
-	if (size <= 0 || !msgMng->ResolveMsg(buf, (int)buf.UsedSize(), msg)) {
+	if (size <= 0 || !msgMng->ResolveMsg(buf, (int)buf.UsedSize(), &msg)) {
 		goto END;
 	}
 
-	if (msg->ipdict.key_num() == 0) {
-		if (msg->command & IPMSG_ENCRYPTOPT) {
+	if (msg.ipdict.key_num() == 0) {
+		if (msg.command & IPMSG_ENCRYPTOPT) {
 			UINT	cryptCapa = 0;
-			if (!msgMng->DecryptMsg(msg, &cryptCapa, &fileInfo.logOpt)) {
+			if (!msgMng->DecryptMsg(&msg, &cryptCapa, &fileInfo.logOpt)) {
 				goto END;
 			}
 		}
 	}
-	else if (msg->signMode != MsgBuf::SIGN_OK) {
+	else if (msg.signMode != MsgBuf::SIGN_OK) {
 		goto END;
 	}
 	msgMng->ConnectDone(hWnd, conInfo);	// 非同期メッセージの抑制
 
-	int	cmd = GET_MODE(msg->command);
+	int	cmd = GET_MODE(msg.command);
 
 	switch (cmd) {
 	case IPMSG_GETFILEDATA:
 	case IPMSG_GETDIRFILES:
-		if (!shareMng->GetAcceptableFileInfo(conInfo, msg, &fileInfo)) {
+		if (!shareMng->GetAcceptableFileInfo(conInfo, &msg, &fileInfo)) {
 			goto END;
 		}
 		StartSendFile(sd, conInfo, &fileInfo);
@@ -79,7 +78,7 @@ BOOL TMainWin::RecvTcpMsg(SOCKET sd)
 
 	default:
 		conInfo->fin = TRUE;
-		UdpEventCore(msg);
+		UdpEventCore(&msg);
 		goto END;
 	}
 
@@ -146,15 +145,10 @@ BOOL TMainWin::StartSendFile(SOCKET sd, ConnectInfo *conInfo, AcceptFileInfo *fi
 
 	BOOL	ret = FALSE;
 
-	if (obj->fileInfo->Attr() == IPMSG_FILE_CLIPBOARD) {
-		if (obj->fileInfo->MemData()) {
-			obj->isDir	= FALSE;
-			obj->status	= FS_MEMFILESTART;
-			ret = TRUE;
-		}
-		else {	// Share from registry.
-			ret = FALSE;
-		}
+	if (obj->fileInfo->Attr() == IPMSG_FILE_CLIPBOARD && obj->fileInfo->MemData()) {
+		obj->isDir	= FALSE;
+		obj->status	= FS_MEMFILESTART;
+		ret = TRUE;
 	}
 	else {
 		if (!GetFileInfomationU8(obj->fileInfo->Fname(), &obj->fdata)) {

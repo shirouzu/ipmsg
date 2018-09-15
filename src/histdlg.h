@@ -1,9 +1,9 @@
-/*	@(#)Copyright (C) H.Shirouzu 2013-2017   histdlg.h	Ver4.50 */
+/*	@(#)Copyright (C) H.Shirouzu 2013-2018   histdlg.h	Ver4.90 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: History Dialog
 	Create					: 2013-03-03(Sun)
-	Update					: 2017-06-12(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -12,29 +12,26 @@
 #define HISTDLG_H
 
 struct HistObj : public THashObj {
-	HistObj	*prev;
-	HistObj	*next;
-	HistObj	*lruPrev;
-	HistObj	*lruNext;
-	int		packetNo;
+	HistObj	*prev = NULL;
+	HistObj	*next = NULL;
+	HistObj	*lruPrev = NULL;
+	HistObj	*lruNext = NULL;
+	int		packetNo = 0;
+	bool	delayed = false;
+	HostSub	hostSub;
 	U8str	info;
-	U8str	user;
 	U8str	sdate;
 	U8str	odate;
-//	U8str	pktnos;
 	U8str	msg;
-	HistObj() : THashObj() {
-		prev = next = lruPrev = lruNext = NULL;
-		packetNo = 0;
-	}
+	HistObj() : THashObj() {}
 };
 
 class HistHash : public THashTbl {
 protected:
-	HistObj	*top;
-	HistObj	*end;
-	HistObj	*lruTop;
-	HistObj	*lruEnd;
+	HistObj	*top = NULL;
+	HistObj	*end = NULL;
+	HistObj	*lruTop = NULL;
+	HistObj	*lruEnd = NULL;
 	virtual BOOL	IsSameVal(THashObj *, const void *val);
 
 public:
@@ -52,22 +49,24 @@ public:
 };
 
 struct HistNotify {
-	HostSub		*hostSub;
-	ULONG		packetNo;
-	const char	*msg;
+	HostSub		*hostSub = NULL;
+	ULONG		packetNo = 0;
+	const char	*msg = NULL;
+	bool		delayed = false;
 };
 
 class THistDlg : public TDlg {
 protected:
-	Cfg			*cfg;
-	THosts		*hosts;
+	Cfg			*cfg = NULL;
+	THosts		*hosts = NULL;
 	HistHash	histHash;
-	int			unOpenedNum;
-	BOOL		openedMode;
+	int			unOpenedNum = 0;
+	bool		openedMode = false;
 
 	TListHeader	histListHeader;
 	TListViewEx	histListView;
-	HFONT		hListFont;
+	HFONT		hListFont = NULL;
+	void		DelItem(HistObj *obj);
 
 public:
 	THistDlg(Cfg *_cfg, THosts *_hosts, TWin *_parent = NULL);
@@ -78,7 +77,8 @@ public:
 	virtual BOOL	EvDestroy();
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl);
 	virtual BOOL	EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight);
-	virtual void	SendNotify(HostSub *hostSub, ULONG packetNo, const char *msg);
+	virtual void	SendNotify(HostSub *hostSub, ULONG packetNo, const char *msg,
+								bool delayed=false);
 	virtual void	OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify=NULL);
 	virtual void	SaveColumnInfo();
 	virtual void	SetTitle();
@@ -90,7 +90,7 @@ public:
 	virtual int		MakeHistInfo(HostSub *hostSub, ULONG packet_no, char *buf);
 	virtual void	Show(int mode = SW_NORMAL);
 	virtual int		UnOpenedNum() { return unOpenedNum; }
-	virtual void	SetMode(BOOL is_opened) {
+	virtual void	SetMode(bool is_opened) {
 		if (is_opened == openedMode) return;
 		if (hWnd)	PostMessage(WM_COMMAND, OPENED_CHECK, 0);
 		else		openedMode = is_opened;

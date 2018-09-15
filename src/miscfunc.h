@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2017   miscfunc.h	Ver4.60 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2018   miscfunc.h	Ver4.90 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc functions
 	Create					: 2013-03-03(Sun)
-	Update					: 2017-07-16(Sun)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -58,6 +58,7 @@ BOOL CreateDownloadLinkU8(Cfg *cfg, const char *link, const char *target, time_t
 BOOL ConfirmDownloadLinkW(Cfg *cfg, const WCHAR *link_path, BOOL is_update=TRUE,
 	WCHAR *targ=NULL, WCHAR *linked_targ=NULL);
 
+BOOL MakeImagePath(Cfg *cfg, const char *fname, char *path);
 BOOL SaveImageFile(Cfg *cfg, const char *target_fname, VBuf *buf);
 VBuf *LoadImageFile(Cfg *cfg, const char *fname);
 BOOL LoadImageFile(Cfg *cfg, const char *fname, VBuf *vbuf);
@@ -148,6 +149,7 @@ void SlackMakeJson(LPCSTR chan, LPCSTR _user, LPCSTR _body, LPCSTR _icon, U8str 
 BOOL SlackRequest(LPCSTR host, LPCSTR path, LPCSTR json, DynBuf *reply, U8str *errMsg);
 void SlackRequestAsync(LPCSTR _host, LPCSTR _path, LPCSTR _json, HWND hWnd, UINT uMsg, int64 id=0);
 
+void ChangeWindowTitle(TWin *wnd, Cfg *);
 
 #endif
 

@@ -51,6 +51,8 @@ size_t urlstr2bin(const char *str, BYTE *bindata, size_t maxlen);
 void rev_order(BYTE *data, size_t size);
 void rev_order(const BYTE *src, BYTE *dst, size_t size);
 
+void byte_xor(const BYTE *in1, const BYTE *in2, BYTE *out, size_t len);
+
 char *strdupNew(const char *_s, int max_len=-1);
 WCHAR *wcsdupNew(const WCHAR *_s, int max_len=-1);
 int ReplaceCharW(WCHAR *s, WCHAR rep_in, WCHAR rep_out, int max_len);

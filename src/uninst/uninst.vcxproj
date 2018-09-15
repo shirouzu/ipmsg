@@ -73,24 +73,28 @@
     <IntDir>..\..\Obj\ReleaseUninst\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <TargetName>uninst</TargetName>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>..\..\x64\Release\</OutDir>
     <IntDir>..\..\x64\Obj\ReleaseUninst\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <TargetName>uninst</TargetName>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>..\..\Debug\</OutDir>
     <IntDir>..\..\Obj\Debug\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>uninst</TargetName>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>..\..\x64\Debug\</OutDir>
     <IntDir>..\..\x64\Obj\DebugUninst\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>uninst</TargetName>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -280,7 +284,7 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\instdata\instcmn.cpp" />
+    <ClCompile Include="..\install\instcmn.cpp" />
     <ClCompile Include="uninst.cpp" />
     <ClCompile Include="..\version.cpp" />
   </ItemGroup>

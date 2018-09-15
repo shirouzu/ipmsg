@@ -18,6 +18,7 @@ protected:
 	void	DeleteShortcut();
 	void	RemoveAppRegs();
 	BOOL	DeletePubkey();
+	void	ErrMsg(const WCHAR *body, const WCHAR *title);
 
 public:
 	TUninstDlg(char *cmdLine);

@@ -19,6 +19,7 @@
 #define LOG_SIGN_NOKEY	0x0010
 #define LOG_SIGN_ERR	0x0020
 #define LOG_UNAUTH		0x0040
+#define LOG_DELAY		0x1000
 
 #include "logdb.h"
 

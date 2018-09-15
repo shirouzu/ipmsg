@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2017   senddlg.h	Ver4.50 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2018   senddlg.h	Ver4.90 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Dialog
 	Create					: 2013-03-03(Sun)
-	Update					: 2017-06-12(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -11,86 +11,7 @@
 #ifndef SENDDLG_H
 #define SENDDLG_H
 
-enum SendStatus { ST_GETCRYPT=0, ST_MAKECRYPTMSG, ST_MAKEMSG, ST_SENDMSG, ST_DONE };
-class SendEntry {
-	Host		*host;
-	SendStatus	status;
-	UINT		command;
-	char		*msg;
-	int			msgLen;
-	BOOL		useUlist;
-	BOOL		useFile;
-	BOOL		useClip;
-
-// For Fragment UDP packet checksum problem (some NIC has this problem)
-// Last fragment payload is smaller than 64, some NIC generate wrong checksum.
-#define UDP_CHECKSUM_FIXBUF 64
-
-public:
-	SendEntry() : status(ST_GETCRYPT) {
-		msg = NULL;
-		host = NULL;
-		msgLen = 0;
-		useUlist = FALSE;
-		useFile = FALSE;
-		useClip = FALSE;
-	}
-	~SendEntry() {
-		delete [] msg;
-		if (host && host->RefCnt(-1) == 0) {
-			host->SafeRelease();
-		}
-	}
-	void SetMsg(char *_msg, int len) {
-		msgLen=len;
-		msg = new char[len + UDP_CHECKSUM_FIXBUF];
-		memcpy(msg, _msg, len);
-		memset(msg + len, 0, UDP_CHECKSUM_FIXBUF);
-	}
-	const char *Msg(void) {
-		return msg;
-	}
-	int MsgLen(bool udp_checksum_fix=false) {
-		return msgLen + (udp_checksum_fix ? 64 : 0);
-	}
-	void SetHost(Host *_host) {
-		(host = _host)->RefCnt(1);
-	}
-	Host *Host(void) {
-		return host;
-	}
-	void SetStatus(SendStatus _status) {
-		status = _status;
-	}
-	SendStatus Status(void) {
-		return status;
-	}
-	void SetCommand(UINT _command) {
-		command = _command;
-	}
-	UINT Command(void) {
-		return command;
-	}
-	void SetUseUlist(BOOL _useUlist) {
-		useUlist = _useUlist;
-	}
-	BOOL UseUlist() {
-		return useUlist;
-	}
-	void SetUseFile(BOOL use) {
-		useFile = use;
-	}
-	BOOL UseFile() {
-		return	useFile;
-	}
-	void SetUseClip(BOOL use) {
-		useClip = use;
-	}
-	BOOL UseClip() {
-		return	useClip;
-	}
-};
-
+class SendEntry;
 class TRecvDlg;
 
 typedef std::vector<HostSub> HostVec;
@@ -102,7 +23,7 @@ struct ReplyInfo {
 	U8str			*body;
 	enum PosMode { NONE, POS_RIGHT, POS_MID, POS_MIDDOWN } posMode;
 	DWORD			foreDuration;
-	BOOL			isMultiRecv;
+	bool			isMultiRecv;
 
 	const U8SVec	*fileList;
 	HWND			cmdHWnd;
@@ -131,31 +52,27 @@ protected:
 	std::vector<HostSub> replyList;
 	ReplyInfo::PosMode posMode;
 	DWORD		foreDuration;
-	BOOL		isMultiRecv;
+	bool		isMultiRecv;
 
 	MsgBuf		msg;
 	ShareMng	*shareMng;
 	ShareInfo	*shareInfo;
+	SendMng		*sendMng;
 
 	THosts		*hosts;
 	TFindDlg	*findDlg;
-	Host		**hostArray;
+	std::vector<Host *> hostVec;
 	int			memberCnt;
 
-	SendEntry	*sendEntry;
-	int			sendEntryNum;
-	char		*shareStr;
-	IPDictList	shareDictList;
 	char		selectGroup[MAX_NAMEBUF];
 	char		filterStr[MAX_NAMEBUF];
 
 	ULONG		packetNo;
 	int			packetLen;
 	UINT_PTR	timerID;
-	UINT		retryCnt;
-	BOOL		retryEx;
-	BOOL		listConfirm;
-	BOOL		sendRecvList;
+	bool		retryEx;
+	bool		listConfirm;
+	bool		sendRecvList;
 	HWND		cmdHWnd;
 	int64		cmdFlags;
 
@@ -175,18 +92,18 @@ protected:
 	int			currentMidYdiff;
 	int			dividYPos;
 	int			lastYPos;
-	BOOL		captureMode;
-	BOOL		listOperateCnt;
-	BOOL		hiddenDisp;
-	BOOL		repFilDisp;
+	int			listOperateCnt;
+	bool		captureMode;
+	bool		hiddenDisp;
+	bool		repFilDisp;
 
 	int			maxItems;
 	UINT		ColumnItems;
 	int			FullOrder[MAX_SENDWIDTH];
 	int			items[MAX_SENDWIDTH];
-	BOOL		lvStateEnable;
+	bool		lvStateEnable;
+	bool		sortRev;
 	int			sortItem;
-	BOOL		sortRev;
 
 	TEditSub		editSub;
 	TListHeader		hostListHeader;
@@ -198,68 +115,62 @@ protected:
 	TSubClassCtl	menuCheck;
 	TSubClassCtl	memCntText;
 	TSubClassCtl	repFilCheck;
-	TMsgBox			retryDlg;
 //	HMENU			hCurMenu;
 
 	void	AttachItemWnd();
 	void	SetupItemIcons();
-	void	SetFont(BOOL force_reset=FALSE);
+	void	SetFont(bool force_reset=FALSE);
 	void	SetSize(void);
 	void	SetMainMenu(HMENU hMenu);
 	void	PopupContextMenu(POINTS pos);
 	void	GetOrder(void);
 	void	GetSeparateArea(RECT *sep_rc);
-	BOOL	IsSeparateArea(int x, int y);
-	BOOL	OpenLogView(BOOL is_dblclk=FALSE);
+	bool	IsSeparateArea(int x, int y);
+	bool	OpenLogView(bool is_dblclk=FALSE);
 	void	SetReplyInfoTip();
 
-	void	SetQuoteStr(LPSTR str, LPCSTR quoteStr);
-	BOOL	SelectHost(HostSub *hostSub, BOOL force=FALSE, BOOL byAddr=TRUE);
+	void	SetQuoteStr(LPCSTR str, LPCSTR quoteStr);
+	bool	SelectHost(HostSub *hostSub, bool force=FALSE, bool byAddr=TRUE);
 	void	DisplayMemberCnt(void);
-	void	ReregisterEntry(BOOL keep_select=FALSE);
+	void	ReregisterEntry(bool keep_select=FALSE);
 	UINT	GetInsertIndexPoint(Host *host);
 	int		CompareHosts(Host *host1, Host *host2);
 	int		GroupCompare(Host *host1, Host *host2);
 	int		SubCompare(Host *host1, Host *host2);
-	void	AddLruUsers(void);
-	BOOL	SendMsg(void);
-	BOOL	SendMsgCore(void);
-	BOOL	SendMsgCoreEntry(SendEntry *entry);
-	BOOL	MakeMsgPacket(SendEntry *entry);
-	BOOL	IsSendFinish(void);
+	void	AddLruUsers(SendMsg *sendMsg);
+	bool	Send(void);
+	bool	SendMsgSetClip(void);
+	void	SendMsgSetUsers(SendMsg *sendMsg, bool is_multi, ULONG cmd, ULONG opt,
+							ULONG *osum, bool *use_sign, bool *is_delay);
 	void	InitializeHeader(void);
 	void	GetListItemStr(Host *host, int item, char *buf);
-	BOOL	IsFilterHost(Host *host);
-	BOOL	RestrictShare();
+	bool	IsFilterHost(Host *host);
+	bool	RestrictShare();
 	void	CheckDisp();
-	BOOL	IsReplyListConsist();
-	void	MakeUlistCore(int self_idx, std::vector<User> *hvec);
-	void	MakeUlistStr(int self_idx, char *ulist);
-	void	MakeUlistDict(int self_idx, IPDict *dict);
-	int		GetHostIdx(Host *host, BOOL *is_selected=NULL);
+	bool	IsReplyListConsist();
+	int		GetHostIdx(Host *host, bool *is_selected=NULL);
 	void	Finished();
 
 public:
-	TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, THosts *_hosts, Cfg *cfg,
+	TSendDlg(MsgMng *_msgmng, ShareMng *_shareMng, SendMng *_sendMng, THosts *_hosts, Cfg *cfg,
 			 LogMng *logmng, ReplyInfo *rInfo=NULL, TWin *parent=NULL);
 	virtual ~TSendDlg();
 
 	DWORD	GetRecvId(void) { return recvId; }
-	void	AddHost(Host *host, BOOL is_sel=FALSE, BOOL disp_upd=TRUE);
-	void	ModifyHost(Host *host, BOOL disp_upd=TRUE);
+	void	SetLvi(LV_ITEMW *lvi, int idx, Host *host, bool is_sel);
+	void	AddHost(Host *host, bool is_sel=FALSE, bool disp_upd=TRUE);
+	void	ModifyHost(Host *host, bool disp_upd=TRUE);
 	void	DispUpdate();
-	void	DelHost(Host *host, BOOL *is_sel=NULL, BOOL disp_upd=TRUE);
+	void	DelHost(Host *host, bool *is_sel=NULL, bool disp_upd=TRUE);
 	void	DelAllHost(void);
-	BOOL	IsSending(void);
-//	BOOL	DetachParent(HWND hTarget=NULL);
-	BOOL	SendFinishNotify(HostSub *hostSub, ULONG packet_no);
-	BOOL	SendPubKeyNotify(HostSub *hostSub, BYTE *pubkey, int len, int e, int capa);
-	BOOL	SelectFilterHost(void);
+	void	ModifyAllHost(void);
+//	bool	DetachParent(HWND hTarget=NULL);
+	bool	SelectFilterHost(void);
 	int		FilterHost(char *filterStr);
 	void	InsertBitmapByHandle(HBITMAP hBitmap, int pos=-1) {
 				editSub.InsertBitmapByHandle(hBitmap, pos);
 			}
-	BOOL	AppendDropFilesAsText(const char *path);
+	bool	AppendDropFilesAsText(const char *path);
 
 	static HFONT	GetEditFont() { return hEditFont; }
 

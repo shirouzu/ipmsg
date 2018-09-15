@@ -354,6 +354,8 @@ struct TRect : public RECT {
 	}
 };
 
+BOOL TFitRectToMonitor(RECT *_rc);
+
 struct TSize : public SIZE {
 	TSize(long _cx=0, long _cy=0) {
 		cx = _cx;
@@ -551,7 +553,7 @@ public:
 	virtual int		GetWindowTextLengthU8(void);
 	virtual BOOL	InvalidateRect(const RECT *rc, BOOL fErase);
 	virtual HWND	SetFocus();
-	virtual BOOL	RestoreRectFromParent();
+	virtual BOOL	RestoreRectFromParent(BOOL fit_screen=TRUE);
 
 	virtual LONG_PTR SetWindowLong(int index, LONG_PTR val);
 	virtual LONG_PTR GetWindowLong(int index);
@@ -851,6 +853,7 @@ public:
 	T	*NextObj(int list_type, T *obj) { return list[list_type].NextObj(obj); }
 	T	*PrevObj(int list_type, T *obj) { return list[list_type].PrevObj(obj); }
 	BOOL IsEmpty(int list_type)         { return list[list_type].IsEmpty();    }
+	int  Num(int list_type)             { return list[list_type].Num();        }
 	TListEx<T> *List(int list_type)     { return &list[list_type];             }
 };
 
@@ -859,9 +862,10 @@ public:
 
 class TRegistry {
 protected:
-	HKEY	topKey;
-	int		openCnt;
-	StrMode	strMode;
+	HKEY	topKey = NULL;
+	int		openCnt = 0;
+	BOOL	keyForce64 = FALSE;
+	StrMode	strMode = BY_UTF8;
 	HKEY	hKey[MAX_KEYARRAY];
 
 public:
@@ -870,11 +874,16 @@ public:
 	TRegistry(HKEY top_key, StrMode mode=BY_UTF8);
 	~TRegistry();
 
+	void	SetKeyForce64(BOOL on=TRUE) {
+		if (TIsWow64()) {
+			keyForce64 = on;
+		}
+	}
 	void	ChangeTopKey(HKEY topKey);
 	void	SetStrMode(StrMode mode) { strMode = mode; }
 
-	BOOL	ChangeApp(LPCSTR company, LPSTR appName=NULL);
-	BOOL	ChangeAppW(const WCHAR *company, const WCHAR *appName=NULL);
+	BOOL	ChangeApp(LPCSTR company, LPSTR appName=NULL, BOOL openOnly=FALSE);
+	BOOL	ChangeAppW(const WCHAR *company, const WCHAR *appName=NULL, BOOL openOnly=FALSE);
 
 	BOOL	OpenKey(LPCSTR subKey, BOOL createFlg=FALSE);
 	BOOL	OpenKeyW(const WCHAR *subKey, BOOL createFlg=FALSE);

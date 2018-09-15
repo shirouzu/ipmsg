@@ -1,10 +1,10 @@
 ﻿static char *mainwinupd_id = 
-	"@(#)Copyright (C) H.Shirouzu 2017   mainwinupd.cpp	Ver4.71";
+	"@(#)Copyright (C) H.Shirouzu 2017-2018   mainwinupd.cpp	Ver4.90";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window Update routine
 	Create					: 2017-08-27(Sun)
-	Update					: 2017-09-10(Sun)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -14,6 +14,12 @@
 using namespace std;
 
 #ifndef IPMSG_PRO
+
+//#define UPDATE_DBG
+#ifdef UPDATE_DBG
+#undef  IPMSG_UPDATEINFO
+#define IPMSG_UPDATEINFO	"ipmsg-update-tmp.dat"
+#endif
 
 void TMainWin::UpdateCheckTimer()
 {
@@ -41,11 +47,26 @@ BOOL TMainWin::UpdateWritable(BOOL force)
 BOOL TMainWin::UpdateCheck(DWORD flags, HWND targ_wnd)
 {
 	Debug("UpdateCheck flags=%x hwnd=%p\n", flags, targ_wnd);
-	cfg->updateLast = time(NULL);
+	auto now = time(NULL);
+	cfg->updateLast = now;
+	recvIdx = [=]() {
+		auto d = (now - cfg->LastRecv) / (3600 * 24);
+		if (d <=   1) return 9;
+		if (d <=   3) return 8;
+		if (d <=   7) return 7;
+		if (d <=  15) return 6;
+		if (d <=  30) return 5;
+		if (d <=  60) return 4;
+		if (d <= 120) return 3;
+		if (d <= 180) return 2;
+		if (d <= 360) return 1;
+		return 0;
+	}();
 
 	updData.flags = flags;
 	updData.hWnd = targ_wnd;
 	updRetry = FALSE;
+	SetUserAgent();
 	TInetAsync(IPMSG_SITE, IPMSG_UPDATEINFO, hWnd, WM_IPMSG_UPDATERES);
 
 	return	TRUE;
@@ -75,10 +96,14 @@ BOOL TMainWin::UpdateCheckResCore(TInetReqReply *irr, BOOL *need_update)
 	}
 
 #ifdef _WIN64
-	const char *key = "x64";
+	char key[10] = "x64";
 #else
-	const char *key = "x86";
+	char key[10] = "x86";
 #endif
+	if (!gEnableHook) {
+		strcat(key, "-n");
+	}
+
 	IPDict	data;
 
 	if (!dict.get_dict(key, &data)) {

@@ -13,17 +13,11 @@
 #define VERSION_H
 
 struct VerInfo {
-	DWORD	type;	// Win32 == 0x00010001, x64 == 0x00010002
-					// v4.00a17
-	WORD	major;	//  4
-	WORD	minor;	//    00
-	WORD	rev;	//       17
-	VerInfo() {
-		type	= 0;
-		major	= 0;
-		minor	= 0;
-		rev		= 0;
-	}
+	DWORD	type = 0;	// Win32 == 0x00010001, x64 == 0x00010002
+						// v4.00a17
+	WORD	major = 0;	//  4
+	WORD	minor = 0;	//    00
+	WORD	rev = 0;	//       17
 };
 
 const char *GetVersionStr(BOOL is_basever=FALSE);

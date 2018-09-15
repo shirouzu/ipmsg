@@ -1,5 +1,9 @@
 ﻿static char *version_id = 
-	"@(#)Copyright (C) H.Shirouzu 2010-2018   version.cpp	Ver4.85";
+	"@(#)Copyright (C) H.Shirouzu 2010-2018   version.cpp	Ver4.92"
+#ifdef _DEBUG
+	"d"
+#endif
+;
 
 #include "ipmsg.h"
 
@@ -19,7 +23,7 @@ static char *additional_ver = ""
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Version
 	Create					: 2010-05-23(Sun)
-	Update					: 2017-08-21(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

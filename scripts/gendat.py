@@ -28,23 +28,31 @@ def gen_timestamp(f, keyword, mtime):
 
 def compare_time(dst, src_array):
 	dst_mtime = os.stat(dst).st_mtime
-	for src in src_array:
+	for src, _ in src_array:
 		src_mtime = os.stat(src).st_mtime
 		if src_mtime > dst_mtime:
 			return	False;
 	else:
 		return	True
 
+def gen_flist(files):
+	flist = []
+	for f in files:
+		d = f.split(",")
+		flist.append((d[0], len(d) > 1 and ("_" + d[1]) or ""))
+	return	flist
 
 def gen_data(out_name, files):
-	if compare_time(out_name, files):
+	flist = gen_flist(files)
+
+	if compare_time(out_name, flist):
 		return	True
 
 	f = open(out_name, "wb")
 
-	for fname in files:
+	for fname,suffix in flist:
 		data = zlib.compress(open(fname, "rb").read())
-		keyword = fname.split("\\")[-1].split("/")[-1].replace(".", "_")
+		keyword = fname.split("\\")[-1].split("/")[-1].replace(".", "_") + suffix
 		gen_timestamp(f, keyword, os.path.getmtime(fname))
 		gen_byte_array(f, keyword, data)
 	return	True

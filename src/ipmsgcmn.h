@@ -37,6 +37,8 @@
 #include "cfg.h"
 #include "richedit.h"
 #include "miscdlg.h"
+#include "sendmsg.h"
+#include "sendmng.h"
 #include "share.h"
 #include "logmng.h"
 #include "image.h"

@@ -1,10 +1,10 @@
 ﻿static char *histdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2017   histdlg.cpp	Ver4.50";
+	"@(#)Copyright (C) H.Shirouzu 2011-2018   histdlg.cpp	Ver4.90";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: History Dialog
 	Create					: 2011-07-24(Sun)
-	Update					: 2017-06-12(Mon)
+	Update					: 2018-09-12(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -15,7 +15,6 @@
 #define MAX_HISTHASH	1001
 HistHash::HistHash() : THashTbl(MAX_HISTHASH)
 {
-	top = end = lruTop = lruEnd = NULL;
 }
 
 HistHash::~HistHash()
@@ -37,6 +36,9 @@ void HistHash::Clear()
 void HistHash::Register(THashObj *_obj, u_int hash_id)
 {
 	HistObj	*obj = (HistObj *)_obj;
+
+	THashTbl::Search(obj, hash_id);
+
 	THashTbl::Register(obj, hash_id);
 	if (top) {
 		obj->next = top;
@@ -115,8 +117,6 @@ THistDlg::THistDlg(Cfg *_cfg, THosts *_hosts, TWin *_parent) : TDlg(HISTORY_DIAL
 	cfg = _cfg;
 	hosts = _hosts;
 	hListFont = NULL;
-	openedMode = FALSE;
-	unOpenedNum = 0;
 }
 
 /*
@@ -279,7 +279,11 @@ void THistDlg::SetHeader()
 
 void THistDlg::SetData(HistObj *obj)
 {
-	histListView.InsertItem(0, obj->user.s(), (LPARAM)obj);
+	char	buf[MAX_BUF];
+
+	MakeListString(cfg, &obj->hostSub, hosts, buf);
+
+	histListView.InsertItem(0, buf, (LPARAM)obj);
 	if (openedMode) {
 		histListView.SetSubItem(0, HW_ODATE, obj->odate.s());
 	}
@@ -312,6 +316,8 @@ void THistDlg::ClearData()
 {
 	int		sel_num = histListView.GetSelectedItemCount();
 	auto	next = openedMode ? histHash.LruTop() : histHash.Top();
+	bool	delay_obj = false;
+	bool	del_cnt = 0;
 
 	while (auto obj=next) {
 		next = openedMode ? obj->lruNext : obj->next;
@@ -321,15 +327,20 @@ void THistDlg::ClearData()
 		}
 		int	idx = histListView.FindItem((LPARAM)obj);
 
-		if (idx >= 0 && (sel_num == 0 || histListView.IsSelected(idx))) {
-			histListView.DeleteItem(idx);
-			histHash.UnRegister(obj); // !UnRegisterLRU()
-			if (!openedMode) {
-				unOpenedNum--;
-				Debug("unOpenedNum=%d\n", unOpenedNum);
+		if (idx >= 0 && ((sel_num == 0 && !obj->delayed) || histListView.IsSelected(idx))) {
+			if (obj->delayed) {
+				::SendMessage(GetMainWnd(), WM_DELAYSEND_DEL, 0, (LPARAM)obj);
 			}
+			DelItem(obj);
+			del_cnt++;
+		} else if (obj->delayed) {
+			delay_obj = true;
 		}
 	}
+	if (sel_num == 0 && del_cnt == 0 && delay_obj) {
+		MessageBoxU8(LoadStrU8(IDS_DELDELAYSEND));
+	}
+
 	SetTitle();
 }
 
@@ -338,29 +349,48 @@ int THistDlg::MakeHistInfo(HostSub *hostSub, ULONG packet_no, char *buf)
 	return	sprintf(buf, "%s:%s:%d", hostSub->u.userName, hostSub->u.hostName, packet_no);
 }
 
-void THistDlg::SendNotify(HostSub *hostSub, ULONG packetNo, const char *msg)
+void THistDlg::DelItem(HistObj *obj)
+{
+	if (hWnd) {
+		int	idx = histListView.FindItem((LPARAM)obj);
+		if (idx >= 0) {
+			histListView.DeleteItem(idx);
+		}
+	}
+	histHash.UnRegister(obj);
+	if (!*obj->odate.s()) unOpenedNum--;
+	delete obj;
+}
+
+void THistDlg::SendNotify(HostSub *hostSub, ULONG packetNo, const char *msg, bool delayed)
 {
 #define MAX_OPENHISTORY 500
 	int num = histHash.GetRegisterNum();
 	if (num >= MAX_OPENHISTORY) {
-		if (HistObj *obj = histHash.End()) {
-			if (hWnd) histListView.DeleteItem(num-1);
-			histHash.UnRegister(obj);
-			if (!*obj->odate.s()) unOpenedNum--;
-			delete obj;
-			num--;
+		for (auto *obj=histHash.End(); obj; obj=obj->prev) {
+			if (obj->delayed) continue;
+			DelItem(obj);
+			break;
 		}
 	}
 
 	char	buf[MAX_LISTBUF];
 	HistObj	*obj = new HistObj();
 	int		len = MakeHistInfo(hostSub, packetNo, buf);
+	auto	hash = MakeHash(buf, len, 0);
+
 	obj->info = buf;
+	obj->hostSub = *hostSub;
+	obj->delayed = delayed;
 
-	histHash.Register(obj, MakeHash(obj->info.s(), len, 0));
+	if (auto old = histHash.Search(obj->info.s(), hash)) {
+		DelItem((HistObj *)old);
+	}
+	if (msg == NULL) {
+		return;
+	}
 
-	MakeListString(cfg, hostSub, hosts, buf);
-	obj->user = buf;
+	histHash.Register(obj, hash);
 
 	SYSTEMTIME	st;
 	::GetLocalTime(&st);
@@ -368,16 +398,13 @@ void THistDlg::SendNotify(HostSub *hostSub, ULONG packetNo, const char *msg)
 	sprintf(buf, "%02d/%02d %02d:%02d", st.wMonth, st.wDay, st.wHour, st.wMinute);
 	obj->sdate = buf;
 
-//	sprintf(buf, "%x", packetNo);
-//	obj->pktnos = buf;
 	obj->packetNo = packetNo;
 
 	if (msg) {
 		u8cpyz(buf, msg, 100);
 		obj->msg = buf;
+		unOpenedNum++;
 	}
-
-	unOpenedNum++;
 
 	if (hWnd) {
 		if (!openedMode) {
@@ -411,7 +438,9 @@ void THistDlg::OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify)
 	sprintf(buf, "%02d/%02d %02d:%02d", st.wMonth, st.wDay, st.wHour, st.wMinute);
 	obj->odate = buf;
 
-	if (--unOpenedNum < 0) unOpenedNum = 0;
+	if (unOpenedNum > 0) {
+		unOpenedNum--;
+	}
 	histHash.RegisterLru(obj);
 
 	if (notify) {
