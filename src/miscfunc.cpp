@@ -28,7 +28,7 @@ UrlObj *SearchUrlObj(TListEx<UrlObj> *list, char *protocol)
 	return	NULL;
 }
 
-#if !defined(USE_CMD)
+#if !defined(USE_CMD) && !defined(USE_ADMIN)
 /*
 	ダイアログ用アイコン設定
 */

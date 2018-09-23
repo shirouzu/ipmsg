@@ -414,7 +414,7 @@ void THistDlg::SendNotify(HostSub *hostSub, ULONG packetNo, const char *msg, boo
 	}
 }
 
-void THistDlg::OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify)
+void THistDlg::OpenNotify(HostSub *hostSub, ULONG packetNo, const char *notify)
 {
 	char	buf[MAX_BUF];
 	int		len;

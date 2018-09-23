@@ -23,6 +23,8 @@ using namespace std;
 
 void TMainWin::UpdateCheckTimer()
 {
+	if (lastExitTick) return;
+
 	time_t	now = time(NULL);
 
 	if (now - cfg->updateLast > cfg->updateSpan) {
@@ -161,7 +163,8 @@ void TMainWin::UpdateCheckRes(TInetReqReply *irr)
 			//
 		}
 		else if (updData.flags & UPD_CONFIRM) {
-			BalloonWindow(TRAY_UPDATE, LoadStrU8(IDS_NEEDUPDATE), IP_MSG, ADAY_MSEC, TRUE);
+		//	BalloonWindow(TRAY_UPDATE, LoadStrU8(IDS_NEEDUPDATE), IP_MSG, ADAY_MSEC, TRUE);
+			PostMessage(WM_IPMSG_UPDATEDLG, 0, 0);
 		}
 		else if (!UpdateWritable()) {
 			UpdateExec();

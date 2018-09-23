@@ -79,7 +79,7 @@ public:
 	virtual BOOL	EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight);
 	virtual void	SendNotify(HostSub *hostSub, ULONG packetNo, const char *msg,
 								bool delayed=false);
-	virtual void	OpenNotify(HostSub *hostSub, ULONG packetNo, char *notify=NULL);
+	virtual void	OpenNotify(HostSub *hostSub, ULONG packetNo, const char *notify=NULL);
 	virtual void	SaveColumnInfo();
 	virtual void	SetTitle();
 	virtual void	SetFont();

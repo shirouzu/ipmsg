@@ -1,5 +1,5 @@
 ﻿static char *version_id = 
-	"@(#)Copyright (C) H.Shirouzu 2010-2018   version.cpp	Ver4.92"
+	"@(#)Copyright (C) H.Shirouzu 2010-2018   version.cpp	Ver4.93"
 #ifdef _DEBUG
 	"d"
 #endif
@@ -79,7 +79,8 @@ BOOL GetVerInfo(VerInfo *vi_in)
 					case 'r':	// rel N
 						verInfo.rev += 10000;
 						break;
-					default:
+					default:	// d == debug
+						verInfo.rev += 10000;
 						break;
 					}
 				}

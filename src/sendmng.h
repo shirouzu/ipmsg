@@ -14,13 +14,14 @@
 typedef std::list<std::shared_ptr<SendMsg>> SendMsgList;
 
 class SendMng {
-	Cfg		*cfg;
-	MsgMng	*msgMng;
+	Cfg				*cfg = NULL;
+	MsgMng			*msgMng = NULL;
+	ShareMng		*shareMng = NULL;
 	SendMsgList		msgAct;
 	SendMsgList		msgDis;
 
 public:
-	SendMng(Cfg *, MsgMng *);
+	SendMng(Cfg *, MsgMng *, ShareMng *);
 	~SendMng();
 
 	void AddHostEvent(Host *host);

@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 4.92
-			H.Shirouzu Sep 14, 2018
+	Source code of IP Messenger for Win version 4.93
+			H.Shirouzu Sep 21, 2018
 
 	Copyright (C) 1996-2018 SHIROUZU Hiroaki All Rights Reserved.
 	Copyright (C) 2015-2018 Asahi Net, Inc. All Rights Reserved.

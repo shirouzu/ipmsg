@@ -42,6 +42,7 @@ protected:
 	enum Stat { INST_INIT, INST_RUN, INST_RETRY, INST_END } stat;
 
 	char	setupDir[MAX_PATH_U8];
+	char	defaultDir[MAX_PATH_U8];
 	char	extractDir[MAX_PATH_U8];
 	enum Mode { SIMPLE, HISTORY, FIRST, INSTALLED, INTERNAL, INTERNAL_ERR };
 

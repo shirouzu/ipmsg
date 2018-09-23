@@ -138,7 +138,6 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 		logDb->PrefetchCache(hWnd, WM_LOGFETCH_DONE);
 	}
 
-
 	SetTimer(IPMSG_CLEANUP_TIMER, 1000); // 1sec
 	SetTimer(IPMSG_CLEANUPDIRTCP_TIMER, 2000); // 2sec
 
@@ -610,6 +609,16 @@ BOOL TMainWin::EvPowerBroadcast(WPARAM pbtEvent, LPARAM pbtData)
 	case PBT_APMRESUMESUSPEND:
 		SetTimer(IPMSG_DELAYENTRY_TIMER, IPMSG_DELAYENTRY_SPAN);
 		lastExitTick = 0;
+
+#ifndef IPMSG_PRO
+		if (cfg->updateFlag & Cfg::UPDATE_ON) {
+			time_t	now = time(NULL);
+			// 60秒以内に、アップデートチェックが走らないように
+			if (now - cfg->updateLast > cfg->updateSpan - 60) {
+				cfg->updateLast = now - cfg->updateSpan + 60;
+			}
+		}
+#endif
 		break;
 
 	case PBT_POWERSETTINGCHANGE:
@@ -862,6 +871,10 @@ BOOL TMainWin::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_IPMSG_UPDATEDLRES:
 		UpdateDlRes((TInetReqReply *)lParam);
+		return	TRUE;
+
+	case WM_IPMSG_UPDATEDLG:
+		ShowUpdateDlg();
 		return	TRUE;
 
 	case WM_TCPDIREVENT:

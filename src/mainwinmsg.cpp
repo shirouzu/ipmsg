@@ -332,7 +332,7 @@ void TMainWin::MsgSendInfo(MsgBuf *msg)
 */
 void TMainWin::MsgGetPubKey(MsgBuf *msg)
 {
-	int		capa = strtoul(msg->msgBuf, 0, 16);
+	int		capa = strtoul(msg->msgBuf.s(), 0, 16);
 	int		local_capa = cfg->GetCapa();
 	char	buf[MAX_BUF];
 
@@ -373,7 +373,7 @@ void TMainWin::MsgAnsPubKey(MsgBuf *msg)
 	int		key_len, e, capa;
 	char	*capa_hex, *e_hex, *key_hex, *p;
 
-	if (cfg->GetCapa() == 0) return;
+	if (cfg->GetCapa() == 0 || !msg->msgBuf) return;
 
 	if ((capa_hex = sep_tok(msg->msgBuf, ':', &p)) == NULL)
 		return;
@@ -414,7 +414,7 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 {
 	int	cmd = GET_MODE(msg->command);
 	int	packet_no = (cmd == IPMSG_RECVMSG || cmd == IPMSG_ANSREADMSG || cmd == IPMSG_READMSG)
-					? atol(msg->msgBuf) : 0;
+					? atol(msg->msgBuf.s()) : 0;
 
 	int64	val = 0;
 	if (msg->ipdict.get_int(IPMSG_REPLYPKT_KEY, &val)) {
@@ -434,10 +434,11 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 		return;
 
 	char	title[MAX_LISTBUF];
-	char	*msg_text = msg->msgBuf;
 	int		show_mode = cfg->OpenCheck == 3 && cmd == IPMSG_READMSG ? SW_MINIMIZE : SW_SHOW;
 	Host	*host = cfg->priorityHosts.GetHostByName(&msg->hostSub);
+	DynBuf	buf(MAX_BUF);
 
+	strncpyz(buf.S(), msg->msgBuf.s(), MAX_BUF);
 	if (host && *host->alterName) {
 		strcpy(title, host->alterName);
 	} else {
@@ -464,14 +465,14 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 		else {
 			const char *c =  strchr(Ctime(), ' ');
 			if (c) c++;
-			sprintf(msg_text, "%s\r\n%s", LoadStrU8(IDS_OPENFIN), c ? c : "");
-			if (char *p = strrchr(msg_text, ' ')) *p = 0;
+			snprintfz(buf.S(), (int)buf.Size(), "%s\r\n%s", LoadStrU8(IDS_OPENFIN), c ? c : "");
+			if (char *p = strrchr(buf.S(), ' ')) *p = 0;
 		}
 		break;
 
 	case IPMSG_SENDINFO:
 		sendMng->SendFinishNotify(&msg->hostSub, packet_no);
-		histDlg->OpenNotify(&msg->hostSub, msg->packetNo, msg->msgBuf);
+		histDlg->OpenNotify(&msg->hostSub, msg->packetNo, msg->msgBuf.s());
 		return;
 
 	case IPMSG_SENDABSENCEINFO:
@@ -488,14 +489,14 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 		if (msg_cnt >= cfg->RecvMax)
 			return;
 		msg_cnt++;
-		MessageBoxU8(msg_text, title);
+		MessageBoxU8(buf.s(), title);
 		msg_cnt--;
 	}
 	else {
 		if (TMsgDlg::GetCreateCnt() >= cfg->RecvMax * 4)
 			return;
 		TMsgDlg	*msgDlg = new TMsgDlg(cfg->TaskbarUI ? 0 : this);
-		msgDlg->Create(msg_text, title, show_mode);
+		msgDlg->Create(buf.s(), title, show_mode);
 		if (cmd == IPMSG_SENDINFO || cmd == IPMSG_SENDABSENCEINFO)
 			msgDlg->ActiveDlg();
 		msgList.AddObj(msgDlg);
@@ -531,7 +532,7 @@ void TMainWin::MsgReleaseFiles(MsgBuf *msg)
 		packet_no = (int)val;
 	}
 	else {
-		packet_no = atoi(msg->msgBuf);
+		packet_no = atoi(msg->msgBuf.s());
 	}
 
 	shareMng->EndHostShare(packet_no, &msg->hostSub);

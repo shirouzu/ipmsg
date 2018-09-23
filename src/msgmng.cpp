@@ -1632,7 +1632,7 @@ AddrInfo *GetIPAddrs(GetIPAddrsMode mode, int *num, int ipv6mode)
 	Debug("r=%d %s\n", ret, addr.S());
 #endif
 
-#define MAX_ADDRS	100
+#define MAX_ADDRS	200
 
 	di = 0;
 
@@ -1652,7 +1652,7 @@ AddrInfo *GetIPAddrs(GetIPAddrsMode mode, int *num, int ipv6mode)
 
 		int	uni_num = 0;	// 同じadptor上のIP数
 
-		for (auto uni = adr->FirstUnicastAddress; uni; uni = uni->Next) {
+		for (auto uni = adr->FirstUnicastAddress; uni && di < MAX_ADDRS; uni = uni->Next) {
 			if (/* ipv6mode == 0 &&*/ !(uni->Flags & IP_ADAPTER_ADDRESS_DNS_ELIGIBLE)) continue;
 			if (uni->Flags & IP_ADAPTER_ADDRESS_TRANSIENT) continue;
 
@@ -1683,7 +1683,7 @@ AddrInfo *GetIPAddrs(GetIPAddrsMode mode, int *num, int ipv6mode)
 							}
 						}
 					}
-					if (br_addr) {
+					if (br_addr && di < MAX_ADDRS - 1) {
 						di++;
 						ret[di].type = AddrInfo::BROADCAST;
 						ret[di].addr.SetV4Addr(br_addr, uni->OnLinkPrefixLength);
@@ -1696,7 +1696,7 @@ AddrInfo *GetIPAddrs(GetIPAddrsMode mode, int *num, int ipv6mode)
 
 		if (mode == GIA_NOBROADCAST) continue;
 
-		for (auto mul=adr->FirstMulticastAddress; mul; mul=mul->Next) {
+		for (auto mul=adr->FirstMulticastAddress; mul && di < MAX_ADDRS; mul=mul->Next) {
 			if (ipv6mode == 0 && !(mul->Flags & IP_ADAPTER_ADDRESS_DNS_ELIGIBLE)) continue;
 			if (mul->Flags & IP_ADAPTER_ADDRESS_TRANSIENT) continue;
 

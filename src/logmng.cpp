@@ -245,7 +245,7 @@ BOOL LogMng::GetRecvMsg(MsgBuf *msg, int opt, THosts *hosts, ShareInfo *shareInf
 	}
 	p += strcpyz(p, "\r\n");
 	p += strcpyz(p, LOGMSG_HEAD_END);
-	p += strcpyz(p, msg->msgBuf);
+	p += strcpyz(p, msg->msgBuf.s());
 	p += strcpyz(p, "\r\n\r\n");
 
 	*u = buf.s();

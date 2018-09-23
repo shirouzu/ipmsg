@@ -11,6 +11,8 @@
 #ifndef SHARE_H
 #define SHARE_H
 
+class SendMsg;
+
 class ShareInfo : public TListObj {
 public:
 	UINT		packetNo;		// not use recvdlg

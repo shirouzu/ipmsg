@@ -166,6 +166,7 @@
       <ObjectFileName>x64\Obj\Debug\</ObjectFileName>
       <ProgramDataBaseFileName>x64\Obj\Debug\</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>

@@ -16,10 +16,11 @@ using namespace std;
 /*
 	SendManager の初期化
 */
-SendMng::SendMng(Cfg *_cfg, MsgMng *_msgmng)
+SendMng::SendMng(Cfg *_cfg, MsgMng *_msgmng, ShareMng *_shareMng)
 {
-	msgMng	= _msgmng;
-	cfg		= _cfg;
+	cfg			= _cfg;
+	msgMng		= _msgmng;
+	shareMng	= _shareMng;
 }
 
 /*
@@ -102,6 +103,7 @@ bool SendMng::Del(HostSub *hostSub, ULONG packet_no)
 		for (auto i=msgVec->begin(); i != msgVec->end(); i++) {
 			auto&	ent = *i;
 			if (ent->Del(hostSub, packet_no)) {
+				shareMng->EndHostShare(packet_no, hostSub);
 				if (ent->IsSendFinish()) {
 					cfg->DelSendPkt(ent->PacketNo());
 					msgVec->erase(i);

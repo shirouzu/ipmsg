@@ -62,7 +62,7 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 		MiniDumpWithFullMemoryInfo | 
 		MiniDumpWithThreadInfo | 
 		MiniDumpWithUnloadedModules);
-//	Debug("mscver=%d %d\n", _MSC_VER, _MSC_FULL_VER);
+	Debug("mscver=%d %d\n", _MSC_VER, _MSC_FULL_VER);
 
 	InitExTrace(1024 * 1024);
 
@@ -113,9 +113,9 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 	ansList = new TRecycleListEx<AnsQueueObj>(MAX_ANSLIST);
 	dosHost = new TRecycleListEx<DosHost>(MAX_DOSHOST);
 	shareMng = new ShareMng(cfg, msgMng);
-	sendMng = new SendMng(cfg, msgMng);
 	shareStatDlg = new TShareStatDlg(shareMng, cfg);
 	histDlg = new THistDlg(cfg, &hosts);
+	sendMng = new SendMng(cfg, msgMng, shareMng);
 	logViewList.AddObj(new TLogView(cfg, logmng, TRUE));
 
 	remoteDlg = new TRemoteDlg(cfg, this);
@@ -269,7 +269,6 @@ void TMainWin::InitToastDll(void)
 	if ((hToast = TLoadLibraryExW(TOASTDLL, TLT_EXEDIR)) == NULL) {
 		auto	msg = Fmt("Load iptoast err=%d\n", GetLastError());
 		Debug(msg);
-		MessageBox(msg);
 		return;
 	}
 
@@ -1689,7 +1688,7 @@ void TMainWin::SendHostList(MsgBuf *msg)
 	char	*tmp_p = tmp;
 	int		utf8opt = (msg->command & (IPMSG_CAPUTF8OPT|IPMSG_UTF8OPT)) ? IPMSG_UTF8OPT : 0;
 
-	if ((start_no = atoi(msg->msgBuf)) < 0) {
+	if ((start_no = atoi(msg->msgBuf.s())) < 0) {
 		start_no = 0;
 	}
 
@@ -1792,6 +1791,8 @@ void TMainWin::AddHostList(MsgBuf *msg)
 	BOOL	is_master = msg->hostSub.addr == cfg->masterAddr ? TRUE : FALSE;
 	int		continue_cnt = 0;
 	int		host_cnt = 0;
+
+	if (!msg->msgBuf) return;
 
 	if (!AddHostListCore(msg->msgBuf, is_master, &continue_cnt, &host_cnt)) {
 		Debug("AddHostList err(%d/%d) %s\n", continue_cnt, host_cnt, msg->hostSub.addr.S());
@@ -2016,8 +2017,9 @@ void TMainWin::SetUserAgent()
 {
 	static auto icld = ::GetUserDefaultLCID();
 
-	TInetSetUserAgent(Fmt("IPMsg ver%s %04x/%d%d%d%d/%d %s",
+	TInetSetUserAgent(Fmt("IPMsg ver%s%s %04x/%d%d%d%d/%d %s",
 		GetVersionStr(),
+		gEnableHook ? "" : "-n",
 		icld,
 		min((u_int)cfg->DirMode, 9),
 		cfg->LogCheck ? 1 : 0,

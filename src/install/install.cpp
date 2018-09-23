@@ -218,6 +218,7 @@ TInstDlg::TInstDlg(char *cmdLine) :
 	isInternal = FALSE;
 	stat = INST_INIT;
 	*setupDir = 0;
+	*defaultDir = 0;
 	*extractDir = 0;
 
 	OpenDebugConsole(ODC_PARENT);
@@ -259,7 +260,8 @@ BOOL TInstDlg::ParseCmdLine()
 	isExtract  = FALSE;
 	isExt64    = TOs64();
 
-	*setupDir  = 0;
+	*setupDir   = 0;
+	*defaultDir = 0;
 	*extractDir = 0;
 
 	orgArgv = CommandLineToArgvExW(::GetCommandLineW(), &orgArgc);
@@ -444,7 +446,9 @@ BOOL TInstDlg::InitDir()
 {
 // 現在ディレクトリ設定
 	char	buf[MAX_PATH_U8] = "";
-	char	dir[MAX_PATH_U8] = "";
+
+	SHGetSpecialFolderPathU8(NULL, buf, CSIDL_LOCAL_APPDATA);
+	MakePathU8(defaultDir, buf, IP_MSG);
 
 	if (isInternal) {
 		GetModuleFileNameU8(NULL, buf, sizeof(buf));
@@ -452,22 +456,19 @@ BOOL TInstDlg::InitDir()
 		return	TRUE;
 	}
 
-	SHGetSpecialFolderPathU8(NULL, buf, CSIDL_LOCAL_APPDATA);
-	MakePathU8(dir, buf, IP_MSG);
-
 // 既にセットアップされている場合は、セットアップディレクトリを読み出す
 	isFirst = TRUE;
 	TRegistry	reg(HKEY_CURRENT_USER);
 	if (reg.ChangeApp(HSTOOLS_STR, IP_MSG, TRUE)) {
 		if (reg.GetStr(REGSTR_PATH, buf, sizeof(buf)) && *buf) {
 			isFirst = FALSE;
-			strcpy(dir, buf);
+			strcpy(setupDir, buf);
 		}
 		reg.CloseKey();
 	}
 
 	if (!*setupDir) {
-		strcpy(setupDir, dir);
+		strcpy(setupDir, defaultDir);
 	}
 
 	return	TRUE;
@@ -569,6 +570,11 @@ BOOL TInstDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 	case FILE_BUTTON:
 		BrowseDirDlg(this, FILE_EDIT, "Select Install Directory");
 		return	TRUE;
+
+	case INITDIR_BTN:
+		SetDlgItemTextU8(FILE_EDIT, defaultDir);
+		return	TRUE;
+
 	}
 	return	FALSE;
 }
