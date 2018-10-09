@@ -2287,9 +2287,9 @@ bool TSendDlg::Send(void)
 	// 遅延メッセージ分も差し引く
 	int	max_len = msgMng->GetEncryptMaxMsgLen() - (share_len + ulist_len) - 100;
 	TruncateMsg(msg.msgBuf, false, max_len);
-	sendMsg->RegisterMsg(msg.msgBuf);
+	sendMsg->RegisterMsg(msg.msgBuf.s());
 
-	logmng->WriteSendMsg(packetNo, msg.msgBuf, command,
+	logmng->WriteSendMsg(packetNo, msg.msgBuf.s(), command,
 				((opt_sum & IPMSG_ENCRYPTOPT) == 0 ? 0 :
 					IsUserNameExt(cfg) && use_sign ?
 					((cryptCapa & IPMSG_SIGN_SHA256) ? LOG_SIGN2_OK : LOG_SIGN_OK) :

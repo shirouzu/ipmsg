@@ -265,6 +265,7 @@ public:
 	std::vector<Wstr> directExtVec;
 	int		linkDetectMode;
 	int		clickOpenMode;
+	time_t	lastVacuum;
 
 	std::wregex	*urlex_re;
 	std::wregex	*url_re;
@@ -310,6 +311,11 @@ public:
 	int		HistWidth[MAX_HISTWIDTH];
 	int		HistXdiff;
 	int		HistYdiff;
+
+	int		LvX;
+	int		LvY;
+	int		LvCx;
+	int		LvCy;
 
 	int		PasswordUse;
 	int		PasswordUseNext;

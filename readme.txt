@@ -1,9 +1,10 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 4.93
-			H.Shirouzu Sep 21, 2018
+	Source code of IP Messenger for Win version 4.95
+			H.Shirouzu Oct 08, 2018
 
 	Copyright (C) 1996-2018 SHIROUZU Hiroaki All Rights Reserved.
 	Copyright (C) 2015-2018 Asahi Net, Inc. All Rights Reserved.
+	Copyright (C) 2018 FastCopy Lab, LLC. All Rights Reserved.
 ---------------------------------------------------------------------
 
 Index.
@@ -37,7 +38,8 @@ Index.
 
  /* ==============================================================
   Copyright (c) 1996-2018 SHIROUZU Hiroaki All rights reserved.
-  Copyright (C) 2015-2018 Asahi Net, Inc. All Rights Reserved.
+  Copyright (c) 2015-2018 Asahi Net, Inc. All Rights Reserved.
+  Copyright (c) 2018 FastCopy Lab, LLC. All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or
   without modification, are permitted provided that the following
@@ -52,10 +54,11 @@ Index.
      disclaimer in the documentation and/or other materials
      provided with the distribution.
 
-  THIS SOFTWARE IS PROVIDED BY SHIROUZU Hiroaki and Asahi Net, Inc.
-  ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
-  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-  AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+  THIS SOFTWARE IS PROVIDED BY SHIROUZU Hiroaki, Asahi Net, Inc.,
+  and FastCopy Lab, LLC. ``AS IS'' AND ANY EXPRESS OR
+  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED.
   IN NO EVENT SHALL SHIROUZU Hiroaki OR CONTRIBUTORS BE LIABLE
   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
   CONSEQUENTIAL DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT

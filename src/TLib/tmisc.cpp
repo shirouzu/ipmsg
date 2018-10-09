@@ -2439,3 +2439,31 @@ void U8Out(const char *fmt,...)
 	}
 }
 
+BOOL TGetUrlAssocAppW(const WCHAR *scheme, WCHAR *wbuf, int max_len)
+{
+	TRegistry	reg(HKEY_CURRENT_USER);
+
+	WCHAR	reg_path[MAX_PATH];
+	snwprintfz(reg_path, wsizeof(reg_path),
+		L"Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\%s\\UserChoice",
+		scheme);
+	if (reg.OpenKeyW(reg_path)) {
+		WCHAR	progId[MAX_PATH];
+		if (reg.GetStrW(L"ProgId", progId, sizeof(progId))) { // サイズはbyte指定
+			reg.ChangeTopKey(HKEY_CLASSES_ROOT);
+
+			snwprintfz(reg_path, wsizeof(reg_path), L"%s\\shell\\open\\command", progId);
+			if (reg.OpenKeyW(reg_path)) {
+				if (reg.GetStrW(NULL, progId, sizeof(progId))) { // サイズはbyte指定
+					WCHAR	*p = NULL;
+					if (auto tok = strtok_pathW(progId, L" ", &p, FALSE)) {
+						wcsncpyz(wbuf, tok, max_len);
+						return	TRUE;
+					}
+				}
+			}
+		}
+	}
+	return	FALSE;
+}
+

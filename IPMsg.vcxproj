@@ -430,6 +430,7 @@
     <Image Include="src\res\cropuser.bmp" />
     <Image Include="src\res\desc.bmp" />
     <Image Include="src\res\dummypic.bmp" />
+    <Image Include="src\res\dupwin.bmp" />
     <Image Include="src\res\fabtb.bmp" />
     <Image Include="src\res\fav.bmp" />
     <Image Include="src\res\favemp.bmp" />

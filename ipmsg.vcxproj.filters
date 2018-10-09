@@ -435,6 +435,9 @@
     <Image Include="src\res\tray.gif">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="src\res\dupwin.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\res\blue.cur">

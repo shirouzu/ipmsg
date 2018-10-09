@@ -188,7 +188,7 @@ void TMainWin::UpdateCheckRes(TInetReqReply *irr)
 			irr->errMsg.s()), IP_MSG, ERR_MSEC);
 	}
 	else if (ret && !need_update && (updData.flags & UPD_SKIPNOTIFY)) {
-		BalloonWindow(TRAY_NORMAL, LoadStrU8(IDS_LASTESTVER), IP_MSG, ERR_MSEC);
+		BalloonWindow(TRAY_NORMAL, LoadStrU8(IDS_LATESTVER), IP_MSG, ERR_MSEC);
 	}
 
 	delete irr;

@@ -223,6 +223,7 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 #define REVICON_STR			"RevIcon"
 #define LASTOPEN_STR		"lastOpen"
 #define LASTSAVE_STR		"lastSave"
+#define LASTVACUUM_STR		"lastVacuum"
 
 #define AUTOSAVEDIR_STR		"autoSaveDir"
 #define AUTOSAVETOUT_STR	"autoSaveTout"
@@ -269,6 +270,11 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 //#define HISTID_STR			"HistId2"
 #define HISTSDATE_STR		"HistSDate2"
 #define HISTMSG_STR			"HistMsg"
+
+#define LVX_STR				"LvX"
+#define LVY_STR				"LvY"
+#define LVCX_STR			"LvCx"
+#define LVCY_STR			"LvCy"
 
 #define FONT_STR			"Fonts"
 #define SENDEDITFONT_STR	"SendEdit"
@@ -608,6 +614,11 @@ bool Cfg::ReadRegistry(void)
 	HistXdiff		= 0;
 	HistYdiff		= 0;
 
+	LvX				= 0;
+	LvY				= 0;
+	LvCx			= 0;
+	LvCy			= 0;
+
 	*SoundFile = 0;
 	*IconFile = 0;
 	*RevIconFile = 0;
@@ -918,6 +929,9 @@ bool Cfg::ReadRegistry(void)
 	strncpyz(LockName, LoadStrU8(IDS_LOCKNAME), sizeof(LockName));
 	reg.GetStr(LOCKNAME_STR, LockName, sizeof(LockName));
 
+	lastVacuum = 0;
+	reg.GetInt64(LASTVACUUM_STR, &lastVacuum);
+
 	if (reg.CreateKey(LINKACT_STR)) {
 		strncpyz(directOpenExt, DefaultDirectOpenExt, sizeof(directOpenExt));
 		reg.GetStr(DIRECTOPENEXT_STR, directOpenExt, sizeof(directOpenExt));
@@ -988,6 +1002,11 @@ bool Cfg::ReadRegistry(void)
 		reg.GetInt(HISTSDATE_STR, &HistWidth[HW_SDATE]);
 		reg.GetInt(HISTMSG_STR, &HistWidth[HW_MSG]);
 	//	reg.GetInt(HISTID_STR, &HistWidth[HW_ID]);
+
+		reg.GetInt(LVX_STR, &LvX);
+		reg.GetInt(LVY_STR, &LvY);
+		reg.GetInt(LVCX_STR, &LvCx);
+		reg.GetInt(LVCY_STR, &LvCy);
 
 		reg.CloseKey();
 	}
@@ -1565,6 +1584,8 @@ bool Cfg::WriteRegistry(int ctl_flg)
 
 		reg.SetInt(USELOCKNAME_STR, useLockName);
 //		reg.SetStr(LOCKNAME_STR, LockName);
+
+		reg.SetInt64(LASTVACUUM_STR, lastVacuum);
 	}
 
 	if ((ctl_flg & CFG_LINKACT) && reg.CreateKey(LINKACT_STR)) {
@@ -1624,6 +1645,11 @@ bool Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt(HISTSDATE_STR, HistWidth[HW_SDATE]);
 		reg.SetInt(HISTMSG_STR, HistWidth[HW_MSG]);
 	//	reg.SetInt(HISTID_STR, HistWidth[HW_ID]);
+
+		reg.SetInt(LVX_STR, LvX);
+		reg.SetInt(LVY_STR, LvY);
+		reg.SetInt(LVCX_STR, LvCx);
+		reg.SetInt(LVCY_STR, LvCy);
 
 		reg.CloseKey();
 	}
@@ -1914,7 +1940,7 @@ bool Cfg::SavePacket(const MsgBuf *msg, const char *head, ULONG img_base)
 		reg.SetByte(MSGDICTKEY_STR, buf, (int)size);
 	}
 	else {
-		reg.SetByte(MSGBUFKEY_STR, msg->msgBuf, (int)strlen(msg->msgBuf)+1);
+		reg.SetByte(MSGBUFKEY_STR, (const BYTE *)msg->msgBuf.s(), (int)strlen(msg->msgBuf.s())+1);
 		reg.SetByte(MSGEXBUFKEY_STR, (const BYTE *)msg->exBuf, (int)strlen(msg->exBuf.s())+1);
 	}
 	reg.SetByte(MSGPKTNOKEY_STR, (BYTE *)msg->packetNoStr, (int)strlen(msg->packetNoStr)+1);

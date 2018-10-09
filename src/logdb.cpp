@@ -35,7 +35,6 @@ static int gen_ngram(const WCHAR *src, WCHAR *dst, int max_buf, int src_len=-1);
 static int gen_ngram_str(const WCHAR *key, WCHAR *wbuf, int max_size);
 static int gen_like_str(const WCHAR *key, WCHAR *wbuf, int max_size);
 static int gen_2gram(const WCHAR *src, WCHAR *dst, int max_buf);
-static int prefetch_file(const WCHAR *path, HWND hWnd, UINT doneMsg);
 
 BOOL LogDb::Init(const WCHAR *fname)
 {
@@ -170,9 +169,9 @@ BOOL LogDb::Vacuum()
 	return	TRUE;
 }
 
-void LogDb::PrefetchCache(HWND hWnd, UINT doneMsg)
+void LogDb::PrefetchCache(HWND hWnd, UINT doneMsg, BOOL with_vacuum)
 {
-	prefetch_file(dbName.s(), hWnd, doneMsg);
+	PrefetchFile(dbName.s(), hWnd, doneMsg, with_vacuum);
 }
 
 /*
@@ -749,22 +748,47 @@ ERR:
 	return	FALSE;
 }
 
-void MakePlaceHolder(WCHAR *sql_place, const WCHAR *sql, BOOL is_rev)
+void MakePlaceHolder(WCHAR *sql_place, const WCHAR *sql, BOOL is_rev, BOOL range=FALSE)
 {
-	int	len = wcscpyz(sql_place, sql);
+	int	len = 0;
 
-	if (is_rev) {
-		wcscat(sql_place + len, L" desc");
+	if (range) {
+		len += wcscpyz(sql_place + len, L"select * from (");
 	}
+	len += wcscpyz(sql_place + len, sql);
+
+	if (range) {
+		if (!is_rev) {
+			len += wcscpyz(sql_place + len, L" desc");
+		}
+		len += wcscpyz(sql_place + len, L" limit ?) order by msg_id");
+	}
+	if (is_rev) {
+		len += wcscpyz(sql_place + len, L" desc");
+	}
+//	DebugW(L"sql=%s\n", sql_place);
 }
 
-void MakePlaceHolderHfts(WCHAR *sql_place, const WCHAR *fmt, BOOL is_host_fts, BOOL is_rev)
+void MakePlaceHolderHfts(WCHAR *sql_place, const WCHAR *fmt, BOOL is_host_fts, BOOL is_rev,
+	BOOL range=FALSE)
 {
-	int	len = swprintf(sql_place, fmt, is_host_fts ? L"host_fts_tbl" : L"uid");
+	int	len = 0;
 
-	if (is_rev) {
-		wcscat(sql_place + len, L" desc");
+	if (range) {
+		len += wcscpyz(sql_place + len, L"select * from (");
 	}
+	len += swprintf(sql_place + len, fmt, is_host_fts ? L"host_fts_tbl" : L"uid");
+
+	if (range) {
+		if (!is_rev) {
+			len += wcscpyz(sql_place + len, L" desc");
+		}
+		len += wcscpyz(sql_place + len, L" limit ?) order by msg_id");
+	}
+	if (is_rev) {
+		len += wcscpyz(sql_place + len, L" desc");
+	}
+//	DebugW(L"sqlft=%s\n", sql_place);
 }
 
 BOOL LogDb::SelectMsgIdList(VBVec<MsgVec> *msg_ids, BOOL is_rev, int line_lim)
@@ -776,6 +800,7 @@ BOOL LogDb::SelectMsgIdList(VBVec<MsgVec> *msg_ids, BOOL is_rev, int line_lim)
 	WCHAR			sql_place[MAX_BUF];
 	int				ret = SQLITE_OK;
 	int				cidx = 1;
+	BOOL			is_lim = maxRange > 0 ? TRUE : FALSE;
 
 	if (!isPostInit) PostInit();	// 通常は WM_LOGFETCH_DONE から呼び出し済み
 
@@ -813,33 +838,37 @@ BOOL LogDb::SelectMsgIdList(VBVec<MsgVec> *msg_ids, BOOL is_rev, int line_lim)
 			swprintf(sql_tmp, body ? SELUIDBODYFLAGIDX_FMTEX : SELUIDFLAGIDX_FMTEX,
 				userPhrase ? L"=" : L" match ");
 			if (body) {
-				MakePlaceHolderHfts(sql_place, sql_tmp, useHostFts, is_rev);
+				MakePlaceHolderHfts(sql_place, sql_tmp, useHostFts, is_rev, is_lim);
 				//DebugW(L"<%s> %s\n", user_ngram, sql_place);
 				if (sqlite3_prepare16(sqlDb, sql_place, -1, &sel_idx, NULL)) goto ERR;
 				if (sqlite3_bind_int(sel_idx, cidx++, cond1)) goto ERR;
 				if (sqlite3_bind_int(sel_idx, cidx++, cond2)) goto ERR;
 				if (sqlite3_bind_text16(sel_idx, cidx++, user_ngram, -1, SQLITE_STATIC)) goto ERR;
 				if (sqlite3_bind_text16(sel_idx, cidx++, body_ngram, -1, SQLITE_STATIC)) goto ERR;
+				if (is_lim && sqlite3_bind_int(sel_idx, cidx++, maxRange)) goto ERR;
 			} else {
-				MakePlaceHolderHfts(sql_place, sql_tmp, useHostFts, is_rev);
+				MakePlaceHolderHfts(sql_place, sql_tmp, useHostFts, is_rev, is_lim);
 				//DebugW(L"<%s> %s\n", user_ngram, sql_place);
 				if (sqlite3_prepare16(sqlDb, sql_place, -1, &sel_idx, NULL)) goto ERR;
 				if (sqlite3_bind_int(sel_idx, cidx++, cond1)) goto ERR;
 				if (sqlite3_bind_int(sel_idx, cidx++, cond2)) goto ERR;
 				if (sqlite3_bind_text16(sel_idx, cidx++, user_ngram, -1, SQLITE_STATIC)) goto ERR;
+				if (is_lim && sqlite3_bind_int(sel_idx, cidx++, maxRange)) goto ERR;
 			}
 		} else {
 			if (body) {
-				MakePlaceHolder(sql_place, SELBODYFLAGIDX_SQL, is_rev);
+				MakePlaceHolder(sql_place, SELBODYFLAGIDX_SQL, is_rev, is_lim);
 				if (sqlite3_prepare16(sqlDb, sql_place, -1, &sel_idx, NULL)) goto ERR;
 				if (sqlite3_bind_int(sel_idx, cidx++, cond1)) goto ERR;
 				if (sqlite3_bind_int(sel_idx, cidx++, cond2)) goto ERR;
 				if (sqlite3_bind_text16(sel_idx, cidx++, body_ngram, -1, SQLITE_STATIC)) goto ERR;
+				if (is_lim && sqlite3_bind_int(sel_idx, cidx++, maxRange)) goto ERR;
 			} else {
-				MakePlaceHolder(sql_place, SELFLAGIDX_SQL, is_rev);
+				MakePlaceHolder(sql_place, SELFLAGIDX_SQL, is_rev, is_lim);
 				if (sqlite3_prepare16(sqlDb, sql_place, -1, &sel_idx, NULL)) goto ERR;
 				if (sqlite3_bind_int(sel_idx, cidx++, cond1)) goto ERR;
 				if (sqlite3_bind_int(sel_idx, cidx++, cond2)) goto ERR;
+				if (is_lim && sqlite3_bind_int(sel_idx, cidx++, maxRange)) goto ERR;
 			}
 		}
 	} else {
@@ -847,25 +876,29 @@ BOOL LogDb::SelectMsgIdList(VBVec<MsgVec> *msg_ids, BOOL is_rev, int line_lim)
 			swprintf(sql_tmp, body ? SELUIDBODYIDX_FMTEX : SELUIDIDX_FMTEX,
 				userPhrase ? L"=" : L" match ");
 			if (body) {
-				MakePlaceHolderHfts(sql_place, sql_tmp, useHostFts, is_rev);
+				MakePlaceHolderHfts(sql_place, sql_tmp, useHostFts, is_rev, is_lim);
 				//DebugW(L"<%s> %s\n", user_ngram, sql_place);
 				if (sqlite3_prepare16(sqlDb, sql_place, -1, &sel_idx, NULL)) goto ERR;
 				if (sqlite3_bind_text16(sel_idx, cidx++, user_ngram, -1, SQLITE_STATIC)) goto ERR;
 				if (sqlite3_bind_text16(sel_idx, cidx++, body_ngram, -1, SQLITE_STATIC)) goto ERR;
+				if (is_lim && sqlite3_bind_int(sel_idx, cidx++, maxRange)) goto ERR;
 			} else {
-				MakePlaceHolderHfts(sql_place, sql_tmp, useHostFts, is_rev);
+				MakePlaceHolderHfts(sql_place, sql_tmp, useHostFts, is_rev, is_lim);
 				//DebugW(L"<%s> %s\n", user_ngram, sql_place);
 				if (sqlite3_prepare16(sqlDb, sql_place, -1, &sel_idx, NULL)) goto ERR;
 				if (sqlite3_bind_text16(sel_idx, cidx++, user_ngram, -1, SQLITE_STATIC)) goto ERR;
+				if (is_lim && sqlite3_bind_int(sel_idx, cidx++, maxRange)) goto ERR;
 			}
 		} else {
 			if (body) {
-				MakePlaceHolder(sql_place, SELBODYIDX_SQL, is_rev);
+				MakePlaceHolder(sql_place, SELBODYIDX_SQL, is_rev, is_lim);
 				if (sqlite3_prepare16(sqlDb, sql_place, -1, &sel_idx, NULL)) goto ERR;
 				if (sqlite3_bind_text16(sel_idx, cidx++, body_ngram, -1, SQLITE_STATIC)) goto ERR;
+				if (is_lim && sqlite3_bind_int(sel_idx, cidx++, maxRange)) goto ERR;
 			} else {
-				MakePlaceHolder(sql_place, SELALLIDX_SQL, is_rev);
+				MakePlaceHolder(sql_place, SELALLIDX_SQL, is_rev, is_lim);
 				if (sqlite3_prepare16(sqlDb, sql_place, -1, &sel_idx, NULL)) goto ERR;
+				if (is_lim && sqlite3_bind_int(sel_idx, cidx++, maxRange)) goto ERR;
 			}
 		}
 	}
@@ -2539,12 +2572,14 @@ static int gen_2gram(const WCHAR *src, WCHAR *dst, int max_buf)
 }
 
 struct FetchParam {
+	LogDb		*self;
 	const WCHAR	*path;
 	HWND		hWnd;
 	UINT		doneMsg;
+	BOOL		withVacuum;
 };
 
-static void prefetch_file_proc(void *_param)
+void LogDb::PrefetchFileProc(void *_param)
 {
 	FetchParam *param = (FetchParam *)_param;
 	TTick	t;
@@ -2572,6 +2607,10 @@ static void prefetch_file_proc(void *_param)
 				Debug("fetch fin = %d tick size=%dKB  (%x)\n", t.elaps(), size/1024, dummy);
 				::UnmapViewOfFile(top);
 
+				if (param->withVacuum) {
+					param->self->Vacuum();
+				}
+
 				if (param->hWnd && param->doneMsg) {
 					::PostMessage(param->hWnd, param->doneMsg, 0, 0);
 				}
@@ -2587,13 +2626,15 @@ static void prefetch_file_proc(void *_param)
 	delete param;
 }
 
-static int prefetch_file(const WCHAR *path, HWND hWnd, UINT doneMsg)
+int LogDb::PrefetchFile(const WCHAR *path, HWND hWnd, UINT doneMsg, BOOL with_vacuum)
 {
 	FetchParam *param = new FetchParam;
+	param->self    = this;
 	param->path    = path;
 	param->hWnd    = hWnd;
 	param->doneMsg = doneMsg;
-	_beginthread(prefetch_file_proc, 0, (void *)param);
+	param->withVacuum = with_vacuum;
+	_beginthread(PrefetchFileProc, 0, (void *)param);
 	return	0;
 }
 

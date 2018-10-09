@@ -831,5 +831,7 @@ time_t SYSTEMTIME_to_time(const SYSTEMTIME &st, BOOL is_local=TRUE);
 
 void U8Out(const char *fmt,...);
 
+BOOL TGetUrlAssocAppW(const WCHAR *scheme, WCHAR *wbuf, int max_len);
+
 #endif
 

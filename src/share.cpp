@@ -380,7 +380,7 @@ BOOL ShareMng::GetAcceptableFileInfo(ConnectInfo *info, MsgBuf *_msg, AcceptFile
 	int			targetID;
 	ShareInfo	*shareInfo;
 
-	if ((tok = sep_tok(msg.msgBuf, ':', &p)) == NULL)
+	if (!msg.msgBuf || (tok = sep_tok(msg.msgBuf, ':', &p)) == NULL)
 		return	FALSE;
 	fileInfo->packetNo   = strtol(tok, 0, 16);
 	fileInfo->ivPacketNo = msg.packetNo;

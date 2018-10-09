@@ -428,6 +428,24 @@ BOOL CALLBACK MiniDumpCallback(
 	return	TRUE; 
 }
 
+DWORD WINAPI MessageProc(void *msg)
+{
+	return	(DWORD)::MessageBox(0, (char *)msg, ExceptionTitle, MB_OKCANCEL);
+}
+
+int MessageBoxThread(char *msg)
+{
+	DWORD	id = 0;
+	HANDLE	hThread = ::CreateThread(0, 0, MessageProc, msg, 0, &id);
+	::WaitForSingleObject(hThread, INFINITE);
+
+	DWORD	ret = 0;
+	::GetExitCodeThread(hThread, &ret);
+	::CloseHandle(hThread);
+
+	return	(int)ret;
+}
+
 LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 {
 	static char	buf[MAX_DUMPBUF_SIZE];
@@ -652,7 +670,7 @@ LONG WINAPI Local_UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *info)
 	snprintfz(buf, sizeof(buf), ExceptionLogInfo,
 		ExceptionLogFile, ExceptionDumpFile ? ExceptionDumpFile : NULL);
 
-	if (::MessageBox(0, buf, ExceptionTitle, MB_OKCANCEL) == IDOK) {
+	if (MessageBoxThread(buf) == IDOK) {
 		TOpenExplorerSelW(ExceptionDirW, ExceptionFilesW, ExceptionFilesWNum);
 	}
 

@@ -329,6 +329,10 @@ protected:
 	BOOL	isBegin;
 	BOOL	useHostFts;
 	BOOL	isPostInit;
+	int		maxRange;
+
+	static void PrefetchFileProc(void *_param);
+	int		PrefetchFile(const WCHAR *path, HWND hWnd, UINT doneMsg, BOOL with_vacuum);
 
 public:
 	LogDb(Cfg *_cfg, const WCHAR *db_name=NULL) {
@@ -359,6 +363,7 @@ public:
 	void	SetCondBody(const WCHAR *_body=NULL) { body = _body; }
 	void	SetCondFlags(int _flags) { condFlags = _flags; }
 	void	SetUseHostFts(BOOL use_host_fts) { useHostFts = use_host_fts; }
+	void	SetRange(int max_range=-1) { maxRange = max_range; }
 
 	BOOL	SelectMsgIdList(VBVec<MsgVec> *msg_ids, BOOL is_rev, int line_lim);
 	BOOL	SelectHostList(VBVec<LogHost> *log_host);
@@ -402,7 +407,7 @@ public:
 
 	BOOL	GetDbVer(int *ver);
 	BOOL	Vacuum();
-	void	PrefetchCache(HWND hWnd=NULL, UINT doneMsg=0);
+	void	PrefetchCache(HWND hWnd=NULL, UINT doneMsg=0, BOOL with_vacuum=FALSE);
 };
 
 inline BOOL IsDbOperatorToken(const WCHAR *tok) {

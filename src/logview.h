@@ -61,13 +61,26 @@ class TUserCombo : public TLvCombo {
 public:
 	TUserCombo(Cfg *_cfg, TWin *_parent=NULL) : TLvCombo(_cfg, _parent) {}
 	virtual BOOL EventKey(UINT uMsg, int nVirtKey, LONG lKeyData);
-
 };
 
 class TBodyCombo : public TLvCombo {
 public:
 	TBodyCombo(Cfg *_cfg, TWin *_parent=NULL) : TLvCombo(_cfg, _parent) {}
 };
+
+class TRangeCombo : public TLvCombo {
+public:
+	TRangeCombo(Cfg *_cfg, TWin *_parent=NULL) : TLvCombo(_cfg, _parent) {}
+};
+
+class TComboEdit : public TSubClassCtl {
+	Cfg		*cfg;
+	TWin	*view;
+public:
+	TComboEdit(Cfg *_cfg, TWin *_view) : TSubClassCtl(NULL), cfg(_cfg), view(_view) {}
+	virtual BOOL EventKey(UINT uMsg, int nVirtKey, LONG lKeyData);
+};
+
 
 class TLogStatus : public TSubClassCtl {
 	Cfg *cfg;
@@ -98,6 +111,9 @@ protected:
 	TUserCombo		userCombo;
 	TUserCombo		userComboEx;
 	TBodyCombo		bodyCombo;
+	TComboEdit		bodyEdit;
+	TComboEdit		userEdit;
+	TRangeCombo		rangeCombo;
 
 	TLogStatus		statusCtrl;
 

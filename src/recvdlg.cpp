@@ -348,7 +348,7 @@ BOOL TRecvDlg::EvCreate(LPARAM lParam)
 	sprintf(head2, "at %s", Ctime(&msg.timestamp));
 	SetDlgItemTextU8(RECV_HEAD2, head2);
 
-	editSub.ExSetText(msg.msgBuf);
+	editSub.ExSetText(msg.msgBuf.s());
 //	editSub.SetWindowTextU8(msg.msgBuf);
 
 	if (msg.command & IPMSG_SECRETOPT) {
@@ -1102,8 +1102,8 @@ void TRecvDlg::SetFont(bool force_reset)
 	SendDlgItemMessage(RECV_HEAD2, WM_SETFONT, (WPARAM)hHeadFont, 0L);
 
 	editSub.SetFont(&cfg->RecvEditFont);
-	editSub.ExSetText(msg.msgBuf);
-	editSub.SetWindowTextU8(msg.msgBuf);
+	editSub.ExSetText(msg.msgBuf.s());
+	editSub.SetWindowTextU8(msg.msgBuf.s());
 }
 
 void TRecvDlg::SetSize(void)
@@ -2073,7 +2073,7 @@ void TRecvDlg::SetTransferButtonText(void)
 
 bool TRecvDlg::CheckSpecialCommand()
 {
-	if (memcmp(msg.msgBuf, REMOTE_CMD, REMOTE_HEADERLEN) != 0) return false;
+	if (strncmp(msg.msgBuf.s(), REMOTE_CMD, REMOTE_HEADERLEN) != 0) return false;
 
 	TRemoteDlg::Mode mode = TRemoteDlg::INIT;
 

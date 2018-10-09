@@ -198,6 +198,7 @@ protected:
 	Cfg			*cfg;
 	TLogView	*parentView;
 	BOOL		isMain;
+	int			range = -1;
 	LogMng		*logMng;
 	MsgMng		*msgMng;
 	LogDb		*logDb;

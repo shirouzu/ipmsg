@@ -1,5 +1,5 @@
 ﻿static char *mainwinmsg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2018   mainwinmsg.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 1996-2018 mainwinmsg.cpp	Ver4.90";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window Message

@@ -223,7 +223,7 @@ void SendMsg::MakeHistMsg(SendEntry *ent, U8str *str)
 		*str += LoadStrU8(id);
 		*str += " ";
 	}
-	*str += msgBuf;
+	*str += msgBuf.s();
 }
 
 /*

@@ -24,6 +24,8 @@ using namespace std;
 */
 BOOL TMainWin::EvCreate(LPARAM lParam)
 {
+	auto	now = time(NULL);
+
 	SetMainWnd(hWnd);
 	if (IsWin10() /* && !IsWin10Fall()*/) {	// Fall以降では不要に
 		InitToastDll();
@@ -135,7 +137,13 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 	}
 	logmng->InitDB(); // logmng自体にはアクセス可能
 	if (LogDb *logDb = logmng->GetLogDb()) {
-		logDb->PrefetchCache(hWnd, WM_LOGFETCH_DONE);
+		auto with_vacuum = (now - cfg->lastVacuum > 3600*24*30
+			&& cfg->lastVacuum <= cfg->LastRecv) ? TRUE : FALSE; //30日
+		logDb->PrefetchCache(hWnd, WM_LOGFETCH_DONE, with_vacuum);
+		if (with_vacuum) {
+			cfg->lastVacuum = now;
+			cfg->WriteRegistry(CFG_GENERAL);
+		}
 	}
 
 	SetTimer(IPMSG_CLEANUP_TIMER, 1000); // 1sec

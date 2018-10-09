@@ -143,7 +143,7 @@ BOOL LogMng::WriteRecvMsg(MsgBuf *msg, int opt, THosts *hosts, ShareInfo *shareI
 		}
 	}
 
-	return	WriteMsg(msg->packetNo, msg->msgBuf, msg->command, opt, msg->timestamp,
+	return	WriteMsg(msg->packetNo, msg->msgBuf.s(), msg->command, opt, msg->timestamp,
 		shareInfo, msg_id);
 }
 

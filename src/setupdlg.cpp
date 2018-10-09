@@ -1386,7 +1386,7 @@ BOOL TSetupSheet::EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		if (uMsg == WM_IPMSG_UPDINFORESULT) {
 			if (!ur->needUpdate) {
-				SetDlgItemTextU8(UPDATE_EDIT, LoadStrU8(IDS_LASTESTVER));
+				SetDlgItemTextU8(UPDATE_EDIT, LoadStrU8(IDS_LATESTVER));
 			}
 			else if (!updateReady) {
 				SetDlgItemTextU8(UPDATE_BTN, LoadStrU8(IDS_UPDATE));

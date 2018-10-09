@@ -1,5 +1,5 @@
 ======================================================================
-        IP Messenger for Win 全ソース 取り扱い説明書    2018/09/21
+        IP Messenger for Win 全ソース 取り扱い説明書    2018/10/08
 
                                                H.Shirouzu（白水啓章）
                                                https://ipmsg.org
@@ -36,6 +36,7 @@
 /* ==============================================================
   Copyright (c) 1996-2018 SHIROUZU Hiroaki  All rights reserved.
   Copyright (c) 2015-2018 Asahi Net, Inc. All rights reserved.
+  Copyright (c) 2018 FastCopy Lab, LLC. All rights reserved.
 
   ソースとバイナリ形式の再配布および使用は、「変更の有無、商用/
   非商用にかかわらず」、以下の条件を満たす場合に許可されます:

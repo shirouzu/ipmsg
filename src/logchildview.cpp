@@ -858,6 +858,8 @@ BOOL TChildView::UpdateMsgList(DWORD flags)
 		((dispFlags & DISP_UNOPENR_ONLY) ? DB_FLAG_UNOPENR|DB_FLAG_UNOPENRTMP : 0)
 	);
 	logDb->SetUseHostFts(parentView->IsUserComboEx());
+	logDb->SetUseHostFts(parentView->IsUserComboEx());
+	logDb->SetRange(range);
 
 //	TTick	tick;
 	BOOL	ret = FALSE;

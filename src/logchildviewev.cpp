@@ -203,6 +203,14 @@ BOOL TChildView::InitGDI()
 
 	SetBkMode(hMemDc, TRANSPARENT);
 	SetBkMode(hTmpDc, TRANSPARENT);
+
+//	auto	&rangeCombo = parentView->rangeCombo;
+//	rangeCombo.SendMessage(CB_ADDSTRING, 0, (LPARAM)"300");
+//	rangeCombo.SendMessage(CB_ADDSTRING, 0, (LPARAM)"1000");
+//	rangeCombo.SendMessage(CB_ADDSTRING, 0, (LPARAM)"10000");
+//	rangeCombo.SendMessage(CB_ADDSTRING, 0, (LPARAM)"全件");
+//	rangeCombo.SendMessage(CB_SETCURSEL, 3, 0);
+
 	return	TRUE;
 }
 
@@ -504,6 +512,20 @@ BOOL TChildView::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 			}
 		}
 		return	TRUE;
+
+//	case RANGE_COMBO:
+//		if (wNotifyCode == CBN_SELCHANGE) {
+//			auto idx = parentView->rangeCombo.SendMessage(CB_GETCURSEL, 0, 0);
+//			switch (idx) {
+//			case 0:	range =   300; break;
+//			case 1:	range =  1000; break;
+//			case 2:	range = 10000; break;
+//			default:range =    -1; break;
+//			}
+//			SetFocus();
+//			UpdateMsgList(UF_NO_FINDMOVE);
+//		}
+//		return	TRUE;
 
 	case DOWN_BTN:
 		SetFindedIdx(NEXT_IDX);
@@ -893,6 +915,15 @@ BOOL TChildView::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
 			FindMode mode = (::GetKeyState(VK_SHIFT) & 0x8000) ? PREV_IDX : NEXT_IDX;
 			if (SetFindedIdx(mode, SF_REDRAW|SF_FASTSCROLL|SF_NOMOVE)) {
 				SetUserSelected();
+			}
+		}
+		break;
+
+	case VK_PROCESSKEY:
+		{
+			auto key = ::MapVirtualKey(HIWORD(lKeyData) & 0xff, 1);
+			if (key && key != VK_PROCESSKEY) {
+				return	EventKey(uMsg, key, lKeyData);
 			}
 		}
 		break;

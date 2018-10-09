@@ -206,9 +206,9 @@ bool MsgMng::WSockInit()
 	}
 
 	if (IsAvailableTCP() && ::bind(tcp_sd, addr, size)) {
+		GetSockErrorMsg("bind(tcp) error. Can't support file attach");
 		::closesocket(tcp_sd);
 		tcp_sd = INVALID_SOCKET;
-		GetSockErrorMsg("bind(tcp) error. Can't support file attach");
 	}
 
 	flg = 1;	// Non Block
@@ -326,7 +326,7 @@ bool MsgMng::AsyncSelectRegister(HWND hWnd)
 
 bool MsgMng::RecvCore(RecvBuf *buf, MsgBuf *msg)
 {
-	memcpy(lastPacket.Buf(), buf->msgBuf, buf->size);
+	memcpy(lastPacket.Buf(), buf->msgBuf.s(), buf->size);
 	lastPacket.Buf()[buf->size] = 0;
 	lastPacket.SetUsedSize(buf->size);
 
@@ -913,6 +913,8 @@ bool MsgMng::ResolveDictMsg(MsgBuf *msg)
 		DynBuf dbuf(MAX_UDPBUF);
 		UnixNewLineToLocal(u8.s(), dbuf, (int)dbuf.Size());
 		msg->msgBuf.SetByStr(dbuf.s());
+	} else {
+		msg->msgBuf.SetByStr("");
 	}
 
 	if (ipdict->get_str(IPMSG_NICK_KEY, &u8)) {
@@ -1106,6 +1108,9 @@ bool MsgMng::ResolveMsg(char *buf, int size, MsgBuf *msg)
 		if (cmd == IPMSG_BR_ENTRY || cmd == IPMSG_BR_NOTIFY || cmd == IPMSG_ANSENTRY) {
 			msg->nick = dbuf.s();
 		}
+	}
+	else {
+		msg->msgBuf.SetByStr("");
 	}
 
 	if (exStr) {
@@ -1446,7 +1451,7 @@ bool MsgMng::UdpRecv(RecvBuf *buf)
 	DynBuf          dbuf(MAX_UDPBUF);
 
 	buf->size = ::recvfrom(udp_sd, dbuf.S(), MAX_UDPBUF -1, 0, addr, &size);
-	if (buf->size == SOCKET_ERROR) return	false;
+	if (buf->size == SOCKET_ERROR || buf->size == 0) return	false;
 	buf->msgBuf.SetByStr(dbuf.s(), buf->size);
 
 	if (size == sizeof(addr6)) {

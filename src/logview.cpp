@@ -24,6 +24,9 @@ TLogView::TLogView(Cfg *_cfg, LogMng *_logMng, BOOL is_main, TWin *parent) :
 	userCombo(cfg, this),
 	userComboEx(cfg, this),
 	bodyCombo(cfg, this),
+	userEdit(cfg, this),
+	bodyEdit(cfg, this),
+	rangeCombo(cfg),
 	statusCtrl(cfg, this),
 	isMain(is_main),
 	TDlg(LOGVIEW_DIALOG, NULL)
@@ -107,27 +110,32 @@ BOOL TLogView::SetupToolbar()
 		{ BOTTOM_BTN, ToolBar::BTN,  TOPHOT_BITMAP,    TRect(  4, 1,  24, 28), IDS_BOTTOMTIP },
 //		{ REV_BTN,    ToolBar::BTN,  ASC_BITMAP,       TRect(  0, 1,  24, 28), IDS_REVTIP },
 		{ LIST_BTN,   ToolBar::BTN,  TITLEDISP_BITMAP, TRect(  0, 1,  24, 28), IDS_LISTTIP },
+		{ MENU_NEWLOGVIEW, ToolBar::BTN, DUPWIN_BITMAP,TRect(  0, 1,  24, 28), IDS_NEWLOGVIEWTIP },
 
-		{ USER_COMBO, ToolBar::HOLE, NULL,             TRect( 14, 4, 110, 28) },
-		{ USER_CHK,   ToolBar::BTN,  USERCHK_BITMAP,   TRect(  2, 5,  16, 20), IDS_USERTIP },
+		{ USER_COMBO, ToolBar::HOLE, NULL,             TRect( 10, 4, 110, 28) },
+		{ USER_CHK,   ToolBar::BTN,  USERCHK_BITMAP,   TRect(  2, 5,  16, 20), IDS_USERSELTIP },
 //		{ SEND_BTN,   ToolBar::BTN,  SEND_BITMAP,      TRect(  0, 2,  24, 28), IDS_SENDTIP },
 
-		{ IDS_FINDTITLE, ToolBar::TITLE, NULL,         TRect( 22, 1,  find_width, 28),
-			IDS_FINDTIP, find_title },
-		{ BODY_COMBO, ToolBar::HOLE, NULL,             TRect(  1, 4, 130, 28) },
-		{ NARROW_CHK, ToolBar::BTN,  NARROW_BITMAP,    TRect(  1, 5,  16, 20), IDS_NARROWTIP },
-
-		{ IDS_FILTERTITLE, ToolBar::TITLE, NULL,       TRect( 15, 1,  filter_width, 28),
-			IDS_FILTERTIP, filter_title },
-		{ FAV_CHK,    ToolBar::BTN,  FAVTB_BITMAP,     TRect(  0, 1,  24, 28), IDS_FAVTIP },
+//		{ IDS_FILTERTITLE, ToolBar::TITLE, NULL,       TRect( 5, 1,  filter_width, 28),
+//			IDS_FILTERTIP, filter_title },
+		{ FAV_CHK,    ToolBar::BTN,  FAVTB_BITMAP,     TRect( 20, 1,  24, 28), IDS_FAVTIP },
 		{ MARK_CHK,   ToolBar::BTN,  MARKTB_BITMAP,    TRect(  0, 1,  24, 28), IDS_MARKTIP },
 		{ CLIP_CHK,   ToolBar::BTN,  CLIPTB_BITMAP,    TRect(  0, 1,  24, 28), IDS_CLIPTIP },
 		{ FILE_CHK,   ToolBar::BTN,  FILETB_BITMAP,    TRect(  0, 1,  24, 28), IDS_FILETIP },
 		{ UNOPENR_CHK, ToolBar::BTN, UNOPENTB_BITMAP,  TRect(  0, 1,  24, 28), IDS_UNOPENTIP },
 
+//		{ RANGE_COMBO, ToolBar::HOLE, NULL,            TRect( 10, 4,  60, 20) },
+
 //		{ MENU_BTN,   ToolBar::BTN,  MISC_BITMAP,      TRect( 17, 2,  24, 28), IDS_MENUTIP },
-//		{ MENU_MEMO,  ToolBar::BTN,  MEMO_BITMAP,      TRect( 19, 2,  24, 28), IDS_MEMOTIP },
-		{ MENU_SENDDLG, ToolBar::BTN, MEMO_BITMAP,     TRect( 19, 1,  24, 28), IDS_SENDTIP },
+//		{ MENU_MEMO,  ToolBar::BTN,  MEMO_BITMAP,      TRect(  8, 1,  24, 28), IDS_MEMOTIP },
+
+//		{ MENU_SENDDLG, ToolBar::BTN, MEMO_BITMAP,     TRect( 10, 1,  24, 28), IDS_SENDTIP },
+
+//		{ IDS_FINDTITLE, ToolBar::TITLE, NULL,         TRect( 10, 1,  find_width, 28),
+//			IDS_FINDTIP, find_title },
+		{ BODY_COMBO, ToolBar::HOLE, NULL,             TRect( 20, 4,  90, 28) },
+		{ NARROW_CHK, ToolBar::BTN,  NARROW_BITMAP,    TRect(  1, 5,  16, 20), IDS_NARROWTIP },
+
 		{ STATUS_STATIC, ToolBar::TITLE, NULL,         TRect(  4, 2, 200, 28) },
 	};
 
@@ -138,30 +146,40 @@ BOOL TLogView::SetupToolbar()
 		}
 	}
 
-	TRect	urc;
-	toolBar.GetRect(USER_COMBO, &urc);
-	HWND hUserCombo = CreateWindow(
-		"COMBOBOX", "",
-		WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | CBS_AUTOHSCROLL| WS_CLIPSIBLINGS | WS_VSCROLL,
-		urc.x(), urc.y(), urc.cx(), 400, hWnd, (HMENU)USER_COMBO, TApp::hInst(), NULL);
-	userCombo.AttachWnd(hUserCombo);
-	userCombo.SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
+	struct {
+		int				id;
+		TSubClassCtl	*wnd;
+		int				tip;
+		UINT			flags;
+	} combos[] = {
+		{ USER_COMBO,	&userCombo,	 IDS_USERTIP,	CBS_DROPDOWNLIST|WS_VISIBLE },
+		{ USEREX_COMBO,	&userComboEx,IDS_USERMANTIP,CBS_DROPDOWN },
+		{ BODY_COMBO,	&bodyCombo,	 IDS_FINDTIP,	CBS_DROPDOWN|WS_VISIBLE },
+//		{ RANGE_COMBO,	&rangeCombo, 0,				CBS_DROPDOWNLIST|WS_VISIBLE},
+	};
 
-	HWND hUserComboEx = CreateWindow(
-		"COMBOBOX", "",
-		WS_CHILD | CBS_DROPDOWN | CBS_AUTOHSCROLL| WS_CLIPSIBLINGS | WS_VSCROLL,
-		urc.x(), urc.y(), urc.cx(), 400, hWnd, (HMENU)USEREX_COMBO, TApp::hInst(), NULL);
-	userComboEx.AttachWnd(hUserComboEx);
-	userComboEx.SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
+	TRect	prevRc;
+	for (auto &d: combos) {
+		TRect	rc;
+		if (toolBar.GetRect(d.id, &rc)) {	// USEREX_COMBOはUSER_COMBOを参照
+			prevRc = rc;
+		} else {
+			rc = prevRc;
+		}
+		HWND hCombo = CreateWindow("COMBOBOX", "",
+			WS_CHILD | d.flags | CBS_AUTOHSCROLL| WS_CLIPSIBLINGS | WS_VSCROLL,
+			rc.x(), rc.y(), rc.cx(), 400, hWnd, (HMENU)(DWORD_PTR)d.id, TApp::hInst(), NULL);
+		d.wnd->AttachWnd(hCombo);
+		d.wnd->SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
+		if (d.tip) {
+			d.wnd->CreateTipWnd(LoadStrW(d.tip));
+		}
+	}
+	bodyEdit.AttachWnd(::GetWindow(bodyCombo.hWnd, GW_CHILD));
+	bodyEdit.CreateTipWnd(LoadStrW(IDS_FINDTIP));
 
-	TRect	brc;
-	toolBar.GetRect(BODY_COMBO, &brc);
-	HWND hBodyCombo = CreateWindow(
-		"COMBOBOX", "",
-		WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | CBS_AUTOHSCROLL| WS_CLIPSIBLINGS | WS_VSCROLL,
-		brc.x(), brc.y(), brc.cx(), 400, hWnd, (HMENU)BODY_COMBO, TApp::hInst(), NULL);
-	bodyCombo.AttachWnd(hBodyCombo);
-	bodyCombo.SendMessage(WM_SETFONT, (WPARAM)hFont, 0);
+	userEdit.AttachWnd(::GetWindow(userComboEx.hWnd, GW_CHILD));
+	userEdit.CreateTipWnd(LoadStrW(IDS_USERMANTIP));
 
 	return	TRUE;
 }
@@ -179,8 +197,19 @@ BOOL TLogView::EvCreate(LPARAM lParam)
 
 		int	cx = 650;
 		int	cy = 750;
-		int	x  = sx + 150 + (isMain ? 0 : 30);
-		int	y  = sy + 10  + (isMain ? 0 : 30);
+		int	x  = sx + 150;
+		int	y  = sy + 10;
+
+		if (cfg->LvX || cfg->LvY || cfg->LvCx || cfg->LvCy) {
+			x = cfg->LvX;
+			y = cfg->LvY;
+			cx = cfg->LvCx;
+			cy = cfg->LvCy;
+		}
+		if (!isMain) {
+			x += 60;
+			y += 30;
+		}
 
 		if (x + cx > sx + scx) {
 			x -= (x + cx) - (sx + scx);
@@ -250,6 +279,11 @@ BOOL TLogView::EvNcDestroy(void)
 	toolBar.UnInit();
 
 	::PostMessage(GetMainWnd(), WM_LOGVIEW_CLOSE, 0, (LPARAM)this);
+
+	if (isMain) {
+		cfg->WriteRegistry(CFG_WINSIZE);
+	}
+
 	return	TRUE;
 }
 
@@ -257,14 +291,16 @@ BOOL TLogView::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 {
 	switch (wID) {
 	case IDOK:
-		if (GetFocus() == ::GetWindow(GetDlgItem(BODY_COMBO), GW_CHILD)) {
-			TChildView::FindMode mode = (::GetKeyState(VK_SHIFT) & 0x8000) ? TChildView::PREV_IDX
-				: TChildView::NEXT_IDX;
-			if (childView.SetFindedIdx(mode,
-				TChildView::SF_REDRAW     |
-				TChildView::SF_SAVEHIST   |
-				TChildView::SF_FASTSCROLL)) {
-				childView.SetUserSelected();
+		if (auto hFocus = GetFocus()) {
+			if (hFocus == bodyEdit.hWnd || hFocus == userEdit.hWnd) {
+				TChildView::FindMode mode = (::GetKeyState(VK_SHIFT) & 0x8000) ? 
+												TChildView::PREV_IDX : TChildView::NEXT_IDX;
+				if (childView.SetFindedIdx(mode,
+					TChildView::SF_REDRAW     |
+					TChildView::SF_SAVEHIST   |
+					TChildView::SF_FASTSCROLL)) {
+					childView.SetUserSelected();
+				}
 			}
 		}
 		return	TRUE;
@@ -302,10 +338,13 @@ BOOL TLogView::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 	case USER_COMBO:
 	case USEREX_COMBO:
 	case USER_CHK:
-	case BODY_COMBO:
+	case RANGE_COMBO:
 	case LOGVIEW_REPLY:
 	case SEND_ACCEL:
 	case MENU_SENDDLG:
+		return	childView.EvCommand(wNotifyCode, wID, hwndCtl);
+
+	case BODY_COMBO:
 		return	childView.EvCommand(wNotifyCode, wID, hwndCtl);
 
 	case COPY_ACCEL:
@@ -464,6 +503,15 @@ BOOL TLogView::EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight)
 	statusCtrl.SendMessage(SB_SETPARTS, 2, (LPARAM)size);
 
 	childView.FitSize();
+
+	if (fwSizeType != SIZE_MAXIMIZED && isMain) {
+		GetWindowRect(&rect);
+		cfg->LvX = rect.left;
+		cfg->LvY = rect.top;
+		cfg->LvCx = rect.cx();
+		cfg->LvCy = rect.cy();
+	}
+
 	return	FALSE;;
 }
 
@@ -636,3 +684,14 @@ BOOL TUserCombo::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
 	statusStatic.AttachWnd(GetDlgItem(STATUS_STATIC));
 #endif
 #endif
+
+
+BOOL TComboEdit::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
+{
+	if ((::GetKeyState(VK_CONTROL) & 0x8000) || nVirtKey == VK_RETURN) {
+		view->PostMessage(uMsg, nVirtKey, lKeyData);
+	}
+	return	FALSE;
+}
+
+
