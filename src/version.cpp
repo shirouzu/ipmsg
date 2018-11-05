@@ -1,5 +1,5 @@
 ﻿static char *version_id = 
-	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 2010-2018	version.cpp	Ver4.95"
+	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 2010-2018	version.cpp	Ver4.98"
 #ifdef _DEBUG
 	"d"
 #endif
@@ -151,6 +151,8 @@ double VerStrToDouble(const char *s)
 			break;
 		case 'r':
 			sub = strtod(opt+1, NULL) * 0.0001;
+			break;
+		case 'd':
 			break;
 		default:
 			Debug("VerStrToDouble: unknown %s opt=%s\n", s, opt);

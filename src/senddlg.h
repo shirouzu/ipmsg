@@ -200,5 +200,15 @@ public:
 	virtual void	Show(int mode = SW_SHOWDEFAULT);
 };
 
+inline bool is_disp_host(Cfg *cfg, Host *host, time_t now) {
+	time_t	disp_time = now - cfg->DispHostTime;
+
+	if ((cfg->DelaySend & 0x1) == 0) return false;
+	if (host->updateTime < disp_time) return false;
+	if ((cfg->DelaySend & 0x2) && host->priority <= DEFAULT_PRIORITY) return false;
+
+	return	true;
+}
+
 #endif
 

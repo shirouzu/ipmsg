@@ -55,7 +55,7 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 #define IPMSG_DEFAULT_DELAY			250
 #define IPMSG_DEFAULT_UPDATETIME	10
 #define IPMSG_DEFAULT_KEEPHOSTTIME	(3600 * 24 * 180)	// 180日間
-#define IPMSG_DEFAULT_DISPHOSTTIME	(3600 * 24 * 30)	// 180日間
+#define IPMSG_DEFAULT_DISPHOSTTIME	(3600 * 24 * 14)	// 14日間
 #define IPMSG_DEFAULT_QUOTE			">"
 #define IPMSG_DEFAULT_CLIPMODE		(CLIP_ENABLE|CLIP_SAVE)
 #define IPMSG_DEFAULT_CLIPMAX		10
@@ -152,7 +152,7 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 #define SORT_STR			"Sort"
 #define UPDATETIME_STR		"UpdateTime"
 #define KEEPHOSTTIME_STR	"KeepHostTime"
-#define DISPHOSTTIME_STR	"DispHostTime"
+#define DISPHOSTTIME_STR	"DispHostTime2"
 #define MSGMINIMIZE_STR		"MsgMinimize"
 #define DEFAULTURL_STR		"DefaultUrl"
 #define SHELLEXEC_STR		"ShellExec"
@@ -457,9 +457,12 @@ bool Cfg::ReadRegistry(void)
 	NoFileTrans = 1; // ファイル/フォルダ転送の完全禁止（画像貼付含む）
 #elif defined(INTERMID_TRANSMODE)
 	NoFileTrans = 2; // ネットワークボリュームのみ禁止
+#elif defined(IMGONLY_TRANSMODE)
+	NoFileTrans = 3; // 画像添付以外のファイル/フォルダを禁止
 #else
 	NoFileTrans = 0; // 許可
 #endif
+
 	ListGet = FALSE;
 	HotKeyCheck   = TRUE;
 	HotKeyModify  = MOD_ALT|MOD_CONTROL;
@@ -530,7 +533,7 @@ bool Cfg::ReadRegistry(void)
 	ResolveOpt = 0;
 	LetterKey = IsLang(LANG_JAPANESE) ? FALSE : TRUE;
 	ListConfirm = FALSE;
-	DelaySend = TRUE;
+	DelaySend = 1;
 
 	RemoteGraceSec = IPMSG_DEFAULT_REMOTEGRACE;
 	RemoteRebootMode = 0;
@@ -703,6 +706,9 @@ bool Cfg::ReadRegistry(void)
 	else {
 		reg.GetInt(CLIPMODE_STR, &ClipMode);
 		ClipMode |= CLIP_ENABLE;
+	}
+	if (NoFileTrans == 1) {
+		ClipMode &= ~CLIP_ENABLE;
 	}
 
 	reg.GetInt(CLIPMAX_STR, &ClipMax);

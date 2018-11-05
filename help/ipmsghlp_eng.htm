@@ -84,11 +84,11 @@
 <body bgcolor="#eeffff">
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v4.95</h1>
+<h1 class="help_head1">IP Messenger v4.98</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2018/10/08 H.Shirouzu</div>
+<div align="right">2018/11/04 H.Shirouzu</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -553,6 +553,9 @@ It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
 	<tr><td>SiteLocal</td><td>Send to ff15::979 as multicast address for member detection.<br>(If your site routers can use IPv6 multicast, over router member detection will be available.)</td></tr>
 	<tr><td>LinkLocal</td><td>Send to ff02::1 as multicast address for member detection.<br>(member detection is available in local segment only)</td></tr>
 	<tr><td>Site/LinkLocal dual</td><td>use SiteLocal and LinkLocal</td></tr>
+
+	<tr class="table_head"><th colspan="2">Misc</th></tr>
+	<tr><td nowrap>English UI</td><td>Change to English UI (need restart)</td></tr>
 	</table>
 	</div>
 
@@ -604,7 +607,6 @@ It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
 		<tr><td nowrap>Use Hotkey</td><td>Open send/recv window by shortcut key</td></tr>
 
 		<tr class="table_head"><th colspan="2">Misc</th></tr>
-		<tr><td nowrap>English UI</td><td>Change to English UI (need restart)</td></tr>
 		<tr><td>Change Send/Reply -&gt; Fire/Intercept<td>Back to original label(1st beta in 1996)</td></tr>
 		<tr><td>Register Icon &amp; Notify<br>in TaskTray at Starting</td><td>Register Icon&Notify at starting, automatically</td></tr>
 		<tr><td nowrap>Icon</td><td>Change main/tasktray Icon</td></tr>
@@ -613,17 +615,22 @@ It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
 	<br>
 	</div>
 
-<a name="sendrecv_settings"/>
-<h3 class="help_head3">Send/Recv Wnd</h3>
+<a name="send_settings"/>
+<h3 class="help_head3">Send Window</h3>
 	<div class="help_sub_section">
-<a name="delaysend"/>
+		<a name="delaysend"/>
 		<table class="help_table" border="4">
-		<tr class="table_head"><th colspan="2">Send Window</th></tr>
-		<tr><td nowrap>Use Send Queue when a recever is inactive.</td><td>If the receiver's PC is inactive, the message is saved in the send queue. It will be sent when the receiver is active. ("IPMsg Delayed Send:DATE" will be added at the end of the message)<br><br>
+		<tr class="table_head"><th colspan="2">DelaySend</th></tr>
+		<tr><td nowrap>Use Send Queue<br>when a recever is stopped.</td><td>If the receiver's PC is stopped, the message is saved in the send queue. It will be sent when the receiver is active. ("IPMsg Delayed Send:DATE" will be added at the end of the message)<br><br>
 		Inactive users are shown as gray in the send screen.<br>
 		Users who were active within the past month will be displayed. (When you want to hide, select user -&gt RightClick -&gt PrioritySettings -&gt Move to No Display)<br>
 		(If you use this function, please use <a href="#log_settings">logging</a>, otherwise inline images may not be sent at delayed sending)
 		</td></tr>
+		<tr><td nowrap>Show at the end</td><td>Show inactive users at the end of the user list.</td></tr>
+		<tr><td nowrap>Priority users only</td><td>Show only inactive users with priority settings.</td></tr>
+		<tr><td>Show only for users within the last N weeks</td><td>Show only inactive users who were active within the past N weeks</td></tr>
+
+		<tr class="table_head"><th colspan="2">Send Window</th></tr>
 		<tr><td nowrap>1 Click Open SendDlg</td><td>Open Send Dlg by 1click in tasktray icon</td></tr>
 		<tr><td nowrap>IME auto ON</td><td>Enable IME at SendDlg opened</td></tr>
 		<tr><td nowrap>Narrow Userlist at reply</td><td>Show original addressees in userlist at replying. (if it is clicked "+" mini button, show all users)</td></tr>
@@ -631,7 +638,14 @@ It has <strong>"Marker", "Favorite", "Comment"</strong> functions.<br><br>
 		<tr><td nowrap>Prevent missend</td><td>Confirm addressee changed.</td></tr>
 		<tr><td nowrap>Set Caret to top at replying</td><td>(As it is)</td></tr>
 		<tr><td nowrap>QuoteStr</td><td>Specify quote string at replying. We recommend not to modify it, because it affects the fold action in the LogViewer.</td></tr>
+		</table>
+	<br>
+	</div>
 
+<a name="recv_settings"/>
+<h3 class="help_head3">Recv Window</h3>
+	<div class="help_sub_section">
+		<table class="help_table" border="4">
 		<tr class="table_head"><th colspan="2">Recv Window</th></tr>
 		<tr><td nowrap>NonPopup Receive</td><td>Change "popup" to "blink tasktray Icon" at receiving</td></tr>
 		<tr><td nowrap>Quoted check</td><td>(As it is)</td></tr>
@@ -953,6 +967,16 @@ Software Version, Operating System, problem situation, repeatability.
 
 <table class="help_table" border="4">
 <tr><th>Version</th><th>Details</th></tr>
+
+<tr><td>v4.98</td><td>
+Fix quote positoin settings.<br>
+Support inline image on latest Wine environment.<br>
+Fix to prevent firewall exception in rare environment.
+</td></tr>
+
+<tr><td>v4.96-v4.97</td><td>
+Add the detail settings of <a href="#delaysend">Send Queue mode (Delayed Send)</a>.
+</td></tr>
 
 <tr><td>v4.94-4.95</td><td>
 Add Windows Code signing to prevent false positive detection in anti-virus.<br>

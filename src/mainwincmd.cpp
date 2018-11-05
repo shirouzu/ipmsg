@@ -168,10 +168,10 @@ Host *TMainWin::FindHostForCmd(shared_ptr<U8str> u)
 			return	h;
 		}
 	}
-	time_t disp_time = time(NULL) - cfg->DispHostTime;
+	time_t now = time(NULL);
 	for (int i=0; i < cfg->priorityHosts.HostCnt(); i++) {
 		auto	h = cfg->priorityHosts.GetHost(i);
-		if (h->updateTime > disp_time) {
+		if (is_disp_host(cfg, h, now)) {
 			if (!strcmp(h->hostSub.u.userName, s)) {
 				return	h;
 			}

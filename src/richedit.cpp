@@ -1161,23 +1161,27 @@ VBuf *TEditSub::GetPngByte(int idx, int *pos)
 	reobj.cbStruct = sizeof(REOBJECT);
 
 	if (SUCCEEDED(richOle->GetObject(idx, &reobj, REO_GETOBJ_POLEOBJ))) {
-		if (pos) *pos = reobj.cp;
-		if (SUCCEEDED(reobj.poleobj->QueryInterface(IID_IDataObject, (void **)&dobj))) {
-			STGMEDIUM	sm;
-			FORMATETC	fe;
-			memset(&fe, 0, sizeof(fe));
-			fe.cfFormat	= CF_BITMAP;
-			fe.dwAspect	= DVASPECT_CONTENT;
-			fe.lindex	= -1;
-			fe.tymed	= TYMED_GDI;
-
-			if (SUCCEEDED(dobj->GetData(&fe, &sm))) {
-				buf = BmpHandleToPngByte(sm.hBitmap);
-				::ReleaseStgMedium(&sm);
+		if (reobj.poleobj) {
+			if (pos) {
+				*pos = reobj.cp;
 			}
-			dobj->Release();
+			if (SUCCEEDED(reobj.poleobj->QueryInterface(IID_IDataObject, (void **)&dobj))) {
+				STGMEDIUM	sm;
+				FORMATETC	fe;
+				memset(&fe, 0, sizeof(fe));
+				fe.cfFormat	= CF_BITMAP;
+				fe.dwAspect	= DVASPECT_CONTENT;
+				fe.lindex	= -1;
+				fe.tymed	= TYMED_GDI;
+
+				if (SUCCEEDED(dobj->GetData(&fe, &sm))) {
+					buf = BmpHandleToPngByte(sm.hBitmap);
+					::ReleaseStgMedium(&sm);
+				}
+				dobj->Release();
+			}
+			reobj.poleobj->Release();
 		}
-		reobj.poleobj->Release();
 	}
 
 	return	 buf;

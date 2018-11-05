@@ -132,6 +132,9 @@ BOOL TMainWin::UpdateCheckResCore(TInetReqReply *irr, BOOL *need_update)
 		irr->errMsg = Fmt("%s: size not found err", IPMSG_UPDATEINFO);
 		return FALSE;
 	}
+	if (data.get_str_list("sites", &updData.sites)) {
+		Debug("site num = %zd\n", updData.sites.size());
+	}
 
 	double	self_ver = VerStrToDouble(GetVersionStr(TRUE));
 	double	new_ver  = VerStrToDouble(updData.ver.s());
@@ -199,7 +202,17 @@ BOOL TMainWin::UpdateExec()
 	if (updData.path.Len() <= 0) {
 		return FALSE;
 	}
-	TInetAsync(IPMSG_SITE, updData.path.s(), hWnd, WM_IPMSG_UPDATEDLRES);
+
+	U8str	host = IPMSG_SITE;
+
+	if (updData.sites.size() > 0) {
+		auto	itr = updData.sites.begin();
+		auto	idx = time(NULL) % updData.sites.size();
+		while (idx-- > 0) itr++;
+		host = (*itr)->s();
+	}
+
+	TInetAsync(host.s(), updData.path.s(), hWnd, WM_IPMSG_UPDATEDLRES);
 	return	TRUE;
 }
 

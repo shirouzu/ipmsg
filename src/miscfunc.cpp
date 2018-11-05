@@ -1017,29 +1017,6 @@ BOOL GetCurrentScreenSize(RECT *rect, HWND hRefWnd)
 	return	TRUE;
 }
 
-HANDLE CreateFileWithDirU8(const char *path, DWORD flg, DWORD share, SECURITY_ATTRIBUTES *sa,
-	DWORD create_flg, DWORD attr, HANDLE hTmpl)
-{
-	HANDLE	fh = CreateFileU8(path, flg, share, sa, create_flg, attr, hTmpl);
-
-	if (fh != INVALID_HANDLE_VALUE) {
-		return	fh;
-	}
-
-	DWORD	err = GetLastError();
-	char	parent[MAX_PATH_U8];
-
-	if (GetParentDirU8(path, parent) && MakeDirAllU8(parent)) {
-		fh = CreateFileU8(path, flg, share, sa, create_flg, attr, hTmpl);
-	}
-
-	if (fh == INVALID_HANDLE_VALUE) {
-		SetLastError(err);
-	}
-	return	fh;
-}
-
-
 #define IPMSG_CLIPBOARD_PSEUDOFILE	"ipmsgclip_%s_%d_%d.png"
 #define IPMSG_CLIPBOARD_STOREDIR	"ipmsg_img"
 

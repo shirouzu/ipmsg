@@ -2595,13 +2595,13 @@ void LogDb::PrefetchFileProc(void *_param)
 				char	*end = top + size - 1; // valid end point
 				DWORD	dummy = 0;
 
-				try {
+				__try {
 					for (char *p=top; p < end; p += PAGE_SIZE) {
 						dummy += *p;
 					}
 					dummy += *end;
 				}
-				catch(...) {	// avoid "In Page Error" (= disconnect network drive)
+				__except(EXCEPTION_EXECUTE_HANDLER) {	// avoid "In Page Error" (= disconnect network drive)
 				}
 
 				Debug("fetch fin = %d tick size=%dKB  (%x)\n", t.elaps(), size/1024, dummy);

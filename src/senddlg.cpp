@@ -205,7 +205,8 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 
 	SetupItemIcons();
 
-	::DragAcceptFiles(hWnd, msgMng->IsAvailableTCP());
+	::DragAcceptFiles(hWnd, msgMng->IsAvailableTCP() &&
+						(cfg->NoFileTrans == 0 || cfg->NoFileTrans == 2));
 
 	CheckDisp();
 	DisplayMemberCnt();
@@ -632,7 +633,7 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		break;
 
 	case MENU_SETUP:
-		::PostMessage(GetMainWnd(), WM_IPMSG_SETUPDLG, SENDRECV_SHEET, 0);
+		::PostMessage(GetMainWnd(), WM_IPMSG_SETUPDLG, SEND_SHEET, 0);
 		return TRUE;
 
 	case MISC_ACCEL:
@@ -731,9 +732,9 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 //			for (int i=0; i < hosts->HostCnt(); i++) {
 //				AddHost(hosts->GetHost(i));
 //			}
-			time_t disp_time = time(NULL) - cfg->DispHostTime;
+			time_t now = time(NULL);
 			for (int i=0; i < cfg->priorityHosts.HostCnt(); i++) {
-				if (cfg->priorityHosts.GetHost(i)->updateTime > disp_time) {
+				if (is_disp_host(cfg, cfg->priorityHosts.GetHost(i), now)) {
 					AddHost(cfg->priorityHosts.GetHost(i));
 				}
 			}
@@ -833,9 +834,9 @@ BOOL TSendDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 //			for (int i=0; i < hosts->HostCnt(); i++) {
 //				AddHost(hosts->GetHost(i));
 //			}
-			time_t disp_time = time(NULL) - cfg->DispHostTime;
+			time_t now = time(NULL);
 			for (int i=0; i < cfg->priorityHosts.HostCnt(); i++) {
-				if (cfg->priorityHosts.GetHost(i)->updateTime > disp_time) {
+				if (is_disp_host(cfg, cfg->priorityHosts.GetHost(i), now)) {
 					AddHost(cfg->priorityHosts.GetHost(i));
 				}
 			}
@@ -1030,11 +1031,18 @@ bool TSendDlg::RestrictShare()
 		for (int i=shareInfo->fileCnt - 1; i >= 0; i--) {
 			auto finfo = shareInfo->fileInfo[i];
 
-			if (finfo->MemData()) {	// clip data
-				continue;
+			if (cfg->NoFileTrans == 1) {
+				shareInfo->RemoveFileInfo(i);
 			}
-			if (IsNetVolume(finfo->Fname())) {
-				AppendDropFilesAsText(finfo->Fname());
+			else if (cfg->NoFileTrans == 2) {
+				if (finfo->Attr() == IPMSG_FILE_CLIPBOARD) continue;
+				if (IsNetVolume(finfo->Fname())) {
+					AppendDropFilesAsText(finfo->Fname());
+					shareInfo->RemoveFileInfo(i);
+				}
+			}
+			else if (cfg->NoFileTrans == 3) {
+				if (finfo->Attr() == IPMSG_FILE_CLIPBOARD) continue;
 				shareInfo->RemoveFileInfo(i);
 			}
 		}
@@ -1614,7 +1622,7 @@ void TSendDlg::AddHost(Host *host, bool is_sel, bool disp_upd)
 {
 	if (host->priority <= 0 && !hiddenDisp || !IsFilterHost(host)) return;
 
-	if (cfg->DelaySend == 0 && !host->active) return;
+	if ((cfg->DelaySend & 0x1) == 0 && !host->active) return;
 
 	LV_ITEMW	lvi;
 	int			idx = GetInsertIndexPoint(host);
@@ -1736,13 +1744,18 @@ void TSendDlg::ReregisterEntry(bool keep_select)
 	}
 
 	DelAllHost();
-//	for (int i=0; i < hosts->HostCnt(); i++) {
-//		AddHost(hosts->GetHost(i));
-//	}
-	time_t disp_time = time(NULL) - cfg->DispHostTime;
-	for (int i=0; i < cfg->priorityHosts.HostCnt(); i++) {
-		if (cfg->priorityHosts.GetHost(i)->updateTime > disp_time) {
-			AddHost(cfg->priorityHosts.GetHost(i));
+
+	if (cfg->DelaySend & 0x1) {
+		time_t now = time(NULL);
+		for (int i=0; i < cfg->priorityHosts.HostCnt(); i++) {
+			if (is_disp_host(cfg, cfg->priorityHosts.GetHost(i), now)) {
+				AddHost(cfg->priorityHosts.GetHost(i));
+			}
+		}
+	}
+	else {
+		for (int i=0; i < hosts->HostCnt(); i++) {
+			AddHost(hosts->GetHost(i));
 		}
 	}
 
@@ -1816,6 +1829,10 @@ int TSendDlg::CompareHosts(Host *host1, Host *host2)
 		if (ret) {
 			return	sortRev ? -ret : ret;
 		}
+	}
+
+	if ((cfg->DelaySend & 0x4) && (host1->active ^ host2->active)) {
+		return	(host1->active < host2->active) ? 1 : -1;
 	}
 
 	if (host1->priority < host2->priority)
@@ -1983,9 +2000,9 @@ int TSendDlg::FilterHost(char *_filterStr)
 //	for (int i=0; i < hosts->HostCnt(); i++) {
 //		Host	*host = hosts->GetHost(i);
 
-	time_t disp_time = time(NULL) - cfg->DispHostTime;
+	time_t now = time(NULL);
 	for (int i=0; i < cfg->priorityHosts.HostCnt(); i++) {
-		if (cfg->priorityHosts.GetHost(i)->updateTime > disp_time) {
+		if (is_disp_host(cfg, cfg->priorityHosts.GetHost(i), now)) {
 			Host	*host = cfg->priorityHosts.GetHost(i);
 
 			if (IsFilterHost(host)) {
@@ -2086,6 +2103,8 @@ bool TSendDlg::SendMsgSetClip(void)
 	SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 	ULONG	file_base = msgMng->MakePacketNo();
 
+	int	min_pos = 0;
+
 	for (int i=0; i < cfg->ClipMax; i++) {
 		int		pos = 0;
 		VBuf	*vbuf = editSub.GetPngByte(i, &pos);
@@ -2097,6 +2116,8 @@ bool TSendDlg::SendMsgSetClip(void)
 		if (!shareInfo) {
 			shareInfo = shareMng->CreateShare(packetNo);
 		}
+		if (pos < min_pos) pos = min_pos++; // for Wine
+
 		MakeClipFileName(file_base, pos, 1, fname);
 
 		BOOL file_saved = FALSE;
@@ -2679,7 +2700,8 @@ void TSendDlg::SetMainMenu(HMENU hMenu)
 	AppendMenuU8(hMenu, MF_STRING, MENU_FINDDLG, LoadStrU8(IDS_FINDDLG));
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 
-	bool file_flg = (msgMng->IsAvailableTCP() && cfg->NoFileTrans != 1) ? 0 : MF_DISABLED|MF_GRAYED;
+	bool file_flg = (msgMng->IsAvailableTCP() && (cfg->NoFileTrans == 0 || cfg->NoFileTrans == 2))
+						? 0 : MF_DISABLED|MF_GRAYED;
 	AppendMenuU8(hMenu, MF_STRING|file_flg, MENU_FILEADD, LoadStrU8(IDS_FILEATTACHMENU));
 	AppendMenuU8(hMenu, MF_STRING|file_flg, MENU_FOLDERADD, LoadStrU8(IDS_FOLDERATTACHMENU));
 
@@ -2693,7 +2715,8 @@ void TSendDlg::SetMainMenu(HMENU hMenu)
 	AppendMenuU8(hImgMenu, MF_STRING|((cfg->ClipMode & CLIP_ENABLE) ? 0 : MF_DISABLED|MF_GRAYED),
 						WM_INSERT_IMAGE, LoadStrU8(IDS_INSERT_IMAGE));
 
-	AppendMenuU8(hMenu, MF_POPUP, (UINT_PTR)hImgMenu, LoadStrU8(IDS_IMAGEMENU));
+	AppendMenuU8(hMenu, MF_POPUP|((cfg->ClipMode & CLIP_ENABLE) ? 0 : MF_DISABLED|MF_GRAYED),
+						(UINT_PTR)hImgMenu, LoadStrU8(IDS_IMAGEMENU));
 
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 

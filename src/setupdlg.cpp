@@ -127,11 +127,13 @@ BOOL TSetupSheet::CheckData()
 			return	FALSE;
 		}
 	}
-	else if (resId == SENDRECV_SHEET) {
+	else if (resId == SEND_SHEET) {
 		if ((val = GetDlgItemInt(LRUUSER_EDIT)) > MAX_LRUUSER || val < 0) {
 			MessageBox(Fmt(LoadStr(IDS_TOOMANYLRU), MAX_LRUUSER));
 			return	FALSE;
 		}
+	}
+	else if (resId == RECV_SHEET) {
 	}
 	else if (resId == IMAGE_SHEET) {
 	}
@@ -240,8 +242,11 @@ void TSetupSheet::ShowHelp()
 	else if (resId == DETAIL_SHEET) {
 		section = "#detail_settings";
 	}
-	else if (resId == SENDRECV_SHEET) {
-		section = "#sendrecv_settings";
+	else if (resId == SEND_SHEET) {
+		section = "#send_settings";
+	}
+	else if (resId == RECV_SHEET) {
+		section = "#recv_settings";
 	}
 	else if (resId == IMAGE_SHEET) {
 		section = "#capture_settings";
@@ -368,6 +373,12 @@ BOOL TSetupSheet::SetData()
 		SendDlgItemMessage(MULTICAST_COMBO, CB_ADDSTRING, 0, (LPARAM)"LinkLocal only");
 		SendDlgItemMessage(MULTICAST_COMBO, CB_ADDSTRING, 0, (LPARAM)"SiteLocal only");
 		SendDlgItemMessage(MULTICAST_COMBO, CB_SETCURSEL, cfg->MulticastMode, 0);
+
+		if (cfg->lcid != -1 || GetSystemDefaultLCID() == 0x411) {
+			::ShowWindow(GetDlgItem(LCID_CHECK), SW_SHOW);
+			::EnableWindow(GetDlgItem(LCID_CHECK), TRUE);
+			CheckDlgButton(LCID_CHECK, cfg->lcid == -1 || cfg->lcid == 0x411 ? FALSE : TRUE);
+		}
 	}
 	else if (resId == DETAIL_SHEET) {
 		SetDlgItemInt(OPENTIME_EDIT, cfg->OpenCheck     ? cfg->OpenMsgTime / 1000 : 0);
@@ -400,21 +411,23 @@ BOOL TSetupSheet::SetData()
 
 		CheckDlgButton(ABNORMALBTN_CHECK, cfg->AbnormalButton);
 
-		if (cfg->lcid != -1 || GetSystemDefaultLCID() == 0x411) {
-			::ShowWindow(GetDlgItem(LCID_CHECK), SW_SHOW);
-			::EnableWindow(GetDlgItem(LCID_CHECK), TRUE);
-			CheckDlgButton(LCID_CHECK, cfg->lcid == -1 || cfg->lcid == 0x411 ? FALSE : TRUE);
-		}
-
 		SetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile);
 		SetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile);
 
 //		::ShowWindow(GetDlgItem(NOTIFY_BTN), IsWin8() ? SW_SHOW : SW_HIDE);
 	}
-	else if (resId == SENDRECV_SHEET) {
-		CheckDlgButton(DELAYSEND_CHECK, cfg->DelaySend);
+	else if (resId == SEND_SHEET) {
+		if (cfg->DelaySend & 0x1) {
+			CheckDlgButton(DELAYSEND_CHECK, TRUE);
+			CheckDlgButton(PRI_CHK,       (cfg->DelaySend & 0x2) ? TRUE : FALSE);
+			CheckDlgButton(TAIL_CHK,      (cfg->DelaySend & 0x4) ? TRUE : FALSE);
+		}
+		for (int i=1; i <= 6; i++) {
+			SendDlgItemMessage(DELAYSEND_CMB, CB_ADDSTRING, 0, (LPARAM)Fmt("%d", i));
+		}
+		auto	idx = ALIGN_BLOCK(cfg->DispHostTime, 3600*24*7) -1;
+		SendDlgItemMessage(DELAYSEND_CMB, CB_SETCURSEL, max(idx, 0), 0);
 
-		CheckDlgButton(QUOTE_CHECK, (cfg->QuoteCheck & 0x1) ? TRUE : FALSE);
 		CheckDlgButton(QUOTEREDUCE_CHECK, (cfg->QuoteCheck & 0x2) ? FALSE : TRUE);
 		CheckDlgButton(QUOTECARET_CHECK, (cfg->QuoteCheck & 0x10) ? TRUE : FALSE);
 
@@ -428,8 +441,10 @@ BOOL TSetupSheet::SetData()
 		CheckDlgButton(LISTCONFIRM_CHECK, cfg->ListConfirm);
 		SetDlgItemTextU8(QUOTE_EDIT, cfg->QuoteStr);
 		U8toW(cfg->QuoteStr, cfg->QuoteStrW, wsizeof(cfg->QuoteStrW));
-
+	}
+	else if (resId == RECV_SHEET) {
 		CheckDlgButton(NOPOPUP_CHECK, cfg->NoPopupCheck);
+		CheckDlgButton(QUOTE_CHECK, (cfg->QuoteCheck & 0x1) ? TRUE : FALSE);
 		//CheckDlgButton(ABSENCENONPOPUP_CHECK, cfg->AbsenceNonPopup);
 		CheckDlgButton(LOGVIEWRECV_CHECK, cfg->logViewAtRecv);
 
@@ -691,6 +706,9 @@ BOOL TSetupSheet::GetData()
 				cfg->MulticastMode = (int)mode;
 			}
 		}
+		if (::IsWindowEnabled(GetDlgItem(LCID_CHECK))) {
+			cfg->lcid = IsDlgButtonChecked(LCID_CHECK) ? 0x409 : -1;
+		}
 	}
 	else if (resId == DETAIL_SHEET) {
 		if (GetDlgItemInt(OPENTIME_EDIT) > 0) {
@@ -728,9 +746,6 @@ BOOL TSetupSheet::GetData()
 		}
 
 		cfg->AbnormalButton = IsDlgButtonChecked(ABNORMALBTN_CHECK);
-		if (::IsWindowEnabled(GetDlgItem(LCID_CHECK))) {
-			cfg->lcid = IsDlgButtonChecked(LCID_CHECK) ? 0x409 : -1;
-		}
 
 		GetDlgItemTextU8(MAINICON_EDIT, cfg->IconFile, sizeof(cfg->IconFile));
 		GetDlgItemTextU8(REVICON_EDIT, cfg->RevIconFile, sizeof(cfg->RevIconFile));
@@ -740,11 +755,16 @@ BOOL TSetupSheet::GetData()
 		ReflectDisp();
 		SetHotKey(cfg);
 	}
-	else if (resId == SENDRECV_SHEET) {
-		cfg->DelaySend = IsDlgButtonChecked(DELAYSEND_CHECK);
-		cfg->QuoteCheck = IsDlgButtonChecked(QUOTE_CHECK);
-		cfg->QuoteCheck |= (IsDlgButtonChecked(QUOTEREDUCE_CHECK) ? 0 : 0x2);
-		cfg->QuoteCheck |= (IsDlgButtonChecked(QUOTECARET_CHECK) ? 0x10 : 0);
+	else if (resId == SEND_SHEET) {
+		if (cfg->DelaySend = IsDlgButtonChecked(DELAYSEND_CHECK)) {
+			BIT_SET(IsDlgButtonChecked(PRI_CHK),  cfg->DelaySend, 0x2);
+			BIT_SET(IsDlgButtonChecked(TAIL_CHK), cfg->DelaySend, 0x4);
+			cfg->DispHostTime =
+				((int)SendDlgItemMessage(DELAYSEND_CMB, CB_GETCURSEL, 0, 0) + 1) * 3600 * 24 * 7;
+		}
+
+		BIT_SET(!IsDlgButtonChecked(QUOTEREDUCE_CHECK), cfg->QuoteCheck, 0x2);
+		BIT_SET(IsDlgButtonChecked(QUOTECARET_CHECK),  cfg->QuoteCheck, 0x10);
 
 		cfg->SecretCheck = IsDlgButtonChecked(SECRET_CHECK);
 		cfg->OneClickPopup = IsDlgButtonChecked(ONECLICK_CHECK);
@@ -754,13 +774,16 @@ BOOL TSetupSheet::GetData()
 		cfg->ControlIME = IsDlgButtonChecked(CONTROLIME_CHECK);
 		cfg->ListConfirm = IsDlgButtonChecked(LISTCONFIRM_CHECK);
 		GetDlgItemTextU8(QUOTE_EDIT, cfg->QuoteStr, sizeof(cfg->QuoteStr));
-
+	}
+	else if (resId == RECV_SHEET) {
 	//	if (cfg->ControlIME && !IsDlgButtonChecked(FINDDLGIME_CHECK)) {
 	//		cfg->ControlIME = 2;
 	//	}
 		if (cfg->NoPopupCheck != 2) {
 			cfg->NoPopupCheck = IsDlgButtonChecked(NOPOPUP_CHECK);
 		}
+		BIT_SET(IsDlgButtonChecked(QUOTE_CHECK), cfg->QuoteCheck, 1);
+
 		cfg->NoBeep = IsDlgButtonChecked(NOBEEP_CHECK);
 		//cfg->AbsenceNonPopup = IsDlgButtonChecked(ABSENCENONPOPUP_CHECK);
 		cfg->logViewAtRecv = IsDlgButtonChecked(LOGVIEWRECV_CHECK);
@@ -809,14 +832,12 @@ BOOL TSetupSheet::GetData()
 		LogMng::StrictLogFile(cfg->LogFile);
 	}
 	else if (resId == AUTOSAVE_SHEET) {
-		if (IsDlgButtonChecked(AUTOSAVE_CHECK))	cfg->autoSaveFlags |= AUTOSAVE_ENABLED;
-		else									cfg->autoSaveFlags &= ~AUTOSAVE_ENABLED;
+		BIT_SET(IsDlgButtonChecked(AUTOSAVE_CHECK), cfg->autoSaveFlags, AUTOSAVE_ENABLED);
 		GetDlgItemTextU8(DIR_EDIT, cfg->autoSaveDir, sizeof(cfg->autoSaveDir));
 		cfg->autoSaveTout = GetDlgItemInt(TOUT_EDIT);
 		cfg->autoSaveLevel = (int)SendDlgItemMessage(PRIORITY_COMBO, CB_GETCURSEL, 0, 0);
 		cfg->autoSaveMax = GetDlgItemInt(SIZE_EDIT);
-		if (IsDlgButtonChecked(DIR_CHECK))	cfg->autoSaveFlags |= AUTOSAVE_INCDIR;
-		else								cfg->autoSaveFlags &= ~AUTOSAVE_INCDIR;
+		BIT_SET(IsDlgButtonChecked(DIR_CHECK), cfg->autoSaveFlags, AUTOSAVE_INCDIR);
 	}
 	else if (resId == PASSWORD_SHEET) {
 		char	buf[MAX_NAMEBUF];
@@ -864,34 +885,18 @@ BOOL TSetupSheet::GetData()
 	else if (resId == LINK_SHEET) {
 		GetDlgItemTextU8(DIRECTEXT_EDIT, cfg->directOpenExt, sizeof(cfg->directOpenExt));
 
-		if (IsDlgButtonChecked(ONECLICKOPEN_CHECK)) {
-			cfg->clickOpenMode |= 3;
-		} else {
-			cfg->clickOpenMode &= ~3;
-		}
-
-		if (IsDlgButtonChecked(ONECLICKVIEW_CHECK)) {
-			cfg->clickOpenMode |= 4;
-		} else {
-			cfg->clickOpenMode &= ~4;
-		}
+		BIT_SET(IsDlgButtonChecked(ONECLICKOPEN_CHECK), cfg->clickOpenMode, 3);
+		BIT_SET(IsDlgButtonChecked(ONECLICKVIEW_CHECK), cfg->clickOpenMode, 4);
 
 		int sv_linkmode = cfg->linkDetectMode;
-		if (IsDlgButtonChecked(LINKDETECT_CHECK)) {
-			cfg->linkDetectMode |= 1;
-		} else {
-			cfg->linkDetectMode &= ~1;
-		}
+
+		BIT_SET(IsDlgButtonChecked(LINKDETECT_CHECK), cfg->linkDetectMode, 1);
 		if (sv_linkmode != cfg->linkDetectMode) {
 			::SendMessage(GetMainWnd(), WM_LOGVIEW_RESETCACHE, 0, 0);
 		}
 	}
 	else if (resId == BACKUP_SHEET) {
-		if (IsDlgButtonChecked(FIREWALL_CHECK)) {
-			cfg->FwCheckMode |= 1;
-		} else {
-			cfg->FwCheckMode &= ~1;
-		}
+		BIT_SET(IsDlgButtonChecked(FIREWALL_CHECK), cfg->FwCheckMode, 1);
 
 		BOOL chk = IsDlgButtonChecked(MINIRECVACTION_CHECK);
 		if (cfg->RecvIconMode != chk) {
@@ -934,16 +939,8 @@ BOOL TSetupSheet::GetData()
 	}
 #else
 	else if (resId == UPDATE_SHEET) {
-		if (IsDlgButtonChecked(UPDATE_CHK)) {
-			cfg->updateFlag |= Cfg::UPDATE_ON;
-		} else {
-			cfg->updateFlag &= ~Cfg::UPDATE_ON;
-		}
-		if (IsDlgButtonChecked(MANUAL_CHK)) {
-			cfg->updateFlag |= Cfg::UPDATE_MANUAL;
-		} else {
-			cfg->updateFlag &= ~Cfg::UPDATE_MANUAL;
-		}
+		BIT_SET(IsDlgButtonChecked(UPDATE_CHK), cfg->updateFlag, Cfg::UPDATE_ON);
+		BIT_SET(IsDlgButtonChecked(MANUAL_CHK), cfg->updateFlag, Cfg::UPDATE_MANUAL);
 	}
 	else if (resId == DIRMODE_SHEET) {
 		if (cfg->IPv6Mode == 1 || !cfg->IPDictEnabled()) {
@@ -1065,14 +1062,17 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 			return	TRUE;
 		}
 	}
-	else if (resId == SENDRECV_SHEET) {
+	else if (resId == SEND_SHEET) {
 		switch (wID) {
 		case SENDDETAIL_BUTTON:
 			{
 				TSortDlg(cfg, this).Exec();
 				return	TRUE;
 			}
-
+		}
+	}
+	else if (resId == RECV_SHEET) {
+		switch (wID) {
 		case SOUNDFILE_BUTTON:
 			GetWindowsDirectoryU8(buf, sizeof(buf));
 			strcat(buf, "\\Media");
@@ -1451,7 +1451,8 @@ TSetupDlg::TSetupDlg(Cfg *_cfg, THosts *_hosts, BOOL is_first, TWin *_parent)
 	idVec.push_back(DIRMODE_SHEET);
 #endif
 	idVec.push_back(DETAIL_SHEET);
-	idVec.push_back(SENDRECV_SHEET);
+	idVec.push_back(SEND_SHEET);
+	idVec.push_back(RECV_SHEET);
 	idVec.push_back(TRAY_SHEET);
 	idVec.push_back(IMAGE_SHEET);
 	idVec.push_back(LINK_SHEET);

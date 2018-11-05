@@ -192,7 +192,7 @@ public:
 	int		ResolveOpt;
 	BOOL	LetterKey;
 	BOOL	ListConfirm;
-	BOOL	DelaySend;
+	int		DelaySend;
 
 	int		ClipMode;
 	int		ClipMax;

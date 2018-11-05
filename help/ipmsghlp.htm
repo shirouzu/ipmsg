@@ -84,11 +84,11 @@
 <body bgcolor="#eeffff">
 
 <div align="center">
-<h1 class="help_head1">IP Messenger v4.95</h1>
+<h1 class="help_head1">IP Messenger v4.98</h1>
 </div>
 <div class="help_all">
 
-<div align="right">2018/10/08 H.Shirouzu (白水啓章)</div>
+<div align="right">2018/11/04 H.Shirouzu (白水啓章)</div>
 
 <a name="index"/>
 <h2 class="help_head2">Index</h2>
@@ -522,18 +522,24 @@
 	<tr class="table_head"><th colspan="2">基本設定</th></tr>
 	<tr><td>ユーザ名設定</td><td>ユーザ名を設定します</td></tr>
 	<tr><td nowrap>グループ名設定</td><td>グループ名を設定します。<br>新たなグループ名を入力するか、プルダウンから既に存在するグループのいずれかを選びます</td></tr>
+
 	<tr class="table_head"><th colspan="2">LAN設定</th></tr>
 	<tr><td>自セグメント以外へのBroadcast設定</td><td>ルータを越えたIPMsgを認識するには、ここにそのネットワークのブロードキャストアドレスを設定できます。<br>
 （最近のルータはブロードキャストをブロックする設定が多いため、これを利用するよりも、v4.5から搭載された<a href="#master">「メンバマスター機能」</a>の利用を推奨します）</td></tr>
 	<tr><td>要Unicast通知</td><td>他のIPMsgから個別の存在通知を送るよう要求します</td></tr>
+
 	<tr class="table_head"><th colspan="2">自セグメントへの Broadcast (IPv4用メンバ認識)</th></tr>
 	<tr><td>制限(Limited broadcast)</td><td>255.255.255.255宛てに、参加/離脱を通知します。<br>（Windowsの最優先NICからパケットが出ます。VMWare等を入れると仮想NICが最優先になることが多いため、その場合は「直接」を選ぶか、WindowsのNIC優先順位で認識したいNICの優先度を上げて下さい）</td></tr>
 	<tr><td>直接(Directed broadcast)</td><td>すべてのNICに付与されているIPv4アドレスをリストアップし、すべての付与IPアドレスに対する直接ブロードキャストに対し、参加/離脱を通知します。（例: 192.168.0.1/24 と 192.168.100.2/24 を持っている場合、192.168.0.255 と 192.168.100.255 の 2つのアドレスに、参加/離脱を通知します。</td></tr>
 	<tr><td>両利用</td><td>上記の２つを併用します。</td></tr>
+
 	<tr class="table_head"><th colspan="2">IPv6マルチキャスト（IPv6用メンバ認識）</th></tr>
 	<tr><td>SiteLocal</td><td>ff15::979 をマルチキャストアドレスとして、参加/離脱を通知します。<br>（IPv6マルチキャスト対応ルータの場合、サイト内であればルータ越えが可能です）</td></tr>
 	<tr><td>LinkLocal</td><td>ff02::1 をマルチキャストアドレスとして、参加/離脱を通知します。<br>（ルータを越えません）</td></tr>
 	<tr><td>Site/LinkLocal dual</td><td>上記の２つ両方のアドレスに参加/離脱を通知します。</td></tr>
+
+	<tr class="table_head"><th colspan="2">その他</th></tr>
+	<tr><td nowrap>英語UI</td><td>英語UIに変更します。（要再起動）</td></tr>
 	</table>
 	<br>
 	</div>
@@ -597,7 +603,6 @@
 		<tr><td nowrap>送受信ホットキー</td><td>送信画面、受信画面を出すショートカットを指定します</td></tr>
 
 		<tr class="table_head"><th colspan="2">その他</th></tr>
-		<tr><td nowrap>英語UI</td><td>英語UIに変更します。（要再起動）</td></tr>
 		<tr><td>「送信・返信」を「発射・迎撃」に変更</td><td>1996年0.95β版時代のラベルに戻します</td></tr>
 		<tr><td nowrap>アイコン</td><td>タスクトレイ・メインアイコンを変更します</td></tr>
 		<tr><td nowrap>不在アイコン</td><td>不在時のタスクトレイアイコンを変更します</td></tr>
@@ -605,17 +610,22 @@
 	<br>
 	</div>
 
-<a name="sendrecv_settings"/>
-<h3 class="help_head3">送受信画面</h3> 
-<a name="delaysend"/>
+<a name="send_settings"/>
+<h3 class="help_head3">送信画面</h3> 
 	<div class="help_sub_section">
+		<a name="delaysend"/>
 		<table class="help_table" border="4">
-		<tr class="table_head"><th colspan="2">送信</th></tr>
-		<tr><td nowrap>遅延送信を有効化（受信先が起動していない時）</td><td>送信相手がIPMsgを起動していない場合、一旦送信キューに貯めて相手が起動し次第、送信します。（メッセージ末尾に（IPMsg遅延送信:日時）が付与されます）<br>
+		<tr class="table_head"><th colspan="2">遅延送信</th></tr>
+		<tr><td nowrap>遅延送信を有効化<br>（受信先が起動していない時）</td><td>送信相手がIPMsgを起動していない場合、一旦送信キューに貯めて相手が起動し次第、送信します。（メッセージ末尾に（IPMsg遅延送信:日時）が付与されます）<br>
 		IPMsgを終了しているユーザは、送信画面では灰色で表示されます。<br>
 		<br>
 		過去１ヶ月以内にアクティブだったユーザが表示されます。（非表示にしたい場合、ユーザ選択→右クリック→ユーザ表示優先度→非表示）<br>
 		（この機能を使う場合、<a href="#log_settings">ログ記録</a>を有効である必要があります。そうでない場合、遅延送信時に貼付画像が送れないことがあります）</td></tr>
+		<tr><td nowrap>末尾に表示</td><td>未起動ユーザは、ユーザリストの最後に表示します</td></tr>
+		<tr><td nowrap>優先度ユーザのみ</td><td>未起動ユーザは、優先度設定済みのユーザのみ表示します</td></tr>
+		<tr><td>過去N週間以内のユーザのみ表示</td><td>未起動ユーザは、過去N週間以内にアクティブだったユーザのみ表示します</td></tr>
+
+		<tr class="table_head"><th colspan="2">送信</th></tr>
 		<tr><td nowrap>シングルクリックで開く</td><td>タスクトレイアイコンを1クリックで送信画面を開きます</td></tr>
 		<tr><td nowrap>IME自動ON</td><td>送信画面オープン時にIMEをONにします</td></tr>
 		<tr><td nowrap>返信時は宛先のみ表示</td><td>送信画面でオリジナルの宛先のみ表示します（ユーザリスト横の「+」ボタンで全員表示）</td></tr>
@@ -625,7 +635,14 @@
 	（(*) 本来の宛先：元メッセージの「送信者＋（自分以外の）受信者」）</td></tr>
 		<tr><td nowrap>引用時、カーソル位置を末尾に</td><td>（そのまま）</td></tr>
 		<tr><td nowrap>引用文字</td><td>返信時の引用文字を指定します。ログビューアの折り畳み動作に影響するので、変更しないことを推奨します。</td></tr>
+		</table>
+	<br>
+	</div>
 
+<a name="recv_settings"/>
+<h3 class="help_head3">受信画面</h3> 
+	<div class="help_sub_section">
+		<table class="help_table" border="4">
 		<tr class="table_head"><th colspan="2">受信</th></tr>
 		<tr><td nowrap>ノンポップアップ受信</td><td>受信時にポップアップする代わりに、タスクトレイアイコンが点滅します</td></tr>
 		<tr><td nowrap>引用チェックON</td><td>（そのまま）</td></tr>
@@ -953,6 +970,16 @@ ipmsg本体を常駐させた上で、ipcmd.exeを使うと、不在モードの取得・変更や、メッセー
 
 <table class="help_table" border="4">
 <tr class="table_head"><th>Version</th><th>説明</th></tr>
+
+<tr><td>v4.98</td><td>
+引用位置＆二重引用抑止オプションが効かなかった問題の修正<br>
+最新Wine環境で、画像貼付できるように<br>
+一部環境でFirewall検査関連の例外が発生する問題の修正
+</td></tr>
+
+<tr><td>v4.96-v4.97</td><td>
+<a href="#delaysend">遅延送信モード</a>用詳細設定を追加
+</td></tr>
 
 <tr><td>v4.94-4.95</td><td>
 Windowsコード署名を付与（アンチウイルス誤検出対策）<br>

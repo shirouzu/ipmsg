@@ -746,8 +746,12 @@ BOOL MakeDirU8(char *dir);
 BOOL MakeDirW(WCHAR *dir);
 BOOL MakeDirAllU8(char *dir);
 BOOL MakeDirAllW(WCHAR *dir);
+HANDLE CreateFileWithDirU8(const char *path, DWORD flg, DWORD share, SECURITY_ATTRIBUTES *sa,
+	DWORD create_flg, DWORD attr, HANDLE hTmpl);
+HANDLE CreateFileWithDirW(const WCHAR *path, DWORD flg, DWORD share, SECURITY_ATTRIBUTES *sa,
+	DWORD create_flg, DWORD attr, HANDLE hTmpl);
 
-HWND ShowHelpW(HWND hOwner, WCHAR *help_dir, WCHAR *help_file, WCHAR *section=NULL);
+HWND ShowHelpW(HWND hOwner, const WCHAR *help_dir, const WCHAR *help_file, const WCHAR *section=0);
 HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const char *section=NULL);void UnInitShowHelp();
 
 HWND TransMsgHelp(MSG *msg);
@@ -832,6 +836,9 @@ time_t SYSTEMTIME_to_time(const SYSTEMTIME &st, BOOL is_local=TRUE);
 void U8Out(const char *fmt,...);
 
 BOOL TGetUrlAssocAppW(const WCHAR *scheme, WCHAR *wbuf, int max_len);
+time_t TGetBuildTimestamp();
+
+#define BIT_SET(flg, targ, val) (flg ? (targ |= val) : (targ &= ~val))
 
 #endif
 

@@ -18,6 +18,7 @@
 #include <Shellapi.h>
 #include <propkey.h>
 #include <propvarutil.h>
+#include <time.h>
 
 using namespace std;
 
@@ -982,6 +983,50 @@ BOOL MakeDirAllW(WCHAR *dir)
 	return	MakeDirW(dir);
 }
 
+HANDLE CreateFileWithDirU8(const char *path, DWORD flg, DWORD share, SECURITY_ATTRIBUTES *sa,
+	DWORD create_flg, DWORD attr, HANDLE hTmpl)
+{
+	HANDLE	fh = CreateFileU8(path, flg, share, sa, create_flg, attr, hTmpl);
+
+	if (fh != INVALID_HANDLE_VALUE) {
+		return	fh;
+	}
+
+	DWORD	err = GetLastError();
+	char	parent[MAX_PATH_U8];
+
+	if (GetParentDirU8(path, parent) && MakeDirAllU8(parent)) {
+		fh = CreateFileU8(path, flg, share, sa, create_flg, attr, hTmpl);
+	}
+
+	if (fh == INVALID_HANDLE_VALUE) {
+		SetLastError(err);
+	}
+	return	fh;
+}
+
+HANDLE CreateFileWithDirW(const WCHAR *path, DWORD flg, DWORD share, SECURITY_ATTRIBUTES *sa,
+	DWORD create_flg, DWORD attr, HANDLE hTmpl)
+{
+	HANDLE	fh = ::CreateFileW(path, flg, share, sa, create_flg, attr, hTmpl);
+
+	if (fh != INVALID_HANDLE_VALUE) {
+		return	fh;
+	}
+
+	DWORD	err = GetLastError();
+	WCHAR	parent[MAX_PATH];
+
+	if (GetParentDirW(path, parent) && MakeDirAllW(parent)) {
+		fh = ::CreateFileW(path, flg, share, sa, create_flg, attr, hTmpl);
+	}
+
+	if (fh == INVALID_HANDLE_VALUE) {
+		SetLastError(err);
+	}
+	return	fh;
+}
+
 
 // HtmlHelp WorkShop をインストールして、htmlhelp.h を include path に
 // 入れること。
@@ -1046,7 +1091,7 @@ HWND CloseHelpAll()
 #endif
 }
 
-HWND ShowHelpW(HWND hOwner, WCHAR *help_dir, WCHAR *help_file, WCHAR *section)
+HWND ShowHelpW(HWND hOwner, const WCHAR *help_dir, const WCHAR *help_file, const WCHAR *section)
 {
 #if defined(ENABLE_HTML_HELP)
 	if (!pHtmlHelpW) {
@@ -1480,7 +1525,7 @@ unsigned __stdcall Is3rdPartyFwEnabledProc(void *_param)
 
 	param->ret = FALSE;
 
-	try {
+	__try {
 		::CoInitialize(NULL);
 
 		CoCreateInstance(__uuidof(NetFwProducts), 0, CLSCTX_INPROC_SERVER,
@@ -1508,7 +1553,8 @@ unsigned __stdcall Is3rdPartyFwEnabledProc(void *_param)
 		}
 		param->ret = TRUE;
 	}
-	catch(...) {
+	__except(EXCEPTION_EXECUTE_HANDLER) {
+		param->ret = TRUE;
 		DBG("INetFwProducts exception\n");
 	}
 
@@ -2466,4 +2512,31 @@ BOOL TGetUrlAssocAppW(const WCHAR *scheme, WCHAR *wbuf, int max_len)
 	}
 	return	FALSE;
 }
+
+time_t TGetBuildTimestamp()
+{
+	static time_t	t = [](){
+		char	mon[4];
+		struct tm tm = {};
+		// Fri 19 Aug 13:32:58 2016
+		Debug(__TIMESTAMP__);
+		if (sscanf(__TIMESTAMP__, "%*3c %3s %d %d:%d:%d %d", mon, &tm.tm_mday,
+							&tm.tm_hour, &tm.tm_min, &tm.tm_sec, &tm.tm_year) != 6) {
+			return	(time_t)0;
+		}
+		tm.tm_year -= 1900;
+		tm.tm_mon = [&]() {	// Jan to 0
+			const char *mon_def[] =
+				{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", 0 };
+			for (int i=0; mon_def[i]; i++) {
+				if (strcmp(mon_def[i], mon) == 0) return i;
+			}
+			return	0;
+		}();
+		return	mktime(&tm);
+	}();
+
+	return	t;
+}
+
 

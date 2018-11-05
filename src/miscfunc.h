@@ -38,13 +38,6 @@ size_t MakeHostDict(Host *host, std::shared_ptr<IPDict> dict);
 BOOL DictToHost(std::shared_ptr<IPDict> dict, Host *host);
 int MakeHostListStr(char *buf, Host *host);
 
-
-BOOL MakeDirU8(char *dir);
-BOOL MakeDirW(WCHAR *dir);
-BOOL MakeDirAllU8(char *dir);
-BOOL MakeDirAllW(WCHAR *dir);
-HANDLE CreateFileWithDirU8(const char *path, DWORD flg, DWORD share, SECURITY_ATTRIBUTES *sa,
-	DWORD create_flg, DWORD attr, HANDLE hTmpl);
 void MakeClipFileName(int id, int pos, int prefix, char *buf);
 BOOL MakeImageFolderName(Cfg *, char *dir);
 BOOL MakeImageTmpFileName(const char *dir, char *fname);
