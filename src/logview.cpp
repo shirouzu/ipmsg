@@ -688,7 +688,13 @@ BOOL TUserCombo::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
 
 BOOL TComboEdit::EventKey(UINT uMsg, int nVirtKey, LONG lKeyData)
 {
-	if ((::GetKeyState(VK_CONTROL) & 0x8000) || nVirtKey == VK_RETURN) {
+	if ((::GetKeyState(VK_CONTROL) & 0x8000) &&
+			(nVirtKey != 'V' &&
+			 nVirtKey != 'N' &&
+			 nVirtKey != 'C' &&
+			 nVirtKey != 'Z' &&
+			 nVirtKey != 'X')
+		|| nVirtKey == VK_RETURN) {
 		view->PostMessage(uMsg, nVirtKey, lKeyData);
 	}
 	return	FALSE;
