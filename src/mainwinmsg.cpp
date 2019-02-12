@@ -1,10 +1,10 @@
 ﻿static char *mainwinmsg_id = 
-	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 1996-2018 mainwinmsg.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu 1996-2019 mainwinmsg.cpp	Ver4.90";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window Message
 	Create					: 1996-06-01(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -402,6 +402,7 @@ void TMainWin::MsgAnsPubKey(MsgBuf *msg)
 	}
 	if (host && (!host->pubKey.Key() || host->pubKey.Capa() != capa)) {
 		host->pubKey.Set(key, key_len, e, capa);
+
 	}
 
 	sendMng->SendPubKeyNotify(&msg->hostSub, key, key_len, e, capa);
@@ -428,6 +429,9 @@ void TMainWin::MsgInfoSub(MsgBuf *msg)
 	}
 	else if (cmd == IPMSG_ANSREADMSG || cmd == IPMSG_RECVMSG) {
 		sendMng->SendFinishNotify(&msg->hostSub, packet_no);
+		for (auto dlg = recvList.TopObj(); dlg; dlg = recvList.NextObj(dlg)) {
+			dlg->SendFinishNotify(&msg->hostSub, packet_no);
+		}
 		return;
 	}
 	if (IsLastPacket(msg))		//重複チェック

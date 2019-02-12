@@ -33,6 +33,7 @@ typedef VColPts::iterator	VColPtsItr;
 #define COLOR_GREEN		RGB(0,255,0)
 #define COLOR_BLUE		RGB(0,0,255)
 #define COLOR_YELLOW	RGB(255,255,0)
+#define COLOR_MAX		4
 
 #define BGCOLOR_RED		RGB(255,255,255)
 #define BGCOLOR_GREEN	RGB( 21,108, 48)
@@ -42,10 +43,11 @@ typedef VColPts::iterator	VColPtsItr;
 #define MARKER_OFFSET    3000
 #define MARKER_UNDO      (MARKER_OFFSET + 0)
 #define MARKER_PEN       (MARKER_OFFSET + 1)
-#define MARKER_ARROW     (MARKER_OFFSET + 2)
-#define MARKER_RECT      (MARKER_OFFSET + 3)
-#define MARKER_COLOR     (MARKER_OFFSET + 4)
-#define MARKER_TB_MAX    4
+#define MARKER_LINE      (MARKER_OFFSET + 2)
+#define MARKER_ARROW     (MARKER_OFFSET + 3)
+#define MARKER_RECT      (MARKER_OFFSET + 4)
+#define MARKER_COLOR     (MARKER_OFFSET + 5)
+#define MARKER_TB_MAX    5
 
 // ex is rect/arrow
 inline DWORD CURSOR_IDX(COLORREF color, int ex=0) { return color + ex; }
@@ -101,8 +103,23 @@ protected:
 	TEditSub		*reEdit;
 	int				sX, sY, sCx, sCy;
 	TRect			reRc;
-	TRect			DrawMarkerMemo(HDC hDc, const ColPts& col, POINT *pt, TRect max_rc);
-	enum { INIT, START, END, DRAW_INIT, DRAW_START, DRAW_INPUT, DRAW_END } status;
+	enum ResizeMode {
+		RESIZE_NONE = 0,
+		RESIZE_X	= 1,
+		RESIZE_CX	= 2,
+		RESIZE_Y	= 4,
+		RESIZE_XY	= 5,
+		RESIZE_CXY	= 6,
+		RESIZE_CY	= 8,
+		RESIZE_XCY	= 9,
+		RESIZE_CXCY	= 10,
+	} rsMode = RESIZE_NONE;
+	enum { INIT, START, END, DRAW_INIT, DRAW_START, DRAW_INPUT, RESIZE_AREA, DRAW_END } status;
+
+	void		SetCursor(POINTS *pts=NULL);
+	ResizeMode	GetResizeMode(POINTS pts);
+	BOOL		IsOverArea(POINTS pts);
+	void		NormalizeArea();
 
 public:
 	TImageWin(Cfg *_cfg, TSendDlg *_parent);

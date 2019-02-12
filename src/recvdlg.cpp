@@ -653,7 +653,9 @@ BOOL TRecvDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 				}
 				isAutoSave = false;
 				*autoSaves = 0;
-				SetFileButton(this, FILE_BUTTON, shareInfo);
+				if (shareInfo) {
+					SetFileButton(this, FILE_BUTTON, shareInfo);
+				}
 				EvSize(SIZE_RESTORED, 0, 0);
 			}
 			else {
@@ -748,7 +750,9 @@ bool TRecvDlg::LoadClipFromFile(void)
 			shareInfo->RemoveFileInfo(i);
 		}
 	}
-	SetFileButton(this, FILE_BUTTON, shareInfo, autoSaves);
+	if (shareInfo) {
+		SetFileButton(this, FILE_BUTTON, shareInfo, autoSaves);
+	}
 	EvSize(SIZE_RESTORED, 0, 0);
 
 	return	true;

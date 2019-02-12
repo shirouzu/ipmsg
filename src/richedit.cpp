@@ -9,7 +9,6 @@
 	Reference				: 
 	======================================================================== */
 
-#include "resource.h"
 #include "ipmsg.h"
 
 #include <objidl.h>
@@ -372,7 +371,8 @@ HRESULT TRichEditOleCallback::QueryAcceptData(LPDATAOBJECT dataObj, CLIPFORMAT *
 		case CF_BITMAP:
 		case CF_DIBV5:
 		case CF_DIB:
-			if (cfg->ClipMode & CLIP_ENABLE) {
+			if ((cfg->ClipMode & CLIP_ENABLE)
+			) {
 				if (idx < 2 && enabled[idx] == 0 && (idx == 0 || enabled[0] == CF_TEXT)) {
 					enabled[idx++] = fe.cfFormat;
 				}
@@ -628,7 +628,8 @@ HMENU TEditSub::CreatePopupMenu()
 	HMENU	hMenu = ::CreatePopupMenu();
 	BOOL	is_readonly = BOOL(GetWindowLong(GWL_STYLE) & ES_READONLY);
 	BOOL	is_paste = BOOL(SendMessage(EM_CANPASTE, 0, 0));
-	BOOL	is_clip_enable  = (cfg->ClipMode & CLIP_ENABLE);
+	BOOL	is_clip_enable  = (cfg->ClipMode & CLIP_ENABLE)
+				? TRUE : FALSE;
 	BOOL	is_cbimg = (cb && cb->enabled[0] != CF_TEXT) ? TRUE : FALSE;
 
 	AppendMenuU8(hMenu, MF_STRING|((is_readonly || !SendMessage(EM_CANUNDO, 0, 0)) ?

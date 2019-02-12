@@ -35,7 +35,7 @@ public:
 	AES(void) { as.rounds = 0; }
 	AES(const u8 *key, int key_len, const u8 *_iv=NULL);
 	void Init(const u8 *key, int key_len, const u8 *_iv=NULL);
-	void InitIv(const u8 *_iv=NULL);
+	void InitIv(const u8 *_iv=NULL, size_t len=AES_BLOCK_SIZE);
 	size_t EncryptCBC(const u8 *in, u8 *out, size_t size, PaddingMode _pm=PKCS5);
 	size_t EncryptCTR(const u8 *in, u8 *out, size_t size);
 	size_t DecryptCBC(const u8 *in, u8 *out, size_t size, PaddingMode _pm=PKCS5);

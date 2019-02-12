@@ -12,6 +12,7 @@
 #include "logchilddef.h"
 #include "ipmsg.h"
 #include <gdiplus.h>
+#include <process.h>
 
 using namespace Gdiplus;
 using namespace std;
@@ -993,6 +994,16 @@ BOOL VBufAddStr(VBuf *vbuf, const WCHAR *s, int len, BOOL is_lf=FALSE)
 	return	TRUE;
 }
 
+void VBufAddCrLfStr(VBuf *vbuf)
+{
+	if (vbuf->UsedSize() > 2 && ((WCHAR *)vbuf->UsedEnd())[-1] != '\n') {
+		VBufAddStr(vbuf, L"\r\n\r\n", 4);
+	}
+	else {
+		VBufAddStr(vbuf, L"\r\n", 2);
+	}
+}
+
 BOOL TChildView::ImgToClip(const WCHAR *img)
 {
 	BOOL	ret = FALSE;
@@ -1143,12 +1154,7 @@ BOOL TChildView::SelToClip()
 			return	FALSE;
 		}
 		if (i > top) {
-			if (vbuf.UsedSize() >= 4 && ((WCHAR *)vbuf.UsedEnd())[-1] != '\n') {
-				VBufAddStr(&vbuf, L"\r\n\r\n", 4);
-			}
-			else {
-				VBufAddStr(&vbuf, L"\r\n", 2);
-			}
+			VBufAddCrLfStr(&vbuf);
 		}
 		if (i > top || selTop.inc_head) {
 #define HEADER_MAX	8192
@@ -2673,5 +2679,70 @@ BOOL TChildView::LastView()
 
 	SetFindedIdx(LAST_IDX);
 	return	TRUE;
+}
+
+
+struct WriteLogParam {
+	TChildView		*self;
+	U8str			path;
+	VBVec<MsgVec>	ids;
+};
+
+void TChildView::WriteLogToFileProc(void *param)
+{
+	((WriteLogParam *)param)->self->WriteLogToFileProcCore(param);
+}
+
+void TChildView::WriteLogToFileProcCore(void *_param)
+{
+	auto param = (WriteLogParam *)_param;
+
+	HANDLE	hFile = CreateFileU8(param->path.s(), GENERIC_WRITE,
+								 FILE_SHARE_READ|FILE_SHARE_WRITE,
+								 NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+	if (hFile == INVALID_HANDLE_VALUE) {
+		MessageBox(param->path.s(), "Can't open");
+		return;
+	}
+
+	VBuf	vbuf(2 * 1024 * 1024);
+	DWORD	size = 0;
+
+	for (int i=0; i < param->ids.UsedNumInt(); i++) {
+		LogMsg	msg;
+		if (!logDb->SelectOneData(param->ids[i].msg_id, &msg)) continue;
+
+		if (vbuf.UsedSize() > 0) {
+			VBufAddCrLfStr(&vbuf);
+		}
+		Wstr	wstr(HEADER_MAX);
+		int		hlen = logMng->MakeMsgHead(&msg, wstr.Buf(), HEADER_MAX);
+		VBufAddStr(&vbuf, wstr.s(), hlen);
+
+		int	len = msg.body.Len();
+		VBufAddStr(&vbuf, msg.body.s(), len, TRUE);
+
+		if (vbuf.RemainSize() < 256 * 1024) {
+			if (!WriteFile(hFile, vbuf.Buf(), (DWORD)vbuf.UsedSize(), &size, 0)) break;
+			vbuf.SetUsedSize(0);
+		}
+	}
+	if (vbuf.UsedSize()) {
+		WriteFile(hFile, vbuf.Buf(), (DWORD)vbuf.UsedSize(), &size, 0);
+	}
+	::CloseHandle(hFile);
+	TOpenExplorerSelOneW(U8toWs(param->path.s()));
+	delete param;
+}
+
+void TChildView::WriteLogToFile(const char *path)
+{
+	auto	*param = new WriteLogParam;
+
+	param->self = this;
+	param->path = path;
+	msgIds.Duplicate(&param->ids);
+
+	_beginthread(WriteLogToFileProc, 0, (void *)param);
 }
 

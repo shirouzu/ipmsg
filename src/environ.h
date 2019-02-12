@@ -16,6 +16,14 @@
 //#define OFFICIAL_SVR
 #endif
 
+#if defined(IPMSG_EXCLT) || defined(IPMSG_EXSVR)
+#define IPMSG_EXPRO
+#endif
+
+#if defined(IPMSG_EXCLT) && defined(IPMSG_EXSVR)
+#error
+#endif
+
 //#define DISALBE_HOOK
 
 #ifdef IPMSG_PRO
@@ -25,3 +33,4 @@
 #endif
 
 #endif
+

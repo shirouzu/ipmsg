@@ -9,7 +9,6 @@
 	Reference				: 
 	======================================================================== */
 
-#include "resource.h"
 #include "ipmsg.h"
 #include "plugin.h"
 

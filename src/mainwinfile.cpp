@@ -1,10 +1,10 @@
 ﻿static char *mainwinfile_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2018   mainwinfile.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 1996-2019   mainwinfile.cpp	Ver4.90";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window File Transfer
 	Create					: 1996-06-01(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-02-12(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -32,6 +32,7 @@ BOOL TMainWin::RecvTcpMsg(SOCKET sd)
 		return	FALSE;
 	}
 
+	MsgBuf	msg;
 	DynBuf	&buf = conInfo->buf;
 	int	size = ::recv(conInfo->sd, (char *)buf + buf.UsedSize(), (int)buf.RemainSize() - 1, 0);
 	if (size > 0) {
@@ -40,11 +41,17 @@ BOOL TMainWin::RecvTcpMsg(SOCKET sd)
 
 		size_t	dsize = (int)ipdict_size_fetch(buf.Buf(), buf.UsedSize());
 		if (dsize > buf.UsedSize()) {
+			if (dsize >= buf.Size()) {
+				if (dsize > 256 * 1024 * 1024) {
+					Debug("too big IPDict\n");
+					goto END;
+				}
+				buf.Realloc(dsize + 1);
+			}
 			return	TRUE;	// 後続の受信待ち
 		}
 	}
 
-	MsgBuf	msg;
 	msg.hostSub.addr = conInfo->addr;
 	msg.hostSub.portNo = portNo; // TCP用portは使わない
 
@@ -75,6 +82,7 @@ BOOL TMainWin::RecvTcpMsg(SOCKET sd)
 		}
 		StartSendFile(sd, conInfo, &fileInfo);
 		break;
+
 
 	default:
 		conInfo->fin = TRUE;
@@ -564,4 +572,6 @@ void TMainWin::StopSendFile(int packet_no)
 		}
 	}
 }
+
+
 

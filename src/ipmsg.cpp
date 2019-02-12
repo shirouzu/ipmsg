@@ -1,10 +1,10 @@
 ﻿static char *ipmsg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2017   ipmsg.cpp	Ver4.71";
+	"@(#)Copyright (C) H.Shirouzu 1996-2019   ipmsg.cpp	Ver4.71";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Application Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2017-09-17(Sun)
+	Update					: 2019-02-12(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -19,14 +19,19 @@
 #pragma comment (lib, "winmm.lib")
 #pragma comment (lib, "Ws2_32.lib")
 
+#define IPMSG_EXE IP_MSG ".exe"
+
 #define IPMSG_USAGE \
-	"ipmsg.exe [portno] [/MSG   [/LOG] [/SEAL] <hostname or IP addr> <message>]\r\n" \
-	"ipmsg.exe [portno] [/MSGEX [/LOG] [/SEAL] <hostname or IP addr> " \
+	IPMSG_EXE " [portno] [/MSG   [/LOG] [/SEAL] <hostname or IP addr> <message>]\r\n" \
+	IPMSG_EXE " [portno] [/MSGEX [/LOG] [/SEAL] <hostname or IP addr> " \
 												"<msg_line1 \\n msg_line2...>]\r\n" \
-	"ipmsg.exe [portno] [/NIC nic_addr] [/NICLIST] [/NICID n] <hostname or IP addr>"
+	IPMSG_EXE " [portno] [/NIC nic_addr] [/NICLIST] [/NICID n] <hostname or IP addr>"
+
 
 TMsgApp::TMsgApp(HINSTANCE _hI, LPSTR _cmdLine, int _nCmdShow) : TApp(_hI, _cmdLine, _nCmdShow)
 {
+	//_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF|_CRTDBG_CHECK_ALWAYS_DF|_CRTDBG_CHECK_CRT_DF|_CRTDBG_LEAK_CHECK_DF );
+
 	::SetDllDirectory("");
 
 	if (!TSetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)) {
@@ -133,7 +138,9 @@ void TMsgApp::InitWindow(void)
 	TMainWin::Param	param;
 
 	HWND		hWnd;
-	char		class_name[MAX_PATH_U8] = IPMSG_CLASS, *tok, *p;
+	char		class_name[MAX_PATH_U8] = IPMSG_CLASS;
+	char		*tok = NULL;
+	char		*p = NULL;
 	char		*class_ptr = NULL;
 	enum Stat { ST_NORMAL, ST_TASKBARUI_MSG, ST_EXIT, ST_ERR } status = ST_NORMAL;
 
@@ -276,6 +283,7 @@ void TMsgApp::InitWindow(void)
 	::CloseHandle(hMutex);
 }
 
+#ifdef _DEBUG
 void addr_test()
 {
 	MsgMng::WSockStartup();
@@ -330,13 +338,14 @@ void thosts_test()
 		Debug("seg_hosts %s\n", (*itr)->hostSub.u.userName);
 	}
 }
+#endif
 
 int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR cmdLine, int nCmdShow)
 {
 #ifdef _DEBUG
-	ipdic_test();
-	addr_test();
-	thosts_test();
+	//ipdic_test();
+	//addr_test();
+	//thosts_test();
 
 //	Sleep(100000);
 #endif

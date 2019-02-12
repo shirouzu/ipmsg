@@ -1,10 +1,10 @@
 ﻿static char *install_id = 
-	"@(#)Copyright (C) H.Shirouzu 1998-2017   install.cpp	Ver4.61";
+	"@(#)Copyright (C) H.Shirouzu 1998-2019   install.cpp	Ver4.61";
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Installer Application Class
 	Create					: 1998-06-14(Sun)
-	Update					: 2017-07-31(Mon)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -16,7 +16,6 @@
 
 #include "instcmn.h"
 #include "instcore.h"
-#include "../ipmsgdef.h"
 
 using namespace std;
 
@@ -34,7 +33,6 @@ volatile int64 gEnableHook = ENABLE_HOOK;
 int ExecInTempDir();
 
 #define TEMPDIR_OPT		L"/TEMPDIR"
-#define UPDATE_OPT		L"/UPDATE"
 #define SILENT_OPT		L"/SILENT"
 #define EXTRACT_OPT		L"/EXTRACT"
 #define EXTRACT32_OPT	L"/EXTRACT32"
@@ -68,9 +66,9 @@ USAGE: \r\n \
 "
 
 char *SetupFiles [] = {
-	IPMSG_EXE, UNINST_EXE, IPCMD_EXE, IPTOAST_DLL, IPMSG_CHM, IPEXC_PNG, IPMSG_PNG
+	IPMSG_EXENAME, UNINST_EXENAME, IPCMD_EXENAME, IPTOAST_NAME, IPMSGHELP_NAME, IPMSGPNG_NAME, IPEXCPNG_NAME,
 };
-char *DualFiles [] = { IPMSG_EXE, UNINST_EXE, IPCMD_EXE, IPTOAST_DLL };
+char *DualFiles [] = { IPMSG_EXENAME, UNINST_EXENAME, IPCMD_EXENAME, IPTOAST_NAME };
 
 /*
 	WinMain
@@ -88,7 +86,9 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR cmdLine, int nCmdShow)
 		TLoadLibraryExW(L"cscapi.dll", TLT_SYSDIR);
 
 		WCHAR	*cmdLineW = ::GetCommandLineW();
-		if (!wcsstr(cmdLineW, TEMPDIR_OPT) && !wcsstr(cmdLineW, RUNAS_OPT)) {
+		if (!wcsstr(cmdLineW, TEMPDIR_OPT) &&
+			!wcsstr(cmdLineW, RUNAS_OPT) &&
+			!wcsstr(cmdLineW, INTERNAL_OPT)) {
 			return	ExecInTempDir();
 		}
 	}
@@ -179,6 +179,7 @@ int ExecInTempDir()
 	return 0;
 }
 
+
 /*
 	インストールアプリケーションクラス
 */
@@ -224,8 +225,11 @@ TInstDlg::TInstDlg(char *cmdLine) :
 	OpenDebugConsole(ODC_PARENT);
 	fwCheckMode = 0;
 
+	ParseCmdLine();
+
+
 	TRegistry	reg(HKEY_CURRENT_USER);
-	if (reg.ChangeApp(HSTOOLS_STR, IP_MSG, TRUE)) {
+	if (reg.ChangeApp(HS_TOOLS, IP_MSG, TRUE)) {
 		reg.GetInt(FWCHECKMODE_STR, &fwCheckMode);
 	}
 }
@@ -269,13 +273,7 @@ BOOL TInstDlg::ParseCmdLine()
 	for (int i=1; orgArgv[i] /*&& orgArgv[i][0] == '/'*/; i++) {
 		auto	arg = orgArgv[i];
 
-		if (wcsicmp(arg, UPDATE_OPT) == 0) {
-			isAuto = TRUE;
-			desktopLink = FALSE;
-			startupLink = FALSE;
-			programLink = FALSE;
-		}
-		else if (wcsicmp(arg, SILENT_OPT) == 0) {
+		if (wcsicmp(arg, SILENT_OPT) == 0) {
 			isSilent = TRUE;
 		}
 		else if (wcsicmp(arg, EXTRACT_OPT) == 0) {
@@ -386,17 +384,15 @@ BOOL TInstDlg::VerifyDict()
 */
 BOOL TInstDlg::EvCreate(LPARAM lParam)
 {
-	ParseCmdLine();
-
 	if (!VerifyDict()) {
-		if (isSilent) {
+/*		if (isSilent) {
 			OutW(L"Installer is broken.\n");
 		} else {
 			MessageBox("Installer is broken.", "IPMsg");
 		}
 		TApp::Exit(-1);
 		return	FALSE;
-	}
+*/	}
 
 	SetStat(INST_INIT);
 
@@ -432,8 +428,8 @@ BOOL TInstDlg::EvCreate(LPARAM lParam)
 		Show();
 	}
 
+	char	buf[MAX_BUF];
 	if (!gEnableHook) {
-		char	buf[MAX_BUF];
 		GetWindowText(buf, sizeof(buf));
 		strncatz(buf, " (Non Hook)", sizeof(buf));
 		SetWindowText(buf);
@@ -459,7 +455,7 @@ BOOL TInstDlg::InitDir()
 // 既にセットアップされている場合は、セットアップディレクトリを読み出す
 	isFirst = TRUE;
 	TRegistry	reg(HKEY_CURRENT_USER);
-	if (reg.ChangeApp(HSTOOLS_STR, IP_MSG, TRUE)) {
+	if (reg.ChangeApp(HS_TOOLS, IP_MSG, TRUE)) {
 		if (reg.GetStr(REGSTR_PATH, buf, sizeof(buf)) && *buf) {
 			isFirst = FALSE;
 			strcpy(setupDir, buf);
@@ -502,7 +498,7 @@ void TInstDlg::SetupDlg()
 	char	title2[256];
 
 	GetWindowText(title, sizeof(title));
-	sprintf(title2, "%s ver%s", title, GetVersionStr());
+	sprintf(title2, "%s ver%s", title, GetVersionStr(TRUE));
 	SetWindowText(title2);
 
 	::SetClassLong(hWnd, GCL_HICON, LONG_RDC(::LoadIcon(TApp::hInst(), (LPCSTR)SETUP_ICON)));
@@ -711,7 +707,7 @@ void TInstDlg::RegisterAppInfo(void)
 	MakePathU8(setupPath, setupDir, IPMSG_EXENAME);
 
 	// パス情報を登録
-	if (reg.ChangeApp(HSTOOLS_STR, IP_MSG)) {
+	if (reg.ChangeApp(HS_TOOLS, IP_MSG)) {
 		reg.SetStr(REGSTR_PATH, setupDir);
 		reg.CloseKey();
 	}
@@ -740,7 +736,7 @@ void TInstDlg::RegisterAppInfo(void)
 
 			reg.SetStr(REGSTR_VAL_UNINSTALLER_DISPLAYVER, GetVersionStr());
 
-			reg.SetStr(REGSTR_VAL_UNINSTALLER_PUBLISHER, "H.Shirouzu & Asahi Net, Inc.");
+			reg.SetStr(REGSTR_VAL_UNINSTALLER_PUBLISHER, "H.Shirouzu & FastCopy Lab, LLC.");
 			reg.SetInt(REGSTR_VAL_UNINSTALLER_ESTIMATESIZE, 3300); // KB
 			reg.SetStr(REGSTR_VAL_UNINSTALLER_HELPLINK, LoadStrU8(IDS_IPMSGHELPURL));
 			reg.SetStr(REGSTR_VAL_UNINSTALLER_URLUPDATEINFO, LoadStrU8(IDS_IPMSGURL));
@@ -794,7 +790,7 @@ BOOL TInstDlg::CheckFw(BOOL *third_fw)
 	}
 
 	TRegistry	reg(HKEY_CURRENT_USER);
-	reg.ChangeApp(HSTOOLS_STR, IP_MSG);
+	reg.ChangeApp(HS_TOOLS, IP_MSG);
 	reg.SetInt(FWCHECKMODE_STR, 1);
 
 	if (!IsDlgButtonChecked(NOFW_CHK)) {
@@ -860,6 +856,7 @@ BOOL TInstDlg::MakeExtractDir(char *extractDir)
 void GetDictName(const char *fname, char *dname, BOOL is_x64)
 {
 	strcpy(dname, fname);
+	CharLower(dname);
 
 	if (is_x64 && find_if(begin(DualFiles), end(DualFiles),
 		[&](auto v) { return !strcmp(v, fname); }) != end(DualFiles)) {
@@ -1026,6 +1023,7 @@ BOOL TInstDlg::Install(void)
 	// スタートアップ＆デスクトップにショートカットを登録
 	CreateShortCut();
 	RegisterAppInfo();
+
 
 // コピーしたアプリケーションを起動
 	const char *msg = LoadStr(IDS_SETUPCOMPLETE);

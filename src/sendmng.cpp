@@ -1,14 +1,13 @@
 ﻿static char *sendmng_id = 
-	"@(#)Copyright (C) H.Shirouzu 2018   sendmng.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu 2018-2019   sendmng.cpp	Ver4.99";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Manager
 	Create					: 2018-09-01(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
-#include "resource.h"
 #include "ipmsg.h"
 
 using namespace std;
@@ -52,7 +51,7 @@ void SendMng::LoadSendPkt()
 void SendMng::AddHostEvent(Host *host)
 {
 	for (auto i=msgDis.begin(); i != msgDis.end(); ) {
-		auto&	ent = *i;
+		auto	ent = *i;
 
 		if (ent->NeedActive(host)) {
 			ent->Reset();
@@ -84,7 +83,7 @@ void SendMng::SendPubKeyNotify(HostSub *hostSub, BYTE *pubkey, int len, int e, i
 void SendMng::SendFinishNotify(HostSub *hostSub, ULONG packet_no)
 {
 	for (auto i=msgAct.begin(); i != msgAct.end(); i++) {
-		auto&	ent = *i;
+		auto	ent = *i;
 
 		if (ent->SendFinishNotify(hostSub, packet_no) && ent->IsSendFinish()) {
 			cfg->DelSendPkt(ent->PacketNo());
@@ -101,7 +100,7 @@ bool SendMng::Del(HostSub *hostSub, ULONG packet_no)
 
 	for (auto msgVec: msgVecList) {
 		for (auto i=msgVec->begin(); i != msgVec->end(); i++) {
-			auto&	ent = *i;
+			auto	ent = *i;
 			if (ent->Del(hostSub, packet_no)) {
 				shareMng->EndHostShare(packet_no, hostSub);
 				if (ent->IsSendFinish()) {
@@ -124,7 +123,7 @@ bool SendMng::Del(HostSub *hostSub, ULONG packet_no)
 void SendMng::TimerProc()
 {
 	for (auto i=msgAct.begin(); i != msgAct.end(); ) {
-		auto&	ent = *i;
+		auto	ent = *i;
 		if (ent->TimerProc()) {
 			if (ent->IsSendFinish() || cfg->DelaySend == 0 || !ent->IsSendMsg()) {
 				cfg->DelSendPkt(ent->PacketNo());

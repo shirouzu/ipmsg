@@ -263,7 +263,7 @@ BOOL TMainWin::MsgDirPollAgent(MsgBuf *msg)
 		return	FALSE;
 	}
 
-	Debug("MsgDirBroadcast\n");
+	Debug("MsgDirPollAgent\n");
 
 	return	DirPollCore(msg);
 }
@@ -550,6 +550,7 @@ BOOL TMainWin::MsgDirPacket(MsgBuf *msg, BOOL is_agent)
 		AddHostListDict(&wmsg.ipdict);
 		break;
 
+
 	default:
 		Debug("Illegal MsgDirPacket(%x)\n", wmsg.command);
 		return	FALSE;
@@ -575,6 +576,7 @@ void TMainWin::DirTimerMain()
 	DirClean();
 	DirRefreshAgent();
 	DirSendAgentBroad();
+
 
 	if (cur - dirTick >= loop_tick) {
 		dirTick = cur;
@@ -645,8 +647,7 @@ void DirAgentValAdd(vector<DirAgent> *agents, vector<DirAgent>::iterator &itr, i
 // target がある場合 target にのみ Broadcast通知
 void TMainWin::DirSendAgentBroad(BOOL force_agent)
 {
-	TrcW(L"DirSendAgentBroad\n");
-
+	BOOL	is_send = FALSE;
 	int64	agent_sec = cfg->dirSpan + 10;
 	IPDict	br_dict;
 	IPDict	agent_dict;
@@ -704,8 +705,11 @@ void TMainWin::DirSendAgentBroad(BOOL force_agent)
 				seg_h->brSetAddr = host->hostSub.addr;
 				need_br = FALSE;
 			}
+			is_send = TRUE;
 		}
 	}
+
+	if (is_send) TrcW(L"DirSendAgentBroad\n");
 }
 
 void TMainWin::DirClean()
@@ -779,7 +783,7 @@ const DirAgent *GetDirAgent(const vector<DirAgent> &agents, Host *host)
 
 BOOL TMainWin::DirRefreshAgent()
 {
-	TrcW(L"DirRefreshAgent segs=%zd ...\n", segMap.size());
+	BOOL	is_changed = FALSE;
 	DWORD	cur = ::GetTick();
 
 	for (auto &s: segMap) {
@@ -806,6 +810,7 @@ BOOL TMainWin::DirRefreshAgent()
 				agents.push_back(DirAgent(host));
 				seg_update = TRUE;
 				Debug("Set new agent(%d) %s\n", i, host->hostSub.addr.S());
+				is_changed = TRUE;
 			}
 		}
 		// 更新があった場合、Agentの中で最も AgentValが高いものを先頭（Broadcast用）に入れ替え
@@ -821,7 +826,7 @@ BOOL TMainWin::DirRefreshAgent()
 		}
 	}
 
-	TrcW(L"DirRefreshAgent done\n");
+	if (is_changed) TrcW(L"DirRefreshAgent segs=%zd ...\n", segMap.size());
 	return	TRUE;
 }
 
@@ -1495,6 +1500,9 @@ DosHost *TMainWin::SearchDosHost(HostSub *hostSub, BOOL need_alloc)
 	return	obj;
 }
 
+/*
+	entry/exit等のステート更新が異常に多いホスト対策
+*/
 BOOL TMainWin::CheckDosHost(HostSub *hostSub, bool is_exit)
 {
 	auto	dh = SearchDosHost(hostSub, is_exit);
@@ -1532,6 +1540,7 @@ BOOL TMainWin::CheckDosHost(HostSub *hostSub, bool is_exit)
 
 	return	dh->cnt >= 4 ? TRUE : FALSE;
 }
+
 
 #endif
 

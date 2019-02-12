@@ -420,8 +420,10 @@ BOOL TUninstDlg::UnInstall(void)
 
 // レジストリからユーザー設定情報を削除
 	TRegistry	reg(HKEY_CURRENT_USER);
-	if (reg.ChangeApp(HSTOOLS_STR)) {
-		const char *ipmsg_reg = LoadStr(IDS_REGIPMSG);
+	if (reg.ChangeApp(HS_TOOLS)) {
+		const char *ipmsg_reg = []() { return
+			LoadStr(IDS_REGIPMSG);
+		}();
 
 		if (reg.OpenKey(ipmsg_reg)) {
 			char	path[MAX_PATH_U8];

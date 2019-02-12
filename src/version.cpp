@@ -1,11 +1,11 @@
-﻿static char *version_id = 
-	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 2010-2018	version.cpp	Ver4.99"
+﻿#include "ipmsg.h"
+#define VER_STR    "4.99r3"
+static char *version_id =
+	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 2010-2019	version.cpp	Ver" VER_STR
 #ifdef _DEBUG
 	"d"
 #endif
 ;
-
-#include "ipmsg.h"
 
 // readme readme-eng / ipmsg.rc toast.rc / hhc htm / (redmine/wiki)
 
@@ -23,7 +23,7 @@ static char *additional_ver = ""
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Version
 	Create					: 2010-05-23(Sun)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-02-12(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -31,19 +31,16 @@ static char *additional_ver = ""
 #include <stdlib.h>
 #include <string.h>
 
-static char base_ver[128];
-static char full_ver[128];
-static VerInfo verInfo;
-
 /*
 	Version文字列
 */
 const char *GetVersionStr(BOOL is_base)
 {
+	static char base_ver[128];
+	static char full_ver[128];
+
 	if (*base_ver == 0) {
-		if (const char *p = strstr(version_id, "Ver")) {
-			strcpy(base_ver, p + 3);
-		}
+		strcpy(base_ver, VER_STR);
 		strcpy(full_ver, base_ver);
 		strcat(full_ver, additional_ver);
 	}
@@ -51,60 +48,86 @@ const char *GetVersionStr(BOOL is_base)
 	return	is_base ? base_ver : full_ver;
 }
 
-BOOL GetVerInfo(VerInfo *vi_in)
+BOOL GetVerStrToInfo(const char *ver_str, VerInfo *vi)
 {
-	if (verInfo.type == 0) {
-		verInfo.type = IPMSG_VER_WIN_TYPE;	// once
+	vi->type = IPMSG_VER_WIN_TYPE;
+	vi->major = atoi(ver_str);
 
-		if (const char *ver = GetVersionStr(TRUE)) {
-			verInfo.major = atoi(ver);
+	if (auto minor = strchr(ver_str, '.')) {
+		minor += 1;
+		vi->minor = atoi(minor);
 
-			if ((ver = strchr(ver, '.'))) {
-				ver += 1;
-				verInfo.minor = atoi(ver);
+		auto rv = minor + 1;
+		while (isdigit(*rv)) rv++;
+		auto sign = *rv;
+		if (sign) rv++;
 
-				if (strlen(ver) <= 2) {
-					verInfo.rev = 10000;	// over beta && under rel
-				}
-				else {
-					verInfo.rev = int(atof(ver+3) * 10);
+		vi->rev = atoi(rv);
 
-					switch (ver[2]) {
-					case 'a':	// alpha N
-						// verInfo.rev += 0;
-						break;
-					case 'b':	// beta N
-						verInfo.rev +=  1000;
-						break;
-					case 'r':	// rel N
-						verInfo.rev += 10000;
-						break;
-					default:	// d == debug
-						verInfo.rev += 10000;
-						break;
-					}
-				}
-			}
+		switch (sign) {
+		case 'a':	// alpha N
+			vi->rev += 0;
+			break;
+		case 'b':	// beta N
+			vi->rev += 50;
+			break;
+		case 'r':	// rel N
+			vi->rev += 100;
+			break;
+		default:
+			vi->rev += 100;
+			break;
 		}
 	}
+	return	TRUE;
+}
 
+const VerInfo *GetVerInfoCore()
+{
+	static VerInfo verInfo;
+
+	if (verInfo.type == 0) {
+		GetVerStrToInfo(GetVersionStr(), &verInfo);
+	}
+	return	&verInfo;
+}
+
+BOOL GetVerInfo(VerInfo *vi_in)
+{
 	if (vi_in) {
-		*vi_in = verInfo;
+		*vi_in = *GetVerInfoCore();
 	}
 	return	TRUE;
+}
+
+BOOL IsVerGreater(VerInfo *vi)
+{
+	auto verInfo = GetVerInfoCore();
+
+	if (vi->major > verInfo->major) return TRUE;
+	if (vi->major < verInfo->major) return FALSE;
+	if (vi->minor > verInfo->minor) return TRUE;
+	if (vi->minor < verInfo->minor) return FALSE;
+	if (vi->rev   > verInfo->rev)   return TRUE;
+
+	return FALSE;
+}
+
+const char *GetVerHexInfoCore(const VerInfo *vi, char *s)
+{
+	sprintf(s, "%08X:%d:%d:%d", vi->type, vi->major, vi->minor, vi->rev);
+
+	return	s;
 }
 
 const char *GetVerHexInfo()
 {
 	static char verHexStr[128];
 
-	if (verInfo.type == 0) {
-		GetVerInfo(NULL);
-	}
+	auto verInfo = GetVerInfoCore();
 
 	if (*verHexStr == 0) {
-		sprintf(verHexStr, "%08X:%d:%d:%d",
-			verInfo.type, verInfo.major, verInfo.minor, verInfo.rev);
+		GetVerHexInfoCore(verInfo, verHexStr);
 	}
 	return	verHexStr;
 }
@@ -134,32 +157,4 @@ BOOL GetVerInfoByHex(const char *s, VerInfo *vi)
 	return	TRUE;
 }
 
-double VerStrToDouble(const char *s)
-{
-	char *opt = NULL;
-
-	double	ver = strtod(s, &opt);
-	double	sub = 0.0001;
-
-	if (opt && *opt) {
-		switch (tolower(*opt)) {
-		case 'a':
-			sub = strtod(opt+1, NULL) * 0.00000001;
-			break;
-		case 'b':
-			sub = strtod(opt+1, NULL) * 0.000001;
-			break;
-		case 'r':
-			sub = strtod(opt+1, NULL) * 0.0001;
-			break;
-		case 'd':
-			break;
-		default:
-			Debug("VerStrToDouble: unknown %s opt=%s\n", s, opt);
-			break;
-		}
-	}
-
-	return	ver + sub;
-}
 

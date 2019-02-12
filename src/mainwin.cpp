@@ -1,10 +1,10 @@
 ﻿static char *mainwin_id = 
-	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 1996-2018   mainwin.cpp	Ver4.94";
+	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 1996-2019   mainwin.cpp	Ver4.99";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 1996-06-01(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-02-12(Tue)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -63,6 +63,10 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 		MiniDumpWithThreadInfo | 
 		MiniDumpWithUnloadedModules);
 	Debug("mscver=%d %d\n", _MSC_VER, _MSC_FULL_VER);
+
+#ifdef REPLACE_DEBUG_ALLOCATOR
+	replace_allocator();
+#endif
 
 	InitExTrace(1024 * 1024);
 
@@ -156,6 +160,9 @@ TMainWin::TMainWin(Param *_param, TWin *_parent) : TWin(_parent)
 	updConfirm = new TUpdConfim(NULL);
 	updRetry = FALSE;
 #endif
+
+
+	dirTick = 0;
 
 	if (cfg->viewEpochSave) {
 		cfg->viewEpochSave = 0;
@@ -418,11 +425,9 @@ BOOL TMainWin::FwCheckProc()
 
 BOOL TMainWin::FirstSetup()
 {
-	if (!setupDlg->hWnd) {
-		setupDlg->Create();
-		setupDlg->Show();
+	if (param.isUpdateErr || param.isUpdated) {
+		UpdateFileCleanup();
 	}
-
 	return	TRUE;
 }
 
@@ -478,7 +483,7 @@ BOOL TMainWin::CleanupProc()
 				BroadcastEntry(IPMSG_BR_NOTIFY);
 			}
 			if (cfg->hookMode) {
-				FlushToHook();
+				FlushToHook(); // 溜まったまま screen saver 発動の場合、転送。
 			}
 		}
 	}
@@ -531,7 +536,6 @@ BOOL TMainWin::CleanupProc()
 	}
 
 #endif
-
 	return	TRUE;
 }
 
@@ -816,6 +820,7 @@ BOOL TMainWin::RecvDlgOpen(MsgBuf *msg, const char *rep_head, ULONG img_base,
 void TMainWin::SendToHook(MsgBuf *msg, BOOL is_attached)
 {
 	if (gEnableHook == 0) return;
+
 
 	char	nick[MAX_LISTBUF] = "";
 
@@ -1165,6 +1170,7 @@ void TMainWin::Popup(UINT resId)
 	InsertMenuU8(hSubMenu, top_pos++, MF_BYPOSITION|MF_STRING, MENU_OPENHISTDLG, buf);
 	InsertMenuU8(hSubMenu, top_pos++, MF_BYPOSITION|MF_SEPARATOR, NULL, NULL);
 
+
 	AddAbsenceMenu(hSubMenu, 2);
 
 	if (cfg->HotKeyCheck && cfg->HotKeyLogView &&
@@ -1419,16 +1425,13 @@ void TMainWin::PostAddHost(Host *host, const char *verInfo, time_t now_time, BOO
 			*host->verInfoRaw = 0;
 		}
 	}
-#ifdef IPMSG_PRO
-#else
+#ifndef IPMSG_PRO
 	if (cfg->DirMode == DIRMODE_MASTER) {
 		if (!byHostList) {
 			DirAddHost(host, FALSE);
 		}
 	}
-	else {
-		MasterPubKey(host);
-	}
+	MasterPubKey(host);
 #endif
 }
 
@@ -1844,6 +1847,16 @@ void TMainWin::LogViewOpen(BOOL last_view)
 	return;
 }
 
+HFONT TMainWin::GetLogViewFont()
+{
+	if (auto view=logViewList.TopObj()) {
+		return	view->GetFont();
+	}
+	return NULL;
+}
+
+
+
 /*
 	Logを開く
 */
@@ -2135,6 +2148,7 @@ void TMainWin::MakeBrListEx()
 	if (selfAddr.IsEnabled()) {
 		msgMng->GetLocalHost()->addr = selfAddr;
 		msgMng->GetLocalHostA()->addr = selfAddr;
+
 	}
 
 	delete [] info;

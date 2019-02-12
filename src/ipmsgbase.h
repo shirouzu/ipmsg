@@ -104,6 +104,9 @@ struct Addr {
 				Set(o.addr, o.size, o.mask);
 				return	*this;
 			}
+	explicit operator bool() const {
+				return size != 0;
+			}
 	bool	Set(const void *_addr, DWORD _size, DWORD _mask=0) {
 				if (_size != 16 && _size != 4) return false;
 				if (_size == 16 && !memcmp(_addr, IPv4MAPPED_PREFIX, 12)) {

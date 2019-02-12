@@ -1,10 +1,10 @@
 ﻿static char *logdb_id = 
-	"@(#)Copyright (C) H.Shirouzu 2015-2018   logdbcponv.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu 2015-2019   logdbcponv.cpp	Ver4.99";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Log Converter
 	Create					: 2015-04-10(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

@@ -178,7 +178,7 @@ struct LogMsg {
 	ULONG	packet_no;
 	int64	msg_id;		// time_t(38) msec(10) genericno(16)
 	int		importid;
-	int		line_no;
+	int		line_no;	// for convert only
 	time_t	date;		// generate by msg_id
 	time_t	alter_date;
 	int		cmd;
@@ -191,6 +191,7 @@ struct LogMsg {
 	std::vector<LogMark>	mark;
 	Wstr					body;
 	Wstr					comment;
+	Wstr					hook; // for upl
 
 	LogMsg & operator=(const LogMsg &msg) {
 		packet_no	= msg.packet_no;
@@ -207,6 +208,7 @@ struct LogMsg {
 		clip		= msg.clip;
 		body		= msg.body;
 		comment		= msg.comment;
+		hook		= msg.hook;
 		return	*this;
 	}
 	LogMsg() {
@@ -231,6 +233,7 @@ struct LogMsg {
 		mark.clear();
 		body = NULL;
 		comment = NULL;
+		hook = NULL;
 	}
 	bool IsRecv() { return (flags & DB_FLAG_FROM) ? true : false; }
 };

@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <memory.h>
 #include "aes.h"
+#include <windows.h>
 
 
 static void rijndaelEncrypt(u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 pt[16], u8 ct[16]);
@@ -1227,6 +1228,7 @@ static void block_init(aes_state *state, const unsigned char *key, int keylen)
 	int Nr = 0;
 
 	if (keylen != 16 && keylen != 24 && keylen != 32) {
+		MessageBox(0, "aes block init err", "", MB_OK);
 		return;
 	}
 	switch (keylen) {
@@ -1282,10 +1284,16 @@ void AES::Init(const u8 *key, int key_len, const u8 *_iv)
 	InitIv(_iv);
 }
 
-void AES::InitIv(const u8 *_iv)
+void AES::InitIv(const u8 *_iv, size_t len)
 {
 	if (_iv) {
-		memcpy(iv, _iv, sizeof(iv));
+		if (len < sizeof(iv)) {
+			memset(iv, 0, sizeof(iv));
+			memcpy(iv, _iv, len);
+		}
+		else {
+			memcpy(iv, _iv, sizeof(iv));
+		}
 	}
 	else {
 		 memset(iv, 0, sizeof(iv));

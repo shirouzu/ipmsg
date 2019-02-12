@@ -23,6 +23,7 @@
 #define IPMSG_NEW_VERSION		0x0003
 #define IPMSG_DEFAULT_PORT		0x0979
 
+
 /*  command  */
 #define IPMSG_NOOPERATION		0x00000000UL
 
@@ -74,6 +75,7 @@
 #define IPMSG_DIR_AGENTPACKET	0x000000b6UL
 #define IPMSG_DIR_EVBROAD		0x000000b7UL
 #define IPMSG_DIR_AGENTREJECT	0x000000b8UL
+
 
 /*  option for all command  */
 #define IPMSG_ABSENCEOPT		0x00000100UL
@@ -229,6 +231,7 @@
 #define IPMSG_IPADDR_KEY	"IPAD"
 #define IPMSG_PORT_KEY		"PORT"
 #define IPMSG_POLL_KEY		"POLL"
+#define IPMSG_MASTER_KEY	"MST"
 #define IPMSG_ENCFLAG_KEY	"EF"
 #define IPMSG_ENCIV_KEY		"EI"
 #define IPMSG_ENCKEY_KEY	"EK"
@@ -267,6 +270,7 @@
 #define IPMSG_ABSMODE_KEY	"ABSMD"
 #define IPMSG_FILELIST_KEY	"FLS"
 #define IPMSG_ERRINFO_KEY	"EINF"
+
 
 /*  end of IP Messenger Communication Protocol version 3.0 define  */
 

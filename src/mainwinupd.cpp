@@ -1,10 +1,10 @@
 ﻿static char *mainwinupd_id = 
-	"@(#)Copyright (C) H.Shirouzu 2017-2018   mainwinupd.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu 2017-2019   mainwinupd.cpp	Ver4.99";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window Update routine
 	Create					: 2017-08-27(Sun)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -25,11 +25,16 @@ void TMainWin::UpdateCheckTimer()
 {
 	if (lastExitTick) return;
 
+
 	time_t	now = time(NULL);
 
 	if (now - cfg->updateLast > cfg->updateSpan) {
-		UpdateCheck(UPD_BUSYCONFIRM |
-			(((cfg->updateFlag & Cfg::UPDATE_MANUAL || !UpdateWritable())) ? UPD_CONFIRM : 0));
+		DWORD	flags = UPD_BUSYCONFIRM;
+		if (((cfg->updateFlag & Cfg::UPDATE_MANUAL) || !UpdateWritable())
+		) {
+			flags |= UPD_CONFIRM;
+		}
+		UpdateCheck(flags);
 	}
 }
 
@@ -69,6 +74,7 @@ BOOL TMainWin::UpdateCheck(DWORD flags, HWND targ_wnd)
 	updData.hWnd = targ_wnd;
 	updRetry = FALSE;
 	SetUserAgent();
+
 	TInetAsync(IPMSG_SITE, IPMSG_UPDATEINFO, hWnd, WM_IPMSG_UPDATERES);
 
 	return	TRUE;
@@ -136,14 +142,15 @@ BOOL TMainWin::UpdateCheckResCore(TInetReqReply *irr, BOOL *need_update)
 		Debug("site num = %zd\n", updData.sites.size());
 	}
 
-	double	self_ver = VerStrToDouble(GetVersionStr(TRUE));
-	double	new_ver  = VerStrToDouble(updData.ver.s());
+	VerInfo	vi;
 
-	Debug("ver=%s path=%s hash=%zd size=%lld ver=%.8f/%.8f\n",
+	GetVerStrToInfo(updData.ver.s(), &vi);
+
+	Debug("ver=%s path=%s hash=%zd size=%zd ver=%d.%d.%d\n",
 		updData.ver.s(), updData.path.s(), updData.hash.UsedSize(), updData.size,
-		self_ver, new_ver);
+		vi.major, vi.minor, vi.rev);
 
-	if (self_ver >= new_ver) {
+	if (!IsVerGreater(&vi)) {
 		irr->errMsg = Fmt("Not need update (%s -> %s)", GetVersionStr(TRUE), updData.ver.s());
 		cfg->WriteRegistry(CFG_UPDATEOPT);
 		return TRUE;
@@ -235,18 +242,12 @@ void TMainWin::UpdateDlRes(TInetReqReply *irr)
 	Debug("UpdateDlRes: reply size=%zd, code=%d\n", irr->reply.UsedSize(), irr->code);
 
 	if (irr->code != HTTP_STATUS_OK) {
-		irr->errMsg = Fmt("Download error status=%d len=%lld", irr->code, irr->reply.UsedSize());
+		irr->errMsg = Fmt("Download error status=%d len=%zd", irr->code, irr->reply.UsedSize());
 		goto END;
 	}
 
 	if ((int64)irr->reply.UsedSize() != updData.size) {
-		irr->errMsg = Fmt("Update size not correct %lld / %lld",
-			irr->reply.UsedSize(), updData.size);
-		goto END;
-	}
-
-	if ((int64)irr->reply.UsedSize() != updData.size) {
-		irr->errMsg = Fmt("Update size not correct %lld / %lld",
+		irr->errMsg = Fmt("Update size not correct %zd / %zd",
 			irr->reply.UsedSize(), updData.size);
 		goto END;
 	}
@@ -411,7 +412,7 @@ UpdIdleState TMainWin::CheckUpdateIdle()
 	return	UPDI_IDLE;
 }
 
-void GenUpdateFileName(char *buf, BOOL use_tmp)
+void TMainWin::GenUpdateFileName(char *buf, BOOL use_tmp)
 {
 	char	path[MAX_PATH_U8] = "";
 	char	dir[MAX_PATH_U8] = "";

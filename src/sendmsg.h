@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2018   sendmsg.h	Ver4.90 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2018-2019   sendmsg.h	Ver4.99 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Message Core
 	Create					: 2018-09-01(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

@@ -184,6 +184,7 @@ public:
 		return	userComboEx.IsWindowVisible();
 	}
 	BOOL SwitchUserCombo();
+	HFONT	GetFont() { return childView.GetFont(); }
 };
 
 #endif

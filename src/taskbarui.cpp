@@ -17,8 +17,6 @@
 #include <propvarutil.h>
 #include <propkey.h>
 
-#include "resource.h"
-
 // Creates a CLSID_ShellLink to insert into the Tasks section of the Jump List.  This type of Jump
 // List item allows the specification of an explicit command line to execute the task.
 HRESULT _CreateShellLink(PCWSTR pszArguments, PCWSTR pszTitle, IShellLink **ppsl)

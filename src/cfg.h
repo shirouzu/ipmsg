@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2018   cfg.h	Ver4.90 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2019   cfg.h	Ver4.99 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration Manager
 	Create					: 2013-03-03(Sun)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -49,6 +49,7 @@ inline void SetItem(UINT *columnItems, int sw, bool on) {
 #define CFG_HOOKOPT		0x04000000
 #define CFG_UPDATEOPT	0x08000000
 #define CFG_LASTWND		0x10000000
+#define CFG_DIR			0x20000000
 
 #define FT_STRICTDATE	0x00000001
 //#define FT_DISABLEENC	0x00000002
@@ -74,15 +75,12 @@ struct TWstrObj : TListObj {
 	Wstr	w;
 };
 
-struct TUpLogObj : TListObj {
-	enum Status { INIT, STORED, UPLOADED } status;
-	UINT	packetNo;
-	DynBuf	buf;
-	TUpLogObj(UINT _packet_no, Status _status) {
-		status = _status;
-		packetNo = _packet_no;
-	}
-};
+#ifdef IPMSG_PRO
+#define CFG_HEAD0
+#include "miscext.dat"
+#undef  CFG_HEAD0
+#endif
+
 
 class ShareInfo;
 
@@ -163,6 +161,7 @@ public:
 #include "miscext.dat"
 #undef  CFG_HEAD2
 #else
+	char	LogFileMaster[MAX_PATH_U8];
 	char	masterSvr[MAX_FQDN];
 	int		dirSpan;
 

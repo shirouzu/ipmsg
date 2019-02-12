@@ -10,6 +10,7 @@
 	======================================================================== */
 
 #include "../tlib/tlib.h"
+#include "../ipmsgdef.h"
 #include "instcmn.h"
 
 BOOL GenStrWithUser(const char *str, char *buf, GenStrMode mode) // 0: .%s 1: (%s)

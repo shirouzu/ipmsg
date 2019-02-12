@@ -9,7 +9,6 @@
 	Reference				: 
 	======================================================================== */
 
-#include "resource.h"
 #include "ipmsg.h"
 
 int TMsgDlg::createCnt = 0;

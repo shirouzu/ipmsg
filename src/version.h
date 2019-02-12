@@ -21,10 +21,11 @@ struct VerInfo {
 };
 
 const char *GetVersionStr(BOOL is_basever=FALSE);
+BOOL GetVerStrToInfo(const char *ver_str, VerInfo *vi);
 BOOL GetVerInfo(VerInfo *vi);
 const char *GetVerHexInfo();
 BOOL GetVerInfoByHex(const char *s, VerInfo *vi);
-double VerStrToDouble(const char *s);
+BOOL IsVerGreater(VerInfo *vi);
 
 #endif
 

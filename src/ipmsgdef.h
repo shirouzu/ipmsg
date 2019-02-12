@@ -1,15 +1,17 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2011-2018   ipmsgcmn.h	Ver4.90 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2011-2019   ipmsgcmn.h	Ver4.99 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: IP Messenger Define Header
 	Create					: 2011-05-03(Tue)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
 #ifndef IPMSGDEF_H
 #define IPMSGDEF_H
+
+#include "environ.h"
 
 //#define _USING_V110_SDK71_
 
@@ -50,9 +52,10 @@
 #define IPMSG_FIRSTRUN_TIMER		0x0160
 #define IPMSG_FWCHECK_TIMER			0x0162
 #define IPMSG_POLL_TIMER			0x0170
-#define IPMSG_BRDIR_TIMER			0x0171
-#define IPMSG_DIR_TIMER				0x0172
-#define IPMSG_CMD_TIMER				0x0173
+#define IPMSG_DUMMY_TIMER2			0x0171
+#define IPMSG_BRDIR_TIMER			0x0172
+#define IPMSG_DIR_TIMER				0x0173
+#define IPMSG_CMD_TIMER				0x0174
 
 #define IPMSG_DUMMY_TIMER1			0x0180
 
@@ -149,6 +152,7 @@
 #define WM_DUMMY_MSG1			(WM_APP + 500)
 #define WM_DUMMY_MSG2			(WM_APP + 600)
 #define WM_DUMMY_MSG3			(WM_APP + 601)
+#define WM_DUMMY_MSG			(WM_APP + 699)
 
 #define WM_IPMSG_CMDVER			(WM_APP + 700)
 #define WM_IPMSG_CMDVERRES		(WM_APP + 701)
@@ -213,6 +217,7 @@
 #define URL_STR			"://"
 #define MAILTO_STR		"mailto:"
 #define MSG_STR			"msg"
+
 #define IPMSG_CLASS		"ipmsg_class"
 #define IPMSG_FULLNAME	"IP Messenger for Win"
 #define IPMSG_APPID		"IPMSG for Win"
@@ -227,6 +232,8 @@
 #endif
 #define UPDATE32_FILENAME		"ipmsgupd32.exe"
 #define UPDATE64_FILENAME		"ipmsgupd64.exe"
+
+
 
 #define IPMSG_LOGNAME	"ipmsg.log"
 #define IPMSG_LOGDBNAME	"ipmsg.db"
@@ -253,6 +260,7 @@
 #include "ipmsgext.dat"
 #undef IPMSGDEF_HEAD
 #endif
+
 
 extern volatile int64 gEnableHook;	// for global
 #define ENABLE_HOOK	(0x0d762de84d9f01a4LL) // a4 01 9f 4d e8 2d 76 0d

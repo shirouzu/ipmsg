@@ -547,6 +547,9 @@ protected:
 	}
 	BOOL	IsFindComboActive();
 	int		CalcScrOutYOff(ViewMsg *msg);
+	void	WriteLogToFileProcCore(void *param);
+	static void	WriteLogToFileProc(void *param);
+	void	WriteLogToFile(const char *path);
 
 public:
 	TChildView(Cfg *_cfg, LogMng *_logMng, BOOL is_main, TLogView *_parent);

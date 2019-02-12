@@ -8,7 +8,6 @@
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
-#include "resource.h"
 #include "ipmsg.h"
 
 using namespace std;

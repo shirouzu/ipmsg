@@ -1,10 +1,10 @@
 ---------------------------------------------------------------------
-	Source code of IP Messenger for Win version 4.99
-			H.Shirouzu Nov 12, 2018
+	Source code of IP Messenger for Win version 4.99r3
+			H.Shirouzu Feb 12, 2019
 
-	Copyright (C) 1996-2018 SHIROUZU Hiroaki All Rights Reserved.
+	Copyright (C) 1996-2019 SHIROUZU Hiroaki All Rights Reserved.
 	Copyright (C) 2015-2018 Asahi Net, Inc. All Rights Reserved.
-	Copyright (C) 2018 FastCopy Lab, LLC. All Rights Reserved.
+	Copyright (C) 2018-2019 FastCopy Lab, LLC. All Rights Reserved.
 ---------------------------------------------------------------------
 
 Index.
@@ -37,9 +37,9 @@ Index.
 2. License (BSD License)
 
  /* ==============================================================
-  Copyright (c) 1996-2018 SHIROUZU Hiroaki All rights reserved.
+  Copyright (c) 1996-2019 SHIROUZU Hiroaki All rights reserved.
   Copyright (c) 2015-2018 Asahi Net, Inc. All Rights Reserved.
-  Copyright (c) 2018 FastCopy Lab, LLC. All Rights Reserved.
+  Copyright (c) 2018-2019 FastCopy Lab, LLC. All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or
   without modification, are permitted provided that the following

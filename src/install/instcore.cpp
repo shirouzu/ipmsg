@@ -99,7 +99,6 @@ BOOL CleanupRotateFile(const char *path, int max_cnt)
 	return	ret;
 }
 
-#define MAX_FSIZE	(5 * 1024 * 1024)
 BOOL IPDictCopy(IPDict *dict, const char *fname, const char *dst, BOOL *is_rotate)
 {
 	HANDLE	hDst;
@@ -109,7 +108,7 @@ BOOL IPDictCopy(IPDict *dict, const char *fname, const char *dst, BOOL *is_rotat
 	int64	fsize;
 	IPDict	fdict;
 	DynBuf	zipData;
-	DynBuf	data(MAX_FSIZE);
+	DynBuf	data;
 
 	if (!dict->get_dict(fname, &fdict)) {
 		return	FALSE;
@@ -121,6 +120,9 @@ BOOL IPDictCopy(IPDict *dict, const char *fname, const char *dst, BOOL *is_rotat
 		return	FALSE;
 	}
 	if (!fdict.get_int(FSIZE_KEY, &fsize)) {
+		return	FALSE;
+	}
+	if (!data.Alloc((size_t)fsize)) {
 		return	FALSE;
 	}
 	if (!DeflateData(zipData.Buf(), (DWORD)zipData.UsedSize(), &data)
@@ -232,7 +234,7 @@ BOOL GetIPDictBySelf(IPDict *dict)
 				if (memcmp(&ch, sep, sizeof(sep)) == 0 && memcmp(&end_ch+1, "IP2:", 4) == 0) {
 					auto	targ = &ch + sizeof(sep);
 					auto	remain = selfSize - (targ - data);
-					return	(dict->unpack(targ, remain) < remain) ? TRUE : FALSE;
+					return	(dict->unpack(targ, remain) > 0) ? TRUE : FALSE;
 				}
 				i += sizeof(sep)-1;
 			}
@@ -240,14 +242,14 @@ BOOL GetIPDictBySelf(IPDict *dict)
 				i++;
 			}
 			else {
-				i += sizeof(sep);
+				i += sizeof(sep)-1;
 			}
 		}
 		else if (end_ch == '=') {
 			i++;
 		}
 		else {
- 			i += sizeof(sep);
+ 			i += sizeof(sep)-1;
 		}
 	}
 

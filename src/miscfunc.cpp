@@ -1,15 +1,14 @@
 ﻿static char *miscfunc_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2018   miscfunc.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu 2011-2019   miscfunc.cpp	Ver4.99";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc functions
 	Create					: 2011-05-03(Tue)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
-#include "resource.h"
 #include "ipmsg.h"
 #include "blowfish.h"
 #include <time.h>
@@ -54,7 +53,8 @@ void ChangeWindowTitle(TWin *wnd, Cfg *cfg)
 	WCHAR		wbuf[MAX_BUF];
 	vector<Wstr> wvec;
 
-	if (cfg && (cfg->NoTcp || cfg->NoFileTrans)) {
+	if (cfg && (cfg->NoTcp || cfg->NoFileTrans
+	)) {
 		wvec.push_back(cfg->NoFileTrans == 2 ? L" (No Share Transfer)" : L" (No File Transfer)");
 	}
 
@@ -1554,6 +1554,8 @@ BOOL SetFileButton(TDlg *dlg, int buttonID, ShareInfo *info, const char *auto_sa
 	char	fname[MAX_PATH_U8] = "";
 	int		offset = 0;
 	BOOL	is_autosaved = (auto_saved && *auto_saved) ? TRUE : FALSE;
+
+	if (!info) return FALSE;
 
 	for (int i=0; i < info->fileCnt; i++) {
 		if (dlg->ResId() == SEND_DIALOG)

@@ -1,10 +1,10 @@
 ﻿static char *mainwinev_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2018   mainwinev.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu and FastCopy Lab, LLC. 1996-2019   mainwinev.cpp	Ver4.90";
 /* ========================================================================
 	Project  NameF			: IP Messenger for Win32
 	Module Name				: Main Window Event
 	Create					: 1996-06-01(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -40,6 +40,7 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 #include "mainext.dat"
 #undef  MAIN_EVCREATE_1
 #endif
+
 
 	if (!msgMng->GetStatus()) {
 		return TRUE;
@@ -95,8 +96,9 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 		isFirstBroad = FALSE;
 	}
 
+	SetTimer(IPMSG_FIRSTRUN_TIMER, 3000);
+
 	if (param.isUpdateErr) {
-		UpdateFileCleanup();
 		BalloonWindow(TRAY_NORMAL, "Update Failed", IP_MSG, 10000);
 	}
 
@@ -105,6 +107,8 @@ BOOL TMainWin::EvCreate(LPARAM lParam)
 #include "mainext.dat"
 #undef  MAIN_EVCREATE_2
 #endif
+
+
 	PollSend();
 
 	if (param.isFirstRun) {
@@ -400,8 +404,8 @@ BOOL TMainWin::EvTimer(WPARAM timerID, TIMERPROC proc)
 //	case IPMSG_UPDATE_TIMER:
 //		UpdateProc();
 //		return	TRUE;
-
 #endif
+
 	}
 
 	return	FALSE;
@@ -528,6 +532,7 @@ BOOL TMainWin::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		UpdateCheck(UPD_CONFIRM|UPD_BUSYCONFIRM|UPD_SHOWERR|UPD_SKIPNOTIFY);
 		return	TRUE;
 #endif
+
 
 	case MENU_URL:
 		ShellExecuteU8(NULL, NULL, LoadStrU8(IDS_IPMSGURL), 0, 0, SW_SHOW);
@@ -1319,7 +1324,6 @@ BOOL TMainWin::UdpEventCore(MsgBuf *msg)
 	case IPMSG_DIR_EVBROAD:
 		MsgDirAnsBroad(msg, FALSE);
 		break;
-
 #endif
 
 	}

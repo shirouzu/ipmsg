@@ -1,10 +1,10 @@
 ﻿static char *setupdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2018   setupdlg.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu 1996-2019   setupdlg.cpp	Ver4.99";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Setup Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -50,7 +50,8 @@ BOOL TSetupSheet::EvCreate(LPARAM lParam)
 		SendDlgItemMessage(IPMSGEXIT_EDIT, EM_SETWORDBREAKPROC, 0, (LPARAM)EditNoWordBreakProc);
 	}
 	else if (resId == LABTEST_SHEET) {
-		if (gEnableHook) {
+		if (gEnableHook
+		) {
 			int hook_ids[]  = { HOOKURL_STATIC,   HOOKURL_EDIT,   HOOKBODY_STATIC, HOOKBODY_EDIT };
 			int slack_ids[] = { SLACKCHAN_STATIC, SLACKCHAN_EDIT, SLACKKEY_STATIC, SLACKKEY_EDIT };
 
@@ -313,7 +314,8 @@ void TSetupSheet::ReflectDisp()
 		}
 	}
 	else if (resId == LABTEST_SHEET) {
-		if (gEnableHook) {
+		if (gEnableHook
+		) {
 			int hook_ids[]  = { HOOKURL_STATIC,   HOOKURL_EDIT,   HOOKBODY_STATIC, HOOKBODY_EDIT };
 			int slack_ids[] = { SLACKCHAN_STATIC, SLACKCHAN_EDIT, SLACKKEY_STATIC, SLACKKEY_EDIT };
 
@@ -365,9 +367,11 @@ BOOL TSetupSheet::SetData()
 		SendDlgItemMessage(EXTBROADCAST_COMBO, CB_SETCURSEL, cfg->ExtendBroadcast -1, 0);
 
 		SendDlgItemMessage(IPV6_COMBO, CB_ADDSTRING, 0, (LPARAM)"IPv4 mode");
-		SendDlgItemMessage(IPV6_COMBO, CB_ADDSTRING, 0, (LPARAM)"IPv6 mode");
+		SendDlgItemMessage(IPV6_COMBO, CB_ADDSTRING, 0, (LPARAM)(
+																"IPv6 mode"));
 		SendDlgItemMessage(IPV6_COMBO, CB_ADDSTRING, 0, (LPARAM)"IPv4/IPv6");
 		SendDlgItemMessage(IPV6_COMBO, CB_SETCURSEL, cfg->IPv6ModeNext, 0);
+
 
 		SendDlgItemMessage(MULTICAST_COMBO, CB_ADDSTRING, 0, (LPARAM)"Site/LinkLocal dual");
 		SendDlgItemMessage(MULTICAST_COMBO, CB_ADDSTRING, 0, (LPARAM)"LinkLocal only");
@@ -578,7 +582,8 @@ BOOL TSetupSheet::SetData()
 		CheckDlgButton(USELOCKNAME_CHK, cfg->useLockName ? TRUE : FALSE);
 	}
 	else if (resId == LABTEST_SHEET) {
-		if (gEnableHook) {
+		if (gEnableHook
+		) {
 			for (UINT id=IDS_HOOKNONE; id <= IDS_HOOKTRANSALL; id++) {
 				SendDlgItemMessage(HOOK_CMB, CB_ADDSTRING, 0, (LPARAM)LoadStr(id));
 			}
@@ -907,7 +912,8 @@ BOOL TSetupSheet::GetData()
 		cfg->useLockName = IsDlgButtonChecked(USELOCKNAME_CHK);
 	}
 	else if (resId == LABTEST_SHEET) {
-		if (gEnableHook) {
+		if (gEnableHook
+		) {
 			cfg->hookMode = (int)SendDlgItemMessage(HOOK_CMB, CB_GETCURSEL, 0, 0);
 			cfg->hookKind = IsDlgButtonChecked(HOOKSLACK_RADIO) ? 1 : 0;
 
@@ -1235,7 +1241,8 @@ BOOL TSetupSheet::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 		}
 	}
 	else if (resId == LABTEST_SHEET) {
-		if (gEnableHook) {
+		if (gEnableHook
+		) {
 			switch (wID) {
 			case HOOKTEST_BTN:
 				if (IsDlgButtonChecked(HOOKGENERAL_RADIO)) {
@@ -1440,11 +1447,25 @@ TSetupDlg::TSetupDlg(Cfg *_cfg, THosts *_hosts, BOOL is_first, TWin *_parent)
 		hPauseIcon = ::LoadIcon(TApp::hInst(), (LPCSTR)PAUSE_ICON);
 	}
 
+	sheet = NULL;
 	cfg		= _cfg;
 	hosts	= _hosts;
 	curIdx	= -1;
 	isFirstMode = is_first;
 	//isFirstMode = TRUE;
+};
+
+TSetupDlg::~TSetupDlg()
+{
+	delete [] sheet;
+}
+
+/*
+	Window 生成時の CallBack
+*/
+BOOL TSetupDlg::EvCreate(LPARAM lParam)
+{
+	idVec.clear();
 
 	idVec.push_back(MAIN_SHEET);
 #ifndef IPMSG_PRO
@@ -1462,7 +1483,8 @@ TSetupDlg::TSetupDlg(Cfg *_cfg, THosts *_hosts, BOOL is_first, TWin *_parent)
 	idVec.push_back(LOG_SHEET);
 	idVec.push_back(AUTOSAVE_SHEET);
 	idVec.push_back(REMOTE_SHEET);
-	if (gEnableHook) {
+	if (gEnableHook
+	) {
 		idVec.push_back(LABTEST_SHEET);
 	}
 #ifdef IPMSG_PRO
@@ -1472,19 +1494,11 @@ TSetupDlg::TSetupDlg(Cfg *_cfg, THosts *_hosts, BOOL is_first, TWin *_parent)
 #endif
 	idVec.push_back(BACKUP_SHEET);
 
+	if (sheet) {
+		delete [] sheet;
+	}
 	sheet = new TSetupSheet[idVec.size()];
-};
 
-TSetupDlg::~TSetupDlg()
-{
-	delete [] sheet;
-}
-
-/*
-	Window 生成時の CallBack
-*/
-BOOL TSetupDlg::EvCreate(LPARAM lParam)
-{
 	setupList.AttachWnd(GetDlgItem(SETUP_LIST));
 
 	for (int i=0; i < idVec.size(); i++) {
@@ -1546,7 +1560,7 @@ BOOL TSetupDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hWndCtl)
 				sheet[i].GetData();
 			}
 			cfg->WriteRegistry(CFG_GENERAL|CFG_BROADCAST|CFG_LINKACT|CFG_SLACKOPT
-				|CFG_HOOKOPT|CFG_UPDATEOPT);
+				|CFG_HOOKOPT|CFG_UPDATEOPT|CFG_DIR);
 			if (wID == IDOK) {
 				EndDialog(wID);
 			}

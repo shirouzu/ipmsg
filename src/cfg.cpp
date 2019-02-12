@@ -1,16 +1,15 @@
 ﻿static char *cfg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2017   cfg.cpp	Ver4.60";
+	"@(#)Copyright (C) H.Shirouzu 1996-2019   cfg.cpp	Ver4.99";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Configuration
 	Create					: 1996-09-27(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
 #include "ipmsg.h"
-#include "resource.h"
 #include "blowfish.h"
 #include <vector>
 using namespace std;
@@ -356,6 +355,7 @@ static BYTE official_n[] = {	// little endian for MS CryptoAPI
 
 #define WINE_STR			"Wine"	// for Wine environment
 
+
 char	*DefaultUrlProtocol[] = { "HTTP", "HTTPS", "FTP", "FILE", "TELNET", NULL };
 char	*DefaultAbsence[IPMSG_DEFAULT_ABSENCEMAX];
 char	*DefaultAbsenceHead[IPMSG_DEFAULT_ABSENCEMAX];
@@ -403,6 +403,7 @@ Cfg::Cfg(const Addr &_nicAddr, int _portNo) :
 	GetFullPathNameU8(buf, MAX_PATH_U8, path, &fname);
 	fname[-1] = 0; // remove '\\'
 	execDir = strdup(path);
+
 }
 
 Cfg::~Cfg()
@@ -742,6 +743,7 @@ bool Cfg::ReadRegistry(void)
 	}
 	IPv6ModeNext = IPv6Mode;
 
+
 // for File Transfer
 	reg.GetInt(VIEWMAX_STR, &ViewMax);
 	if (ViewMax < 1024 * 1024) {	// 1MB 以下の MapFileOfView は認めない
@@ -859,9 +861,10 @@ bool Cfg::ReadRegistry(void)
 	reg.GetInt(LOGVIEWATRECV_STR, &logViewAtRecv);
 
 	reg.GetStr(NICKNAMESTR_STR, NickNameStr, sizeof(NickNameStr));
-	StrictUTF8(NickNameStr);
 	reg.GetStr(GROUPNAMESTR_STR, GroupNameStr, sizeof(GroupNameStr));
+	StrictUTF8(NickNameStr);
 	StrictUTF8(GroupNameStr);
+
 	reg.GetLong(SORT_STR, (long *)&Sort);
 //	reg.GetInt(UPDATETIME_STR, &UpdateTime);
 	reg.GetInt(KEEPHOSTTIME_STR, &KeepHostTime);
@@ -899,6 +902,7 @@ bool Cfg::ReadRegistry(void)
 		strncpyz(LogFile, IPMSG_LOGNAME, sizeof(LogFile));
 	}
 	LogMng::StrictLogFile(LogFile);
+
 
 	reg.GetStr(SOUNDFILE_STR, SoundFile, sizeof(SoundFile));
 	reg.GetStr(ICON_STR, IconFile, sizeof(IconFile));
@@ -1037,17 +1041,9 @@ bool Cfg::ReadRegistry(void)
 	*masterSvr = 0;
 	if (IPv6Mode != 1) {
 		reg.GetInt(DIRMODE_STR, (int *)&DirMode);
-		reg.GetStr(MASTERSVR_STR, masterSvr, sizeof(masterSvr));
-		reg.GetInt(DIRMODE_STR, (int *)&DirMode);
-		if (DirMode == DIRMODE_USER) {
-			if (*masterSvr) {
-				if (!masterAddr.Set(masterSvr)) {
-					masterAddr.Resolve(masterSvr);
-				}
-			}
-		}
-	}
 
+		reg.GetStr(MASTERSVR_STR, masterSvr, sizeof(masterSvr));
+	}
 	pollTick = IPMSG_DEFAULT_MASTERPOLL;
 	reg.GetInt(MASTERPOLL_STR, (int *)&pollTick);
 	if (pollTick < 5000) {
@@ -1063,8 +1059,8 @@ bool Cfg::ReadRegistry(void)
 	if (DirAgentNum <= 1 || DirAgentNum > 4) {
 		DirAgentNum = IPMSG_DEFAULT_DIRAGENTNUM;
 	}
-
 #endif
+
 	masterStrict = 0;
 	reg.GetInt(MASTERSTRICT_STR, &masterStrict);
 
@@ -1207,18 +1203,19 @@ bool Cfg::ReadRegistry(void)
 		int			need_blob_size = ((i == KEY_1024) ? 1024 : 2048) / 8 * 4;
 
 		if (reg.CreateKey(key)) {
-			BYTE	key[MAX_BUF_EX];
-			int		blen = sizeof(key);
-			int		slen = sizeof(key);
+			BYTE	rkey[MAX_BUF_EX];
+			int		blen = sizeof(rkey);
+			int		slen = sizeof(rkey);
 
-			if (reg.GetByte(PRIVBLOB_STR, key, &blen) && blen > need_blob_size) {
-				priv[i].SetBlob(key, blen);
+			if (reg.GetByte(PRIVBLOB_STR, rkey, &blen) && blen > need_blob_size) {
+				priv[i].SetBlob(rkey, blen);
 			}
-			if (reg.GetByte(PRIVSEED_STR, key, &slen)) {
-				priv[i].SetSeed(key, slen);
+			if (reg.GetByte(PRIVSEED_STR, rkey, &slen)) {
+				priv[i].SetSeed(rkey, slen);
 			}
 			reg.GetInt(PRIVTYPE_STR, &priv[i].encryptType);
 			reg.CloseKey();
+
 		}
 	}
 
@@ -1279,6 +1276,7 @@ bool Cfg::ReadRegistry(void)
 #include "miscext.dat"
 #undef CFG_LOADUPLOAD
 #endif
+
 
 	if (gEnableHook) {
 		if (reg.CreateKey(HOOK_STR)) {
@@ -1511,10 +1509,22 @@ bool Cfg::WriteRegistry(int ctl_flg)
 		if (reg.CreateKey(ABSENCESTR_STR)) {
 			for (int i=0; i < AbsenceMax; i++) {
 				char	key[MAX_PATH_U8];
+
 				sprintf(key, "%s%d", ABSENCESTR_STR, i);
-				reg.SetStr(key, AbsenceStr[i]);
+				if (i < IPMSG_DEFAULT_ABSENCEMAX &&
+					strcmp(AbsenceStr[i], DefaultAbsence[i]) == 0) {
+					reg.DeleteValue(key);
+				} else {
+					reg.SetStr(key, AbsenceStr[i]);
+				}
+
 				sprintf(key, "%s%d", ABSENCEHEAD_STR, i);
-				reg.SetStr(key, AbsenceHead[i]);
+				if (i < IPMSG_DEFAULT_ABSENCEMAX &&
+					strcmp(AbsenceHead[i], DefaultAbsenceHead[i]) == 0) {
+					reg.DeleteValue(key);
+				} else {
+					reg.SetStr(key, AbsenceHead[i]);
+				}
 			}
 			reg.CloseKey();
 		}
@@ -1594,6 +1604,23 @@ bool Cfg::WriteRegistry(int ctl_flg)
 		reg.SetInt64(LASTVACUUM_STR, lastVacuum);
 	}
 
+	if (ctl_flg & CFG_DIR) {
+#ifdef IPMSG_PRO
+#else
+		reg.SetStr(MASTERSVR_STR, masterSvr);
+	//	reg.SetInt(MASTERPOLL_STR, pollTick);
+	//	reg.SetInt(MASTERSTRICT_STR, masterStrict);
+		if (dirSpan == IPMSG_DEFAULT_DIRSPAN) {
+			reg.DeleteValue(DIRSPAN_STR);
+		}
+		else {
+			reg.SetInt(DIRSPAN_STR, dirSpan);
+		}
+		reg.SetInt(DIRMODE_STR, DirMode);
+#endif
+
+	}
+
 	if ((ctl_flg & CFG_LINKACT) && reg.CreateKey(LINKACT_STR)) {
 		if (strcmpi(directOpenExt, DefaultDirectOpenExt)) {
 			reg.SetStr(DIRECTOPENEXT_STR, directOpenExt);
@@ -1668,22 +1695,6 @@ bool Cfg::WriteRegistry(int ctl_flg)
 		WriteFontRegistry(&reg, LOGVIEWFONT_STR, &LogViewFont);
 		reg.CloseKey();
 	}
-
-#ifdef IPMSG_PRO
-#else
-	reg.SetStr(MASTERSVR_STR, masterSvr);
-//	reg.SetInt(MASTERPOLL_STR, pollTick);
-//	reg.SetInt(MASTERSTRICT_STR, masterStrict);
-	if (dirSpan == IPMSG_DEFAULT_DIRSPAN) {
-		reg.DeleteValue(DIRSPAN_STR);
-	}
-	else {
-		reg.SetInt(DIRSPAN_STR, dirSpan);
-	}
-	reg.SetInt(DIRMODE_STR, DirMode);
-
-#endif
-
 
 	if ((ctl_flg & CFG_BROADCAST) && reg.CreateKey(BROADCAST_STR)) {
 		int i = 0;
@@ -1835,6 +1846,7 @@ bool Cfg::WriteRegistry(int ctl_flg)
 #include "miscext.dat"
 #undef CFG_SAVEUPLOAD
 #endif
+
 
 	if (gEnableHook) {
 		if ((ctl_flg & CFG_HOOKOPT) && reg.CreateKey(HOOK_STR)) {

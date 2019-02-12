@@ -35,9 +35,11 @@ protected:
 	LogMsg		*logMsg;
 	LogDb		*logDb;
 	BOOL		RegisterUpLog();
+	BOOL		isAlt;
+	char		*logFile;
 
 public:
-	LogMng(Cfg *_cfg);
+	LogMng(Cfg *_cfg, BOOL isAlt=FALSE);
 	~LogMng();
 
 	void	InitDB();

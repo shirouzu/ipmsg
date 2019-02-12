@@ -7,15 +7,15 @@
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
+#ifndef INSTCMN_H
+#define INSTCMN_H
 
-#define IPMSG_CLASS				"ipmsg_class"
+#include "../ipmsgdef.h"
+
 #define IPMSG_NAME				"IPMSG for Win"
-#define IP_MSG					"IPMsg"
-#define HSTOOLS_STR				"HSTools"
-#define IPMSG_DEFAULT_PORT		0x0979
 
-#define IPMSG_EXENAME			"ipmsg.exe"
-#define IPMSG_EXENAME_W			L"ipmsg.exe"
+#define IPMSG_EXENAME			"IPMsg.exe"
+#define IPMSG_EXENAME_W			L"IPMsg.exe"
 #define IPCMD_EXENAME			"ipcmd.exe"
 #define UNINST_EXENAME			"uninst.exe"
 #define OLD_UNINST_EXENAME		"setup.exe"
@@ -27,8 +27,11 @@
 #define IPMSGPNG_NAME			"ipmsg.png"
 #define IPEXCPNG_NAME			"ipexc.png"
 
-#define IPMSG_SHORTCUT_NAME		IPMSG_NAME ".lnk"
 #define UNINST_SHORTCUT_NAME	"Uninstall IPMSG.lnk"
+
+
+
+#define IPMSG_SHORTCUT_NAME		IPMSG_NAME ".lnk"
 #define UNC_PREFIX				"\\\\"
 #define MAX_BUF					1024
 
@@ -68,3 +71,4 @@ inline BOOL IsUncFile(const char *path) { return strnicmp(path, UNC_PREFIX, 2) =
 enum GenStrMode { WITH_PERIOD, WITH_PAREN };
 BOOL GenStrWithUser(const char *str, char *buf, GenStrMode mode=WITH_PERIOD);
 
+#endif

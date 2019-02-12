@@ -702,6 +702,16 @@ BOOL TChildView::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 		}
 		return	TRUE;
 
+	case MENU_LOGTOFILE:
+		{
+			char	path[MAX_PATH_U8] = {};
+			OpenFileDlg	dlg(this->parent, OpenFileDlg::SAVE, NULL, OFN_OVERWRITEPROMPT);
+			if (dlg.Exec(path, sizeof(path), NULL, "Log file(*.log)\0*.log\0\0", NULL, "log")) {
+				WriteLogToFile(path);
+			}
+		}
+		return	TRUE;
+
 	case MENU_BODYCOPY:
 		if (itemMenu) {
 			if (ViewMsg *msg = GetMsg(itemMenu->msg_id)) {

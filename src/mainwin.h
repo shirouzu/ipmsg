@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2018   mainwin.h	Ver4.90 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2019   mainwin.h	Ver4.99 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Main Window
 	Create					: 2013-03-03(Sun)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -331,6 +331,7 @@ protected:
 	TUpdConfim	*updConfirm;
 
 #endif
+
 	BOOL	PollSend();
 	BOOL	CleanupProc();
 	void	LoadStoredPacket();
@@ -543,7 +544,9 @@ public:
 	char	*GetNickName(void);
 	ULONG	HostStatus(void);
 	Addr	GetSelfAddr() { return selfAddr; }
+	int		GetPortNo() { return portNo; }
 	std::vector<Addr> GetAllSelfAddrs() { return allSelfAddrs; }
+	HFONT	GetLogViewFont();
 
 	BOOL	PreProcMsgFilter(MSG *msg);
 
@@ -561,10 +564,11 @@ public:
 	void	ShowUpdateDlg();
 
 	BOOL	RequireHookTrans();
+	void	GenUpdateFileName(char *path, BOOL is_tmp=FALSE);
 };
 
-void	GenUpdateFileName(char *path, BOOL is_tmp=FALSE);
 HICON	GetIPMsgIcon(HICON *hBigIcon=NULL);
+
 
 #endif
 

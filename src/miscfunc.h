@@ -1,9 +1,9 @@
-﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2018   miscfunc.h	Ver4.90 */
+﻿/*	@(#)Copyright (C) H.Shirouzu 2013-2019   miscfunc.h	Ver4.99 */
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Misc functions
 	Create					: 2013-03-03(Sun)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */

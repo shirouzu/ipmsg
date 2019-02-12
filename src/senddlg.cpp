@@ -1,14 +1,13 @@
 ﻿static char *senddlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 1996-2018   senddlg.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu 1996-2019   senddlg.cpp	Ver4.99";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: Send Dialog
 	Create					: 1996-06-01(Sat)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
-#include "resource.h"
 #include "ipmsg.h"
 
 using namespace std;
@@ -204,6 +203,7 @@ BOOL TSendDlg::EvCreate(LPARAM lParam)
 	PostMessage(WM_DELAYSETTEXT, 0, 0);
 
 	SetupItemIcons();
+
 
 	::DragAcceptFiles(hWnd, msgMng->IsAvailableTCP() &&
 						(cfg->NoFileTrans == 0 || cfg->NoFileTrans == 2));
@@ -1027,21 +1027,23 @@ bool TSendDlg::AppendDropFilesAsText(const char *path)
 
 bool TSendDlg::RestrictShare()
 {
-	if (cfg->NoFileTrans > 0 && shareInfo) {
+	auto	notrans = cfg->NoFileTrans;
+
+	if (notrans > 0 && shareInfo) {
 		for (int i=shareInfo->fileCnt - 1; i >= 0; i--) {
 			auto finfo = shareInfo->fileInfo[i];
 
-			if (cfg->NoFileTrans == 1) {
+			if (notrans == 1) {
 				shareInfo->RemoveFileInfo(i);
 			}
-			else if (cfg->NoFileTrans == 2) {
+			else if (notrans == 2) {
 				if (finfo->Attr() == IPMSG_FILE_CLIPBOARD) continue;
 				if (IsNetVolume(finfo->Fname())) {
 					AppendDropFilesAsText(finfo->Fname());
 					shareInfo->RemoveFileInfo(i);
 				}
 			}
-			else if (cfg->NoFileTrans == 3) {
+			else if (notrans == 3) {
 				if (finfo->Attr() == IPMSG_FILE_CLIPBOARD) continue;
 				shareInfo->RemoveFileInfo(i);
 			}
@@ -2208,6 +2210,8 @@ bool TSendDlg::Send(void)
 						 MB_OKCANCEL|MB_ICONQUESTION) == IDCANCEL) return false;
 	}
 
+	RestrictShare();
+
 	if (listOperateCnt && !cmdHWnd) {
 		MessageBoxU8(LoadStrU8(IDS_BUSYMSG));
 		return	false;
@@ -2706,17 +2710,18 @@ void TSendDlg::SetMainMenu(HMENU hMenu)
 	AppendMenuU8(hMenu, MF_STRING|file_flg, MENU_FOLDERADD, LoadStrU8(IDS_FOLDERATTACHMENU));
 
 	HMENU	hImgMenu = ::CreateMenu();
-	AppendMenuU8(hImgMenu, MF_STRING|((cfg->ClipMode & CLIP_ENABLE) ? 0 : MF_DISABLED|MF_GRAYED),
-						MENU_IMAGERECT, LoadStrU8(IDS_IMAGERECTMENU));
+	BOOL	is_clip = (cfg->ClipMode & CLIP_ENABLE) 
+						? TRUE : FALSE;
+	AppendMenuU8(hImgMenu, MF_STRING|(is_clip ? 0 : MF_DISABLED|MF_GRAYED), MENU_IMAGERECT,
+						LoadStrU8(IDS_IMAGERECTMENU));
 	AppendMenuU8(hImgMenu, MF_STRING|
-						(!(cfg->ClipMode & CLIP_ENABLE) || !IsImageInClipboard(hWnd) ?
-							MF_DISABLED|MF_GRAYED : 0),
+						(!is_clip || !IsImageInClipboard(hWnd) ? MF_DISABLED|MF_GRAYED : 0),
 						MENU_IMAGEPASTE, LoadStrU8(IDS_IMAGEPASTEMENU));
-	AppendMenuU8(hImgMenu, MF_STRING|((cfg->ClipMode & CLIP_ENABLE) ? 0 : MF_DISABLED|MF_GRAYED),
-						WM_INSERT_IMAGE, LoadStrU8(IDS_INSERT_IMAGE));
+	AppendMenuU8(hImgMenu, MF_STRING|(is_clip ? 0 : MF_DISABLED|MF_GRAYED), WM_INSERT_IMAGE,
+						LoadStrU8(IDS_INSERT_IMAGE));
 
-	AppendMenuU8(hMenu, MF_POPUP|((cfg->ClipMode & CLIP_ENABLE) ? 0 : MF_DISABLED|MF_GRAYED),
-						(UINT_PTR)hImgMenu, LoadStrU8(IDS_IMAGEMENU));
+	AppendMenuU8(hMenu, MF_POPUP|(is_clip ? 0 : MF_DISABLED|MF_GRAYED), (UINT_PTR)hImgMenu,
+						LoadStrU8(IDS_IMAGEMENU));
 
 	AppendMenuU8(hMenu, MF_SEPARATOR, 0, 0);
 

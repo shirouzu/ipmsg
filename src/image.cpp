@@ -9,7 +9,6 @@
 	Reference				: 
 	======================================================================== */
 
-#include "resource.h"
 #include "ipmsg.h"
 #include <gdiplus.h>
 using namespace Gdiplus;
@@ -218,24 +217,24 @@ BOOL TAreaConfirmDlg::EvCreate(LPARAM lParam)
 								1, 0, 0, 16, 16, sizeof(TBBUTTON));
 
 	// 赤・緑・青・黄色のビットマップを追加 (iBitmap 1-16)
-	for (int i=0; i < 4; i++) {
+	for (int i=0; i < COLOR_MAX; i++) {
 		TBADDBITMAP tab = { TApp::hInst(), UINT_PTR(MARKERRED_BITMAP + i) };
-		::SendMessage(hToolBar, TB_ADDBITMAP, 4, (LPARAM)&tab);
+		::SendMessage(hToolBar, TB_ADDBITMAP, MARKER_TB_MAX, (LPARAM)&tab);
 	}
 
 	// マーカーボタン類追加
-	for (int i=0; i < 4; i++) {
+	for (int i=0; i < MARKER_TB_MAX; i++) {
 		TBBUTTON tb = { i+1, MARKER_PEN+i, TBSTATE_ENABLED, TBSTYLE_CHECKGROUP };
 		if (i == 0)			tb.fsState |= TBSTATE_CHECKED;
-		else if (i == 3)	tb.fsStyle  = TBSTYLE_BUTTON;
+		else if (i == 4)	tb.fsStyle  = TBSTYLE_BUTTON;
 		::SendMessage(hToolBar, TB_INSERTBUTTON, i, (LPARAM)&tb);
 	}
 	// デフォルトで赤色選択
 	SetColor(COLOR_RED, BGCOLOR_RED);
 
 	TBBUTTON tb_sep = {0, 0, TBSTATE_ENABLED, TBSTYLE_SEP, 0, 0};
-	::SendMessage(hToolBar, TB_INSERTBUTTON, 3, (LPARAM)&tb_sep);
-	::SendMessage(hToolBar, TB_INSERTBUTTON, 5, (LPARAM)&tb_sep);
+	::SendMessage(hToolBar, TB_INSERTBUTTON, 4, (LPARAM)&tb_sep);
+	::SendMessage(hToolBar, TB_INSERTBUTTON, 6, (LPARAM)&tb_sep);
 
 	Show();
 
@@ -252,7 +251,9 @@ BOOL TAreaConfirmDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 			if (useClip)  *useClip  = IsDlgButtonChecked(CLIP_CHECK);
 			if (withSave) *withSave = IsDlgButtonChecked(SAVE_CHECK);
 		}
-		if (wID != IDRETRY || !reEdit) EndDialog(wID);
+		if (wID != IDRETRY || !reEdit) {
+			EndDialog(wID);
+		}
 		parentWin->Notify(wID);
 		break;
 
@@ -272,6 +273,11 @@ BOOL TAreaConfirmDlg::EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl)
 
 	case MARKER_PEN:
 		mode = MARKER_PEN;
+		parentWin->SetMode(TRUE);
+		break;
+
+	case MARKER_LINE:
+		mode = MARKER_LINE;
 		parentWin->SetMode(TRUE);
 		break;
 
@@ -306,8 +312,8 @@ void TAreaConfirmDlg::SetColor(COLORREF _color, COLORREF _bg_color)
 	}
 
 	// マーカーボタン色変更
-	for (int i=0; i < 4; i++) {
-		::SendMessage(hToolBar, TB_CHANGEBITMAP, MARKER_PEN+i, image_base*4 + i + 1);
+	for (int i=0; i < MARKER_TB_MAX; i++) {
+		::SendMessage(hToolBar, TB_CHANGEBITMAP, MARKER_PEN+i, image_base*MARKER_TB_MAX + i + 1);
 	}
 
 	parentWin->SetMode(TRUE);
@@ -322,6 +328,7 @@ BOOL TAreaConfirmDlg::EvNotify(UINT ctlID, NMHDR *pNmHdr)
 
 			switch (itip->iItem) {
 			case MARKER_PEN:	itip->pszText = LoadStrW(IDS_MARKER_PEN);	break;
+			case MARKER_LINE:	itip->pszText = LoadStrW(IDS_MARKER_LINE);	break;
 			case MARKER_RECT:	itip->pszText = LoadStrW(IDS_MARKER_RECT);	break;
 			case MARKER_ARROW:	itip->pszText = LoadStrW(IDS_MARKER_ARROW);	break;
 			case MARKER_COLOR:	itip->pszText = LoadStrW(IDS_MARKER_COLOR);	break;
@@ -345,8 +352,12 @@ void TAreaConfirmDlg::Notify()
 	画面キャプチャウィンドウ
 */
 CursorMap TImageWin::cursorMap;
-#define ARROW_ID	RGB(1,1,1) // dummy color
-#define CROSS_ID	RGB(2,2,2) // dummy color
+#define ARROW_ID	RGB(0,0,1) // dummy color
+#define CROSS_ID	RGB(0,0,2) // dummy color
+#define SIZENS_ID	RGB(0,0,3) // dummy color
+#define SIZEWE_ID	RGB(0,0,4) // dummy color
+#define SIZENWSE_ID	RGB(0,0,5) // dummy color
+#define SIZENESW_ID	RGB(0,0,6) // dummy color
 
 TImageWin::TImageWin(Cfg *_cfg, TSendDlg *_parent)
 	: areaDlg(_cfg, this), inputDlg(this), TWin(_parent)
@@ -432,6 +443,10 @@ BOOL TImageWin::Create(TEditSub *_reEdit)
 	if (cursorMap.empty()) {
 		cursorMap[CROSS_ID]					  = ::LoadCursor(TApp::hInst(), (LPCSTR)CROSS_CUR);
 		cursorMap[ARROW_ID]					  = ::LoadCursor(NULL, (LPCSTR)IDC_ARROW);
+		cursorMap[SIZENS_ID]				  = ::LoadCursor(NULL, (LPCSTR)IDC_SIZENS);
+		cursorMap[SIZEWE_ID]				  = ::LoadCursor(NULL, (LPCSTR)IDC_SIZEWE);
+		cursorMap[SIZENWSE_ID]				  = ::LoadCursor(NULL, (LPCSTR)IDC_SIZENWSE);
+		cursorMap[SIZENESW_ID]				  = ::LoadCursor(NULL, (LPCSTR)IDC_SIZENESW);
 		cursorMap[CURSOR_IDX(COLOR_RED)]	  = ::LoadCursor(TApp::hInst(), (LPCSTR)RED_CUR);
 		cursorMap[CURSOR_IDX(COLOR_GREEN)]	  = ::LoadCursor(TApp::hInst(), (LPCSTR)GREEN_CUR);
 		cursorMap[CURSOR_IDX(COLOR_BLUE)]	  = ::LoadCursor(TApp::hInst(), (LPCSTR)BLUE_CUR);
@@ -450,7 +465,9 @@ BOOL TImageWin::EvCreate(LPARAM lParam)
 {
 	status = INIT;
 	SetTimer(100, 10);
-	if (!reEdit) ::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[CROSS_ID]));
+	if (!reEdit) {
+		SetCursor();
+	}
 
 	return	TRUE;
 }
@@ -500,7 +517,12 @@ BOOL TImageWin::EvTimer(WPARAM _timerID, TIMERPROC proc)
 
 BOOL TImageWin::EvChar(WCHAR code, LPARAM keyData)
 {
-	Destroy();
+	if (code == VK_RETURN) {
+		areaDlg.PostMessage(WM_COMMAND, IDOK, 0);
+	}
+	else if (code == VK_ESCAPE) {
+		areaDlg.PostMessage(WM_COMMAND, IDCANCEL, 0);
+	}
 	return	TRUE;
 }
 
@@ -514,7 +536,9 @@ BOOL TImageWin::MakeDarkBmp(int level)
 
 BOOL TImageWin::ReEdit()
 {
-	if (!(hSelfBmp = reEdit->GetBitmap(reEdit->SelectedImageIndex()))) return FALSE;
+	if (!(hSelfBmp = reEdit->GetBitmap(reEdit->SelectedImageIndex()))) {
+		return FALSE;
+	}
 
 	BITMAP	bmp  = {};
 	BOOL	ret  = TRUE;
@@ -537,6 +561,89 @@ BOOL TImageWin::ReEdit()
 
 #include <math.h>
 
+void DrawRoundRect(Graphics *g, Pen *pen, const TRect &rc, int r, Brush *brush=NULL)
+{
+	int		r2 = r * 2;
+	INT		x  = INT(rc.x());
+	INT		y  = INT(rc.y());
+	INT		cx = INT(rc.cx());
+	INT		cy = INT(rc.cy());
+
+	if (r2 > cx || r2 > cy) {
+		if (brush) {
+			g->FillRectangle(brush, x, y, cx, cy);
+		}
+		g->DrawRectangle(pen, x, y, cx, cy);
+		return;
+	}
+
+	GraphicsPath	p;
+	p.AddArc(x + cx - r2, y,           r2, r2, (REAL)270, (REAL)90);
+	p.AddArc(x + cx - r2, y + cy - r2, r2, r2, (REAL)0,   (REAL)90);
+	p.AddArc(x,           y + cy - r2, r2, r2, (REAL)90,  (REAL)90);
+	p.AddArc(x,           y,           r2, r2, (REAL)180, (REAL)90);
+	p.CloseFigure();
+
+	if (brush) {
+		g->FillPath(brush, &p);
+	}
+	g->DrawPath(pen, &p);
+}
+
+TRect DrawMarkerMemo(HDC hDc, Graphics *g, Pen *pen, const ColPts& col, POINT *pt, TRect max_rc)
+{
+#define RC_MARGIN 2
+ 	HFONT	hFont = TSendDlg::GetEditFont();
+ 	HFONT	hOldFont = NULL;
+ 	if (hFont) hOldFont = (HFONT)::SelectObject(hDc, hFont);
+
+	Wstr	wstr(col.memo.c_str());
+	SIZE	size = {};
+	::GetTextExtentPoint32W(hDc, wstr.s(), (int)wcslen(wstr.s()), &size);
+	size.cx += RC_MARGIN * 2;
+	size.cy += RC_MARGIN * 2;
+	TRect	rc(pt->x - size.cx/2 + RC_MARGIN, pt->y + RC_MARGIN, size.cx, size.cy);
+
+	::InflateRect(&max_rc, -RC_MARGIN-1, -RC_MARGIN-1);
+
+	if (rc.x() < max_rc.x()) {
+		rc.x() = max_rc.x();
+	}
+	else if ((rc.x() + size.cx) > max_rc.right) {
+		rc.x() = max_rc.right - size.cx;
+	}
+	if (col.pts.front().y > col.pts.back().y) {
+		rc.y() -= size.cy + RC_MARGIN * 2;
+	}
+	if (rc.y() < max_rc.y()) {
+		rc.y() = max_rc.y();
+	}
+	else if ((rc.y() + size.cy) > max_rc.bottom) {
+		rc.y() = max_rc.bottom - size.cy;
+	}
+	rc.set_cx(size.cx);
+	rc.set_cy(size.cy);
+
+	TRect	trc(rc.x()+RC_MARGIN+1, rc.y()+RC_MARGIN, rc.cx(), rc.cy());
+
+	::SetBkMode(hDc, TRANSPARENT);
+	::SetTextColor(hDc, col.color);
+
+	::InflateRect(&rc, RC_MARGIN, RC_MARGIN);
+
+	Color	bgClr;
+	bgClr.SetFromCOLORREF((COLORREF)col.bgColor);
+	SolidBrush	bgBrush(bgClr);
+
+	DrawRoundRect(g, pen, rc, 4, &bgBrush);
+
+	::DrawTextW(hDc, wstr.s(), -1, &trc, DT_LEFT);
+
+	if (hOldFont) ::SelectObject(hDc, hOldFont);
+
+	return	rc;
+}
+
 BOOL TImageWin::DrawMarker(HDC hDc)
 {
 	if (status >= DRAW_INIT && status <= DRAW_END && status != DRAW_INPUT) {
@@ -558,38 +665,50 @@ BOOL TImageWin::DrawMarker(HDC hDc)
 			offset.y = rc.top;
 		}
 
-		for (auto &p: drawPts) {
-			HPEN	hPen = ::CreatePen(PS_SOLID, cfg->MarkerThick, p.color);
-			HPEN	hOldPen = (HPEN)::SelectObject(hDc, (HGDIOBJ)hPen);
+		Graphics	g(hDc);
+		g.SetSmoothingMode(SmoothingModeAntiAlias);
 
+		for (auto &p: drawPts) {
 			auto	vp = p.pts.begin();
-			int		x = vp->x - offset.x;
-			int		y = vp->y - offset.y;
+			auto	ptx = [&](int x) { return x - offset.x; };
+			auto	pty = [&](int y) { return y - offset.y; };
+			int		x = ptx(vp->x);
+			int		y = pty(vp->y);
+			Color	col;
+			col.SetFromCOLORREF((COLORREF)p.color);
+			Pen		pen(col,  (float)cfg->MarkerThick);
 
 			if (p.mode == MARKER_PEN) {
-				::MoveToEx(hDc, x, y, NULL);
+				GraphicsPath	path;
+				POINTS	last = *vp;
 				for (vp++; vp != p.pts.end(); vp++) {
-					::LineTo(hDc, vp->x - offset.x, vp->y - offset.y);
+					path.AddLine(ptx(last.x), pty(last.y), ptx(vp->x), pty(vp->y));
+					last = *vp;
+				}
+				g.DrawPath(&pen, &path);
+			}
+			else if (p.mode == MARKER_LINE) {
+				if (p.pts.size() > 1) {
+					int		end_x = ptx(p.pts.back().x);
+					int		end_y = pty(p.pts.back().y);
+					g.DrawLine(&pen, x, y, end_x, end_y);
 				}
 			}
 			else if (p.mode == MARKER_RECT) {
-				HBRUSH	hOldBrush = (HBRUSH)::SelectObject(hDc, (HGDIOBJ)GetStockObject(NULL_BRUSH));
 				if (p.pts.size() > 1) {
-					int		end_x = p.pts.back().x - offset.x;
-					int		end_y = p.pts.back().y - offset.y;
+					int		end_x = ptx(p.pts.back().x);
+					int		end_y = pty(p.pts.back().y);
 					TRect	rrc(x, y, end_x-x, end_y-y);
 					rrc.Regular();
-					RoundRect(hDc, rrc.left, rrc.top, rrc.right, rrc.bottom, 6, 6);
+					DrawRoundRect(&g, &pen, rrc, 4);
 				}
-				::SelectObject(hDc, hOldBrush);
 			}
 			else if (p.mode == MARKER_ARROW) {
 				if (p.pts.size() > 1) {
-					POINT	end_pt = {  p.pts.back().x - offset.x,
-										p.pts.back().y - offset.y };
+					POINT	end_pt = {  ptx(p.pts.back().x), pty(p.pts.back().y) };
 					if (p.memo.size()) {
-						TRect	max_rc(rc.x()-offset.x, rc.y()-offset.y, rc.cx(), rc.cy());
-						TRect	mrc = DrawMarkerMemo(hDc, p, &end_pt, max_rc);
+						TRect	max_rc(ptx(rc.x()), pty(rc.y()), rc.cx(), rc.cy());
+						TRect	mrc = DrawMarkerMemo(hDc, &g, &pen, p, &end_pt, max_rc);
 
 						if (y > end_pt.y && mrc.bottom > end_pt.y) {
 							double ratio = ((double)x - end_pt.x) / ((double)y - end_pt.y);
@@ -601,32 +720,14 @@ BOOL TImageWin::DrawMarker(HDC hDc)
 							end_pt.x = int(end_pt.x - ratio * (end_pt.y - mrc.top));
 							end_pt.y = mrc.top;
 						}
-						p.pts.back().x = short(end_pt.x + offset.x);
-						p.pts.back().y = short(end_pt.y + offset.y);
+						p.pts.back().x = short(ptx(end_pt.x));
+						p.pts.back().y = short(pty(end_pt.y));
 					}
-					::MoveToEx(hDc, x, y, NULL);
-					::LineTo(hDc, end_pt.x, end_pt.y);
-
-					double	fx = (double)x - end_pt.x;
-					double	fy = (double)y - end_pt.y;
-					double	fv = sqrt(fx*fx + fy*fy);
-					if	(fv == 0.0) fv = 0.001;
-					double	fux = fx/fv;
-					double	fuy = fy/fv;
-#define AR_W 4
-#define AR_H 8
-#define AR_M 4
-					::MoveToEx(hDc, x, y, NULL);
-					::LineTo(hDc, int(x-fuy*AR_W-fux*AR_H), int(y+fux*AR_W-fuy*AR_H));
-					::LineTo(hDc, int(x-fux*AR_M), int(y-fuy*AR_H));
-					::MoveToEx(hDc, x, y, NULL);
-					::LineTo(hDc, int(x+fuy*AR_W-fux*AR_H), int(y-fux*AR_W-fuy*AR_H));
-					::LineTo(hDc, int(x-fux*AR_M), int(y-fuy*AR_H));
+					AdjustableArrowCap cap(4, 4);
+					pen.SetCustomStartCap(&cap);
+					g.DrawLine(&pen, x, y, end_pt.x, end_pt.y);
 				}
 			}
-
-			::SelectObject(hDc, hOldPen);
-			::DeleteObject(hPen);
 		}
 		if (!hDcSv) {
 			::SelectClipRgn(hDc, NULL);
@@ -635,60 +736,6 @@ BOOL TImageWin::DrawMarker(HDC hDc)
 		}
 	}
 	return	TRUE;
-}
-
-TRect TImageWin::DrawMarkerMemo(HDC hDc, const ColPts& col, POINT *pt, TRect max_rc)
-{
-#define RC_MARGIN 2
- 	HFONT	hFont	 = TSendDlg::GetEditFont();
- 	HFONT	hOldFont = NULL;
- 	if (hFont) hOldFont = (HFONT)::SelectObject(hDc, hFont);
-
-	Wstr	wstr(col.memo.c_str());
-	SIZE	size = {};
-	::GetTextExtentPoint32W(hDc, wstr.s(), (int)wcslen(wstr.s()), &size);
-	size.cx += RC_MARGIN * 2;
-	size.cy += RC_MARGIN * 2;
-	TRect	rc(pt->x - size.cx/2 + RC_MARGIN, pt->y + RC_MARGIN, size.cx, size.cy);
-
-	::InflateRect(&max_rc, -RC_MARGIN, -RC_MARGIN);
-
-	if (rc.x() < max_rc.x()) {
-		rc.x() = max_rc.x();
-	}
-	else if ((rc.x() + size.cx) > max_rc.right) {
-		rc.x() = max_rc.right - size.cx;
-	}
-	if (col.pts.front().y > col.pts.back().y) {
-		rc.y() -= size.cy + RC_MARGIN * 2;
-	}
-	if (rc.y() < max_rc.y()) {
-		rc.y() = max_rc.y();
-	}
-	else if ((rc.y() + size.cy) > max_rc.bottom) {
-		rc.y() = max_rc.bottom - size.cy;
-	}
-	rc.set_cx(size.cx);
-	rc.set_cy(size.cy);
-
-	TRect	trc(rc.x()+RC_MARGIN, rc.y()+RC_MARGIN, rc.cx(), rc.cy());
-
-	HBRUSH	hBrush = ::CreateSolidBrush(col.bgColor);
-
-	::SetBkMode(hDc, TRANSPARENT);
-	HBRUSH	 hOldBrush = (HBRUSH)::SelectObject(hDc, (HGDIOBJ)hBrush);
-	::SetTextColor(hDc, col.color);
-
-	::InflateRect(&rc, RC_MARGIN, RC_MARGIN);
-	RoundRect(hDc, rc.left, rc.top, rc.right, rc.bottom, 6, 6);
-
-	::DrawTextW(hDc, wstr.s(), -1, &trc, DT_LEFT);
-
-	::SelectObject(hDc, hOldBrush);
-	if (hOldFont) ::SelectObject(hDc, hOldFont);
-	::DeleteObject(hBrush);
-
-	return	rc;
 }
 
 BOOL TImageWin::DrawArea(POINTS *pts)
@@ -730,6 +777,27 @@ BOOL TImageWin::DrawArea(POINTS *pts)
 	return	TRUE;
 }
 
+TImageWin::ResizeMode TImageWin::GetResizeMode(POINTS pts)
+{
+	short	diff = 0;
+	int	mode = RESIZE_NONE;
+	if ((diff = areaPts[0].x - pts.x) >= 0 && diff < 10) mode |= RESIZE_X;
+	if ((diff = pts.x - areaPts[1].x) >= 0 && diff < 10) mode |= RESIZE_CX;
+	if ((diff = areaPts[0].y - pts.y) >= 0 && diff < 10) mode |= RESIZE_Y;
+	if ((diff = pts.y - areaPts[1].y) >= 0 && diff < 10) mode |= RESIZE_CY;
+	return	(ResizeMode)mode;
+}
+
+BOOL TImageWin::IsOverArea(POINTS pts)
+{
+	short	diff = 0;
+	if ((diff = areaPts[0].x - pts.x) >= 0) return TRUE;
+	if ((diff = pts.x - areaPts[1].x) >= 0) return TRUE;
+	if ((diff = areaPts[0].y - pts.y) >= 0) return TRUE;
+	if ((diff = pts.y - areaPts[1].y) >= 0) return TRUE;
+	return	FALSE;
+}
+
 BOOL TImageWin::EvMouseMove(UINT fwKeys, POINTS pts)
 {
 	if (status == START) {
@@ -763,34 +831,69 @@ BOOL TImageWin::EvMouseMove(UINT fwKeys, POINTS pts)
 		}
 		DrawMarker();
 	}
+	else if (status == RESIZE_AREA) {
+		if (rsMode & RESIZE_X) {
+			areaPts[0].x = min(pts.x, areaPts[1].x);
+		}
+		if (rsMode & RESIZE_CX) {
+			areaPts[1].x = max(pts.x, areaPts[0].x);
+		}
+		if (rsMode & RESIZE_Y) {
+			areaPts[0].y = min(pts.y, areaPts[1].y);
+		}
+		if (rsMode & RESIZE_CY) {
+			areaPts[1].y = max(pts.y, areaPts[0].y);
+		}
+		lastPts = areaPts[1];
+		TRect rc(areaPts[0], lastPts);
+		rc.Regular();
+		auto inflate = reEdit ? 100 : 1;
+		InflateRect(&rc, inflate, inflate);
+		InvalidateRect(&rc, TRUE);
+	}
+
+	SetCursor(&pts);
+
 	return	TRUE;
+}
+
+
+void TImageWin::NormalizeArea()
+{
+	if (areaPts[0].x > areaPts[1].x) {
+		auto x = areaPts[0].x;
+		areaPts[0].x = areaPts[1].x;
+		areaPts[1].x = x;
+	}
+	if (areaPts[0].y > areaPts[1].y) {
+		auto y = areaPts[0].y;
+		areaPts[0].y = areaPts[1].y;
+		areaPts[1].y = y;
+	}
+	lastPts = areaPts[1];
 }
 
 BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts) // クライアント座標
 {
-	if (status == INIT) {
-		if (uMsg == WM_LBUTTONDOWN) {
+	if (uMsg == WM_LBUTTONDOWN) {
+		::SetCapture(hWnd);
+		if (status == INIT) {
 			status = START;
 			areaPts[0] = lastPts = pts;
+			return	TRUE;
 		}
-	}
-	else if (status == START && !areaDlg.hWnd) {
-		if (uMsg == WM_LBUTTONUP) {
-			areaPts[1] = pts;
-			if ((areaPts[0].x == areaPts[1].x) || (areaPts[0].y == areaPts[1].y)) {
-				status = INIT;
-				InvalidateRect(NULL, FALSE);
-			}
-			else {
-				status = END;
-				areaDlg.Create(&useClip, &withSave);
-				//MakeDarkBmp(100);
-				InvalidateRect(NULL, FALSE);
-			}
+		if (status == START) {
+			return	TRUE;
 		}
-	}
-	else if (status == DRAW_INIT) {
-		if (uMsg == WM_LBUTTONDOWN) {
+		rsMode = GetResizeMode(pts);
+		if (rsMode != RESIZE_NONE) {
+			status = RESIZE_AREA;
+			return	TRUE;
+		}
+		if (IsOverArea(pts)) {
+			return	TRUE;
+		}
+		if (status == DRAW_INIT) {
 			status = DRAW_START;
 			drawPts.push_back(ColPts());
 			drawPts.back().mode  = areaDlg.GetMode();
@@ -799,10 +902,35 @@ BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts) // クライア
 			drawPts.back().pts.push_back(pts);
 			areaDlg.Notify();
 			DrawMarker();
+			return	TRUE;
 		}
 	}
-	else if (status == DRAW_START) {
-		if (uMsg == WM_LBUTTONUP) {
+
+	if (uMsg == WM_LBUTTONUP) {
+		::ReleaseCapture();
+		if (status == START) {
+			if (!areaDlg.hWnd) {
+				areaPts[1] = pts;
+				if ((areaPts[0].x == areaPts[1].x) || (areaPts[0].y == areaPts[1].y)) {
+					status = INIT;
+					InvalidateRect(NULL, FALSE);
+				}
+				else {
+					NormalizeArea();
+					status = END;
+					areaDlg.Create(&useClip, &withSave);
+					//MakeDarkBmp(100);
+					InvalidateRect(NULL, FALSE);
+				}
+			}
+			return	TRUE;
+		}
+		if (status == RESIZE_AREA) {
+			rsMode = RESIZE_NONE;
+			status = DRAW_INIT;
+			return	TRUE;
+		}
+		if (status == DRAW_START) {
 			status = DRAW_INIT;
 			if (areaDlg.GetMode() == MARKER_ARROW && drawPts.back().pts.size() > 1) {
 				drawPts.back().pts.pop_back();
@@ -837,9 +965,9 @@ BOOL TImageWin::EventButton(UINT uMsg, int nHitTest, POINTS pts) // クライア
 			else {
 				drawPts.back().pts.push_back(pts);
 			}
+			return	TRUE;
 		}
 	}
-
 	return	TRUE;
 }
 
@@ -851,8 +979,8 @@ void TImageWin::Notify(int result)
 			SetMode(TRUE);
 		}
 		else {
-			::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[CROSS_ID]));
 			status = INIT;
+			SetCursor();
 			MakeDarkBmp(200);
 		}
 		InvalidateRect(NULL, FALSE);
@@ -869,6 +997,39 @@ void TImageWin::Notify(int result)
 	}
 }
 
+void TImageWin::SetCursor(POINTS *pts)
+{
+	HCURSOR		h_cur = cursorMap[ARROW_ID];
+
+	if (status == INIT) {
+		h_cur = cursorMap[CROSS_ID];
+	}
+	else if (status >= DRAW_INIT) {
+		auto	color = areaDlg.GetColor();
+		auto	itr = cursorMap.find(CURSOR_IDX(color, areaDlg.GetMode() != MARKER_PEN));
+		if (itr != cursorMap.end()) {
+			h_cur = itr->second;
+		}
+	}
+
+	auto rsmode_to_sizeid = [](auto rsm) {
+		return	(rsm == RESIZE_X  || rsm == RESIZE_CX)   ? SIZEWE_ID :
+				(rsm == RESIZE_Y  || rsm == RESIZE_CY)   ? SIZENS_ID :
+				(rsm == RESIZE_XY || rsm == RESIZE_CXCY) ? SIZENWSE_ID : SIZENESW_ID;
+	};
+	if (status == RESIZE_AREA) {
+		h_cur = cursorMap[rsmode_to_sizeid(rsMode)];
+	}
+	if (pts) {
+		auto rsm = GetResizeMode(*pts);
+		if (rsm != RESIZE_NONE) {
+			h_cur = cursorMap[rsmode_to_sizeid(rsm)];
+		}
+	}
+
+	::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(h_cur));
+}
+
 void TImageWin::SetMode(BOOL is_draw)
 {
 	if (is_draw) {
@@ -876,16 +1037,11 @@ void TImageWin::SetMode(BOOL is_draw)
 			status = DRAW_INIT;
 			drawPts.clear();
 		}
-		auto	color = areaDlg.GetColor();
-		auto	itr = cursorMap.find(CURSOR_IDX(color, areaDlg.GetMode() != MARKER_PEN));
-		if (itr != cursorMap.end()) {
-			::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(itr->second));
-		}
 	}
 	else {
 		status = END;
-		::SetClassLong(hWnd, GCL_HCURSOR, LONG_RDC(cursorMap[ARROW_ID]));
 	}
+	SetCursor();
 }
 
 void TImageWin::PopDrawHist()
@@ -903,8 +1059,8 @@ BOOL TImageWin::CutImage(BOOL use_clip, BOOL with_save)
 
 	rc.right  += 1; // include right/bottom line pixel
 	rc.bottom += 1;
-	int	off_x = reEdit ? 0 : rc.left;
-	int	off_y = reEdit ? 0 : rc.top;
+	int	off_x = reEdit ? (rc.x() - reRc.x()) : rc.left;
+	int	off_y = reEdit ? (rc.y() - reRc.y()) : rc.top;
 
 	HDC		hAreaDc		= ::CreateCompatibleDC(hSelfDc);
 	HBITMAP	hAreaBmp	= ::CreateCompatibleBitmap(hSelfDc, rc.cx(), rc.cy());

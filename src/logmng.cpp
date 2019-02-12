@@ -22,11 +22,14 @@
 #define LOGMSG_TO		" To: "
 #define LOGMSG_AT		"  at "
 
-LogMng::LogMng(Cfg *_cfg)
+LogMng::LogMng(Cfg *_cfg, BOOL is_alt)
 {
 	cfg   = _cfg;
 	logDb = NULL;
 	logMsg = new LogMsg;
+	isAlt = is_alt;
+
+	logFile = cfg->LogFile;
 }
 
 LogMng::~LogMng()
@@ -69,7 +72,7 @@ void SetLogMsgUser(Cfg *cfg, HostSub *hostSub, THosts *hosts, LogMsg *logmsg)
 	logmsg->host.push_back(log_host);
 }
 
-void SetLogMsgUser(Host *host, LogMsg *logmsg)
+void SetLogMsgUser(Host *host, LogMsg *logmsg, bool insert_recvtop=false)
 {
 	LogHost	log_host;
 
@@ -83,7 +86,12 @@ void SetLogMsgUser(Host *host, LogMsg *logmsg)
 		log_host.nick = host->hostSub.u.userName;
 	}
 
-	logmsg->host.push_back(log_host);
+	if (insert_recvtop) {
+		logmsg->host.insert(logmsg->host.begin() +1, log_host);
+	}
+	else {
+		logmsg->host.push_back(log_host);
+	}
 }
 
 BOOL LogMng::WriteSendStart()
@@ -405,6 +413,7 @@ BOOL LogMng::WriteMsg(ULONG packetNo, LPCSTR msg, ULONG command, int opt, time_t
 #undef  LOGMNG_WRITEMSG
 #endif
 
+
 	if (logDb && cfg->LogCheck) {
 		logDb->InsertOneData(logMsg);
 		PostMessage(GetMainWnd(), WM_LOGVIEW_UPDATE,
@@ -417,6 +426,7 @@ BOOL LogMng::WriteMsg(ULONG packetNo, LPCSTR msg, ULONG command, int opt, time_t
 
 	return	ret;
 }
+
 
 BOOL LogMng::ReadCheckStatus(MsgIdent *mi, BOOL is_recv, BOOL unread_tmp)
 {
@@ -482,13 +492,13 @@ BOOL LogMng::Write(LPCSTR str)
 {
 	BOOL	ret = FALSE;
 
-	if (!cfg->LogCheck || *cfg->LogFile == 0)
+	if (!cfg->LogCheck || *logFile == 0)
 		return	TRUE;
 
 	HANDLE		fh;
 	DWORD		size;
 
-	if ((fh = CreateFileWithDirU8(cfg->LogFile, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
+	if ((fh = CreateFileWithDirU8(logFile, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
 		NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)) != INVALID_HANDLE_VALUE) {
 		::SetFilePointer(fh, 0, 0, FILE_END);
 		str = cfg->LogUTF8 ? str : U8toAs(str);
@@ -499,6 +509,7 @@ BOOL LogMng::Write(LPCSTR str)
 	return	ret;
 }
 
+// need thread safe (from WriteLogToFileProc)
 int MakeHostFormat(LogHost *host, WCHAR *wbuf, int max_len)
 {
 	int		len = 0;
@@ -520,6 +531,7 @@ int MakeHostFormat(LogHost *host, WCHAR *wbuf, int max_len)
 	return	len;
 }
 
+// need thread safe (from WriteLogToFileProc)
 int LogMng::MakeMsgHead(LogMsg *msg, WCHAR *wbuf, int max_len, BOOL with_self)
 {
 	int			len = 0;
@@ -631,7 +643,7 @@ void LogMng::StrictLogFile(char *logFile)
 	return;
 }
 
-BOOL LogToDbName(const char *log_name, char *db_name)
+BOOL LogToDbName(const char *log_name, char *db_name, BOOL isAlt=FALSE)
 {
 	char	*fname=NULL;
 
@@ -653,6 +665,7 @@ BOOL LogToDbName(const char *log_name, char *db_name)
 
 	strcpy(fname, IPMSG_LOGDBNAME);
 
+
 	return	TRUE;
 }
 
@@ -660,7 +673,7 @@ BOOL LogMng::IsLogDbExists()
 {
 	char path[MAX_PATH_U8];
 
-	if (!LogToDbName(cfg->LogFile, path)) {
+	if (!LogToDbName(logFile, path, isAlt)) {
 		return	FALSE;
 	}
 
@@ -671,7 +684,7 @@ BOOL LogMng::InitLogDb(BOOL with_import)
 {
 	char	path[MAX_PATH_U8];
 
-	if (!LogToDbName(cfg->LogFile, path)) {
+	if (!LogToDbName(logFile, path, isAlt)) {
 		return	FALSE;
 	}
 
@@ -682,7 +695,7 @@ BOOL LogMng::InitLogDb(BOOL with_import)
 	logDb->Init(wpath.s());
 
 	if (!db_exists && with_import) {
-		AddTextLogToDb(cfg, logDb, cfg->LogFile);
+		AddTextLogToDb(cfg, logDb, logFile);
 	}
 	return	TRUE;
 }

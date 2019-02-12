@@ -40,8 +40,15 @@ BOOL LogDb::Init(const WCHAR *fname)
 {
 	BOOL new_db = false;
 
+#ifdef REPLACE_DEBUG_ALLOCATOR
+	return FALSE;
+#endif
 	dbName = fname;
 	if (::GetFileAttributesW(dbName.s()) == 0xffffffff) {
+		WCHAR	dir[MAX_PATH];
+		if (GetParentDirW(dbName.s(), dir)) {
+			CreateDirectoryW(dir, NULL);
+		}
 		new_db = true;
 	}
 	BOOL ret = sqlite3_open16(dbName.s(), &sqlDb) == SQLITE_OK;
@@ -1052,6 +1059,7 @@ ERR:
 	return	FALSE;
 }
 
+// need thread safe (from WriteLogToFileProc)
 BOOL LogDb::SelectOneData(int64 msg_id, LogMsg *msg)
 {
 	sqlite3_stmt	*sel_msg   = NULL;
@@ -2637,5 +2645,6 @@ int LogDb::PrefetchFile(const WCHAR *path, HWND hWnd, UINT doneMsg, BOOL with_va
 	_beginthread(PrefetchFileProc, 0, (void *)param);
 	return	0;
 }
+
 
 

@@ -238,6 +238,7 @@ public:
 	size_t	AddUsedSize(size_t _used_size) { return usedSize += _used_size; }
 	size_t	RemainSize(void) const { return size - usedSize; }
 	VBuf& operator =(const VBuf&); // prohibit
+	BOOL	Duplicate(VBuf *buf);
 	void	EnableDumpExcept(BOOL on=TRUE) { dumpExcept = on; }
 };
 
@@ -276,6 +277,12 @@ public:
 		return	Get(idx);
 	}
 	VBVec<T>& operator =(const VBVec<T> &);	// default definition is none
+	bool Duplicate(VBVec<T> *dup) {
+		if (!VBuf::Duplicate(dup)) return false;
+		dup->growSize = growSize;
+		dup->usedNum = usedNum;
+		return true;
+	}
 	bool Aquire(size_t idx) {
 		size_t	need_num = idx + 1;
 		if (need_num <= usedNum) {
@@ -471,6 +478,15 @@ public:
 		if (init_buf) {
 			memcpy(buf, init_buf, _size);
 			usedSize = _size;
+		}
+	}
+	void Realloc(size_t _size, bool used_size_only=false) {
+		if (_size > size) {
+			char *next_buf = (char *)malloc(_size);
+			memcpy(next_buf, buf, used_size_only ? usedSize : size);
+			free(buf);
+			buf = next_buf;
+			size = _size;
 		}
 	}
 	void Free() 		{ Alloc(0); }
@@ -839,6 +855,17 @@ BOOL TGetUrlAssocAppW(const WCHAR *scheme, WCHAR *wbuf, int max_len);
 time_t TGetBuildTimestamp();
 
 #define BIT_SET(flg, targ, val) (flg ? (targ |= val) : (targ &= ~val))
+
+//#define REPLACE_DEBUG_ALLOCATOR
+#ifdef REPLACE_DEBUG_ALLOCATOR
+extern "C" {
+void *valloc(size_t);
+void *vrealloc(void *, size_t);
+void *vcalloc(size_t, size_t);
+void vfree(void *);
+void replace_allocator();
+}
+#endif
 
 #endif
 

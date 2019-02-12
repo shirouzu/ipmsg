@@ -27,11 +27,3 @@ BOOL IPDictCopy(IPDict *dict, const char *fname, const char *dst, BOOL *is_rotat
 BOOL GetIPDictBySelf(IPDict *dict);
 BOOL IsSameFileDict(IPDict *dict, const char *fname, const char *dst);
 
-#define IPMSG_EXE	"IPMsg.exe"
-#define UNINST_EXE	"uninst.exe"
-#define IPCMD_EXE	"ipcmd.exe"
-#define IPTOAST_DLL	"iptoast.dll"
-#define IPMSG_CHM	"ipmsg.chm"
-#define IPEXC_PNG	"ipexc.png"
-#define IPMSG_PNG	"ipmsg.png"
-

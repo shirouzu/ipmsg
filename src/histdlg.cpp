@@ -1,15 +1,14 @@
 ﻿static char *histdlg_id = 
-	"@(#)Copyright (C) H.Shirouzu 2011-2018   histdlg.cpp	Ver4.90";
+	"@(#)Copyright (C) H.Shirouzu 2011-2019   histdlg.cpp	Ver4.99";
 /* ========================================================================
 	Project  Name			: IP Messenger for Win32
 	Module Name				: History Dialog
 	Create					: 2011-07-24(Sun)
-	Update					: 2018-09-12(Wed)
+	Update					: 2019-01-12(Sat)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
 
-#include "resource.h"
 #include "ipmsg.h"
 
 #define MAX_HISTHASH	1001
